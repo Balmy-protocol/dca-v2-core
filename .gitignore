@@ -1,0 +1,12 @@
+node_modules
+
+# Coverage
+coverage.json
+coverage
+
+# Hardhat files
+cache
+artifacts
+
+# Config files
+.config.json
