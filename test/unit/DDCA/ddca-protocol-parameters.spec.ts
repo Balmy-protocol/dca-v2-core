@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, uniswap, erc20, behaviours } from '../utils';
+import { constants, uniswap, erc20, behaviours } from '../../utils';
 
 describe('DDCAProtocolParameters', function () {
   let owner: Signer, feeRecipient: Signer;

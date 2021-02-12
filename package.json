@@ -28,8 +28,12 @@
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable",
     "release": "standard-version",
-    "test": "npx hardhat test",
-    "test:gas": "REPORT_GAS=1 npx hardhat test"
+    "test": "TEST=true hardhat compile && TEST=true mocha --require hardhat/register",
+    "test:e2e": "npm run test ./test/e2e/**/*.spec.ts",
+    "test:e2e:gas": "REPORT_GAS=1 npm run test:e2e",
+    "test:gas": "REPORT_GAS=1 npm run test",
+    "test:unit": "npm run test --recursive 'test/unit/**/*.spec.ts'",
+    "test:unit:gas": "REPORT_GAS=1 npm run test:unit"
   },
   "dependencies": {
     "@openzeppelin/contracts": "3.4.0",
@@ -56,6 +60,7 @@
     "hardhat-gas-reporter": "1.0.4",
     "hardhat-preprocessor": "0.1.2",
     "husky": "5.0.9",
+    "moment": "^2.29.1",
     "pinst": "2.1.4",
     "prettier": "2.2.1",
     "prettier-plugin-solidity": "1.0.0-beta.5",

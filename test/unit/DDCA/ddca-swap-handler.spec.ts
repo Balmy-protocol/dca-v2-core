@@ -2,7 +2,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, uniswap, erc20, behaviours, evm } from '../utils';
+import { constants, uniswap, erc20, behaviours, evm } from '../../utils';
 
 const MAGNITUDE = ethers.BigNumber.from('10').pow('18');
 const MINIMUM_SWAP_INTERVAL = ethers.BigNumber.from('60');
