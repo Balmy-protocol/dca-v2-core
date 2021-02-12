@@ -1,7 +1,5 @@
 import '@nomiclabs/hardhat-waffle';
-import '@nomiclabs/hardhat-ganache';
 import '@nomiclabs/hardhat-etherscan';
-import '@nomiclabs/hardhat-solhint';
 import { removeConsoleLog } from 'hardhat-preprocessor';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
