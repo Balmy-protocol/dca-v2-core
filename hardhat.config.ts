@@ -9,11 +9,11 @@ import config from './.config.json';
 
 let hardhat = {};
 
-if (process.env.FORK) { 
+if (process.env.FORK) {
   hardhat = {
-    forking: { 
-      url: `https://eth-mainnet.alchemyapi.io/v2/${config.alchemy.mainnet.apiKey}`
-    }
+    forking: {
+      url: `https://eth-mainnet.alchemyapi.io/v2/${config.alchemy.mainnet.apiKey}`,
+    },
   };
 }
 
@@ -30,14 +30,14 @@ module.exports = {
       url: `https://eth-ropsten.alchemyapi.io/v2/${config.alchemy.ropsten.apiKey}`,
       accounts: [config.accounts.ropsten.privateKey],
       gasMultiplier: 1.1,
-      gasPrice: 'auto'
+      gasPrice: 'auto',
     },
     mainnet: {
       url: `https://eth-mainnet.alchemyapi.io/v2/${config.alchemy.mainnet.apiKey}`,
       accounts: [config.accounts.mainnet.privateKey],
       gasMultiplier: 1.1,
-      gasPrice: 'auto'
-    }
+      gasPrice: 'auto',
+    },
   },
   solidity: {
     compilers: [
@@ -46,24 +46,27 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200
+            runs: 200,
           },
-        }
-      }
-    ]
+        },
+      },
+    ],
   },
   mocha: {
-    timeout: 100000
+    timeout: 100000,
   },
   gasReporter: {
     currency: 'USD',
     coinmarketcap: config.coinmarketcap.apiKey,
-    enabled: (process.env.REPORT_GAS) ? true : false
+    enabled: process.env.REPORT_GAS ? true : false,
   },
   preprocess: {
-    eachLine: removeConsoleLog((hre) => hre.network.name !== 'hardhat' && hre.network.name !== 'localhost'),
+    eachLine: removeConsoleLog(
+      (hre) =>
+        hre.network.name !== 'hardhat' && hre.network.name !== 'localhost'
+    ),
   },
   etherscan: {
-    apiKey: `${config.etherscan.apiKey}`
-  }
+    apiKey: `${config.etherscan.apiKey}`,
+  },
 };

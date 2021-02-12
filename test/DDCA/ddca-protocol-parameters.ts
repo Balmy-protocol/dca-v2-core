@@ -3,10 +3,11 @@ import { Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, uniswap, erc20, behaviours } from '../utils';
 
-describe('DDCAProtocolParameters', function() {
+describe('DDCAProtocolParameters', function () {
   let owner: Signer, feeRecipient: Signer;
   let fromToken: Contract, toToken: Contract;
-  let DDCAProtocolParametersContract: ContractFactory, DDCAProtocolParameters: Contract;
+  let DDCAProtocolParametersContract: ContractFactory,
+    DDCAProtocolParameters: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner, feeRecipient] = await ethers.getSigners();
@@ -17,19 +18,19 @@ describe('DDCAProtocolParameters', function() {
 
   beforeEach('Deploy and configure', async () => {
     await uniswap.deploy({
-      owner
+      owner,
     });
     fromToken = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
-      initialAmount: utils.parseEther('1')
+      initialAmount: utils.parseEther('1'),
     });
     toToken = await erc20.deploy({
       name: 'DAI2',
       symbol: 'DAI2',
       initialAccount: await owner.getAddress(),
-      initialAmount: utils.parseEther('1')
+      initialAmount: utils.parseEther('1'),
     });
     DDCAProtocolParameters = await DDCAProtocolParametersContract.deploy(
       await feeRecipient.getAddress(),
@@ -60,7 +61,7 @@ describe('DDCAProtocolParameters', function() {
         await behaviours.shouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setFeeRecipient',
-          args: [constants.ZERO_ADDRESS]
+          args: [constants.ZERO_ADDRESS],
         });
       });
     });
@@ -71,7 +72,7 @@ describe('DDCAProtocolParameters', function() {
           getterFunc: 'feeRecipient',
           setterFunc: 'setFeeRecipient',
           variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'FeeRecipientSet'
+          eventEmitted: 'FeeRecipientSet',
         });
       });
     });
@@ -83,7 +84,7 @@ describe('DDCAProtocolParameters', function() {
         await behaviours.shouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setFrom',
-          args: [constants.ZERO_ADDRESS]
+          args: [constants.ZERO_ADDRESS],
         });
       });
     });
@@ -94,7 +95,7 @@ describe('DDCAProtocolParameters', function() {
           getterFunc: 'from',
           setterFunc: 'setFrom',
           variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'FromSet'
+          eventEmitted: 'FromSet',
         });
       });
     });
@@ -106,7 +107,7 @@ describe('DDCAProtocolParameters', function() {
         await behaviours.shouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setTo',
-          args: [constants.ZERO_ADDRESS]
+          args: [constants.ZERO_ADDRESS],
         });
       });
     });
@@ -117,7 +118,7 @@ describe('DDCAProtocolParameters', function() {
           getterFunc: 'to',
           setterFunc: 'setTo',
           variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'ToSet'
+          eventEmitted: 'ToSet',
         });
       });
     });
@@ -129,7 +130,7 @@ describe('DDCAProtocolParameters', function() {
         await behaviours.shouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setUniswap',
-          args: [constants.ZERO_ADDRESS]
+          args: [constants.ZERO_ADDRESS],
         });
       });
     });
@@ -140,7 +141,7 @@ describe('DDCAProtocolParameters', function() {
           getterFunc: 'uniswap',
           setterFunc: 'setUniswap',
           variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'UniswapSet'
+          eventEmitted: 'UniswapSet',
         });
       });
     });

@@ -3,9 +3,11 @@
   "plugins": ["prettier"],
   "rules": {
     "prettier/prettier": "error",
-    "compiler-version": ["error", "^0.7.0"],
-    "quotes": ["error", "single"],
-    "not-rely-on-time": "off",
-    "indent": 2
+    "compiler-version": ["off"],
+    "constructor-syntax": "warn",
+    "quotes": ["error", "double"],
+    "private-vars-leading-underscore": ["warn", { "strict": false }],
+    "reason-string": ["off"],
+    "not-rely-on-time": "off"
   }
 }

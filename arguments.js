@@ -1,3 +1,1 @@
-module.exports = [
-  'Hello, Hardhat!'
-];
+module.exports = ['Hello, Hardhat!'];

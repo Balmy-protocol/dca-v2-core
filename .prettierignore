@@ -1,0 +1,25 @@
+# General
+.DS_STORE
+.prettierignore
+.solhintignore
+.husky
+.gitignore
+.gitattributes
+.versionrc
+.env
+.env.example
+
+# Hardhat
+artifacts
+cache
+
+# JS
+node_modules
+package-lock.json
+
+# Coverage
+coverage
+coverage.json
+
+# Solidity
+contracts/mock
