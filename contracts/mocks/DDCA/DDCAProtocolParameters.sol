@@ -39,6 +39,6 @@ contract DDCAProtocolParametersMock is DDCAProtocolParameters {
     uint256 _swap,
     uint256[2] memory _averageRatePerUnit
   ) public {
-    averageRatesPerUnit[_swap] = _averageRatePerUnit;
+    accumRatesPerUnit[_swap] = _averageRatePerUnit;
   }
 }

@@ -57,43 +57,45 @@ abstract contract DDCASwapHandler is DDCAProtocolParameters, IDDCASwapHandler {
     );
     uint256 _newPerformedSwaps = performedSwaps.add(1);
     require(
-      int256(swapAmountAccumulator) + swapAmountDelta[performedSwaps] > 0,
+      int256(swapAmountAccumulator) + swapAmountDelta[_newPerformedSwaps] > 0,
       'DDCASH: amount should be > 0'
     );
     swapAmountAccumulator += uint256(swapAmountDelta[_newPerformedSwaps]);
     uint256 _balanceBeforeSwap = to.balanceOf(address(this));
     _uniswapSwap(swapAmountAccumulator);
     uint256 _boughtBySwap = to.balanceOf(address(this)).sub(_balanceBeforeSwap);
+    // TODO: Add some checks, for example to verify that _boughtBySwap is positive?. Even though it should never happen, let's be safe
     // console.log('bought by swap %s', _boughtBySwap);
     uint256 _ratePerUnit =
       (_boughtBySwap.mul(MAGNITUDE)).div(swapAmountAccumulator);
     // console.log('rate per unit %s', _ratePerUnit);
     // console.log('overflow guard %s', OVERFLOW_GUARD);
     // console.log(
-    //   'averageRatesPerUnit[performedSwaps][0] %s',
-    //   averageRatesPerUnit[performedSwaps][0]
+    //   'accumRatesPerUnit[performedSwaps][0] %s',
+    //   accumRatesPerUnit[performedSwaps][0]
     // );
     // console.log(
-    //   'OVERFLOW_GUARD.sub(averageRatesPerUnit[performedSwaps][0]) %s',
-    //   OVERFLOW_GUARD.sub(averageRatesPerUnit[performedSwaps][0])
+    //   'OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0]) %s',
+    //   OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0])
     // );
     if (_newPerformedSwaps == 1) {
-      averageRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit, 0];
+      accumRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit, 0];
     } else if (
-      _ratePerUnit >= OVERFLOW_GUARD.sub(averageRatesPerUnit[performedSwaps][0])
+      _ratePerUnit >= OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0]) // TODO: Assume that OVERFLOW_GUARD = Max number and check if accumRatesPerUnit[performedSwaps][0] + _ratePerUnit < accumRatesPerUnit[performedSwaps][0]?
     ) {
       uint256 _missingUntilOverflow =
-        OVERFLOW_GUARD.sub(averageRatesPerUnit[performedSwaps][0]);
-      averageRatesPerUnit[_newPerformedSwaps] = [
+        OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0]);
+      accumRatesPerUnit[_newPerformedSwaps] = [
         _ratePerUnit.sub(_missingUntilOverflow),
-        averageRatesPerUnit[performedSwaps][1].add(1)
+        accumRatesPerUnit[performedSwaps][1].add(1)
       ];
     } else {
-      averageRatesPerUnit[_newPerformedSwaps] = [
-        averageRatesPerUnit[performedSwaps][0].add(_ratePerUnit),
-        averageRatesPerUnit[performedSwaps][1]
+      accumRatesPerUnit[_newPerformedSwaps] = [
+        accumRatesPerUnit[performedSwaps][0].add(_ratePerUnit),
+        accumRatesPerUnit[performedSwaps][1]
       ];
     }
+    delete swapAmountDelta[performedSwaps];
     performedSwaps = _newPerformedSwaps;
     emit Swapped(swapAmountAccumulator, _boughtBySwap, _ratePerUnit);
   }

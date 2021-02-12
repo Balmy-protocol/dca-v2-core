@@ -22,21 +22,21 @@ contract DDCAPositionHandlerMock is DDCAPositionHandler, DDCASwapHandlerMock {
   }
 
   function withdrawSwapped() external override returns (uint256 _swapped) {
-    /* */
+    _withdrawSwapped();
   }
 
   function modifyRate(uint256 _newRate) external override {
-    /* */
+    _modifyRate(_newRate);
   }
 
   function modifyRateAndSwaps(uint256 _newRate, uint256 _newSwaps)
     external
     override
   {
-    /* */
+    _modifyRateAndSwaps(_newRate, _newSwaps);
   }
 
   function terminate() external override {
-    /* */
+    _terminate();
   }
 }

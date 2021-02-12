@@ -92,7 +92,7 @@ describe.only('DDCASwapHandler', function() {
     context('when some fonky stuff happend and wants to buy negative', () => {
       beforeEach(async () => {
         await DDCASwapHandler.setSwapAmountDelta(
-          ethers.BigNumber.from('1'), 
+          ethers.BigNumber.from('1'),
           ethers.BigNumber.from('-10')
         );
       });
@@ -112,7 +112,7 @@ describe.only('DDCASwapHandler', function() {
       const amountOfSwaps = 10;
       beforeEach(async () => {
         await uniswap.createPair({
-          tokenA: toToken, 
+          tokenA: toToken,
           tokenB: fromToken
         });
         // we try to maximize rate per unit to overflow
@@ -129,8 +129,8 @@ describe.only('DDCASwapHandler', function() {
       it('stores accumulated rates per unit, increases performed swaps and emits event', async () => {
         for (let i = 0; i < amountOfSwaps; i++) {
           const previousBalance = await toToken.balanceOf(DDCASwapHandler.address);
-          const previousAverageRatePerUnit = await DDCASwapHandler.averageRatesPerUnit(await DDCASwapHandler.performedSwaps(), 0);
-          const previousOverflowGuard = await DDCASwapHandler.averageRatesPerUnit(await DDCASwapHandler.performedSwaps(), 1);
+          const previousAverageRatePerUnit = await DDCASwapHandler.accumRatesPerUnit(await DDCASwapHandler.performedSwaps(), 0);
+          const previousOverflowGuard = await DDCASwapHandler.accumRatesPerUnit(await DDCASwapHandler.performedSwaps(), 1);
           expect(previousBalance).to.equal(uniswapRatePerUnit.mul(i));
           expect(previousOverflowGuard).to.equal(0);
           expect(previousAverageRatePerUnit).to.equal(uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap).mul(i));
@@ -142,8 +142,8 @@ describe.only('DDCASwapHandler', function() {
               uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap)
             );
           const postBalance = await toToken.balanceOf(DDCASwapHandler.address);
-          const postAverageRatePerUnit = await DDCASwapHandler.averageRatesPerUnit(await DDCASwapHandler.performedSwaps(), 0);
-          const postOverflowGuard = await DDCASwapHandler.averageRatesPerUnit(await DDCASwapHandler.performedSwaps(), 1);
+          const postAverageRatePerUnit = await DDCASwapHandler.accumRatesPerUnit(await DDCASwapHandler.performedSwaps(), 0);
+          const postOverflowGuard = await DDCASwapHandler.accumRatesPerUnit(await DDCASwapHandler.performedSwaps(), 1);
           expect(postBalance).to.equal(previousBalance.add(uniswapRatePerUnit));
           expect(postOverflowGuard).to.equal(previousOverflowGuard);
           expect(postAverageRatePerUnit).to.equal(previousAverageRatePerUnit.add(uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap)));
@@ -162,7 +162,7 @@ describe.only('DDCASwapHandler', function() {
       const uniswapRatePerUnit = ethers.BigNumber.from('996');
       beforeEach(async () => {
         await uniswap.createPair({
-          tokenA: toToken, 
+          tokenA: toToken,
           tokenB: fromToken
         });
         // we try to maximize rate per unit to overflow
@@ -185,8 +185,8 @@ describe.only('DDCASwapHandler', function() {
         await fromToken.transfer(DDCASwapHandler.address, amountToSwap);
       });
       it('stores delta to overflowing, increases overflow multiplier, performed swaps and emits event', async () => {
-        const previousAverageRatePerUnit = await DDCASwapHandler.averageRatesPerUnit(performedSwaps, 0);
-        const previousOverflowGuard = await DDCASwapHandler.averageRatesPerUnit(performedSwaps, 1);
+        const previousAverageRatePerUnit = await DDCASwapHandler.accumRatesPerUnit(performedSwaps, 0);
+        const previousOverflowGuard = await DDCASwapHandler.accumRatesPerUnit(performedSwaps, 1);
         expect(await toToken.balanceOf(DDCASwapHandler.address)).to.equal(0);
         await expect(DDCASwapHandler.swap())
           .to.emit(DDCASwapHandler, 'Swapped')
@@ -196,15 +196,15 @@ describe.only('DDCASwapHandler', function() {
             uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap)
           );
         expect(await toToken.balanceOf(DDCASwapHandler.address)).to.equal(amountToSwap.mul(uniswapRatePerUnit));
-        const postAverageRatePerUnit = await DDCASwapHandler.averageRatesPerUnit(performedSwaps.add(1), 0);
-        const postOverflowGuard = await DDCASwapHandler.averageRatesPerUnit(performedSwaps.add(1), 1);
-        expect(previousAverageRatePerUnit).to.equal(await DDCASwapHandler.averageRatesPerUnit(performedSwaps, 0));
+        const postAverageRatePerUnit = await DDCASwapHandler.accumRatesPerUnit(performedSwaps.add(1), 0);
+        const postOverflowGuard = await DDCASwapHandler.accumRatesPerUnit(performedSwaps.add(1), 1);
+        expect(previousAverageRatePerUnit).to.equal(await DDCASwapHandler.accumRatesPerUnit(performedSwaps, 0));
         expect(postAverageRatePerUnit).to.equal(uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap).sub(missingToOverflow));
         expect(postOverflowGuard).to.equal(previousOverflowGuard.add(1));
       });
     });
   });
-  
+
   describe('_uniswapSwap', () => {
     it('correctly swaps indicated value from token to token');
   });

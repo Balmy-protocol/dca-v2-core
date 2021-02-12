@@ -35,7 +35,7 @@ interface IDDCAProtocolParameters {
 
   function swapAmountDelta(uint256) external returns (int256);
 
-  // TODO: function averageRatesPerUnit(uint256) external returns (uint256[2] memory);
+  // TODO: function accumRatesPerUnit(uint256) external returns (uint256[2] memory);
 
   // TODO: function userTrades(uint256) external returns (DCA);
 
@@ -50,7 +50,7 @@ interface IDDCAProtocolParameters {
 }
 
 abstract contract DDCAProtocolParameters is IDDCAProtocolParameters {
-  uint256 internal constant MAGNITUDE = 10**18;
+  uint256 internal constant MAGNITUDE = 10**18; // This should depend on the tokens used
   uint256 internal constant OVERFLOW_GUARD = 2**250;
   uint256 internal constant MINIMUM_SWAP_INTERVAL = 1 minutes;
 
@@ -62,7 +62,7 @@ abstract contract DDCAProtocolParameters is IDDCAProtocolParameters {
 
   // Tracking
   mapping(uint256 => int256) public override swapAmountDelta;
-  mapping(uint256 => uint256[2]) public averageRatesPerUnit;
+  mapping(uint256 => uint256[2]) public accumRatesPerUnit;
   mapping(address => DCA) public userTrades; // TODO: Deprecate to use IDs
 
   constructor(

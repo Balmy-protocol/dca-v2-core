@@ -27,8 +27,6 @@ interface IDDCAPositionHandler {
   function modifyRateAndSwaps(uint256 _newRate, uint256 _newSwaps) external;
 
   function terminate() external;
-
-  function availableSwapped() external returns (uint256);
 }
 
 abstract contract DDCAPositionHandler is DDCASwapHandler, IDDCAPositionHandler {
@@ -38,51 +36,124 @@ abstract contract DDCAPositionHandler is DDCASwapHandler, IDDCAPositionHandler {
 
   function _deposit(uint256 _rate, uint256 _amountOfSwaps) internal {
     from.safeTransferFrom(msg.sender, address(this), _rate.mul(_amountOfSwaps));
+    _addPosition(_rate, _amountOfSwaps);
+    // emit Deposited(msg.sender, _rate, _startingSwap, _finalSwap); TODO: Emit event
+  }
+
+  function _withdrawSwapped() internal returns (uint256 _swapped) {
+    // TODO: Check that the sender actually has a position set
+
+    _swapped = _calculateSwapped();
+
+    if (_swapped > 0) {
+      // TODO: update userTrades
+      to.safeTransferFrom(address(this), msg.sender, _swapped);
+    }
+
+    // TODO: Emit event
+  }
+
+  function _terminate() internal {
+    // TODO: Check that the sender actually has a position set
+
+    uint256 _swapped = _calculateSwapped();
+    uint256 _unswapped = _calculateUnswapped();
+
+    _removePosition();
+
+    if (_swapped > 0) {
+      to.safeTransferFrom(address(this), msg.sender, _swapped);
+    }
+
+    if (_unswapped > 0) {
+      from.safeTransferFrom(address(this), msg.sender, _unswapped);
+    }
+
+    // TODO: Emit event
+  }
+
+  function _modifyRate(uint256 _newRate) internal {
+    // TODO: Check that the sender actually has a position set
+
+    DCA memory _userDCA = userTrades[msg.sender];
+
+    // TODO: Check if the position is already completed. If it is, then fail
+
+    uint256 _swapsLeft = _userDCA.lastSwap.sub(performedSwaps);
+    _modifyRateAndSwaps(_newRate, _swapsLeft);
+  }
+
+  function _modifySwaps(uint256 _newSwaps) internal {
+    // TODO: Check that the sender actually has a position set
+
+    DCA memory _userDCA = userTrades[msg.sender];
+
+    _modifyRateAndSwaps(_userDCA.rate, _newSwaps);
+  }
+
+  function _modifyRateAndSwaps(uint256 _newRate, uint256 _newAmountOfSwaps)
+    internal
+  {
+    // TODO: Check that the sender actually has a position set
+
+    uint256 _unswapped = _calculateUnswapped();
+    uint256 _totalNecessary = _newRate.mul(_newAmountOfSwaps);
+    int256 _needed = int256(_totalNecessary - _unswapped);
+
+    _removePosition();
+    _addPosition(_newRate, _newAmountOfSwaps);
+
+    if (_needed > 0) {
+      // We need to ask for more funds
+      from.safeTransferFrom(msg.sender, address(this), uint256(_needed));
+    } else if (_needed < 0) {
+      // We need to return to the owner the amount that won't be used anymore
+      from.safeTransferFrom(address(this), msg.sender, uint256(_needed)); // TODO: Transfer 'uint256(abs(_needed))' here
+    }
+  }
+
+  function _addPosition(uint256 _rate, uint256 _amountOfSwaps) internal {
+    // TODO: Consider requesting _amountOfSwaps to be 2 or more, to avoid flash loans/mints
     uint256 _startingSwap = performedSwaps.add(1);
     uint256 _finalSwap = _startingSwap.add(_amountOfSwaps);
     swapAmountDelta[_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
     swapAmountDelta[_finalSwap] -= int256(_rate); // TODO: use SignedSafeMath
     userTrades[msg.sender] = DCA(_rate, _startingSwap, _finalSwap);
-    emit Deposited(msg.sender, _rate, _startingSwap, _finalSwap);
   }
 
-  function _withdrawSwapped() internal returns (uint256 _swapped) {}
-
-  function _terminate() internal {
-    // DCA memory _userDCA = userTrades[msg.sender];
-    // uint256 _finalDate = _userDCA.endDate;
-    // if (today < _userDCA.endDate) {
-    //   _finalDate = today;
-    //   swapAmountDelta[today] -= int256(_userDCA.amountPerDay);
-    //   swapAmountDelta[_userDCA.endDate] += int256(_userDCA.amountPerDay);
-    //   uint256 _unusedFromUser =
-    //     _userDCA.amountPerDay * (_userDCA.endDate - _finalDate);
-    //   from.safeTransfer(msg.sender, _unusedFromUser);
-    // }
-    // uint256 _boughtForUser =
-    //   _userDCA.amountPerDay *
-    //     (averageRatesPerUnit[_finalDate] -
-    //       averageRatesPerUnit[_userDCA.startDate - 1]);
-    // to.safeTransfer(msg.sender, _boughtForUser);
-    // delete userTrades[msg.sender];
-    // emit Canceled(
-    //   msg.sender,
-    //   _finalDate,
-    //   _userDCA.startDate,
-    //   _userDCA.endDate,
-    //   _userDCA.amountPerDay
-    // );
+  function _removePosition() internal {
+    DCA memory _userDCA = userTrades[msg.sender];
+    if (_userDCA.lastSwap > performedSwaps) {
+      swapAmountDelta[performedSwaps.add(1)] -= int256(_userDCA.rate); // TODO: use SignedSafeMath
+      swapAmountDelta[_userDCA.lastSwap] += int256(_userDCA.rate); // TODO: use SignedSafeMath
+    }
+    delete userTrades[msg.sender];
   }
 
-  function availableSwapped() external override returns (uint256) {
-    return 0;
+  /** Return the amount of tokens swapped in TO */
+  function _calculateSwapped() internal returns (uint256 _swapped) {
+    DCA memory _userDCA = userTrades[msg.sender];
+    uint256[2] memory _sumRatesLastWidthraw =
+      accumRatesPerUnit[_userDCA.lastWithdrawSwap];
+    uint256[2] memory _sumRatesPerformed = accumRatesPerUnit[performedSwaps];
+    _swapped = _sumRatesPerformed[1]
+      .sub(_sumRatesLastWidthraw[1])
+      .mul(_userDCA.rate)
+      .mul(OVERFLOW_GUARD)
+      .add(
+      _sumRatesPerformed[0].sub(_sumRatesLastWidthraw[0]).mul(_userDCA.rate)
+    );
+  }
+
+  /** Returns how many FROM remains unswapped  */
+  function _calculateUnswapped() internal returns (uint256 _unswapped) {
+    DCA memory _userDCA = userTrades[msg.sender];
+    if (_userDCA.lastSwap <= performedSwaps) {
+      return 0;
+    }
+    uint256 _remainingSwaps = _userDCA.lastSwap - performedSwaps;
+    _unswapped = _remainingSwaps.mul(_userDCA.rate);
   }
 }
 
-// - deposit
-// - changeAmountPerDay
-// - cancel
-// - extendEndDate
-// - shortenEndDate
-// - withdrawSwappedAssets
-// - withdrawAllSwappedAssets
+// TODO: withdrawAllSwappedAssets
