@@ -47,9 +47,6 @@ module.exports = {
       },
     ],
   },
-  mocha: {
-    timeout: process.env.MOCHA_TIMEOUT || 100000,
-  },
   gasReporter: {
     currency: process.env.COINMARKETCAP_DEFAULT_CURRENCY || 'USD',
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,

@@ -25,12 +25,18 @@
     "lint:check": "solhint 'contracts/**/*.sol' 'interfaces/**/*.sol' && prettier --check './**'",
     "lint:fix": "sort-package-json && prettier --write './**' && solhint --fix 'contracts/**/*.sol' 'interfaces/**/*.sol'",
     "release": "standard-version",
-    "test": "TEST=true hardhat compile && TEST=true mocha --require hardhat/register",
+    "test": "TEST=true hardhat compile && TEST=true mocha",
     "test:e2e": "npm run test 'test/e2e/**/*.spec.ts'",
     "test:e2e:gas": "REPORT_GAS=1 npm run test:e2e",
     "test:gas": "REPORT_GAS=1 npm run test",
     "test:unit": "npm run test 'test/unit/**/*.spec.ts'",
     "test:unit:gas": "REPORT_GAS=1 npm run test:unit"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint:fix",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
   },
   "dependencies": {
     "@openzeppelin/contracts": "3.4.0",
@@ -68,12 +74,6 @@
     "standard-version": "9.1.0",
     "ts-node": "9.1.1",
     "typescript": "4.1.5"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "yarn lint:fix",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
   },
   "authors": [
     {
