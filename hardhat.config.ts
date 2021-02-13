@@ -4,9 +4,6 @@ import '@nomiclabs/hardhat-etherscan';
 import { removeConsoleLog } from 'hardhat-preprocessor';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
-import config from './.config.json';
-
-let hardhat = {};
 
 module.exports = {
   defaultNetwork: 'hardhat',
