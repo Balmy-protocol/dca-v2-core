@@ -29,10 +29,10 @@
     "postpublish": "pinst --enable",
     "release": "standard-version",
     "test": "TEST=true hardhat compile && TEST=true mocha --require hardhat/register",
-    "test:e2e": "npm run test ./test/e2e/**/*.spec.ts",
+    "test:e2e": "npm run test 'test/e2e/**/*.spec.ts'",
     "test:e2e:gas": "REPORT_GAS=1 npm run test:e2e",
     "test:gas": "REPORT_GAS=1 npm run test",
-    "test:unit": "npm run test --recursive 'test/unit/**/*.spec.ts'",
+    "test:unit": "npm run test 'test/unit/**/*.spec.ts'",
     "test:unit:gas": "REPORT_GAS=1 npm run test:unit"
   },
   "dependencies": {
@@ -41,6 +41,8 @@
     "@uniswap/v2-periphery": "1.1.0-beta.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^11.0.0",
+    "@commitlint/config-conventional": "^11.0.0",
     "@nomiclabs/hardhat-ethers": "2.0.1",
     "@nomiclabs/hardhat-etherscan": "2.1.1",
     "@nomiclabs/hardhat-waffle": "2.0.1",
@@ -51,8 +53,6 @@
     "axios": "0.21.1",
     "chai": "4.3.0",
     "chai-as-promised": "7.1.1",
-    "commitizen": "4.2.3",
-    "cz-conventional-changelog": "3.3.0",
     "dotenv": "8.2.0",
     "ethereum-waffle": "3.2.2",
     "ethers": "5.0.30",
