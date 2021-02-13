@@ -22,11 +22,8 @@
     "fork": "FORK=true npx hardhat node",
     "fork:script": "FORK=true npx hardhat run",
     "fork:test": "FORK=true npx hardhat test",
-    "postinstall": "husky install",
     "lint:check": "solhint 'contracts/**/*.sol' 'interfaces/**/*.sol' && prettier --check './**'",
     "lint:fix": "sort-package-json && prettier --write './**' && solhint --fix 'contracts/**/*.sol' 'interfaces/**/*.sol'",
-    "prepublishOnly": "pinst --disable",
-    "postpublish": "pinst --enable",
     "release": "standard-version",
     "test": "TEST=true hardhat compile && TEST=true mocha --require hardhat/register",
     "test:e2e": "npm run test 'test/e2e/**/*.spec.ts'",
@@ -59,7 +56,7 @@
     "hardhat": "2.0.10",
     "hardhat-gas-reporter": "1.0.4",
     "hardhat-preprocessor": "0.1.2",
-    "husky": "5.0.9",
+    "husky": "^4.3.8",
     "moment": "^2.29.1",
     "pinst": "2.1.4",
     "prettier": "2.2.1",
@@ -71,6 +68,12 @@
     "standard-version": "9.1.0",
     "ts-node": "9.1.1",
     "typescript": "4.1.5"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint:fix",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
   },
   "authors": [
     {
