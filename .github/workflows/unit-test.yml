@@ -3,7 +3,7 @@ name: Unit tests
 on: [pull_request]
 
 jobs:
-  files:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out github repository
