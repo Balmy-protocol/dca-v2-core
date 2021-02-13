@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import '@nomiclabs/hardhat-waffle';
 import '@nomiclabs/hardhat-etherscan';
 import { removeConsoleLog } from 'hardhat-preprocessor';
@@ -7,36 +8,35 @@ import config from './.config.json';
 
 let hardhat = {};
 
-if (process.env.FORK) {
-  hardhat = {
-    forking: {
-      url: `https://eth-mainnet.alchemyapi.io/v2/${config.alchemy.mainnet.apiKey}`,
-    },
-  };
-}
-
 module.exports = {
   defaultNetwork: 'hardhat',
-  networks: {
-    hardhat,
-    localMainnet: {
-      url: 'http://127.0.0.1:8545',
-      accounts: [config.accounts.mainnet.privateKey],
-      gasMultiplier: 1.1,
-    },
-    ropsten: {
-      url: `https://eth-ropsten.alchemyapi.io/v2/${config.alchemy.ropsten.apiKey}`,
-      accounts: [config.accounts.ropsten.privateKey],
-      gasMultiplier: 1.1,
-      gasPrice: 'auto',
-    },
-    mainnet: {
-      url: `https://eth-mainnet.alchemyapi.io/v2/${config.alchemy.mainnet.apiKey}`,
-      accounts: [config.accounts.mainnet.privateKey],
-      gasMultiplier: 1.1,
-      gasPrice: 'auto',
-    },
-  },
+  networks: process.env.TEST
+    ? {}
+    : {
+        hardhat: {
+          enabled: process.env.FORK ? true : false,
+          forking: {
+            url: process.env.MAINNET_HTTPS_URL,
+          },
+        },
+        localMainnet: {
+          url: process.env.LOCAL_MAINNET_HTTP_URL,
+          accounts: [process.env.LOCAL_MAINNET_PRIVATE_KEY],
+          gasMultiplier: 1.1,
+        },
+        ropsten: {
+          url: process.env.ROPSTEN_HTTPS_URL,
+          accounts: [process.env.ROPSTEN_PRIVATE_KEY],
+          gasMultiplier: 1.1,
+          gasPrice: 'auto',
+        },
+        mainnet: {
+          url: process.env.MAINNET_HTTPS_URL,
+          accounts: [process.env.MAINNET_PRIVATE_KEY],
+          gasMultiplier: 1.1,
+          gasPrice: 'auto',
+        },
+      },
   solidity: {
     compilers: [
       {
@@ -51,20 +51,17 @@ module.exports = {
     ],
   },
   mocha: {
-    timeout: 100000,
+    timeout: process.env.MOCHA_TIMEOUT || 100000,
   },
   gasReporter: {
-    currency: 'USD',
+    currency: process.env.COINMARKETCAP_DEFAULT_CURRENCY || 'USD',
     coinmarketcap: config.coinmarketcap.apiKey,
     enabled: process.env.REPORT_GAS ? true : false,
   },
   preprocess: {
-    eachLine: removeConsoleLog(
-      (hre) =>
-        hre.network.name !== 'hardhat' && hre.network.name !== 'localhost'
-    ),
+    eachLine: removeConsoleLog((hre) => hre.network.name !== 'hardhat'),
   },
   etherscan: {
-    apiKey: `${config.etherscan.apiKey}`,
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
 };
