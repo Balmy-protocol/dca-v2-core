@@ -52,7 +52,7 @@ module.exports = {
   },
   gasReporter: {
     currency: process.env.COINMARKETCAP_DEFAULT_CURRENCY || 'USD',
-    coinmarketcap: config.coinmarketcap.apiKey,
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY,
     enabled: process.env.REPORT_GAS ? true : false,
   },
   preprocess: {
