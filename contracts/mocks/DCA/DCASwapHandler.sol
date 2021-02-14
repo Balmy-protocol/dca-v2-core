@@ -8,8 +8,8 @@ import "./DCAProtocolParameters.sol";
 contract DCASwapHandlerMock is DCASwapHandler, DCAProtocolParametersMock {
   constructor(
     address _feeRecipient,
-    IERC20 _from,
-    IERC20 _to,
+    IERC20Decimals _from,
+    IERC20Decimals _to,
     IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
   ) DCAProtocolParametersMock(_feeRecipient, _from, _to, _uniswap) DCASwapHandler(_swapInterval) {

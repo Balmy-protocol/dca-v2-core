@@ -5,10 +5,12 @@ import "hardhat/console.sol";
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+
+import "../interfaces/IERC20Decimals.sol";
 
 interface IDCAProtocolParameters {
   struct DCA {
@@ -19,17 +21,17 @@ interface IDCAProtocolParameters {
 
   /* Events */
   event FeeRecipientSet(address _feeRecipient);
-  event FromSet(IERC20 _from);
-  event ToSet(IERC20 _to);
+  event FromSet(IERC20Decimals _from);
+  event ToSet(IERC20Decimals _to);
   event UniswapSet(IUniswapV2Router02 _uniswap);
 
   /* Public getters */
 
   function feeRecipient() external returns (address);
 
-  function from() external returns (IERC20);
+  function from() external returns (IERC20Decimals);
 
-  function to() external returns (IERC20);
+  function to() external returns (IERC20Decimals);
 
   function uniswap() external returns (IUniswapV2Router02);
 
@@ -42,20 +44,20 @@ interface IDCAProtocolParameters {
   /* Public setters */
   function setFeeRecipient(address _feeRecipient) external;
 
-  function setFrom(IERC20 _from) external;
+  function setFrom(IERC20Decimals _from) external;
 
-  function setTo(IERC20 _to) external;
+  function setTo(IERC20Decimals _to) external;
 
   function setUniswap(IUniswapV2Router02 _uniswap) external;
 }
 
 abstract contract DCAProtocolParameters is IDCAProtocolParameters {
-  uint256 internal constant MAGNITUDE = 10**18; // This should depend on the tokens used
+  uint256 internal _magnitude;
 
   // Basic setup
   address public override feeRecipient;
-  IERC20 public override from;
-  IERC20 public override to;
+  IERC20Decimals public override from;
+  IERC20Decimals public override to;
   IUniswapV2Router02 public override uniswap;
 
   // Tracking
@@ -65,8 +67,8 @@ abstract contract DCAProtocolParameters is IDCAProtocolParameters {
 
   constructor(
     address _feeRecipient,
-    IERC20 _from,
-    IERC20 _to,
+    IERC20Decimals _from,
+    IERC20Decimals _to,
     IUniswapV2Router02 _uniswap
   ) {
     _setFeeRecipient(_feeRecipient);
@@ -81,15 +83,16 @@ abstract contract DCAProtocolParameters is IDCAProtocolParameters {
     emit FeeRecipientSet(_feeRecipient);
   }
 
-  function _setFrom(IERC20 _from) internal {
+  function _setFrom(IERC20Decimals _from) internal {
     require(address(_from) != address(0), "DCAPP: zero-address");
     from = _from;
     emit FromSet(_from);
   }
 
-  function _setTo(IERC20 _to) internal {
+  function _setTo(IERC20Decimals _to) internal {
     require(address(_to) != address(0), "DCAPP: zero-address");
     to = _to;
+    _magnitude = 10**_to.decimals();
     emit ToSet(_to);
   }
 

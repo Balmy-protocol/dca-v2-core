@@ -19,7 +19,7 @@ interface IDCAPositionHandler {
 }
 
 abstract contract DCAPositionHandler is DCASwapHandler, IDCAPositionHandler {
-  using SafeERC20 for IERC20;
+  using SafeERC20 for IERC20Decimals;
   using SafeMath for uint256;
   using SignedSafeMath for int256;
 

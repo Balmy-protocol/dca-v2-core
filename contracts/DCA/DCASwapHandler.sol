@@ -24,7 +24,7 @@ interface IDCASwapHandler {
 }
 
 abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
-  using SafeERC20 for IERC20;
+  using SafeERC20 for IERC20Decimals;
   using SafeMath for uint256;
   using SignedSafeMath for int256;
 
@@ -56,7 +56,7 @@ abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
     uint256 _boughtBySwap = to.balanceOf(address(this)).sub(_balanceBeforeSwap);
     // TODO: Add some checks, for example to verify that _boughtBySwap is positive?. Even though it should never happen, let's be safe
     // console.log('bought by swap %s', _boughtBySwap);
-    uint256 _ratePerUnit = (_boughtBySwap.mul(MAGNITUDE)).div(swapAmountAccumulator);
+    uint256 _ratePerUnit = (_boughtBySwap.mul(_magnitude)).div(swapAmountAccumulator);
     // console.log('rate per unit %s', _ratePerUnit);
     // console.log(
     //   'accumRatesPerUnit[performedSwaps][0] %s',
@@ -68,9 +68,7 @@ abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
     // );
     if (_newPerformedSwaps == 1) {
       accumRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit, 0];
-    } else if (
-      accumRatesPerUnit[performedSwaps][0] + _ratePerUnit < accumRatesPerUnit[performedSwaps][0]
-    ) {
+    } else if (accumRatesPerUnit[performedSwaps][0] + _ratePerUnit < accumRatesPerUnit[performedSwaps][0]) {
       uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[performedSwaps][0]);
       accumRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit.sub(_missingUntilOverflow), accumRatesPerUnit[performedSwaps][1].add(1)];
     } else {

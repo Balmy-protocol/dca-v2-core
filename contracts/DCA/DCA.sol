@@ -10,8 +10,8 @@ interface IDCA is IDCAProtocolParameters, IDCASwapHandler, IDCAPositionHandler {
 contract DCA is DCAProtocolParameters, DCASwapHandler, DCAPositionHandler, IDCA {
   constructor(
     address _feeRecipient,
-    IERC20 _from,
-    IERC20 _to,
+    IERC20Decimals _from,
+    IERC20Decimals _to,
     IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
   ) DCAProtocolParameters(_feeRecipient, _from, _to, _uniswap) DCASwapHandler(_swapInterval) {
@@ -53,11 +53,11 @@ contract DCA is DCAProtocolParameters, DCASwapHandler, DCAPositionHandler, IDCA 
     _setFeeRecipient(_feeRecipient);
   }
 
-  function setFrom(IERC20 _from) public override {
+  function setFrom(IERC20Decimals _from) public override {
     _setFrom(_from);
   }
 
-  function setTo(IERC20 _from) public override {
+  function setTo(IERC20Decimals _from) public override {
     _setTo(_from);
   }
 

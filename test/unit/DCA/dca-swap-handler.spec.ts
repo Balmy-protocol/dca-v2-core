@@ -4,13 +4,15 @@ import { BigNumber, Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, uniswap, erc20, behaviours, evm } from '../../utils';
 
-const MAGNITUDE = ethers.BigNumber.from('10').pow('18');
 const MINIMUM_SWAP_INTERVAL = ethers.BigNumber.from('60');
 
 describe('DCASwapHandler', function () {
   let owner: Signer, feeRecipient: Signer;
   let fromToken: Contract, toToken: Contract;
-  let DCASwapHandlerContract: ContractFactory, DCASwapHandler: Contract;
+  let DCASwapHandlerContract: ContractFactory;
+  let DCASwapHandler: Contract;
+  const toTokenDecimals = 18;
+  const magnitude = ethers.BigNumber.from(10).pow(toTokenDecimals);
 
   const swapInterval = moment.duration(1, 'days').as('seconds');
 
@@ -176,14 +178,14 @@ describe('DCASwapHandler', function () {
             expect(previousBalance).to.equal(uniswapRatePerUnit.mul(i));
             expect(previousOverflowGuard).to.equal(0);
             expect(previousAverageRatePerUnit).to.equal(
-              uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap).mul(i)
+              uniswapRatePerUnit.mul(magnitude).div(amountToSwap).mul(i)
             );
             await expect(DCASwapHandler.swap())
               .to.emit(DCASwapHandler, 'Swapped')
               .withArgs(
                 amountToSwap,
                 uniswapRatePerUnit,
-                uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap)
+                uniswapRatePerUnit.mul(magnitude).div(amountToSwap)
               );
             const postBalance = await toToken.balanceOf(DCASwapHandler.address);
             const postAverageRatePerUnit = await DCASwapHandler.accumRatesPerUnit(
@@ -200,7 +202,7 @@ describe('DCASwapHandler', function () {
             expect(postOverflowGuard).to.equal(previousOverflowGuard);
             expect(postAverageRatePerUnit).to.equal(
               previousAverageRatePerUnit.add(
-                uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap)
+                uniswapRatePerUnit.mul(magnitude).div(amountToSwap)
               )
             );
           }
@@ -208,8 +210,10 @@ describe('DCASwapHandler', function () {
       }
     );
     context('when the addition overflows averages rates per unit', () => {
-      // 1 of any token with 18 decimals
-      const missingToOverflow = ethers.BigNumber.from('10').pow('18');
+      // 1 of any token with to token decimals
+      const missingToOverflow = ethers.BigNumber.from('10').pow(
+        toTokenDecimals
+      );
       // amount to swap
       const amountToSwap = ethers.BigNumber.from('1');
       // performed swaps
@@ -253,7 +257,7 @@ describe('DCASwapHandler', function () {
           .withArgs(
             amountToSwap,
             uniswapRatePerUnit,
-            uniswapRatePerUnit.mul(MAGNITUDE).div(amountToSwap)
+            uniswapRatePerUnit.mul(magnitude).div(amountToSwap)
           );
         expect(await toToken.balanceOf(DCASwapHandler.address)).to.equal(
           amountToSwap.mul(uniswapRatePerUnit)
@@ -271,7 +275,7 @@ describe('DCASwapHandler', function () {
         );
         expect(postAverageRatePerUnit).to.equal(
           uniswapRatePerUnit
-            .mul(MAGNITUDE)
+            .mul(magnitude)
             .div(amountToSwap)
             .sub(missingToOverflow)
         );

@@ -83,7 +83,7 @@ const checkTxEmittedEvents = async ({
 }: {
   contract: Contract;
   tx: Promise<TransactionRequest>;
-  events: [{ name: string; args: any[] }];
+  events: { name: string; args: any[] }[];
 }): Promise<void> => {
   for (let i = 0; i < events.length; i++) {
     await expect(tx)
@@ -99,13 +99,11 @@ const deployShouldSetVariablesAndEmitEvents = async ({
 }: {
   contract: ContractFactory;
   args: any[];
-  settersGettersVariablesAndEvents: [
-    {
-      getterFunc: string;
-      variable: any;
-      eventEmitted: string;
-    }
-  ];
+  settersGettersVariablesAndEvents: {
+    getterFunc: string;
+    variable: any;
+    eventEmitted: string;
+  }[];
 }): Promise<void> => {
   const deployContractTx = await contract.getDeployTransaction(...args);
   const tx = contract.signer.sendTransaction(deployContractTx);
@@ -138,13 +136,11 @@ const txShouldHaveSetVariablesAndEmitEvents = async ({
 }: {
   contract: Contract;
   tx: Promise<TransactionRequest>;
-  settersGettersVariablesAndEvents: [
-    {
-      getterFunc: string;
-      variable: any;
-      eventEmitted: string;
-    }
-  ];
+  settersGettersVariablesAndEvents: {
+    getterFunc: string;
+    variable: any;
+    eventEmitted: string;
+  }[];
 }): Promise<void> => {
   for (let i = 0; i < settersGettersVariablesAndEvents.length; i++) {
     await checkTxEmittedEvents({

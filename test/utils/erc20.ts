@@ -4,11 +4,13 @@ import { ethers } from 'hardhat';
 const deploy = async ({
   name,
   symbol,
+  decimals,
   initialAccount,
   initialAmount,
 }: {
   name: string;
   symbol: string;
+  decimals?: BigNumber | number;
   initialAccount: string;
   initialAmount: BigNumber;
 }): Promise<Contract> => {
@@ -18,6 +20,7 @@ const deploy = async ({
   const deployedContract = await erc20MockContract.deploy(
     name,
     symbol,
+    decimals || 18,
     initialAccount,
     initialAmount
   );
