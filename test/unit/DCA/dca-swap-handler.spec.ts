@@ -6,7 +6,6 @@ import { constants, uniswap, erc20, behaviours, evm } from '../../utils';
 
 const MAGNITUDE = ethers.BigNumber.from('10').pow('18');
 const MINIMUM_SWAP_INTERVAL = ethers.BigNumber.from('60');
-const OVERFLOW_GUARD = ethers.BigNumber.from('2').pow('250');
 
 describe('DCASwapHandler', function () {
   let owner: Signer, feeRecipient: Signer;
@@ -232,7 +231,7 @@ describe('DCASwapHandler', function () {
           amountB: utils.parseEther('1000'), //10e21
         });
         await DCASwapHandler.setAverageRatesPerUnit(performedSwaps, [
-          OVERFLOW_GUARD.sub(missingToOverflow),
+          ethers.constants.MaxUint256.sub(missingToOverflow),
           ethers.BigNumber.from('0'),
         ]);
         await DCASwapHandler.setPerformedSwaps(performedSwaps);

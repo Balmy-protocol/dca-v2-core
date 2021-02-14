@@ -58,21 +58,20 @@ abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
     // console.log('bought by swap %s', _boughtBySwap);
     uint256 _ratePerUnit = (_boughtBySwap.mul(MAGNITUDE)).div(swapAmountAccumulator);
     // console.log('rate per unit %s', _ratePerUnit);
-    // console.log('overflow guard %s', OVERFLOW_GUARD);
     // console.log(
     //   'accumRatesPerUnit[performedSwaps][0] %s',
     //   accumRatesPerUnit[performedSwaps][0]
     // );
     // console.log(
-    //   'OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0]) %s',
-    //   OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0])
+    //   'type(uint256).max.sub(accumRatesPerUnit[performedSwaps][0]) %s',
+    //   type(uint256).max.sub(accumRatesPerUnit[performedSwaps][0])
     // );
     if (_newPerformedSwaps == 1) {
       accumRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit, 0];
     } else if (
-      _ratePerUnit >= OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0]) // TODO: Assume that OVERFLOW_GUARD = Max number and check if accumRatesPerUnit[performedSwaps][0] + _ratePerUnit < accumRatesPerUnit[performedSwaps][0]?
+      accumRatesPerUnit[performedSwaps][0] + _ratePerUnit < accumRatesPerUnit[performedSwaps][0]
     ) {
-      uint256 _missingUntilOverflow = OVERFLOW_GUARD.sub(accumRatesPerUnit[performedSwaps][0]);
+      uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[performedSwaps][0]);
       accumRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit.sub(_missingUntilOverflow), accumRatesPerUnit[performedSwaps][1].add(1)];
     } else {
       accumRatesPerUnit[_newPerformedSwaps] = [accumRatesPerUnit[performedSwaps][0].add(_ratePerUnit), accumRatesPerUnit[performedSwaps][1]];

@@ -122,7 +122,7 @@ abstract contract DCAPositionHandler is DCASwapHandler, IDCAPositionHandler {
     DCA memory _userDCA = userTrades[msg.sender];
     uint256[2] memory _sumRatesLastWidthraw = accumRatesPerUnit[_userDCA.lastWithdrawSwap];
     uint256[2] memory _sumRatesPerformed = accumRatesPerUnit[performedSwaps];
-    _swapped = _sumRatesPerformed[1].sub(_sumRatesLastWidthraw[1]).mul(_userDCA.rate).mul(OVERFLOW_GUARD).add(
+    _swapped = _sumRatesPerformed[1].sub(_sumRatesLastWidthraw[1]).mul(_userDCA.rate).mul(type(uint256).max).add(
       _sumRatesPerformed[0].sub(_sumRatesLastWidthraw[0]).mul(_userDCA.rate)
     );
   }

@@ -51,7 +51,6 @@ interface IDCAProtocolParameters {
 
 abstract contract DCAProtocolParameters is IDCAProtocolParameters {
   uint256 internal constant MAGNITUDE = 10**18; // This should depend on the tokens used
-  uint256 internal constant OVERFLOW_GUARD = 2**250;
 
   // Basic setup
   address public override feeRecipient;
