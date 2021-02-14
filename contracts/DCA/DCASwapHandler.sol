@@ -48,6 +48,7 @@ abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
   function _swap() internal {
     require(lastSwapPerformed <= block.timestamp.sub(swapInterval), "DCASH: within swap interval");
     uint256 _newPerformedSwaps = performedSwaps.add(1);
+    // TODO: Check what happens when swapAmountAccumulator > allowed in int256
     require(int256(swapAmountAccumulator) + swapAmountDelta[_newPerformedSwaps] > 0, "DCASH: amount should be > 0");
     swapAmountAccumulator += uint256(swapAmountDelta[_newPerformedSwaps]);
     uint256 _balanceBeforeSwap = to.balanceOf(address(this));
