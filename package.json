@@ -34,7 +34,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint:fix",
+      "pre-commit": "npm run lint:fix",
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
     }
   },
@@ -44,8 +44,8 @@
     "@uniswap/v2-periphery": "1.1.0-beta.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^11.0.0",
-    "@commitlint/config-conventional": "^11.0.0",
+    "@commitlint/cli": "11.0.0",
+    "@commitlint/config-conventional": "11.0.0",
     "@nomiclabs/hardhat-ethers": "2.0.1",
     "@nomiclabs/hardhat-etherscan": "2.1.1",
     "@nomiclabs/hardhat-waffle": "2.0.1",
@@ -62,8 +62,8 @@
     "hardhat": "2.0.10",
     "hardhat-gas-reporter": "1.0.4",
     "hardhat-preprocessor": "0.1.2",
-    "husky": "^4.3.8",
-    "moment": "^2.29.1",
+    "husky": "4.3.8",
+    "moment": "2.29.1",
     "pinst": "2.1.4",
     "prettier": "2.2.1",
     "prettier-plugin-solidity": "1.0.0-beta.5",
