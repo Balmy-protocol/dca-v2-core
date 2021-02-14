@@ -23,19 +23,27 @@ contract DCA is DCAProtocolParameters, DCASwapHandler, DCAPositionHandler, IDCA 
     _deposit(_rate, _amountOfSwaps);
   }
 
-  function withdrawSwapped() external override returns (uint256 _swapped) {
+  function withdrawSwapped(uint256 _dcaId) external override returns (uint256 _swapped) {
     /* */
   }
 
-  function modifyRate(uint256 _newRate) external override {
+  function modifyRate(uint256 _dcaId, uint256 _newRate) external override {
     /* */
   }
 
-  function modifyRateAndSwaps(uint256 _newRate, uint256 _newSwaps) external override {
+  function modifySwaps(uint256 _dcaId, uint256 _newSwaps) external override {
     /* */
   }
 
-  function terminate() external override {
+  function modifyRateAndSwaps(
+    uint256 _dcaId,
+    uint256 _newRate,
+    uint256 _newSwaps
+  ) external override {
+    /* */
+  }
+
+  function terminate(uint256 _dcaId) external override {
     /* */
   }
 

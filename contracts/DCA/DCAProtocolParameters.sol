@@ -63,7 +63,7 @@ abstract contract DCAProtocolParameters is IDCAProtocolParameters {
   // Tracking
   mapping(uint256 => int256) public override swapAmountDelta;
   mapping(uint256 => uint256[2]) public accumRatesPerUnit;
-  mapping(address => DCA) public userTrades; // TODO: Deprecate to use IDs
+  mapping(uint256 => DCA) public userTrades;
 
   constructor(
     address _feeRecipient,
