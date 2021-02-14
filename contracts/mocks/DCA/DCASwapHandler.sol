@@ -2,17 +2,17 @@
 
 pragma solidity 0.7.0;
 
-import "../../DDCA/DDCASwapHandler.sol";
-import "./DDCAProtocolParameters.sol";
+import "../../DCA/DCASwapHandler.sol";
+import "./DCAProtocolParameters.sol";
 
-contract DDCASwapHandlerMock is DDCASwapHandler, DDCAProtocolParametersMock {
+contract DCASwapHandlerMock is DCASwapHandler, DCAProtocolParametersMock {
   constructor(
     address _feeRecipient,
     IERC20 _from,
     IERC20 _to,
     IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
-  ) DDCAProtocolParametersMock(_feeRecipient, _from, _to, _uniswap) DDCASwapHandler(_swapInterval) {
+  ) DCAProtocolParametersMock(_feeRecipient, _from, _to, _uniswap) DCASwapHandler(_swapInterval) {
     /* */
   }
 

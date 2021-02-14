@@ -1,7 +1,7 @@
 {
-  "name": "ddca",
+  "name": "dca",
   "version": "0.0.0",
-  "description": "DDCA",
+  "description": "Decentralized cost averaging",
   "keywords": [
     "ethereum",
     "smart",
@@ -12,7 +12,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alejoamiras/ddca-ts.git"
+    "url": "git+https://github.com/alejoamiras/dca-ts.git"
   },
   "license": "",
   "scripts": {

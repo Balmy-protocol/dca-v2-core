@@ -1,20 +1,20 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.7.0;
 
-import "./DDCAProtocolParameters.sol";
-import "./DDCAPositionHandler.sol";
-import "./DDCASwapHandler.sol";
+import "./DCAProtocolParameters.sol";
+import "./DCAPositionHandler.sol";
+import "./DCASwapHandler.sol";
 
-interface IDDCA is IDDCAProtocolParameters, IDDCASwapHandler, IDDCAPositionHandler {}
+interface IDCA is IDCAProtocolParameters, IDCASwapHandler, IDCAPositionHandler {}
 
-contract DDCA is DDCAProtocolParameters, DDCASwapHandler, DDCAPositionHandler, IDDCA {
+contract DCA is DCAProtocolParameters, DCASwapHandler, DCAPositionHandler, IDCA {
   constructor(
     address _feeRecipient,
     IERC20 _from,
     IERC20 _to,
     IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
-  ) DDCAProtocolParameters(_feeRecipient, _from, _to, _uniswap) DDCASwapHandler(_swapInterval) {
+  ) DCAProtocolParameters(_feeRecipient, _from, _to, _uniswap) DCASwapHandler(_swapInterval) {
     /* */
   }
 

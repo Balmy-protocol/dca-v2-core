@@ -3,9 +3,9 @@ pragma solidity 0.7.0;
 
 import "hardhat/console.sol";
 
-import "./DDCAProtocolParameters.sol";
+import "./DCAProtocolParameters.sol";
 
-interface IDDCASwapHandler {
+interface IDCASwapHandler {
   event SwapIntervalSet(uint256 _swapInterval);
 
   event Swapped(uint256 _fromAmountSent, uint256 _toAmountReceived, uint256 _ratePerUnit);
@@ -23,7 +23,7 @@ interface IDDCASwapHandler {
   function swap() external;
 }
 
-abstract contract DDCASwapHandler is DDCAProtocolParameters, IDDCASwapHandler {
+abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
   using SignedSafeMath for int256;
@@ -40,15 +40,15 @@ abstract contract DDCASwapHandler is DDCAProtocolParameters, IDDCASwapHandler {
   }
 
   function _setSwapInterval(uint256 _swapInterval) internal {
-    require(_swapInterval >= MINIMUM_SWAP_INTERVAL, "DDCASH: interval too short");
+    require(_swapInterval >= MINIMUM_SWAP_INTERVAL, "DCASH: interval too short");
     swapInterval = _swapInterval;
     emit SwapIntervalSet(_swapInterval);
   }
 
   function _swap() internal {
-    require(lastSwapPerformed <= block.timestamp.sub(swapInterval), "DDCASH: within swap interval");
+    require(lastSwapPerformed <= block.timestamp.sub(swapInterval), "DCASH: within swap interval");
     uint256 _newPerformedSwaps = performedSwaps.add(1);
-    require(int256(swapAmountAccumulator) + swapAmountDelta[_newPerformedSwaps] > 0, "DDCASH: amount should be > 0");
+    require(int256(swapAmountAccumulator) + swapAmountDelta[_newPerformedSwaps] > 0, "DCASH: amount should be > 0");
     swapAmountAccumulator += uint256(swapAmountDelta[_newPerformedSwaps]);
     uint256 _balanceBeforeSwap = to.balanceOf(address(this));
     _uniswapSwap(swapAmountAccumulator);

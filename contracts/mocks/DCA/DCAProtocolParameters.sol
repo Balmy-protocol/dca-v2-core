@@ -2,15 +2,15 @@
 
 pragma solidity 0.7.0;
 
-import "../../DDCA/DDCAProtocolParameters.sol";
+import "../../DCA/DCAProtocolParameters.sol";
 
-contract DDCAProtocolParametersMock is DDCAProtocolParameters {
+contract DCAProtocolParametersMock is DCAProtocolParameters {
   constructor(
     address _feeRecipient,
     IERC20 _from,
     IERC20 _to,
     IUniswapV2Router02 _uniswap
-  ) DDCAProtocolParameters(_feeRecipient, _from, _to, _uniswap) {
+  ) DCAProtocolParameters(_feeRecipient, _from, _to, _uniswap) {
     /* */
   }
 

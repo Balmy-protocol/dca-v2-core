@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.7.0;
 
-import "./DDCASwapHandler.sol";
+import "./DCASwapHandler.sol";
 
-interface IDDCAPositionHandler {
+interface IDCAPositionHandler {
   event Terminated(address indexed _depositor, uint256 _canceledDate, uint256 _startDate, uint256 _endDate, uint256 _amountPerDay);
   event Deposited(address indexed _depositor, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
 
@@ -18,7 +18,7 @@ interface IDDCAPositionHandler {
   function terminate() external;
 }
 
-abstract contract DDCAPositionHandler is DDCASwapHandler, IDDCAPositionHandler {
+abstract contract DCAPositionHandler is DCASwapHandler, IDCAPositionHandler {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
   using SignedSafeMath for int256;

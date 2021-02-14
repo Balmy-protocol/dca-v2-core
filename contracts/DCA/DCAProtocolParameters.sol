@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-interface IDDCAProtocolParameters {
+interface IDCAProtocolParameters {
   struct DCA {
     uint256 rate;
     uint256 lastWithdrawSwap;
@@ -49,7 +49,7 @@ interface IDDCAProtocolParameters {
   function setUniswap(IUniswapV2Router02 _uniswap) external;
 }
 
-abstract contract DDCAProtocolParameters is IDDCAProtocolParameters {
+abstract contract DCAProtocolParameters is IDCAProtocolParameters {
   uint256 internal constant MAGNITUDE = 10**18; // This should depend on the tokens used
   uint256 internal constant OVERFLOW_GUARD = 2**250;
 
@@ -77,25 +77,25 @@ abstract contract DDCAProtocolParameters is IDDCAProtocolParameters {
   }
 
   function _setFeeRecipient(address _feeRecipient) internal {
-    require(_feeRecipient != address(0), "DDCAPP: zero-address");
+    require(_feeRecipient != address(0), "DCAPP: zero-address");
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
   }
 
   function _setFrom(IERC20 _from) internal {
-    require(address(_from) != address(0), "DDCAPP: zero-address");
+    require(address(_from) != address(0), "DCAPP: zero-address");
     from = _from;
     emit FromSet(_from);
   }
 
   function _setTo(IERC20 _to) internal {
-    require(address(_to) != address(0), "DDCAPP: zero-address");
+    require(address(_to) != address(0), "DCAPP: zero-address");
     to = _to;
     emit ToSet(_to);
   }
 
   function _setUniswap(IUniswapV2Router02 _uniswap) internal {
-    require(address(_uniswap) != address(0), "DDCAPP: zero-address");
+    require(address(_uniswap) != address(0), "DCAPP: zero-address");
     uniswap = _uniswap;
     emit UniswapSet(_uniswap);
   }
