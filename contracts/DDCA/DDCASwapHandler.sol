@@ -27,6 +27,8 @@ abstract contract DDCASwapHandler is DDCAProtocolParameters, IDDCASwapHandler {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
     using SignedSafeMath for int256;
+    
+    uint256 internal constant MINIMUM_SWAP_INTERVAL = 1 minutes;
 
     uint256 public override swapAmountAccumulator;
     uint256 public override swapInterval;

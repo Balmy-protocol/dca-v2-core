@@ -50,10 +50,38 @@ describe('DDCASwapHandler', function () {
 
   describe('constructor', () => {
     context('when swap interval is less than MINIMUM_SWAP_INTERVAL', () => {
-      it('reverts with message');
+      it('reverts with message', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DDCASwapHandlerContract,
+          args: [
+            await feeRecipient.getAddress(),
+            fromToken.address,
+            toToken.address,
+            uniswap.getUniswapV2Router02().address,
+            MINIMUM_SWAP_INTERVAL.sub(1)
+          ],
+          message: 'DDCASH: interval too short'
+        });
+      });
     });
     context('when all arguments are valid', () => {
-      it('initizalizes correctly and emits events');
+      it('initizalizes correctly and emits events', async () => {
+        await behaviours.deployShouldSetVariablesAndEmitEvents({
+          contract: DDCASwapHandlerContract,
+          args: [
+            await feeRecipient.getAddress(),
+            fromToken.address,
+            toToken.address,
+            uniswap.getUniswapV2Router02().address,
+            MINIMUM_SWAP_INTERVAL
+          ],
+          settersGettersVariablesAndEvents: [{
+            getterFunc: 'swapInterval',
+            variable: MINIMUM_SWAP_INTERVAL,
+            eventEmitted: 'SwapIntervalSet',
+          }]
+        });
+      });
     });
   });
 

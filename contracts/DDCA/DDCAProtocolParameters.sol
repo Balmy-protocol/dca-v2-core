@@ -52,7 +52,6 @@ interface IDDCAProtocolParameters {
 abstract contract DDCAProtocolParameters is IDDCAProtocolParameters {
     uint256 internal constant MAGNITUDE = 10**18; // This should depend on the tokens used
     uint256 internal constant OVERFLOW_GUARD = 2**250;
-    uint256 internal constant MINIMUM_SWAP_INTERVAL = 1 minutes;
 
     // Basic setup
     address public override feeRecipient;
