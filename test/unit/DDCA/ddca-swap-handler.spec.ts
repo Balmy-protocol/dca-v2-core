@@ -58,9 +58,9 @@ describe('DDCASwapHandler', function () {
             fromToken.address,
             toToken.address,
             uniswap.getUniswapV2Router02().address,
-            MINIMUM_SWAP_INTERVAL.sub(1)
+            MINIMUM_SWAP_INTERVAL.sub(1),
           ],
-          message: 'DDCASH: interval too short'
+          message: 'DDCASH: interval too short',
         });
       });
     });
@@ -73,13 +73,15 @@ describe('DDCASwapHandler', function () {
             fromToken.address,
             toToken.address,
             uniswap.getUniswapV2Router02().address,
-            MINIMUM_SWAP_INTERVAL
+            MINIMUM_SWAP_INTERVAL,
           ],
-          settersGettersVariablesAndEvents: [{
-            getterFunc: 'swapInterval',
-            variable: MINIMUM_SWAP_INTERVAL,
-            eventEmitted: 'SwapIntervalSet',
-          }]
+          settersGettersVariablesAndEvents: [
+            {
+              getterFunc: 'swapInterval',
+              variable: MINIMUM_SWAP_INTERVAL,
+              eventEmitted: 'SwapIntervalSet',
+            },
+          ],
         });
       });
     });

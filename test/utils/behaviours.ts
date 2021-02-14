@@ -19,7 +19,9 @@ const checkTxRevertedWithMessage = async ({
 }): Promise<void> => {
   await expect(tx).to.be.reverted;
   if (message instanceof RegExp) {
-    await expect(tx).eventually.rejected.have.property('message').match(message);
+    await expect(tx)
+      .eventually.rejected.have.property('message')
+      .match(message);
   } else {
     await expect(tx).to.be.revertedWith(message);
   }
@@ -49,7 +51,7 @@ const deployShouldRevertWithZeroAddress = async ({
 const deployShouldRevertWithMessage = async ({
   contract,
   args,
-  message
+  message,
 }: {
   contract: ContractFactory;
   args: any[];
