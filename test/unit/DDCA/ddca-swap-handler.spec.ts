@@ -8,7 +8,7 @@ const MAGNITUDE = ethers.BigNumber.from('10').pow('18');
 const MINIMUM_SWAP_INTERVAL = ethers.BigNumber.from('60');
 const OVERFLOW_GUARD = ethers.BigNumber.from('2').pow('250');
 
-describe.only('DDCASwapHandler', function () {
+describe('DDCASwapHandler', function () {
   let owner: Signer, feeRecipient: Signer;
   let fromToken: Contract, toToken: Contract;
   let DDCASwapHandlerContract: ContractFactory, DDCASwapHandler: Contract;
@@ -67,7 +67,7 @@ describe.only('DDCASwapHandler', function () {
     });
     context('when swap interval is more than MINIMUM_SWAP_INTERVAL', () => {
       it('sets new value, and emits event with correct args', async () => {
-        await behaviours.shouldSetVariableAndEmitEvent({
+        await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DDCASwapHandler,
           getterFunc: 'swapInterval',
           setterFunc: 'setSwapInterval',

@@ -58,7 +58,7 @@ describe('DDCAProtocolParameters', function () {
   describe('setFeeRecipient', () => {
     context('when address is zero', () => {
       it('reverts with message', async () => {
-        await behaviours.shouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setFeeRecipient',
           args: [constants.ZERO_ADDRESS],
@@ -67,7 +67,7 @@ describe('DDCAProtocolParameters', function () {
     });
     context('when address is not zero', () => {
       it('sets feeRecipient and emits event with correct arguments', async () => {
-        await behaviours.shouldSetVariableAndEmitEvent({
+        await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DDCAProtocolParameters,
           getterFunc: 'feeRecipient',
           setterFunc: 'setFeeRecipient',
@@ -81,7 +81,7 @@ describe('DDCAProtocolParameters', function () {
   describe('setFrom', () => {
     context('when address is zero', () => {
       it('reverts with message', async () => {
-        await behaviours.shouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setFrom',
           args: [constants.ZERO_ADDRESS],
@@ -90,7 +90,7 @@ describe('DDCAProtocolParameters', function () {
     });
     context('when address is not zero', () => {
       it('sets from and emits event with correct arguments', async () => {
-        await behaviours.shouldSetVariableAndEmitEvent({
+        await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DDCAProtocolParameters,
           getterFunc: 'from',
           setterFunc: 'setFrom',
@@ -104,7 +104,7 @@ describe('DDCAProtocolParameters', function () {
   describe('setTo', () => {
     context('when address is zero', () => {
       it('reverts with message', async () => {
-        await behaviours.shouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setTo',
           args: [constants.ZERO_ADDRESS],
@@ -113,7 +113,7 @@ describe('DDCAProtocolParameters', function () {
     });
     context('when address is not zero', () => {
       it('sets to and emits event with correct arguments', async () => {
-        await behaviours.shouldSetVariableAndEmitEvent({
+        await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DDCAProtocolParameters,
           getterFunc: 'to',
           setterFunc: 'setTo',
@@ -127,7 +127,7 @@ describe('DDCAProtocolParameters', function () {
   describe('setUniswap', () => {
     context('when address is zero', () => {
       it('reverts with message', async () => {
-        await behaviours.shouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithZeroAddress({
           contract: DDCAProtocolParameters,
           func: 'setUniswap',
           args: [constants.ZERO_ADDRESS],
@@ -136,7 +136,7 @@ describe('DDCAProtocolParameters', function () {
     });
     context('when address is not zero', () => {
       it('sets uniswap and emits event with correct arguments', async () => {
-        await behaviours.shouldSetVariableAndEmitEvent({
+        await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DDCAProtocolParameters,
           getterFunc: 'uniswap',
           setterFunc: 'setUniswap',
