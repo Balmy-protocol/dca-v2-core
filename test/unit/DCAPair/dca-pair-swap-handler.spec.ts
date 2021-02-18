@@ -6,20 +6,20 @@ import { constants, uniswap, erc20, behaviours, evm } from '../../utils';
 
 const MINIMUM_SWAP_INTERVAL = ethers.BigNumber.from('60');
 
-describe('DCASwapHandler', function () {
+describe('DCAPairSwapHandler', function () {
   let owner: Signer, feeRecipient: Signer;
-  let fromToken: Contract, toToken: Contract;
-  let DCASwapHandlerContract: ContractFactory;
-  let DCASwapHandler: Contract;
-  const toTokenDecimals = 18;
-  const magnitude = ethers.BigNumber.from(10).pow(toTokenDecimals);
+  let token0: Contract, token1: Contract;
+  let DCAPairSwapHandlerContract: ContractFactory;
+  let DCAPairSwapHandler: Contract;
+  const token1Decimals = 18;
+  const magnitude = ethers.BigNumber.from(10).pow(token1Decimals);
 
   const swapInterval = moment.duration(1, 'days').as('seconds');
 
   before('Setup accounts and contracts', async () => {
     [owner, feeRecipient] = await ethers.getSigners();
-    DCASwapHandlerContract = await ethers.getContractFactory(
-      'contracts/mocks/DCA/DCASwapHandler.sol:DCASwapHandlerMock'
+    DCAPairSwapHandlerContract = await ethers.getContractFactory(
+      'contracts/mocks/DCAPair/DCAPairSwapHandler.sol:DCAPairSwapHandlerMock'
     );
   });
 
@@ -28,23 +28,23 @@ describe('DCASwapHandler', function () {
     await uniswap.deploy({
       owner,
     });
-    fromToken = await erc20.deploy({
-      name: 'DAI',
-      symbol: 'DAI',
+    token0 = await erc20.deploy({
+      name: 'token0',
+      symbol: 'TKN0',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('10000000000000'),
     });
-    toToken = await erc20.deploy({
-      name: 'DAI2',
-      symbol: 'DAI2',
+    token1 = await erc20.deploy({
+      name: 'token1',
+      symbol: 'TKN1',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('10000000000000'),
     });
-    DCASwapHandler = await DCASwapHandlerContract.deploy(
-      await feeRecipient.getAddress(),
-      fromToken.address,
-      toToken.address,
+    DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
+      token0.address,
+      token1.address,
       uniswap.getUniswapV2Router02().address,
+      constants.NOT_ZERO_ADDRESS, // factory
       swapInterval
     );
   });
@@ -53,27 +53,41 @@ describe('DCASwapHandler', function () {
     context('when swap interval is less than MINIMUM_SWAP_INTERVAL', () => {
       it('reverts with message', async () => {
         await behaviours.deployShouldRevertWithMessage({
-          contract: DCASwapHandlerContract,
+          contract: DCAPairSwapHandlerContract,
           args: [
-            await feeRecipient.getAddress(),
-            fromToken.address,
-            toToken.address,
+            token0.address,
+            token1.address,
             uniswap.getUniswapV2Router02().address,
+            constants.NOT_ZERO_ADDRESS, // factory
             MINIMUM_SWAP_INTERVAL.sub(1),
           ],
-          message: 'DCASH: interval too short',
+          message: 'DCAPair: interval too short',
+        });
+      });
+    });
+    context('when factory is zero', () => {
+      it('reverts with message', async () => {
+        await behaviours.deployShouldRevertWithZeroAddress({
+          contract: DCAPairSwapHandlerContract,
+          args: [
+            token0.address,
+            token1.address,
+            uniswap.getUniswapV2Router02().address,
+            constants.ZERO_ADDRESS,
+            MINIMUM_SWAP_INTERVAL,
+          ],
         });
       });
     });
     context('when all arguments are valid', () => {
       it('initizalizes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
-          contract: DCASwapHandlerContract,
+          contract: DCAPairSwapHandlerContract,
           args: [
-            await feeRecipient.getAddress(),
-            fromToken.address,
-            toToken.address,
+            token0.address,
+            token1.address,
             uniswap.getUniswapV2Router02().address,
+            constants.NOT_ZERO_ADDRESS, // factory
             MINIMUM_SWAP_INTERVAL,
           ],
           settersGettersVariablesAndEvents: [
@@ -92,14 +106,14 @@ describe('DCASwapHandler', function () {
     context('when swap interval is less than MINIMUM_SWAP_INTERVAL', () => {
       it('reverts with message', async () => {
         await expect(
-          DCASwapHandler.setSwapInterval(MINIMUM_SWAP_INTERVAL.sub(1))
-        ).to.be.revertedWith('DCASH: interval too short');
+          DCAPairSwapHandler.setSwapInterval(MINIMUM_SWAP_INTERVAL.sub(1))
+        ).to.be.revertedWith('DCAPair: interval too short');
       });
     });
     context('when swap interval is more than MINIMUM_SWAP_INTERVAL', () => {
       it('sets new value, and emits event with correct args', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCASwapHandler,
+          contract: DCAPairSwapHandler,
           getterFunc: 'swapInterval',
           setterFunc: 'setSwapInterval',
           variable: MINIMUM_SWAP_INTERVAL,
@@ -112,24 +126,24 @@ describe('DCASwapHandler', function () {
   describe('_swap', () => {
     context('when last swap was < than swap interval ago', () => {
       beforeEach(async () => {
-        await DCASwapHandler.setLastSwapPerformed(moment().unix());
+        await DCAPairSwapHandler.setLastSwapPerformed(moment().unix());
       });
       it('reverts with message', async () => {
-        await expect(DCASwapHandler.swap()).to.be.revertedWith(
-          'DCASH: within swap interval'
+        await expect(DCAPairSwapHandler.swap()).to.be.revertedWith(
+          'DCAPair: within swap interval'
         );
       });
     });
     context('when some fonky stuff happend and wants to buy negative', () => {
       beforeEach(async () => {
-        await DCASwapHandler.setSwapAmountDelta(
+        await DCAPairSwapHandler.setSwapAmountDelta(
           ethers.BigNumber.from('1'),
           ethers.BigNumber.from('-10')
         );
       });
       it('reverts with message', async () => {
-        await expect(DCASwapHandler.swap()).to.be.revertedWith(
-          'DCASH: amount should be > 0'
+        await expect(DCAPairSwapHandler.swap()).to.be.revertedWith(
+          'DCAPair: amount should be > 0'
         );
       });
     });
@@ -145,34 +159,34 @@ describe('DCASwapHandler', function () {
         const amountOfSwaps = 10;
         beforeEach(async () => {
           await uniswap.createPair({
-            tokenA: toToken,
-            tokenB: fromToken,
+            token0: token1,
+            token1: token0,
           });
           // we try to maximize rate per unit to overflow
           await uniswap.addLiquidity({
             owner,
-            tokenA: fromToken,
+            token0: token0,
             amountA: utils.parseEther('100'), //10e18
-            tokenB: toToken,
+            token1: token1,
             amountB: utils.parseEther('1000'), //10e21
           });
-          await DCASwapHandler.setSwapAmountAccumulator(amountToSwap);
-          await fromToken.transfer(
-            DCASwapHandler.address,
+          await DCAPairSwapHandler.setSwapAmountAccumulator(amountToSwap);
+          await token0.transfer(
+            DCAPairSwapHandler.address,
             uniswapRatePerUnit.mul(amountOfSwaps)
           );
         });
         it('stores accumulated rates per unit, increases performed swaps and emits event', async () => {
           for (let i = 0; i < amountOfSwaps; i++) {
-            const previousBalance = await toToken.balanceOf(
-              DCASwapHandler.address
+            const previousBalance = await token1.balanceOf(
+              DCAPairSwapHandler.address
             );
-            const previousAverageRatePerUnit = await DCASwapHandler.accumRatesPerUnit(
-              await DCASwapHandler.performedSwaps(),
+            const previousAverageRatePerUnit = await DCAPairSwapHandler.accumRatesPerUnit(
+              await DCAPairSwapHandler.performedSwaps(),
               0
             );
-            const previousOverflowGuard = await DCASwapHandler.accumRatesPerUnit(
-              await DCASwapHandler.performedSwaps(),
+            const previousOverflowGuard = await DCAPairSwapHandler.accumRatesPerUnit(
+              await DCAPairSwapHandler.performedSwaps(),
               1
             );
             expect(previousBalance).to.equal(uniswapRatePerUnit.mul(i));
@@ -180,20 +194,22 @@ describe('DCASwapHandler', function () {
             expect(previousAverageRatePerUnit).to.equal(
               uniswapRatePerUnit.mul(magnitude).div(amountToSwap).mul(i)
             );
-            await expect(DCASwapHandler.swap())
-              .to.emit(DCASwapHandler, 'Swapped')
+            await expect(DCAPairSwapHandler.swap())
+              .to.emit(DCAPairSwapHandler, 'Swapped')
               .withArgs(
                 amountToSwap,
                 uniswapRatePerUnit,
                 uniswapRatePerUnit.mul(magnitude).div(amountToSwap)
               );
-            const postBalance = await toToken.balanceOf(DCASwapHandler.address);
-            const postAverageRatePerUnit = await DCASwapHandler.accumRatesPerUnit(
-              await DCASwapHandler.performedSwaps(),
+            const postBalance = await token1.balanceOf(
+              DCAPairSwapHandler.address
+            );
+            const postAverageRatePerUnit = await DCAPairSwapHandler.accumRatesPerUnit(
+              await DCAPairSwapHandler.performedSwaps(),
               0
             );
-            const postOverflowGuard = await DCASwapHandler.accumRatesPerUnit(
-              await DCASwapHandler.performedSwaps(),
+            const postOverflowGuard = await DCAPairSwapHandler.accumRatesPerUnit(
+              await DCAPairSwapHandler.performedSwaps(),
               1
             );
             expect(postBalance).to.equal(
@@ -211,9 +227,7 @@ describe('DCASwapHandler', function () {
     );
     context('when the addition overflows averages rates per unit', () => {
       // 1 of any token with to token decimals
-      const missingToOverflow = ethers.BigNumber.from('10').pow(
-        toTokenDecimals
-      );
+      const missingToOverflow = ethers.BigNumber.from('10').pow(token1Decimals);
       // amount to swap
       const amountToSwap = ethers.BigNumber.from('1');
       // performed swaps
@@ -223,55 +237,55 @@ describe('DCASwapHandler', function () {
       const uniswapRatePerUnit = ethers.BigNumber.from('996');
       beforeEach(async () => {
         await uniswap.createPair({
-          tokenA: toToken,
-          tokenB: fromToken,
+          token0: token1,
+          token1: token0,
         });
         // we try to maximize rate per unit to overflow
         await uniswap.addLiquidity({
           owner,
-          tokenA: fromToken,
+          token0: token0,
           amountA: utils.parseEther('1'), //10e18
-          tokenB: toToken,
+          token1: token1,
           amountB: utils.parseEther('1000'), //10e21
         });
-        await DCASwapHandler.setAverageRatesPerUnit(performedSwaps, [
+        await DCAPairSwapHandler.setAverageRatesPerUnit(performedSwaps, [
           ethers.constants.MaxUint256.sub(missingToOverflow),
           ethers.BigNumber.from('0'),
         ]);
-        await DCASwapHandler.setPerformedSwaps(performedSwaps);
-        await DCASwapHandler.setSwapAmountAccumulator(amountToSwap);
-        await fromToken.transfer(DCASwapHandler.address, amountToSwap);
+        await DCAPairSwapHandler.setPerformedSwaps(performedSwaps);
+        await DCAPairSwapHandler.setSwapAmountAccumulator(amountToSwap);
+        await token0.transfer(DCAPairSwapHandler.address, amountToSwap);
       });
       it('stores delta to overflowing, increases overflow multiplier, performed swaps and emits event', async () => {
-        const previousAverageRatePerUnit = await DCASwapHandler.accumRatesPerUnit(
+        const previousAverageRatePerUnit = await DCAPairSwapHandler.accumRatesPerUnit(
           performedSwaps,
           0
         );
-        const previousOverflowGuard = await DCASwapHandler.accumRatesPerUnit(
+        const previousOverflowGuard = await DCAPairSwapHandler.accumRatesPerUnit(
           performedSwaps,
           1
         );
-        expect(await toToken.balanceOf(DCASwapHandler.address)).to.equal(0);
-        await expect(DCASwapHandler.swap())
-          .to.emit(DCASwapHandler, 'Swapped')
+        expect(await token1.balanceOf(DCAPairSwapHandler.address)).to.equal(0);
+        await expect(DCAPairSwapHandler.swap())
+          .to.emit(DCAPairSwapHandler, 'Swapped')
           .withArgs(
             amountToSwap,
             uniswapRatePerUnit,
             uniswapRatePerUnit.mul(magnitude).div(amountToSwap)
           );
-        expect(await toToken.balanceOf(DCASwapHandler.address)).to.equal(
+        expect(await token1.balanceOf(DCAPairSwapHandler.address)).to.equal(
           amountToSwap.mul(uniswapRatePerUnit)
         );
-        const postAverageRatePerUnit = await DCASwapHandler.accumRatesPerUnit(
+        const postAverageRatePerUnit = await DCAPairSwapHandler.accumRatesPerUnit(
           performedSwaps.add(1),
           0
         );
-        const postOverflowGuard = await DCASwapHandler.accumRatesPerUnit(
+        const postOverflowGuard = await DCAPairSwapHandler.accumRatesPerUnit(
           performedSwaps.add(1),
           1
         );
         expect(previousAverageRatePerUnit).to.equal(
-          await DCASwapHandler.accumRatesPerUnit(performedSwaps, 0)
+          await DCAPairSwapHandler.accumRatesPerUnit(performedSwaps, 0)
         );
         expect(postAverageRatePerUnit).to.equal(
           uniswapRatePerUnit

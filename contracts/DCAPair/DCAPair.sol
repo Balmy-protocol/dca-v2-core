@@ -1,22 +1,19 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.7.0;
 
-import "./DCAProtocolParameters.sol";
-import "./DCAPositionHandler.sol";
-import "./DCASwapHandler.sol";
+import './DCAPairParameters.sol';
+import './DCAPairPositionHandler.sol';
+import './DCAPairSwapHandler.sol';
 
-interface IDCA is IDCAProtocolParameters, IDCASwapHandler, IDCAPositionHandler {}
+interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler {}
 
-contract DCA is DCAProtocolParameters, DCASwapHandler, DCAPositionHandler, IDCA {
+contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandler, IDCAPair {
   constructor(
-    address _feeRecipient,
-    IERC20Decimals _from,
-    IERC20Decimals _to,
+    IERC20Decimals _token0,
+    IERC20Decimals _token1,
     IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
-  ) DCAProtocolParameters(_feeRecipient, _from, _to, _uniswap) DCASwapHandler(_swapInterval) {
-    /* */
-  }
+  ) DCAPairParameters(_token0, _token1, _uniswap) DCAPairSwapHandler(IDCAFactory(msg.sender), _swapInterval) {}
 
   // PositionHandler
   function deposit(uint256 _rate, uint256 _amountOfSwaps) external override {
@@ -54,22 +51,5 @@ contract DCA is DCAProtocolParameters, DCASwapHandler, DCAPositionHandler, IDCA 
 
   function swap() public override {
     _swap();
-  }
-
-  // Protocol parameters
-  function setFeeRecipient(address _feeRecipient) public override {
-    _setFeeRecipient(_feeRecipient);
-  }
-
-  function setFrom(IERC20Decimals _from) public override {
-    _setFrom(_from);
-  }
-
-  function setTo(IERC20Decimals _from) public override {
-    _setTo(_from);
-  }
-
-  function setUniswap(IUniswapV2Router02 _uniswap) public override {
-    _setUniswap(_uniswap);
   }
 }

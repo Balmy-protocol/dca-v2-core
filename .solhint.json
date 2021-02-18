@@ -6,7 +6,7 @@
     "func-visibility": ["warn", { "ignoreConstructors": true }],
     "compiler-version": ["off"],
     "constructor-syntax": "warn",
-    "quotes": ["error", "double"],
+    "quotes": ["error", "single"],
     "private-vars-leading-underscore": ["warn", { "strict": false }],
     "reason-string": ["off"],
     "not-rely-on-time": "off"

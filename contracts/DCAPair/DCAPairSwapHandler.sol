@@ -1,14 +1,14 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.7.0;
 
-import "hardhat/console.sol";
+import 'hardhat/console.sol';
 
-import "./DCAProtocolParameters.sol";
+import './DCAPairParameters.sol';
 
-interface IDCASwapHandler {
+interface IDCAPairSwapHandler {
   event SwapIntervalSet(uint256 _swapInterval);
 
-  event Swapped(uint256 _fromAmountSent, uint256 _toAmountReceived, uint256 _ratePerUnit);
+  event Swapped(uint256 _fromSent, uint256 _toReceived, uint256 _ratePerUnit);
 
   function swapInterval() external returns (uint256);
 
@@ -23,7 +23,7 @@ interface IDCASwapHandler {
   function swap() external;
 }
 
-abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
+abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   using SafeERC20 for IERC20Decimals;
   using SafeMath for uint256;
   using SignedSafeMath for int256;
@@ -35,21 +35,22 @@ abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
   uint256 public override lastSwapPerformed;
   uint256 public override performedSwaps;
 
-  constructor(uint256 _swapInterval) {
+  constructor(IDCAFactory _factory, uint256 _swapInterval) {
+    _setFactory(_factory);
     _setSwapInterval(_swapInterval);
   }
 
   function _setSwapInterval(uint256 _swapInterval) internal {
-    require(_swapInterval >= MINIMUM_SWAP_INTERVAL, "DCASH: interval too short");
+    require(_swapInterval >= MINIMUM_SWAP_INTERVAL, 'DCAPair: interval too short');
     swapInterval = _swapInterval;
     emit SwapIntervalSet(_swapInterval);
   }
 
   function _swap() internal {
-    require(lastSwapPerformed <= block.timestamp.sub(swapInterval), "DCASH: within swap interval");
+    require(lastSwapPerformed <= block.timestamp.sub(swapInterval), 'DCAPair: within swap interval');
     uint256 _newPerformedSwaps = performedSwaps.add(1);
     // TODO: Check what happens when swapAmountAccumulator > allowed in int256
-    require(int256(swapAmountAccumulator) + swapAmountDelta[_newPerformedSwaps] > 0, "DCASH: amount should be > 0");
+    require(int256(swapAmountAccumulator) + swapAmountDelta[_newPerformedSwaps] > 0, 'DCAPair: amount should be > 0');
     swapAmountAccumulator += uint256(swapAmountDelta[_newPerformedSwaps]);
     uint256 _balanceBeforeSwap = to.balanceOf(address(this));
     _uniswapSwap(swapAmountAccumulator);
@@ -87,6 +88,7 @@ abstract contract DCASwapHandler is DCAProtocolParameters, IDCASwapHandler {
     address[] memory _path = new address[](2);
     _path[0] = address(from);
     _path[1] = address(to);
+    // TODO: Send fee to fee recipient
     // Swap it
     uniswap.swapExactTokensForTokens(
       _amount,

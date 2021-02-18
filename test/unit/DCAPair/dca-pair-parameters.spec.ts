@@ -3,16 +3,16 @@ import { Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, uniswap, erc20, behaviours } from '../../utils';
 
-describe('DCAProtocolParameters', function () {
-  let owner: Signer, feeRecipient: Signer;
-  let fromToken: Contract;
-  let DCAProtocolParametersContract: ContractFactory;
-  let DCAProtocolParameters: Contract;
+describe('DCAPairParameters', function () {
+  let owner: Signer;
+  let from: Contract;
+  let DCAPairParametersContract: ContractFactory;
+  let DCAPairParameters: Contract;
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient] = await ethers.getSigners();
-    DCAProtocolParametersContract = await ethers.getContractFactory(
-      'contracts/mocks/DCA/DCAProtocolParameters.sol:DCAProtocolParametersMock'
+    [owner] = await ethers.getSigners();
+    DCAPairParametersContract = await ethers.getContractFactory(
+      'contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock'
     );
   });
 
@@ -20,40 +20,25 @@ describe('DCAProtocolParameters', function () {
     await uniswap.deploy({
       owner,
     });
-    fromToken = await erc20.deploy({
+    from = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAProtocolParameters = await DCAProtocolParametersContract.deploy(
-      await feeRecipient.getAddress(),
-      fromToken.address,
+    DCAPairParameters = await DCAPairParametersContract.deploy(
+      from.address,
       uniswap.getWETH().address,
       uniswap.getUniswapV2Router02().address
     );
   });
 
   describe('constructor', () => {
-    context('when feeRecipient is zero address', () => {
-      it('reverts with message error', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
-          contract: DCAProtocolParametersContract,
-          args: [
-            constants.ZERO_ADDRESS,
-            fromToken.address,
-            uniswap.getWETH().address,
-            uniswap.getUniswapV2Router02().address,
-          ],
-        });
-      });
-    });
     context('when from is zero address', () => {
       it('reverts with message error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
-          contract: DCAProtocolParametersContract,
+          contract: DCAPairParametersContract,
           args: [
-            await feeRecipient.getAddress(),
             constants.ZERO_ADDRESS,
             uniswap.getWETH().address,
             uniswap.getUniswapV2Router02().address,
@@ -64,10 +49,9 @@ describe('DCAProtocolParameters', function () {
     context('when to is zero address', () => {
       it('reverts with message error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
-          contract: DCAProtocolParametersContract,
+          contract: DCAPairParametersContract,
           args: [
-            await feeRecipient.getAddress(),
-            fromToken.address,
+            from.address,
             constants.ZERO_ADDRESS,
             uniswap.getUniswapV2Router02().address,
           ],
@@ -77,10 +61,9 @@ describe('DCAProtocolParameters', function () {
     context('when uniswap is zero address', () => {
       it('reverts with message error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
-          contract: DCAProtocolParametersContract,
+          contract: DCAPairParametersContract,
           args: [
-            await feeRecipient.getAddress(),
-            fromToken.address,
+            from.address,
             uniswap.getWETH().address,
             constants.ZERO_ADDRESS,
           ],
@@ -90,22 +73,16 @@ describe('DCAProtocolParameters', function () {
     context('when all arguments are valid', () => {
       it('initizalizes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
-          contract: DCAProtocolParametersContract,
+          contract: DCAPairParametersContract,
           args: [
-            await feeRecipient.getAddress(),
-            fromToken.address,
+            from.address,
             uniswap.getWETH().address,
             uniswap.getUniswapV2Router02().address,
           ],
           settersGettersVariablesAndEvents: [
             {
-              getterFunc: 'feeRecipient',
-              variable: await feeRecipient.getAddress(),
-              eventEmitted: 'FeeRecipientSet',
-            },
-            {
               getterFunc: 'from',
-              variable: fromToken.address,
+              variable: from.address,
               eventEmitted: 'FromSet',
             },
             {
@@ -124,24 +101,24 @@ describe('DCAProtocolParameters', function () {
     });
   });
 
-  describe('setFeeRecipient', () => {
+  describe('setFactory', () => {
     context('when address is zero', () => {
       it('reverts with message', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
-          contract: DCAProtocolParameters,
-          func: 'setFeeRecipient',
+          contract: DCAPairParameters,
+          func: 'setFactory',
           args: [constants.ZERO_ADDRESS],
         });
       });
     });
     context('when address is not zero', () => {
-      it('sets feeRecipient and emits event with correct arguments', async () => {
+      it('sets factory and emits event with correct arguments', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAProtocolParameters,
-          getterFunc: 'feeRecipient',
-          setterFunc: 'setFeeRecipient',
+          contract: DCAPairParameters,
+          getterFunc: 'factory',
+          setterFunc: 'setFactory',
           variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'FeeRecipientSet',
+          eventEmitted: 'FactorySet',
         });
       });
     });
@@ -151,7 +128,7 @@ describe('DCAProtocolParameters', function () {
     context('when address is zero', () => {
       it('reverts with message', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
-          contract: DCAProtocolParameters,
+          contract: DCAPairParameters,
           func: 'setFrom',
           args: [constants.ZERO_ADDRESS],
         });
@@ -160,7 +137,7 @@ describe('DCAProtocolParameters', function () {
     context('when address is not zero', () => {
       it('sets from and emits event with correct arguments', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAProtocolParameters,
+          contract: DCAPairParameters,
           getterFunc: 'from',
           setterFunc: 'setFrom',
           variable: constants.NOT_ZERO_ADDRESS,
@@ -174,7 +151,7 @@ describe('DCAProtocolParameters', function () {
     context('when address is zero', () => {
       it('reverts with message', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
-          contract: DCAProtocolParameters,
+          contract: DCAPairParameters,
           func: 'setTo',
           args: [constants.ZERO_ADDRESS],
         });
@@ -194,11 +171,9 @@ describe('DCAProtocolParameters', function () {
         const previousMagnitude = ethers.BigNumber.from(10).pow(
           await uniswap.getWETH().decimals()
         );
-        expect(await DCAProtocolParameters.magnitude()).to.equal(
-          previousMagnitude
-        );
+        expect(await DCAPairParameters.magnitude()).to.equal(previousMagnitude);
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAProtocolParameters,
+          contract: DCAPairParameters,
           getterFunc: 'to',
           setterFunc: 'setTo',
           variable: newTo.address,
@@ -207,7 +182,7 @@ describe('DCAProtocolParameters', function () {
         const postMagnitude = ethers.BigNumber.from(10).pow(
           await newTo.decimals()
         );
-        expect(await DCAProtocolParameters.magnitude()).to.equal(postMagnitude);
+        expect(await DCAPairParameters.magnitude()).to.equal(postMagnitude);
       });
     });
   });
@@ -216,7 +191,7 @@ describe('DCAProtocolParameters', function () {
     context('when address is zero', () => {
       it('reverts with message', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
-          contract: DCAProtocolParameters,
+          contract: DCAPairParameters,
           func: 'setUniswap',
           args: [constants.ZERO_ADDRESS],
         });
@@ -225,7 +200,7 @@ describe('DCAProtocolParameters', function () {
     context('when address is not zero', () => {
       it('sets uniswap and emits event with correct arguments', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAProtocolParameters,
+          contract: DCAPairParameters,
           getterFunc: 'uniswap',
           setterFunc: 'setUniswap',
           variable: constants.NOT_ZERO_ADDRESS,

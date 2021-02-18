@@ -30,7 +30,7 @@
     "test:e2e:gas": "REPORT_GAS=1 npm run test:e2e",
     "test:gas": "REPORT_GAS=1 npm run test",
     "test:unit": "npm run test 'test/unit/**/*.spec.ts'",
-    "test:unit:gas": "REPORT_GAS=1 npm run test:unit"
+    "test:unit:gas": "TEST=true REPORT_GAS=1 npx hardhat test"
   },
   "husky": {
     "hooks": {

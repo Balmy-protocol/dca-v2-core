@@ -29,33 +29,33 @@ const deploy = async ({ owner }: { owner: Signer }) => {
 };
 
 const createPair = async ({
-  tokenA,
-  tokenB,
+  token0,
+  token1,
 }: {
-  tokenA: Contract;
-  tokenB: Contract;
+  token0: Contract;
+  token1: Contract;
 }) => {
-  await uniswapV2Factory.createPair(tokenA.address, tokenB.address);
+  await uniswapV2Factory.createPair(token0.address, token1.address);
 };
 
 const addLiquidity = async ({
   owner,
-  tokenA,
+  token0,
   amountA,
-  tokenB,
+  token1,
   amountB,
 }: {
   owner: Signer;
-  tokenA: Contract;
+  token0: Contract;
   amountA: BigNumber;
-  tokenB: Contract;
+  token1: Contract;
   amountB: BigNumber;
 }) => {
-  await tokenA.approve(uniswapV2Router02.address, amountA);
-  await tokenB.approve(uniswapV2Router02.address, amountB);
+  await token0.approve(uniswapV2Router02.address, amountA);
+  await token1.approve(uniswapV2Router02.address, amountB);
   await uniswapV2Router02.addLiquidity(
-    tokenA.address,
-    tokenB.address,
+    token0.address,
+    token1.address,
     amountA,
     amountB,
     amountA,
@@ -70,20 +70,20 @@ const addLiquidity = async ({
 
 const addLiquidityETH = async ({
   owner,
-  tokenA,
-  tokenAmount,
+  token0,
+  token0mount,
   wethAmount,
 }: {
   owner: Signer;
-  tokenA: Contract;
-  tokenAmount: BigNumber;
+  token0: Contract;
+  token0mount: BigNumber;
   wethAmount: BigNumber;
 }) => {
-  await tokenA.approve(uniswapV2Router02.address, tokenAmount);
+  await token0.approve(uniswapV2Router02.address, token0mount);
   await uniswapV2Router02.addLiquidityETH(
-    tokenA.address,
-    tokenAmount,
-    tokenAmount,
+    token0.address,
+    token0mount,
+    token0mount,
     wethAmount,
     await owner.getAddress(),
     ethers.BigNumber.from('2').pow('256').sub('2'),

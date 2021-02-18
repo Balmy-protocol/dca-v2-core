@@ -76,6 +76,21 @@ const txShouldRevertWithZeroAddress = async ({
   await checkTxRevertedWithZeroAddress(tx);
 };
 
+const txShouldRevertWithMessage = async ({
+  contract,
+  func,
+  args,
+  message,
+}: {
+  contract: Contract;
+  func: string;
+  args: any[];
+  message: string;
+}): Promise<void> => {
+  const tx = contract[func].apply(this, args);
+  await checkTxRevertedWithMessage({ tx, message });
+};
+
 const checkTxEmittedEvents = async ({
   contract,
   tx,
@@ -191,6 +206,7 @@ export default {
   deployShouldRevertWithMessage,
   deployShouldRevertWithZeroAddress,
   txShouldRevertWithZeroAddress,
+  txShouldRevertWithMessage,
   deployShouldSetVariablesAndEmitEvents,
   txShouldHaveSetVariablesAndEmitEvents,
   txShouldSetVariableAndEmitEvent,
