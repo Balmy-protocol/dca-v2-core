@@ -2,6 +2,8 @@
 
 pragma solidity 0.7.0;
 
+import 'hardhat/console.sol';
+
 import '../../DCAPair/DCAPairSwapHandler.sol';
 import './DCAPairParameters.sol';
 
@@ -19,6 +21,14 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   // SwapHandler
   function setSwapInterval(uint256 _swapInterval) public override {
     _setSwapInterval(_swapInterval);
+  }
+
+  function getAmountToSwap(uint256 _swap) public view returns (uint256) {
+    return _getAmountToSwap(_swap);
+  }
+
+  function addNewRatePerUnit(uint256 _swap, uint256 _ratePerUnit) public {
+    _addNewRatePerUnit(_swap, _ratePerUnit);
   }
 
   function swap() public override {

@@ -46,36 +46,33 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     emit SwapIntervalSet(_swapInterval);
   }
 
+  function _getAmountToSwap(uint256 _swap) internal view returns (uint256 _swapAmountAccumulator) {
+    _swapAmountAccumulator = swapAmountAccumulator + uint256(swapAmountDelta[_swap]);
+  }
+
+  function _addNewRatePerUnit(uint256 _swap, uint256 _ratePerUnit) internal {
+    uint256 _previousSwap = _swap - 1;
+    if (_swap == 1) {
+      accumRatesPerUnit[_swap] = [_ratePerUnit, 0];
+    } else if (accumRatesPerUnit[_previousSwap][0] + _ratePerUnit < accumRatesPerUnit[_previousSwap][0]) {
+      uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[_previousSwap][0]);
+      accumRatesPerUnit[_swap] = [_ratePerUnit.sub(_missingUntilOverflow), accumRatesPerUnit[_previousSwap][1].add(1)];
+    } else {
+      accumRatesPerUnit[_swap] = [accumRatesPerUnit[_previousSwap][0].add(_ratePerUnit), accumRatesPerUnit[_previousSwap][1]];
+    }
+  }
+
   function _swap() internal {
     require(lastSwapPerformed <= block.timestamp.sub(swapInterval), 'DCAPair: within swap interval');
     uint256 _newPerformedSwaps = performedSwaps.add(1);
-    // TODO: Check what happens when swapAmountAccumulator > allowed in int256
-    require(int256(swapAmountAccumulator) + swapAmountDelta[_newPerformedSwaps] > 0, 'DCAPair: amount should be > 0');
-    swapAmountAccumulator += uint256(swapAmountDelta[_newPerformedSwaps]);
     uint256 _balanceBeforeSwap = to.balanceOf(address(this));
+    swapAmountAccumulator = _getAmountToSwap(_newPerformedSwaps);
     _uniswapSwap(swapAmountAccumulator);
     uint256 _boughtBySwap = to.balanceOf(address(this)).sub(_balanceBeforeSwap);
     // TODO: Add some checks, for example to verify that _boughtBySwap is positive?. Even though it should never happen, let's be safe
-    // console.log('bought by swap %s', _boughtBySwap);
     uint256 _ratePerUnit = (_boughtBySwap.mul(_magnitude)).div(swapAmountAccumulator);
-    // console.log('rate per unit %s', _ratePerUnit);
-    // console.log(
-    //   'accumRatesPerUnit[performedSwaps][0] %s',
-    //   accumRatesPerUnit[performedSwaps][0]
-    // );
-    // console.log(
-    //   'type(uint256).max.sub(accumRatesPerUnit[performedSwaps][0]) %s',
-    //   type(uint256).max.sub(accumRatesPerUnit[performedSwaps][0])
-    // );
-    if (_newPerformedSwaps == 1) {
-      accumRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit, 0];
-    } else if (accumRatesPerUnit[performedSwaps][0] + _ratePerUnit < accumRatesPerUnit[performedSwaps][0]) {
-      uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[performedSwaps][0]);
-      accumRatesPerUnit[_newPerformedSwaps] = [_ratePerUnit.sub(_missingUntilOverflow), accumRatesPerUnit[performedSwaps][1].add(1)];
-    } else {
-      accumRatesPerUnit[_newPerformedSwaps] = [accumRatesPerUnit[performedSwaps][0].add(_ratePerUnit), accumRatesPerUnit[performedSwaps][1]];
-    }
-    delete swapAmountDelta[performedSwaps];
+    _addNewRatePerUnit(_newPerformedSwaps, _ratePerUnit);
+    delete swapAmountDelta[_newPerformedSwaps];
     performedSwaps = _newPerformedSwaps;
     emit Swapped(swapAmountAccumulator, _boughtBySwap, _ratePerUnit);
   }

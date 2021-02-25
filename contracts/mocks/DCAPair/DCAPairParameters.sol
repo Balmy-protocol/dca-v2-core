@@ -33,8 +33,8 @@ contract DCAPairParametersMock is DCAPairParameters {
     swapAmountDelta[_swap] = _delta;
   }
 
-  function setAverageRatesPerUnit(uint256 _swap, uint256[2] memory _averageRatePerUnit) public {
-    accumRatesPerUnit[_swap] = _averageRatePerUnit;
+  function setAcummRatesPerUnit(uint256 _swap, uint256[2] memory _accumRatePerUnit) public {
+    accumRatesPerUnit[_swap] = _accumRatePerUnit;
   }
 
   // Mocks getters
