@@ -22,8 +22,8 @@ interface IDCAPairParameters {
   }
 
   /* Events */
-  event FromSet(IERC20Decimals _tokenA);
-  event ToSet(IERC20Decimals _tokenB);
+  event TokenASet(IERC20Decimals _tokenA);
+  event TokenBSet(IERC20Decimals _tokenB);
   event FactorySet(IDCAFactory _factory);
   event UniswapSet(IUniswapV2Router02 _uniswap);
 
@@ -76,14 +76,14 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   function _setTokenA(IERC20Decimals _tokenA) internal {
     require(address(_tokenA) != address(0), 'DCAPair: zero-address');
     tokenA = _tokenA;
-    emit FromSet(_tokenA);
+    emit TokenASet(_tokenA);
   }
 
   function _setTokenB(IERC20Decimals _tokenB) internal {
     require(address(_tokenB) != address(0), 'DCAPair: zero-address');
     tokenB = _tokenB;
     _magnitude = 10**_tokenB.decimals();
-    emit ToSet(_tokenB);
+    emit TokenBSet(_tokenB);
   }
 
   function _setUniswap(IUniswapV2Router02 _uniswap) internal {

@@ -109,16 +109,14 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   ) internal {
     // TODO: Check that the sender actually has a position set
 
-    DCA memory _userDCA = userTrades[_dcaId];
-
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _totalNecessary = _newRate.mul(_newAmountOfSwaps);
     int256 _needed = int256(_totalNecessary - _unswapped);
 
-    _removePosition(_dcaId);
-    _addPosition(_dcaId, _userDCA.from, _newRate, _newAmountOfSwaps);
-
     IERC20Decimals _from = _getFrom(_dcaId);
+
+    _removePosition(_dcaId);
+    _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps);
 
     if (_needed > 0) {
       // We need to ask for more funds

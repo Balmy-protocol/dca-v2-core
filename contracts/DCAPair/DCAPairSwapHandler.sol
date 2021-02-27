@@ -14,7 +14,7 @@ interface IDCAPairSwapHandler {
 
   function lastSwapPerformed() external returns (uint256);
 
-  function swapAmountAccumulator() external returns (uint256);
+  function swapAmountAccumulator(address) external returns (uint256);
 
   function performedSwaps() external returns (uint256);
 
@@ -30,7 +30,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
 
   uint256 internal constant MINIMUM_SWAP_INTERVAL = 1 minutes;
 
-  uint256 public override swapAmountAccumulator;
+  mapping(address => uint256) public override swapAmountAccumulator;
   uint256 public override swapInterval;
   uint256 public override lastSwapPerformed;
   uint256 public override performedSwaps;
@@ -47,7 +47,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   }
 
   function _getAmountToSwap(address _address, uint256 _swap) internal view returns (uint256 _swapAmountAccumulator) {
-    _swapAmountAccumulator = swapAmountAccumulator + uint256(swapAmountDelta[_address][_swap]);
+    _swapAmountAccumulator = swapAmountAccumulator[_address] + uint256(swapAmountDelta[_address][_swap]);
   }
 
   function _addNewRatePerUnit(
@@ -69,8 +69,8 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     }
   }
 
-  // TODO: This is only performing the swap one-way. We have to do it both ways
   function _swap() internal {
+    // TODO: This is only performing the swap one-way. We have to do it both ways
     _internalSwap(tokenA, tokenB);
   }
 
@@ -81,14 +81,16 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
 
     uint256 _newPerformedSwaps = performedSwaps.add(1);
     uint256 _balanceBeforeSwap = _to.balanceOf(address(this));
-    swapAmountAccumulator = _getAmountToSwap(_fromAddress, _newPerformedSwaps);
-    _uniswapSwap(_from, _to, swapAmountAccumulator);
+    uint256 _amountToSwap = _getAmountToSwap(_fromAddress, _newPerformedSwaps);
+    swapAmountAccumulator[_fromAddress] = _amountToSwap;
+    _uniswapSwap(_from, _to, _amountToSwap);
     uint256 _boughtBySwap = _to.balanceOf(address(this)).sub(_balanceBeforeSwap);
     // TODO: Add some checks, for example to verify that _boughtBySwap is positive?. Even though it should never happen, let's be safe
-    uint256 _ratePerUnit = (_boughtBySwap.mul(_magnitude)).div(swapAmountAccumulator);
+    uint256 _ratePerUnit = (_boughtBySwap.mul(_magnitude)).div(_amountToSwap);
     _addNewRatePerUnit(_fromAddress, _newPerformedSwaps, _ratePerUnit);
     delete swapAmountDelta[_fromAddress][_newPerformedSwaps];
     performedSwaps = _newPerformedSwaps;
+    emit Swapped(swapAmountAccumulator[_fromAddress], _boughtBySwap, _ratePerUnit);
   }
 
   function _uniswapSwap(
