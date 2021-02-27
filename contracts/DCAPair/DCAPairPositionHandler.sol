@@ -129,16 +129,16 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
 
   function _addPosition(
     uint256 _dcaId,
-    address from,
+    address _from,
     uint256 _rate,
     uint256 _amountOfSwaps
   ) internal {
     // TODO: Consider requesting _amountOfSwaps to be 2 or more, to avoid flash loans/mints
     uint256 _startingSwap = performedSwaps.add(1);
     uint256 _finalSwap = _startingSwap.add(_amountOfSwaps);
-    swapAmountDelta[from][_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
-    swapAmountDelta[from][_finalSwap] -= int256(_rate); // TODO: use SignedSafeMath
-    userTrades[_dcaId] = DCA(from, _rate, _startingSwap, _finalSwap);
+    swapAmountDelta[_from][_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
+    swapAmountDelta[_from][_finalSwap] -= int256(_rate); // TODO: use SignedSafeMath
+    userTrades[_dcaId] = DCA(_from, _rate, _startingSwap, _finalSwap);
   }
 
   function _removePosition(uint256 _dcaId) internal {
