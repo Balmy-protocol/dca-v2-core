@@ -46,45 +46,63 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     emit SwapIntervalSet(_swapInterval);
   }
 
-  function _getAmountToSwap(uint256 _swap) internal view returns (uint256 _swapAmountAccumulator) {
-    _swapAmountAccumulator = swapAmountAccumulator + uint256(swapAmountDelta[_swap]);
+  function _getAmountToSwap(address _address, uint256 _swap) internal view returns (uint256 _swapAmountAccumulator) {
+    _swapAmountAccumulator = swapAmountAccumulator + uint256(swapAmountDelta[_address][_swap]);
   }
 
-  function _addNewRatePerUnit(uint256 _swap, uint256 _ratePerUnit) internal {
+  function _addNewRatePerUnit(
+    address _address,
+    uint256 _swap,
+    uint256 _ratePerUnit
+  ) internal {
     uint256 _previousSwap = _swap - 1;
     if (_swap == 1) {
-      accumRatesPerUnit[_swap] = [_ratePerUnit, 0];
-    } else if (accumRatesPerUnit[_previousSwap][0] + _ratePerUnit < accumRatesPerUnit[_previousSwap][0]) {
-      uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[_previousSwap][0]);
-      accumRatesPerUnit[_swap] = [_ratePerUnit.sub(_missingUntilOverflow), accumRatesPerUnit[_previousSwap][1].add(1)];
+      accumRatesPerUnit[_address][_swap] = [_ratePerUnit, 0];
+    } else if (accumRatesPerUnit[_address][_previousSwap][0] + _ratePerUnit < accumRatesPerUnit[_address][_previousSwap][0]) {
+      uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[_address][_previousSwap][0]);
+      accumRatesPerUnit[_address][_swap] = [_ratePerUnit.sub(_missingUntilOverflow), accumRatesPerUnit[_address][_previousSwap][1].add(1)];
     } else {
-      accumRatesPerUnit[_swap] = [accumRatesPerUnit[_previousSwap][0].add(_ratePerUnit), accumRatesPerUnit[_previousSwap][1]];
+      accumRatesPerUnit[_address][_swap] = [
+        accumRatesPerUnit[_address][_previousSwap][0].add(_ratePerUnit),
+        accumRatesPerUnit[_address][_previousSwap][1]
+      ];
     }
   }
 
+  // TODO: This is only performing the swap one-way. We have to do it both ways
   function _swap() internal {
-    require(lastSwapPerformed <= block.timestamp.sub(swapInterval), 'DCAPair: within swap interval');
-    uint256 _newPerformedSwaps = performedSwaps.add(1);
-    uint256 _balanceBeforeSwap = to.balanceOf(address(this));
-    swapAmountAccumulator = _getAmountToSwap(_newPerformedSwaps);
-    _uniswapSwap(swapAmountAccumulator);
-    uint256 _boughtBySwap = to.balanceOf(address(this)).sub(_balanceBeforeSwap);
-    // TODO: Add some checks, for example to verify that _boughtBySwap is positive?. Even though it should never happen, let's be safe
-    uint256 _ratePerUnit = (_boughtBySwap.mul(_magnitude)).div(swapAmountAccumulator);
-    _addNewRatePerUnit(_newPerformedSwaps, _ratePerUnit);
-    delete swapAmountDelta[_newPerformedSwaps];
-    performedSwaps = _newPerformedSwaps;
-    emit Swapped(swapAmountAccumulator, _boughtBySwap, _ratePerUnit);
+    _internalSwap(tokenA, tokenB);
   }
 
-  function _uniswapSwap(uint256 _amount) internal {
+  function _internalSwap(IERC20Decimals _from, IERC20Decimals _to) internal {
+    require(lastSwapPerformed <= block.timestamp.sub(swapInterval), 'DCAPair: within swap interval');
+
+    address _fromAddress = address(_from);
+
+    uint256 _newPerformedSwaps = performedSwaps.add(1);
+    uint256 _balanceBeforeSwap = _to.balanceOf(address(this));
+    swapAmountAccumulator = _getAmountToSwap(_fromAddress, _newPerformedSwaps);
+    _uniswapSwap(_from, _to, swapAmountAccumulator);
+    uint256 _boughtBySwap = _to.balanceOf(address(this)).sub(_balanceBeforeSwap);
+    // TODO: Add some checks, for example to verify that _boughtBySwap is positive?. Even though it should never happen, let's be safe
+    uint256 _ratePerUnit = (_boughtBySwap.mul(_magnitude)).div(swapAmountAccumulator);
+    _addNewRatePerUnit(_fromAddress, _newPerformedSwaps, _ratePerUnit);
+    delete swapAmountDelta[_fromAddress][_newPerformedSwaps];
+    performedSwaps = _newPerformedSwaps;
+  }
+
+  function _uniswapSwap(
+    IERC20Decimals _from,
+    IERC20Decimals _to,
+    uint256 _amount
+  ) internal {
     // Approve given erc20
-    from.safeApprove(address(uniswap), 0);
-    from.safeApprove(address(uniswap), _amount);
+    _from.safeApprove(address(uniswap), 0);
+    _from.safeApprove(address(uniswap), _amount);
     // Create path
     address[] memory _path = new address[](2);
-    _path[0] = address(from);
-    _path[1] = address(to);
+    _path[0] = address(_from);
+    _path[1] = address(_to);
     // TODO: Send fee to fee recipient
     // Swap it
     uniswap.swapExactTokensForTokens(

@@ -9,15 +9,19 @@ interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionH
 
 contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandler, IDCAPair {
   constructor(
-    IERC20Decimals _token0,
-    IERC20Decimals _token1,
+    IERC20Decimals _tokenA,
+    IERC20Decimals _tokenB,
     IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
-  ) DCAPairParameters(_token0, _token1, _uniswap) DCAPairSwapHandler(IDCAFactory(msg.sender), _swapInterval) {}
+  ) DCAPairParameters(_tokenA, _tokenB, _uniswap) DCAPairSwapHandler(IDCAFactory(msg.sender), _swapInterval) {}
 
   // PositionHandler
-  function deposit(uint256 _rate, uint256 _amountOfSwaps) external override {
-    _deposit(_rate, _amountOfSwaps);
+  function deposit(
+    address _token,
+    uint256 _rate,
+    uint256 _amountOfSwaps
+  ) external override {
+    _deposit(_token, _rate, _amountOfSwaps);
   }
 
   function withdrawSwapped(uint256 _dcaId) external override returns (uint256 _swapped) {

@@ -15,27 +15,28 @@ import '../interfaces/IERC20Decimals.sol';
 
 interface IDCAPairParameters {
   struct DCA {
+    address from;
     uint256 rate;
     uint256 lastWithdrawSwap;
     uint256 lastSwap;
   }
 
   /* Events */
-  event FromSet(IERC20Decimals _from);
-  event ToSet(IERC20Decimals _to);
+  event FromSet(IERC20Decimals _tokenA);
+  event ToSet(IERC20Decimals _tokenB);
   event FactorySet(IDCAFactory _factory);
   event UniswapSet(IUniswapV2Router02 _uniswap);
 
   /* Public getters */
   function factory() external view returns (IDCAFactory);
 
-  function from() external view returns (IERC20Decimals);
+  function tokenA() external view returns (IERC20Decimals);
 
-  function to() external view returns (IERC20Decimals);
+  function tokenB() external view returns (IERC20Decimals);
 
   function uniswap() external view returns (IUniswapV2Router02);
 
-  function swapAmountDelta(uint256) external view returns (int256);
+  function swapAmountDelta(address, uint256) external view returns (int256);
 
   // TODO: function accumRatesPerUnit(uint256) external returns (uint256[2] memory);
 
@@ -47,22 +48,22 @@ abstract contract DCAPairParameters is IDCAPairParameters {
 
   // Basic setup
   IDCAFactory public override factory;
-  IERC20Decimals public override from;
-  IERC20Decimals public override to;
+  IERC20Decimals public override tokenA;
+  IERC20Decimals public override tokenB;
   IUniswapV2Router02 public override uniswap;
 
   // Tracking
-  mapping(uint256 => int256) public override swapAmountDelta;
-  mapping(uint256 => uint256[2]) public accumRatesPerUnit;
+  mapping(address => mapping(uint256 => int256)) public override swapAmountDelta;
+  mapping(address => mapping(uint256 => uint256[2])) public accumRatesPerUnit;
   mapping(uint256 => DCA) public userTrades;
 
   constructor(
-    IERC20Decimals _from,
-    IERC20Decimals _to,
+    IERC20Decimals _tokenA,
+    IERC20Decimals _tokenB,
     IUniswapV2Router02 _uniswap
   ) {
-    _setFrom(_from);
-    _setTo(_to);
+    _setTokenA(_tokenA);
+    _setTokenB(_tokenB);
     _setUniswap(_uniswap);
   }
 
@@ -72,17 +73,17 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     emit FactorySet(_factory);
   }
 
-  function _setFrom(IERC20Decimals _from) internal {
-    require(address(_from) != address(0), 'DCAPair: zero-address');
-    from = _from;
-    emit FromSet(_from);
+  function _setTokenA(IERC20Decimals _tokenA) internal {
+    require(address(_tokenA) != address(0), 'DCAPair: zero-address');
+    tokenA = _tokenA;
+    emit FromSet(_tokenA);
   }
 
-  function _setTo(IERC20Decimals _to) internal {
-    require(address(_to) != address(0), 'DCAPair: zero-address');
-    to = _to;
-    _magnitude = 10**_to.decimals();
-    emit ToSet(_to);
+  function _setTokenB(IERC20Decimals _tokenB) internal {
+    require(address(_tokenB) != address(0), 'DCAPair: zero-address');
+    tokenB = _tokenB;
+    _magnitude = 10**_tokenB.decimals();
+    emit ToSet(_tokenB);
   }
 
   function _setUniswap(IUniswapV2Router02 _uniswap) internal {

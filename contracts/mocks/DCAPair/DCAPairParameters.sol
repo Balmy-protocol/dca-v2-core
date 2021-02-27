@@ -6,10 +6,10 @@ import '../../DCAPair/DCAPairParameters.sol';
 
 contract DCAPairParametersMock is DCAPairParameters {
   constructor(
-    IERC20Decimals _from,
-    IERC20Decimals _to,
+    IERC20Decimals _tokenA,
+    IERC20Decimals _tokenB,
     IUniswapV2Router02 _uniswap
-  ) DCAPairParameters(_from, _to, _uniswap) {}
+  ) DCAPairParameters(_tokenA, _tokenB, _uniswap) {}
 
   // Mocks setters
 
@@ -17,24 +17,32 @@ contract DCAPairParametersMock is DCAPairParameters {
     _setFactory(_factory);
   }
 
-  function setFrom(IERC20Decimals _from) public {
-    _setFrom(_from);
+  function setTokenA(IERC20Decimals _tokenA) public {
+    _setTokenA(_tokenA);
   }
 
-  function setTo(IERC20Decimals _to) public {
-    _setTo(_to);
+  function setTokenB(IERC20Decimals _tokenB) public {
+    _setTokenB(_tokenB);
   }
 
   function setUniswap(IUniswapV2Router02 _uniswap) public {
     _setUniswap(_uniswap);
   }
 
-  function setSwapAmountDelta(uint256 _swap, int256 _delta) public {
-    swapAmountDelta[_swap] = _delta;
+  function setSwapAmountDelta(
+    address _tokenAddress,
+    uint256 _swap,
+    int256 _delta
+  ) public {
+    swapAmountDelta[_tokenAddress][_swap] = _delta;
   }
 
-  function setAcummRatesPerUnit(uint256 _swap, uint256[2] memory _accumRatePerUnit) public {
-    accumRatesPerUnit[_swap] = _accumRatePerUnit;
+  function setAcummRatesPerUnit(
+    address _tokenAddress,
+    uint256 _swap,
+    uint256[2] memory _accumRatePerUnit
+  ) public {
+    accumRatesPerUnit[_tokenAddress][_swap] = _accumRatePerUnit;
   }
 
   // Mocks getters

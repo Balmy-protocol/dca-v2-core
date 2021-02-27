@@ -7,7 +7,11 @@ interface IDCAPairPositionHandler {
   event Terminated(address indexed _depositor, uint256 _canceledDate, uint256 _startDate, uint256 _endDate, uint256 _amountPerDay);
   event Deposited(address indexed _depositor, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
 
-  function deposit(uint256 _rate, uint256 _amountOfSwaps) external;
+  function deposit(
+    address _tokenAddress,
+    uint256 _rate,
+    uint256 _amountOfSwaps
+  ) external;
 
   function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
 
@@ -31,10 +35,16 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
 
   uint256 _totalDCAs = 0; // TODO: Replace for NFT hash
 
-  function _deposit(uint256 _rate, uint256 _amountOfSwaps) internal {
-    from.safeTransferFrom(msg.sender, address(this), _rate.mul(_amountOfSwaps));
+  function _deposit(
+    address _tokenAddress,
+    uint256 _rate,
+    uint256 _amountOfSwaps
+  ) internal {
+    // TODO: Verify that the given token is actually tokenA or tokenB
+    IERC20Decimals _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
+    _from.safeTransferFrom(msg.sender, address(this), _rate.mul(_amountOfSwaps));
     _totalDCAs += 1; // => dcaId
-    _addPosition(_totalDCAs, _rate, _amountOfSwaps);
+    _addPosition(_totalDCAs, _tokenAddress, _rate, _amountOfSwaps);
     // emit Deposited(msg.sender, _rate, _startingSwap, _finalSwap); TODO: Emit event
   }
 
@@ -45,7 +55,8 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
 
     if (_swapped > 0) {
       // TODO: update userTrades
-      to.safeTransferFrom(address(this), msg.sender, _swapped);
+      IERC20Decimals _to = _getTo(_dcaId);
+      _to.safeTransferFrom(address(this), msg.sender, _swapped);
     }
 
     // TODO: Emit event
@@ -60,11 +71,13 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     _removePosition(_dcaId);
 
     if (_swapped > 0) {
-      to.safeTransferFrom(address(this), msg.sender, _swapped);
+      IERC20Decimals _to = _getTo(_dcaId);
+      _to.safeTransferFrom(address(this), msg.sender, _swapped);
     }
 
     if (_unswapped > 0) {
-      from.safeTransferFrom(address(this), msg.sender, _unswapped);
+      IERC20Decimals _from = _getFrom(_dcaId);
+      _from.safeTransferFrom(address(this), msg.sender, _unswapped);
     }
 
     // TODO: Emit event
@@ -96,40 +109,45 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   ) internal {
     // TODO: Check that the sender actually has a position set
 
+    DCA memory _userDCA = userTrades[_dcaId];
+
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _totalNecessary = _newRate.mul(_newAmountOfSwaps);
     int256 _needed = int256(_totalNecessary - _unswapped);
 
     _removePosition(_dcaId);
-    _addPosition(_dcaId, _newRate, _newAmountOfSwaps);
+    _addPosition(_dcaId, _userDCA.from, _newRate, _newAmountOfSwaps);
+
+    IERC20Decimals _from = _getFrom(_dcaId);
 
     if (_needed > 0) {
       // We need to ask for more funds
-      from.safeTransferFrom(msg.sender, address(this), uint256(_needed));
+      _from.safeTransferFrom(msg.sender, address(this), uint256(_needed));
     } else if (_needed < 0) {
       // We need to return to the owner the amount that won't be used anymore
-      from.safeTransferFrom(address(this), msg.sender, uint256(_needed)); // TODO: Transfer 'uint256(abs(_needed))' here
+      _from.safeTransferFrom(address(this), msg.sender, uint256(-_needed));
     }
   }
 
   function _addPosition(
     uint256 _dcaId,
+    address from,
     uint256 _rate,
     uint256 _amountOfSwaps
   ) internal {
     // TODO: Consider requesting _amountOfSwaps to be 2 or more, to avoid flash loans/mints
     uint256 _startingSwap = performedSwaps.add(1);
     uint256 _finalSwap = _startingSwap.add(_amountOfSwaps);
-    swapAmountDelta[_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
-    swapAmountDelta[_finalSwap] -= int256(_rate); // TODO: use SignedSafeMath
-    userTrades[_dcaId] = DCA(_rate, _startingSwap, _finalSwap);
+    swapAmountDelta[from][_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
+    swapAmountDelta[from][_finalSwap] -= int256(_rate); // TODO: use SignedSafeMath
+    userTrades[_dcaId] = DCA(from, _rate, _startingSwap, _finalSwap);
   }
 
   function _removePosition(uint256 _dcaId) internal {
     DCA memory _userDCA = userTrades[_dcaId];
     if (_userDCA.lastSwap > performedSwaps) {
-      swapAmountDelta[performedSwaps.add(1)] -= int256(_userDCA.rate); // TODO: use SignedSafeMath
-      swapAmountDelta[_userDCA.lastSwap] += int256(_userDCA.rate); // TODO: use SignedSafeMath
+      swapAmountDelta[_userDCA.from][performedSwaps.add(1)] -= int256(_userDCA.rate); // TODO: use SignedSafeMath
+      swapAmountDelta[_userDCA.from][_userDCA.lastSwap] += int256(_userDCA.rate); // TODO: use SignedSafeMath
     }
     delete userTrades[_dcaId];
   }
@@ -137,8 +155,8 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   /** Return the amount of tokens swapped in TO */
   function _calculateSwapped(uint256 _dcaId) internal returns (uint256 _swapped) {
     DCA memory _userDCA = userTrades[_dcaId];
-    uint256[2] memory _sumRatesLastWidthraw = accumRatesPerUnit[_userDCA.lastWithdrawSwap];
-    uint256[2] memory _sumRatesPerformed = accumRatesPerUnit[performedSwaps];
+    uint256[2] memory _sumRatesLastWidthraw = accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
+    uint256[2] memory _sumRatesPerformed = accumRatesPerUnit[_userDCA.from][performedSwaps];
     _swapped = _sumRatesPerformed[1].sub(_sumRatesLastWidthraw[1]).mul(_userDCA.rate).mul(type(uint256).max).add(
       _sumRatesPerformed[0].sub(_sumRatesLastWidthraw[0]).mul(_userDCA.rate)
     );
@@ -152,6 +170,16 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     }
     uint256 _remainingSwaps = _userDCA.lastSwap - performedSwaps;
     _unswapped = _remainingSwaps.mul(_userDCA.rate);
+  }
+
+  function _getFrom(uint256 _dcaId) internal returns (IERC20Decimals _from) {
+    DCA memory _userDCA = userTrades[_dcaId];
+    _from = _userDCA.from == address(tokenA) ? tokenA : tokenB;
+  }
+
+  function _getTo(uint256 _dcaId) internal returns (IERC20Decimals _to) {
+    DCA memory _userDCA = userTrades[_dcaId];
+    _to = _userDCA.from == address(tokenA) ? tokenB : tokenA;
   }
 }
 
