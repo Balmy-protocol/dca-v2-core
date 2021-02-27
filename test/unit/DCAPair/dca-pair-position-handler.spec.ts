@@ -1,4 +1,4 @@
-getSelection; /*
+/*
 DEPOSIT
 When making a deposit with an unknown token address, then tx is reverted with message
 When making a deposit with a valid token address,
