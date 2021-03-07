@@ -4,7 +4,7 @@ pragma solidity 0.7.0;
 import './DCAPairSwapHandler.sol';
 
 interface IDCAPairPositionHandler {
-  event Terminated(address indexed _user, uint256 _canceledDate, uint256 _startDate, uint256 _endDate, uint256 _amountPerDay);
+  event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
   event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
   event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
 
@@ -58,7 +58,6 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     _swapped = _calculateSwapped(_dcaId);
 
     if (_swapped > 0) {
-      // TODO: update userTrades
       userTrades[_dcaId].lastWithdrawSwap = performedSwaps;
 
       IERC20Decimals _to = _getTo(_dcaId);
@@ -74,21 +73,19 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     uint256 _swapped = _calculateSwapped(_dcaId);
     uint256 _unswapped = _calculateUnswapped(_dcaId);
 
+    IERC20Decimals _from = _getFrom(_dcaId);
+    IERC20Decimals _to = _getTo(_dcaId);
     _removePosition(_dcaId);
 
     if (_swapped > 0) {
-      IERC20Decimals _to = _getTo(_dcaId);
       _to.safeTransfer(msg.sender, _swapped);
     }
 
     if (_unswapped > 0) {
-      IERC20Decimals _from = _getFrom(_dcaId);
       _from.safeTransfer(msg.sender, _unswapped);
     }
 
-    // TODO: Eliminate from trades
-
-    // TODO: Emit event
+    emit Terminated(msg.sender, _dcaId, _unswapped, _swapped);
   }
 
   function _modifyRate(uint256 _dcaId, uint256 _newRate) internal {
@@ -147,7 +144,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   ) internal returns (uint256 _startingSwap, uint256 _finalSwap) {
     // TODO: Consider requesting _amountOfSwaps to be 2 or more, to avoid flash loans/mints
     _startingSwap = performedSwaps.add(1);
-    _finalSwap = _startingSwap.add(_amountOfSwaps);
+    _finalSwap = performedSwaps.add(_amountOfSwaps);
     swapAmountDelta[_from][_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
     swapAmountDelta[_from][_finalSwap] -= int256(_rate); // TODO: use SignedSafeMath
     userTrades[_dcaId] = DCA(_from, _rate, performedSwaps, _finalSwap);

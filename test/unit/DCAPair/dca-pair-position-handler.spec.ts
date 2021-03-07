@@ -35,6 +35,7 @@ describe.only('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
   const POSITION_RATE_5 = 5;
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
+  const RATE_PER_UNIT_5 = 5;
 
   const INITIAL_TOKEN_A_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_A_BALANCE_USER = 100;
@@ -81,7 +82,7 @@ describe.only('DCAPositionHandler', () => {
     await tokenA.approveInternal(
       ownerAddress,
       DCAPositionHandler.address,
-      fromEther(100)
+      fromEther(1000)
     );
     await tokenA.mint(
       DCAPositionHandler.address,
@@ -117,8 +118,8 @@ describe.only('DCAPositionHandler', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
           address: constants.NOT_ZERO_ADDRESS,
-          rate: 10,
-          swaps: 10,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
           error: 'DCAPair: Invalid deposit address',
         });
       });
@@ -129,7 +130,7 @@ describe.only('DCAPositionHandler', () => {
         await depositShouldRevert({
           address: tokenA.address,
           rate: 0,
-          swaps: 10,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
           error: 'DCAPair: Invalid rate. It must be positive',
         });
       });
@@ -139,7 +140,7 @@ describe.only('DCAPositionHandler', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
           address: tokenA.address,
-          rate: 10,
+          rate: POSITION_RATE_5,
           swaps: 0,
           error: 'DCAPair: Invalid amount of swaps. It must be positive',
         });
@@ -169,7 +170,7 @@ describe.only('DCAPositionHandler', () => {
             tokenA.address,
             fromEther(POSITION_RATE_5),
             PERFORMED_SWAPS_10 + 1,
-            PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10 + 1
+            PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10
           );
       });
 
@@ -193,7 +194,7 @@ describe.only('DCAPositionHandler', () => {
           from: tokenA,
           rate: POSITION_RATE_5,
           lastWithdrawSwap: PERFORMED_SWAPS_10,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10 + 1,
+          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
         });
       });
 
@@ -208,7 +209,7 @@ describe.only('DCAPositionHandler', () => {
         );
         const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
-          PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10 + 1
+          PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10
         );
 
         expect(deltaPerformedSwaps).to.equal(0);
@@ -242,7 +243,7 @@ describe.only('DCAPositionHandler', () => {
             POSITION_RATE_5,
             POSITION_SWAPS_TO_PERFORM_10
           ));
-          ({ response } = await withdrawSwapped(dcaId));
+          response = await withdrawSwapped(dcaId);
         });
 
         then('no event is emitted', async () => {
@@ -269,7 +270,7 @@ describe.only('DCAPositionHandler', () => {
             from: tokenA,
             rate: POSITION_RATE_5,
             lastWithdrawSwap: PERFORMED_SWAPS_10,
-            lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10 + 1,
+            lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
           });
         });
       }
@@ -278,7 +279,6 @@ describe.only('DCAPositionHandler', () => {
     when(`withdrawing swapped with executed position,`, () => {
       let response: TransactionResponse;
       let dcaId: BigNumber;
-      const RATE_PER_UNIT = 5;
 
       given(async () => {
         ({ dcaId } = await deposit(
@@ -288,21 +288,22 @@ describe.only('DCAPositionHandler', () => {
         ));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT,
+          ratePerUnit: RATE_PER_UNIT_5,
+          amount: POSITION_RATE_5,
         });
-        ({ response } = await withdrawSwapped(dcaId));
+        response = await withdrawSwapped(dcaId);
       });
 
       then('swapped tokens are sent to the user', async () => {
         await expectBalanceToBe(
           tokenB,
           ownerAddress,
-          INITIAL_TOKEN_B_BALANCE_USER + RATE_PER_UNIT * POSITION_RATE_5
+          INITIAL_TOKEN_B_BALANCE_USER + RATE_PER_UNIT_5 * POSITION_RATE_5
         );
         await expectBalanceToBe(
           tokenB,
           DCAPositionHandler.address,
-          INITIAL_TOKEN_B_BALANCE_CONTRACT - RATE_PER_UNIT * POSITION_RATE_5
+          INITIAL_TOKEN_B_BALANCE_CONTRACT
         );
       });
 
@@ -311,7 +312,7 @@ describe.only('DCAPositionHandler', () => {
           from: tokenA,
           rate: POSITION_RATE_5,
           lastWithdrawSwap: PERFORMED_SWAPS_10 + 1,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10 + 1,
+          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
         });
       });
 
@@ -322,8 +323,98 @@ describe.only('DCAPositionHandler', () => {
             ownerAddress,
             dcaId,
             tokenB.address,
-            fromEther(RATE_PER_UNIT * POSITION_RATE_5)
+            fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5)
           );
+      });
+    });
+  });
+
+  describe('terminate', () => {
+    when('terminating a position with invalid id', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'terminate',
+          args: [100],
+          message: 'DCAPair: Invalid position id',
+        });
+      });
+    });
+
+    when(`terminating a valid position`, () => {
+      const swappedWhenTerminated = RATE_PER_UNIT_5 * POSITION_RATE_5;
+      const unswappedWhenTerminated =
+        (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5;
+
+      let response: TransactionResponse;
+      let dcaId: BigNumber;
+
+      given(async () => {
+        ({ dcaId } = await deposit(
+          tokenA,
+          POSITION_RATE_5,
+          POSITION_SWAPS_TO_PERFORM_10
+        ));
+
+        await performTrade({
+          swap: PERFORMED_SWAPS_10 + 1,
+          ratePerUnit: RATE_PER_UNIT_5,
+          amount: POSITION_RATE_5,
+        });
+
+        await expectBalanceToBe(
+          tokenB,
+          ownerAddress,
+          INITIAL_TOKEN_B_BALANCE_USER
+        );
+
+        response = await terminate(dcaId);
+      });
+
+      then('event is emitted', async () => {
+        await expect(response)
+          .to.emit(DCAPositionHandler, 'Terminated')
+          .withArgs(
+            ownerAddress,
+            dcaId,
+            fromEther(unswappedWhenTerminated),
+            fromEther(swappedWhenTerminated)
+          );
+      });
+
+      then('un-swapped balance is returned', async () => {
+        await expectBalanceToBe(
+          tokenA,
+          ownerAddress,
+          INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5
+        );
+        await expectBalanceToBe(
+          tokenA,
+          DCAPositionHandler.address,
+          INITIAL_TOKEN_A_BALANCE_CONTRACT
+        );
+      });
+
+      then('swapped balance is returned', async () => {
+        await expectBalanceToBe(
+          tokenB,
+          ownerAddress,
+          INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated
+        );
+        await expectBalanceToBe(
+          tokenB,
+          DCAPositionHandler.address,
+          INITIAL_TOKEN_B_BALANCE_CONTRACT
+        );
+      });
+
+      then(`position is removed`, async () => {
+        await expectPositionToBe(dcaId, {
+          from: constants.ZERO_ADDRESS,
+          rate: 0,
+          lastWithdrawSwap: 0,
+          lastSwap: 0,
+        });
       });
     });
   });
@@ -331,9 +422,11 @@ describe.only('DCAPositionHandler', () => {
   async function performTrade({
     swap,
     ratePerUnit,
+    amount,
   }: {
     swap: number;
     ratePerUnit: number;
+    amount: number;
   }) {
     await DCAPositionHandler.setPerformedSwaps(swap);
     await DCAPositionHandler.addNewRatePerUnit(
@@ -341,13 +434,19 @@ describe.only('DCAPositionHandler', () => {
       swap,
       fromEther(ratePerUnit)
     );
+    await tokenA.burn(DCAPositionHandler.address, fromEther(amount));
+    await tokenB.mint(
+      DCAPositionHandler.address,
+      fromEther(amount * ratePerUnit)
+    );
   }
 
-  async function withdrawSwapped(dcaId: BigNumber) {
-    const response: TransactionResponse = await DCAPositionHandler.withdrawSwapped(
-      dcaId
-    );
-    return { response };
+  function withdrawSwapped(dcaId: BigNumber): Promise<TransactionResponse> {
+    return DCAPositionHandler.withdrawSwapped(dcaId);
+  }
+
+  function terminate(dcaId: BigNumber): Promise<TransactionResponse> {
+    return DCAPositionHandler.terminate(dcaId);
   }
 
   async function deposit(token: Contract, rate: number, swaps: number) {
@@ -381,7 +480,7 @@ describe.only('DCAPositionHandler', () => {
       lastSwap,
       lastWithdrawSwap,
     }: {
-      from: Contract;
+      from: Contract | string;
       rate: number;
       lastSwap: number;
       lastWithdrawSwap: number;
@@ -393,8 +492,9 @@ describe.only('DCAPositionHandler', () => {
       lastWithdrawSwap: positionLastWithdrawSwap,
       lastSwap: positionLastSwap,
     } = await DCAPositionHandler.userTrades(dcaId);
+    const fromAddress = typeof from === 'string' ? from : from.address;
     expect(positionFromAddress, 'Wrong from address in position').to.equal(
-      from.address
+      fromAddress
     );
     expect(positionRate, 'Wrong from rate').to.equal(fromEther(rate));
     expect(positionLastWithdrawSwap, 'Wrong last withdraw swap').to.equal(
@@ -409,16 +509,6 @@ describe.only('DCAPositionHandler', () => {
 });
 
 /*
-
-TERMINATE
-When terminating a position with invalid id, then tx is reverted with message
-When terminating a position with valid id,
-  - then position is removed
-  - then swapped balance is returned
-  - then unswapped balance is returned
-  - then event is emited
-When terminating a position without swapped balance, then nothing is returned
-When terminating a posotion without unswapped balance, then nothing is returned
 
 MODIFY RATE AND SWAPS
 When modifying both rate and swaps with an invalid id, then tx is reverted with message
