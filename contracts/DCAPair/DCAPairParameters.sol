@@ -13,6 +13,8 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 import '../DCAFactory/DCAFactory.sol';
 import '../interfaces/IERC20Decimals.sol';
 
+pragma experimental ABIEncoderV2;
+
 interface IDCAPairParameters {
   struct DCA {
     address from;
@@ -40,7 +42,14 @@ interface IDCAPairParameters {
 
   // TODO: function accumRatesPerUnit(uint256) external returns (uint256[2] memory);
 
-  // TODO: function userTrades(uint256) external returns (DCA);
+  function userTrades(uint256)
+    external
+    returns (
+      address,
+      uint256,
+      uint256,
+      uint256
+    );
 }
 
 abstract contract DCAPairParameters is IDCAPairParameters {
@@ -55,7 +64,7 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   // Tracking
   mapping(address => mapping(uint256 => int256)) public override swapAmountDelta;
   mapping(address => mapping(uint256 => uint256[2])) public accumRatesPerUnit;
-  mapping(uint256 => DCA) public userTrades;
+  mapping(uint256 => DCA) public override userTrades;
 
   constructor(
     IERC20Decimals _tokenA,
