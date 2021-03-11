@@ -15,7 +15,7 @@ import {
   expectNoEventWithName,
   readArgFromEvent,
   readArgFromEventOrFail,
-} from '../../utils/chamo-utils';
+} from '../../utils/event-utils';
 
 import { Suite, SuiteFunction } from 'mocha';
 
@@ -615,7 +615,7 @@ describe('DCAPositionHandler', () => {
           func: 'modifyRate',
           args: [dcaId, POSITION_RATE_5 + 1],
           message:
-            "DCAPair: You can't modify the rate of a position that has already been completed",
+            'DCAPair: You cannot modify only the rate of a position that has already been completed',
         });
       });
     });
@@ -821,10 +821,3 @@ describe('DCAPositionHandler', () => {
     return utils.parseEther(`${asEther}`);
   }
 });
-
-/*
-
-EXTRA
-Verify that _calculateSwapped works correctly in cases where there was an overflow
-
-*/

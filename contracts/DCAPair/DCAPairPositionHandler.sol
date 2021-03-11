@@ -92,9 +92,9 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
 
     DCA memory _userDCA = userTrades[_dcaId];
 
-    require(_userDCA.lastSwap > performedSwaps, 'DCAPair: You cannot modify the rate of a position that has already been completed');
-
     uint256 _swapsLeft = _userDCA.lastSwap.sub(performedSwaps);
+    require(_swapsLeft > 0, 'DCAPair: You cannot modify only the rate of a position that has already been completed');
+
     _modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
   }
 
@@ -165,14 +165,14 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   /** Return the amount of tokens swapped in TO */
   function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = userTrades[_dcaId];
-    uint256[2] memory _sumRatesLastWidthraw = accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
-    uint256[2] memory _sumRatesPerformed = accumRatesPerUnit[_userDCA.from][performedSwaps];
+    uint256[2] memory _accumRatesLastWidthraw = accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
+    uint256[2] memory _accumRatesPerformed = accumRatesPerUnit[_userDCA.from][performedSwaps];
 
     IERC20Decimals _from = _getFrom(_dcaId);
     uint256 _magnitude = 10**_from.decimals();
 
-    _swapped = _sumRatesPerformed[1].sub(_sumRatesLastWidthraw[1]).mul(_userDCA.rate).div(_magnitude).mul(type(uint256).max).add(
-      _sumRatesPerformed[0].sub(_sumRatesLastWidthraw[0]).mul(_userDCA.rate).div(_magnitude)
+    _swapped = _accumRatesPerformed[1].sub(_accumRatesLastWidthraw[1]).mul(_userDCA.rate).mul(type(uint256).max.div(_magnitude)).add(
+      _accumRatesPerformed[0].sub(_accumRatesLastWidthraw[0]).mul(_userDCA.rate).div(_magnitude)
     );
 
     // TODO: Check for overflows

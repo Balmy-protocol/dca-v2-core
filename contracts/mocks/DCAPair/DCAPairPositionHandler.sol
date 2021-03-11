@@ -48,4 +48,8 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairSwapHandle
   function terminate(uint256 _dcaId) external override {
     _terminate(_dcaId);
   }
+
+  function calculateSwapped(uint256 _dcaId) external view returns (uint256 _swapped) {
+    _swapped = _calculateSwapped(_dcaId);
+  }
 }
