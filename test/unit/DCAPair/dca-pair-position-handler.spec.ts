@@ -31,7 +31,7 @@ when.only = (title: string, fn?: (this: Suite) => void) =>
 when.skip = (title: string, fn: (this: Suite) => void) =>
   context.skip('when ' + title, fn);
 
-describe.only('DCAPositionHandler', () => {
+describe('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
   const POSITION_RATE_5 = 5;
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
@@ -362,12 +362,6 @@ describe.only('DCAPositionHandler', () => {
           amount: POSITION_RATE_5,
         });
 
-        await expectBalanceToBe(
-          tokenB,
-          ownerAddress,
-          INITIAL_TOKEN_B_BALANCE_USER
-        );
-
         response = await terminate(dcaId);
       });
 
@@ -419,6 +413,304 @@ describe.only('DCAPositionHandler', () => {
     });
   });
 
+  describe('modifyRateAndSwaps', () => {
+    when('modifying a position with invalid id', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifyRateAndSwaps',
+          args: [100, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10],
+          message: 'DCAPair: Invalid position id',
+        });
+      });
+    });
+
+    when('modifying a position with 0 rate', async () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit(
+          tokenA,
+          POSITION_RATE_5,
+          POSITION_SWAPS_TO_PERFORM_10
+        );
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifyRateAndSwaps',
+          args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
+          message: 'DCAPair: Invalid rate. It must be positive',
+        });
+      });
+    });
+
+    when('modifying a position with 0 swaps', () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit(
+          tokenA,
+          POSITION_RATE_5,
+          POSITION_SWAPS_TO_PERFORM_10
+        );
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifyRateAndSwaps',
+          args: [dcaId, POSITION_RATE_5, 0],
+          message: 'DCAPair: Invalid amount of swaps. It must be positive',
+        });
+      });
+    });
+
+    modifyPositionTest({
+      title: `re-allocating deposited rate and swaps of a valid position`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 9,
+      newSwaps: 5,
+      exec: ({ dcaId, newRate, newSwaps }) =>
+        modifyRateAndSwaps(dcaId, newRate, newSwaps),
+    });
+
+    modifyPositionTest({
+      title: `modifying a position so that it requires more funds`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 11,
+      newSwaps: 5,
+      exec: ({ dcaId, newRate, newSwaps }) =>
+        modifyRateAndSwaps(dcaId, newRate, newSwaps),
+    });
+
+    modifyPositionTest({
+      title: `modifying a position so that it requires less funds`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 7,
+      newSwaps: 5,
+      exec: ({ dcaId, newRate, newSwaps }) =>
+        modifyRateAndSwaps(dcaId, newRate, newSwaps),
+    });
+  });
+
+  describe('modifySwaps', () => {
+    when('modifying a position with invalid id', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifySwaps',
+          args: [100, POSITION_SWAPS_TO_PERFORM_10],
+          message: 'DCAPair: Invalid position id',
+        });
+      });
+    });
+
+    when('modifying a position with 0 swaps', () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit(
+          tokenA,
+          POSITION_RATE_5,
+          POSITION_SWAPS_TO_PERFORM_10
+        );
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifySwaps',
+          args: [dcaId, 0],
+          message: 'DCAPair: Invalid amount of swaps. It must be positive',
+        });
+      });
+    });
+
+    modifyPositionTest({
+      title: `calling modify with the same amount of swaps`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      exec: ({ dcaId, newSwaps }) => modifySwaps(dcaId, newSwaps),
+    });
+
+    modifyPositionTest({
+      title: `modifying a position so that it requires more funds`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newSwaps: POSITION_SWAPS_TO_PERFORM_10 - 2,
+      exec: ({ dcaId, newSwaps }) => modifySwaps(dcaId, newSwaps),
+    });
+
+    modifyPositionTest({
+      title: `modifying a position so that it requires less funds`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newSwaps: POSITION_SWAPS_TO_PERFORM_10 + 2,
+      exec: ({ dcaId, newSwaps }) => modifySwaps(dcaId, newSwaps),
+    });
+  });
+
+  describe('modifyRate', () => {
+    when('modifying a position with invalid id', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifyRate',
+          args: [100, POSITION_RATE_5],
+          message: 'DCAPair: Invalid position id',
+        });
+      });
+    });
+
+    when('modifying a position with 0 rate', () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit(
+          tokenA,
+          POSITION_RATE_5,
+          POSITION_SWAPS_TO_PERFORM_10
+        );
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifyRate',
+          args: [dcaId, 0],
+          message: 'DCAPair: Invalid rate. It must be positive',
+        });
+      });
+    });
+
+    modifyPositionTest({
+      title: `calling modify with the same rate`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: POSITION_RATE_5,
+      newSwaps: POSITION_SWAPS_TO_PERFORM_10 - 1, // One swap was already executed
+      exec: ({ dcaId, newRate }) => modifyRate(dcaId, newRate),
+    });
+
+    modifyPositionTest({
+      title: `modifying a position so that it requires more funds`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: POSITION_RATE_5 - 2,
+      newSwaps: POSITION_SWAPS_TO_PERFORM_10 - 1, // One swap was already executed
+      exec: ({ dcaId, newRate }) => modifyRate(dcaId, newRate),
+    });
+
+    modifyPositionTest({
+      title: `modifying a position so that it requires less funds`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: POSITION_RATE_5 + 2,
+      newSwaps: POSITION_SWAPS_TO_PERFORM_10 - 1, // One swap was already executed
+      exec: ({ dcaId, newRate }) => modifyRate(dcaId, newRate),
+    });
+
+    when('modifying the rate of a completed position', () => {
+      then('then tx is reverted with message', async () => {
+        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, 1);
+
+        await performTrade({
+          swap: PERFORMED_SWAPS_10 + 1,
+          ratePerUnit: RATE_PER_UNIT_5,
+          amount: POSITION_RATE_5,
+        });
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'modifyRate',
+          args: [dcaId, POSITION_RATE_5 + 1],
+          message:
+            "DCAPair: You can't modify the rate of a position that has already been completed",
+        });
+      });
+    });
+  });
+
+  function modifyPositionTest({
+    title,
+    initialRate,
+    initialSwaps,
+    newRate,
+    newSwaps,
+    exec,
+  }: {
+    title: string;
+    initialRate: number;
+    initialSwaps: number;
+    newRate?: number;
+    newSwaps?: number;
+    exec: (params: {
+      dcaId: BigNumber;
+      newRate: number;
+      newSwaps: number;
+    }) => Promise<TransactionResponse>;
+  }) {
+    newRate = newRate ?? initialRate;
+    newSwaps = newSwaps ?? initialSwaps;
+
+    when(title, () => {
+      let response: TransactionResponse;
+      let dcaId: BigNumber;
+
+      given(async () => {
+        ({ dcaId } = await deposit(tokenA, initialRate, initialSwaps));
+
+        await performTrade({
+          swap: PERFORMED_SWAPS_10 + 1,
+          ratePerUnit: RATE_PER_UNIT_5,
+          amount: initialRate,
+        });
+
+        response = await exec({
+          dcaId,
+          newRate: newRate!,
+          newSwaps: newSwaps!,
+        });
+      });
+
+      then('event is emitted', async () => {
+        await expect(response)
+          .to.emit(DCAPositionHandler, 'Modified')
+          .withArgs(
+            ownerAddress,
+            dcaId,
+            fromEther(newRate!),
+            PERFORMED_SWAPS_10 + 2,
+            PERFORMED_SWAPS_10 + newSwaps! + 1
+          );
+      });
+
+      then('final balances are as expected', async () => {
+        await expectBalanceToBe(
+          tokenA,
+          ownerAddress,
+          INITIAL_TOKEN_A_BALANCE_USER -
+            initialRate * 1 - // Already executed trade
+            newRate! * newSwaps! // New position
+        );
+        await expectBalanceToBe(
+          tokenA,
+          DCAPositionHandler.address,
+          INITIAL_TOKEN_A_BALANCE_USER + newRate! * newSwaps!
+        );
+        await expectBalanceToBe(
+          tokenB,
+          ownerAddress,
+          INITIAL_TOKEN_B_BALANCE_USER
+        );
+        await expectBalanceToBe(
+          tokenB,
+          DCAPositionHandler.address,
+          INITIAL_TOKEN_B_BALANCE_CONTRACT + RATE_PER_UNIT_5 * initialRate
+        );
+      });
+
+      then(`position is modified`, async () => {
+        await expectPositionToBe(dcaId, {
+          from: tokenA,
+          rate: newRate!,
+          lastWithdrawSwap: PERFORMED_SWAPS_10 + 1,
+          lastSwap: PERFORMED_SWAPS_10 + newSwaps! + 1,
+        });
+      });
+    });
+  }
+
   async function performTrade({
     swap,
     ratePerUnit,
@@ -439,6 +731,28 @@ describe.only('DCAPositionHandler', () => {
       DCAPositionHandler.address,
       fromEther(amount * ratePerUnit)
     );
+  }
+
+  function modifyRate(
+    dcaId: BigNumber,
+    rate: number
+  ): Promise<TransactionResponse> {
+    return DCAPositionHandler.modifyRate(dcaId, fromEther(rate));
+  }
+
+  function modifySwaps(
+    dcaId: BigNumber,
+    swaps: number
+  ): Promise<TransactionResponse> {
+    return DCAPositionHandler.modifySwaps(dcaId, swaps);
+  }
+
+  function modifyRateAndSwaps(
+    dcaId: BigNumber,
+    rate: number,
+    swaps: number
+  ): Promise<TransactionResponse> {
+    return DCAPositionHandler.modifyRateAndSwaps(dcaId, fromEther(rate), swaps);
   }
 
   function withdrawSwapped(dcaId: BigNumber): Promise<TransactionResponse> {
@@ -510,31 +824,7 @@ describe.only('DCAPositionHandler', () => {
 
 /*
 
-MODIFY RATE AND SWAPS
-When modifying both rate and swaps with an invalid id, then tx is reverted with message
-VALIDAR QUE NO SEAN 0
-When re-allocating deposited rate and swaps of a valid position,
-  - then position is modified
-  - then event is emited
-  - then no tokens are returned or requested
-When position modification requires more funds,
-  - then position is modified
-  - then event is emited
-  - then extra tokens are requested
-When position modification requires less funds, then they are returned
-  - then position is modified
-  - then event is emited
-  - then extra tokens are returned
-
-MODIFY SWAPS
-...Igual que MODIFY RATE AND SWAPS
-
-MODIFY RATE
-When modifying the rate of a completed position, then tx is reverted with message
-...Igual que MODIFY RATE AND SWAPS
-
 EXTRA
 Verify that _calculateSwapped works correctly in cases where there was an overflow
-
 
 */

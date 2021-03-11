@@ -7,6 +7,7 @@ interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
   event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
   event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
+  event Modified(address indexed _user, uint256 _dcaId, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
 
   function deposit(
     address _tokenAddress,
@@ -42,8 +43,6 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     uint256 _amountOfSwaps
   ) internal returns (uint256 _dcaId) {
     require(_tokenAddress == address(tokenA) || _tokenAddress == address(tokenB), 'DCAPair: Invalid deposit address');
-    require(_rate > 0, 'DCAPair: Invalid rate. It must be positive');
-    require(_amountOfSwaps > 0, 'DCAPair: Invalid amount of swaps. It must be positive');
     IERC20Decimals _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
     _from.safeTransferFrom(msg.sender, address(this), _rate.mul(_amountOfSwaps));
     _totalDCAs += 1;
@@ -93,7 +92,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
 
     DCA memory _userDCA = userTrades[_dcaId];
 
-    // TODO: Check if the position is already completed. If it is, then fail
+    require(_userDCA.lastSwap > performedSwaps, 'DCAPair: You cannot modify the rate of a position that has already been completed');
 
     uint256 _swapsLeft = _userDCA.lastSwap.sub(performedSwaps);
     _modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
@@ -121,7 +120,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     IERC20Decimals _from = _getFrom(_dcaId);
 
     _removePosition(_dcaId);
-    _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps);
+    (uint256 _startingSwap, uint256 _finalSwap) = _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps);
 
     if (_needed > 0) {
       // We need to ask for more funds
@@ -130,6 +129,8 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
       // We need to return to the owner the amount that won't be used anymore
       _from.safeTransfer(msg.sender, uint256(-_needed));
     }
+
+    emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _finalSwap);
   }
 
   function _assertPositionExists(uint256 _dcaId) internal view {
@@ -142,6 +143,8 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     uint256 _rate,
     uint256 _amountOfSwaps
   ) internal returns (uint256 _startingSwap, uint256 _finalSwap) {
+    require(_rate > 0, 'DCAPair: Invalid rate. It must be positive');
+    require(_amountOfSwaps > 0, 'DCAPair: Invalid amount of swaps. It must be positive');
     // TODO: Consider requesting _amountOfSwaps to be 2 or more, to avoid flash loans/mints
     _startingSwap = performedSwaps.add(1);
     _finalSwap = performedSwaps.add(_amountOfSwaps);
