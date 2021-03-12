@@ -23,25 +23,42 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     _setSwapInterval(_swapInterval);
   }
 
-  function getAmountToSwap(uint256 _swap) public view returns (uint256) {
-    return _getAmountToSwap(_swap);
+  function getAmountToSwap(address _tokenAddress, uint256 _swap) public view returns (uint256) {
+    return _getAmountToSwap(_tokenAddress, _swap);
   }
 
-  function addNewRatePerUnit(uint256 _swap, uint256 _ratePerUnit) public {
-    _addNewRatePerUnit(_swap, _ratePerUnit);
+  function addNewRatePerUnit(
+    address _tokenAddress,
+    uint256 _swap,
+    uint256 _ratePerUnit
+  ) public {
+    _addNewRatePerUnit(_tokenAddress, _swap, _ratePerUnit);
+  }
+
+  function setRatePerUnit(
+    address _tokenAddress,
+    uint256 _swap,
+    uint256 _rate,
+    uint256 _rateMultiplier
+  ) public {
+    accumRatesPerUnit[_tokenAddress][_swap] = [_rate, _rateMultiplier];
   }
 
   function swap() public override {
     _swap();
   }
 
-  function uniswapSwap(uint256 _amount) public {
-    _uniswapSwap(_amount);
+  function uniswapSwap(
+    IERC20Decimals _from,
+    IERC20Decimals _to,
+    uint256 _amount
+  ) public {
+    _uniswapSwap(_from, _to, _amount);
   }
 
   // Mocks setters
-  function setSwapAmountAccumulator(uint256 _swapAmountAccumulator) public {
-    swapAmountAccumulator = _swapAmountAccumulator;
+  function setSwapAmountAccumulator(address _tokenAddress, uint256 _swapAmountAccumulator) public {
+    swapAmountAccumulator[_tokenAddress] = _swapAmountAccumulator;
   }
 
   function setLastSwapPerformed(uint256 _lastSwapPerformend) public {

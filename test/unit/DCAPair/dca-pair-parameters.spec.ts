@@ -5,7 +5,7 @@ import { constants, uniswap, erc20, behaviours } from '../../utils';
 
 describe('DCAPairParameters', function () {
   let owner: Signer;
-  let from: Contract;
+  let tokenA: Contract;
   let DCAPairParametersContract: ContractFactory;
   let DCAPairParameters: Contract;
 
@@ -20,14 +20,14 @@ describe('DCAPairParameters', function () {
     await uniswap.deploy({
       owner,
     });
-    from = await erc20.deploy({
+    tokenA = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
     DCAPairParameters = await DCAPairParametersContract.deploy(
-      from.address,
+      tokenA.address,
       uniswap.getWETH().address,
       uniswap.getUniswapV2Router02().address
     );
@@ -51,7 +51,7 @@ describe('DCAPairParameters', function () {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairParametersContract,
           args: [
-            from.address,
+            tokenA.address,
             constants.ZERO_ADDRESS,
             uniswap.getUniswapV2Router02().address,
           ],
@@ -63,7 +63,7 @@ describe('DCAPairParameters', function () {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairParametersContract,
           args: [
-            from.address,
+            tokenA.address,
             uniswap.getWETH().address,
             constants.ZERO_ADDRESS,
           ],
@@ -75,20 +75,20 @@ describe('DCAPairParameters', function () {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAPairParametersContract,
           args: [
-            from.address,
+            tokenA.address,
             uniswap.getWETH().address,
             uniswap.getUniswapV2Router02().address,
           ],
           settersGettersVariablesAndEvents: [
             {
-              getterFunc: 'from',
-              variable: from.address,
-              eventEmitted: 'FromSet',
+              getterFunc: 'tokenA',
+              variable: tokenA.address,
+              eventEmitted: 'TokenASet',
             },
             {
-              getterFunc: 'to',
+              getterFunc: 'tokenB',
               variable: uniswap.getWETH().address,
-              eventEmitted: 'ToSet',
+              eventEmitted: 'TokenBSet',
             },
             {
               getterFunc: 'uniswap',
@@ -124,12 +124,12 @@ describe('DCAPairParameters', function () {
     });
   });
 
-  describe('setFrom', () => {
+  describe('setTokenA', () => {
     context('when address is zero', () => {
       it('reverts with message', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
           contract: DCAPairParameters,
-          func: 'setFrom',
+          func: 'setTokenA',
           args: [constants.ZERO_ADDRESS],
         });
       });
@@ -138,21 +138,21 @@ describe('DCAPairParameters', function () {
       it('sets from and emits event with correct arguments', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DCAPairParameters,
-          getterFunc: 'from',
-          setterFunc: 'setFrom',
+          getterFunc: 'tokenA',
+          setterFunc: 'setTokenA',
           variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'FromSet',
+          eventEmitted: 'TokenASet',
         });
       });
     });
   });
 
-  describe('setTo', () => {
+  describe('setTokenB', () => {
     context('when address is zero', () => {
       it('reverts with message', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
           contract: DCAPairParameters,
-          func: 'setTo',
+          func: 'setTokenB',
           args: [constants.ZERO_ADDRESS],
         });
       });
@@ -174,10 +174,10 @@ describe('DCAPairParameters', function () {
         expect(await DCAPairParameters.magnitude()).to.equal(previousMagnitude);
         await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DCAPairParameters,
-          getterFunc: 'to',
-          setterFunc: 'setTo',
+          getterFunc: 'tokenB',
+          setterFunc: 'setTokenB',
           variable: newTo.address,
-          eventEmitted: 'ToSet',
+          eventEmitted: 'TokenBSet',
         });
         const postMagnitude = ethers.BigNumber.from(10).pow(
           await newTo.decimals()

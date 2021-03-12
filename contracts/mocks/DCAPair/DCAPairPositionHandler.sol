@@ -7,18 +7,22 @@ import './DCAPairSwapHandler.sol';
 
 contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairSwapHandlerMock {
   constructor(
-    IERC20Decimals _from,
-    IERC20Decimals _to,
+    IERC20Decimals _tokenA,
+    IERC20Decimals _tokenB,
     IUniswapV2Router02 _uniswap,
     IDCAFactory _factory,
     uint256 _swapInterval
-  ) DCAPairSwapHandlerMock(_from, _to, _uniswap, _factory, _swapInterval) {
+  ) DCAPairSwapHandlerMock(_tokenA, _tokenB, _uniswap, _factory, _swapInterval) {
     /* */
   }
 
   // PositionHandler
-  function deposit(uint256 _rate, uint256 _amountOfSwaps) public override {
-    _deposit(_rate, _amountOfSwaps);
+  function deposit(
+    address _tokenAddress,
+    uint256 _rate,
+    uint256 _amountOfSwaps
+  ) public override {
+    _deposit(_tokenAddress, _rate, _amountOfSwaps);
   }
 
   function withdrawSwapped(uint256 _dcaId) external override returns (uint256 _swapped) {
@@ -43,5 +47,9 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairSwapHandle
 
   function terminate(uint256 _dcaId) external override {
     _terminate(_dcaId);
+  }
+
+  function calculateSwapped(uint256 _dcaId) external view returns (uint256 _swapped) {
+    _swapped = _calculateSwapped(_dcaId);
   }
 }
