@@ -1,35 +1,15 @@
 import moment from 'moment';
-import {
-  BigNumber,
-  BigNumberish,
-  Contract,
-  ContractFactory,
-  Signer,
-  utils,
-} from 'ethers';
+import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { uniswap, erc20, behaviours, constants } from '../../utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import {
   expectNoEventWithName,
-  readArgFromEvent,
   readArgFromEventOrFail,
 } from '../../utils/event-utils';
-
-import { Suite, SuiteFunction } from 'mocha';
-
-const then = it;
-const given = beforeEach;
-const when: SuiteFunction = <SuiteFunction>(
-  function (title: string, fn: (this: Suite) => void) {
-    context('when ' + title, fn);
-  }
-);
-when.only = (title: string, fn?: (this: Suite) => void) =>
-  context.only('when ' + title, fn!);
-when.skip = (title: string, fn: (this: Suite) => void) =>
-  context.skip('when ' + title, fn);
+import { when, then, given } from '../../utils/bdd';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 describe('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
@@ -42,15 +22,13 @@ describe('DCAPositionHandler', () => {
   const INITIAL_TOKEN_B_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_B_BALANCE_USER = 100;
 
-  let owner: Signer;
-  let ownerAddress: string;
+  let owner: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
   let DCAPositionHandlerContract: ContractFactory;
   let DCAPositionHandler: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    ownerAddress = await owner.getAddress();
     DCAPositionHandlerContract = await ethers.getContractFactory(
       'contracts/mocks/DCAPair/DCAPairPositionHandler.sol:DCAPairPositionHandlerMock'
     );
@@ -63,13 +41,13 @@ describe('DCAPositionHandler', () => {
     tokenA = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
-      initialAccount: await owner.getAddress(),
+      initialAccount: owner.address,
       initialAmount: fromEther(INITIAL_TOKEN_A_BALANCE_USER),
     });
     tokenB = await erc20.deploy({
       name: 'WBTC',
       symbol: 'WBTC',
-      initialAccount: await owner.getAddress(),
+      initialAccount: owner.address,
       initialAmount: fromEther(INITIAL_TOKEN_B_BALANCE_USER),
     });
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(
@@ -80,7 +58,7 @@ describe('DCAPositionHandler', () => {
       moment.duration(1, 'days').as('seconds')
     );
     await tokenA.approveInternal(
-      ownerAddress,
+      owner.address,
       DCAPositionHandler.address,
       fromEther(1000)
     );
@@ -165,7 +143,7 @@ describe('DCAPositionHandler', () => {
         await expect(tx)
           .to.emit(DCAPositionHandler, 'Deposited')
           .withArgs(
-            ownerAddress,
+            owner.address,
             1,
             tokenA.address,
             fromEther(POSITION_RATE_5),
@@ -177,7 +155,7 @@ describe('DCAPositionHandler', () => {
       then('correct amount is transferred from sender', async () => {
         await expectBalanceToBe(
           tokenA,
-          ownerAddress,
+          owner.address,
           INITIAL_TOKEN_A_BALANCE_USER -
             POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
         );
@@ -253,7 +231,7 @@ describe('DCAPositionHandler', () => {
         then('no token transfer was made', async () => {
           await expectBalanceToBe(
             tokenA,
-            ownerAddress,
+            owner.address,
             INITIAL_TOKEN_A_BALANCE_USER -
               POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
           );
@@ -297,7 +275,7 @@ describe('DCAPositionHandler', () => {
       then('swapped tokens are sent to the user', async () => {
         await expectBalanceToBe(
           tokenB,
-          ownerAddress,
+          owner.address,
           INITIAL_TOKEN_B_BALANCE_USER + RATE_PER_UNIT_5 * POSITION_RATE_5
         );
         await expectBalanceToBe(
@@ -320,7 +298,7 @@ describe('DCAPositionHandler', () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Withdrew')
           .withArgs(
-            ownerAddress,
+            owner.address,
             dcaId,
             tokenB.address,
             fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5)
@@ -369,7 +347,7 @@ describe('DCAPositionHandler', () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Terminated')
           .withArgs(
-            ownerAddress,
+            owner.address,
             dcaId,
             fromEther(unswappedWhenTerminated),
             fromEther(swappedWhenTerminated)
@@ -379,7 +357,7 @@ describe('DCAPositionHandler', () => {
       then('un-swapped balance is returned', async () => {
         await expectBalanceToBe(
           tokenA,
-          ownerAddress,
+          owner.address,
           INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5
         );
         await expectBalanceToBe(
@@ -392,7 +370,7 @@ describe('DCAPositionHandler', () => {
       then('swapped balance is returned', async () => {
         await expectBalanceToBe(
           tokenB,
-          ownerAddress,
+          owner.address,
           INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated
         );
         await expectBalanceToBe(
@@ -667,7 +645,7 @@ describe('DCAPositionHandler', () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Modified')
           .withArgs(
-            ownerAddress,
+            owner.address,
             dcaId,
             fromEther(newRate!),
             PERFORMED_SWAPS_10 + 2,
@@ -678,7 +656,7 @@ describe('DCAPositionHandler', () => {
       then('final balances are as expected', async () => {
         await expectBalanceToBe(
           tokenA,
-          ownerAddress,
+          owner.address,
           INITIAL_TOKEN_A_BALANCE_USER -
             initialRate * 1 - // Already executed trade
             newRate! * newSwaps! // New position
@@ -690,7 +668,7 @@ describe('DCAPositionHandler', () => {
         );
         await expectBalanceToBe(
           tokenB,
-          ownerAddress,
+          owner.address,
           INITIAL_TOKEN_B_BALANCE_USER
         );
         await expectBalanceToBe(
