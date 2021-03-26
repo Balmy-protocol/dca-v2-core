@@ -171,12 +171,29 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     IERC20Decimals _from = _getFrom(_dcaId);
     uint256 _magnitude = 10**_from.decimals();
 
-    _swapped = _accumRatesPerformed[1].sub(_accumRatesLastWidthraw[1]).mul(_userDCA.rate).mul(type(uint256).max.div(_magnitude)).add(
-      _accumRatesPerformed[0].sub(_accumRatesLastWidthraw[0]).mul(_userDCA.rate).div(_magnitude)
-    );
+    /*
+      P = performed
+      L = last widthraw
+      RATE_PER_UNIT = Amount TO tokens * magnitude(TO)
+      RATE = Amount FROM tokens * magnitude(FROM)
+      accumPerUnit(X) = RATE_PER_UNIT(X) + RATE_PER_UNIT(X - 1) + ... + RATE_PER_UNIT(1)
 
-    // TODO: Check for overflows
+      swapped = (accumPerUnit(P) - accumPerUnit(L)) * RATE / magnitude(FROM)
+      swapped = (multiplier(P) - multiplier(L) * MAX_UINT + accum(P) - accum(L)) * RATE / magnitude(FROM)
+      swapped = (multiplier(P) - multiplier(L) * MAX_UINT / magnitude(FROM) + (accum(P) - accum(L)) / magnitude(FROM)) * RATE
+      swapped = (multiplier(P) - multiplier(L) * (MAX_UINT / magnitude(FROM)) + (accum(P) - accum(L)) / magnitude(FROM)) * RATE
+    */
+
+    uint256 _multiplierDifference = _accumRatesPerformed[1].sub(_accumRatesLastWidthraw[1]);
+    uint256 _multiplier = type(uint256).max.div(_magnitude);
+    int256 _accumTerm = int256(_accumRatesPerformed[0] - _accumRatesLastWidthraw[0]) / int256(_magnitude); // TODO: use SignedSafeMath
+    _swapped = uint256(int256(_multiplierDifference.mul(_multiplier)) + _accumTerm).mul(_userDCA.rate);
   }
+
+  // Multiplier diff es 1, y accum es 0
+  // Multiplier diff es 0, y accum es MAX
+  // Accum diff es negativo
+  // Multiplier diff es 2, se puede dar sin overflow?
 
   /** Returns how many FROM remains unswapped  */
   function _calculateUnswapped(uint256 _dcaId) internal view returns (uint256 _unswapped) {
