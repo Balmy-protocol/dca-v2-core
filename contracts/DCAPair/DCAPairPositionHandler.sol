@@ -179,21 +179,24 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
       accumPerUnit(X) = RATE_PER_UNIT(X) + RATE_PER_UNIT(X - 1) + ... + RATE_PER_UNIT(1)
 
       swapped = (accumPerUnit(P) - accumPerUnit(L)) * RATE / magnitude(FROM)
-      swapped = (multiplier(P) - multiplier(L) * MAX_UINT + accum(P) - accum(L)) * RATE / magnitude(FROM)
-      swapped = (multiplier(P) - multiplier(L) * MAX_UINT / magnitude(FROM) + (accum(P) - accum(L)) / magnitude(FROM)) * RATE
-      swapped = (multiplier(P) - multiplier(L) * (MAX_UINT / magnitude(FROM)) + (accum(P) - accum(L)) / magnitude(FROM)) * RATE
+      swapped = ((multiplier(P) - multiplier(L)) * MAX_UINT + accum(P) - accum(L)) * RATE / magnitude(FROM)
     */
 
     uint256 _multiplierDifference = _accumRatesPerformed[1].sub(_accumRatesLastWidthraw[1]);
-    uint256 _multiplier = type(uint256).max.div(_magnitude);
-    int256 _accumTerm = int256(_accumRatesPerformed[0] - _accumRatesLastWidthraw[0]) / int256(_magnitude); // TODO: use SignedSafeMath
-    _swapped = uint256(int256(_multiplierDifference.mul(_multiplier)) + _accumTerm).mul(_userDCA.rate);
+    uint256 _accumPerUnit;
+    if (_multiplierDifference == 2) {
+      // We are making this a special case because it might not ovrflow if (and only if) _accumRatesLastWidthraw[0] - _accumRatesPerformed[0] = max(uint256)
+      _accumPerUnit = type(uint256).max.sub(_accumRatesLastWidthraw[0].sub(_accumRatesPerformed[0])).add(type(uint256).max);
+    } else {
+      uint256 _multiplierTerm = _multiplierDifference.mul(type(uint256).max);
+      if (_accumRatesPerformed[0] >= _accumRatesLastWidthraw[0]) {
+        _accumPerUnit = _multiplierTerm.add(_accumRatesPerformed[0].sub(_accumRatesLastWidthraw[0]));
+      } else {
+        _accumPerUnit = _multiplierTerm.sub(_accumRatesLastWidthraw[0].sub(_accumRatesPerformed[0]));
+      }
+    }
+    _swapped = _accumPerUnit.mul(_userDCA.rate.div(_magnitude));
   }
-
-  // Multiplier diff es 1, y accum es 0
-  // Multiplier diff es 0, y accum es MAX
-  // Accum diff es negativo
-  // Multiplier diff es 2, se puede dar sin overflow?
 
   /** Returns how many FROM remains unswapped  */
   function _calculateUnswapped(uint256 _dcaId) internal view returns (uint256 _unswapped) {
