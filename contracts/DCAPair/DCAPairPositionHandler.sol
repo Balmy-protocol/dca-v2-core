@@ -185,7 +185,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     uint256 _multiplierDifference = _accumRatesPerformed[1].sub(_accumRatesLastWidthraw[1]);
     uint256 _accumPerUnit;
     if (_multiplierDifference == 2) {
-      // We are making this a special case because it might not ovrflow if (and only if) _accumRatesLastWidthraw[0] - _accumRatesPerformed[0] = max(uint256)
+      // We are making this a special case because it might not overflow if (and only if) _accumRatesLastWidthraw[0] - _accumRatesPerformed[0] = max(uint256)
       _accumPerUnit = type(uint256).max.sub(_accumRatesLastWidthraw[0].sub(_accumRatesPerformed[0])).add(type(uint256).max);
     } else {
       uint256 _multiplierTerm = _multiplierDifference.mul(type(uint256).max);
