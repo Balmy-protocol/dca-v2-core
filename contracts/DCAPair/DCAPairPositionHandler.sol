@@ -165,34 +165,36 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   /** Return the amount of tokens swapped in TO */
   function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = userTrades[_dcaId];
+    uint256 _lastSwap = Math.min(performedSwaps, _userDCA.lastSwap);
     uint256[2] memory _accumRatesLastWidthraw = accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
-    uint256[2] memory _accumRatesPerformed = accumRatesPerUnit[_userDCA.from][performedSwaps];
+    uint256[2] memory _accumRatesLastSwap = accumRatesPerUnit[_userDCA.from][_lastSwap];
 
     IERC20Decimals _from = _getFrom(_dcaId);
     uint256 _magnitude = 10**_from.decimals();
 
     /*
-      P = performed
-      L = last widthraw
-      RATE_PER_UNIT = Amount TO tokens * magnitude(TO)
-      RATE = Amount FROM tokens * magnitude(FROM)
+      LS = last swap = min(performed swaps, position.finalSwap)
+      LW = last widthraw
+      RATE_PER_UNIT(swap) = TO tokens for one unit of FROM = amount TO tokens * magnitude(TO)
+      RATE(position) = amount FROM tokens * magnitude(FROM)
       accumPerUnit(swap) = RATE_PER_UNIT(swap) + RATE_PER_UNIT(swap - 1) + ... + RATE_PER_UNIT(1)
 
-      swapped = (accumPerUnit(P) - accumPerUnit(L)) * RATE / magnitude(FROM)
-      swapped = ((multiplier(P) - multiplier(L)) * MAX_UINT + accum(P) - accum(L)) * RATE / magnitude(FROM)
+      swapped = (accumPerUnit(LS) - accumPerUnit(LW)) * RATE / magnitude(FROM)
+      swapped = ((multiplier(LS) - multiplier(LW)) * MAX_UINT + accum(LS) - accum(LW)) * RATE / magnitude(FROM)
     */
 
-    uint256 _multiplierDifference = _accumRatesPerformed[1].sub(_accumRatesLastWidthraw[1]);
+    uint256 _multiplierDifference = _accumRatesLastSwap[1].sub(_accumRatesLastWidthraw[1]);
     uint256 _accumPerUnit;
     if (_multiplierDifference == 2) {
-      // We are making this a special case because it might not overflow if (and only if) _accumRatesLastWidthraw[0] - _accumRatesPerformed[0] = max(uint256)
-      _accumPerUnit = type(uint256).max.sub(_accumRatesLastWidthraw[0].sub(_accumRatesPerformed[0])).add(type(uint256).max);
+      // If multiplier difference is 2, then the only way it won't overflow is if accum(LS) - accum(LW) == -max(uint256).
+      // This line will revert for all other scenarios
+      _accumPerUnit = type(uint256).max.sub(_accumRatesLastWidthraw[0].sub(_accumRatesLastSwap[0])).add(type(uint256).max);
     } else {
       uint256 _multiplierTerm = _multiplierDifference.mul(type(uint256).max);
-      if (_accumRatesPerformed[0] >= _accumRatesLastWidthraw[0]) {
-        _accumPerUnit = _multiplierTerm.add(_accumRatesPerformed[0].sub(_accumRatesLastWidthraw[0]));
+      if (_accumRatesLastSwap[0] >= _accumRatesLastWidthraw[0]) {
+        _accumPerUnit = _multiplierTerm.add(_accumRatesLastSwap[0].sub(_accumRatesLastWidthraw[0]));
       } else {
-        _accumPerUnit = _multiplierTerm.sub(_accumRatesLastWidthraw[0].sub(_accumRatesPerformed[0]));
+        _accumPerUnit = _multiplierTerm.sub(_accumRatesLastWidthraw[0].sub(_accumRatesLastSwap[0]));
       }
     }
     (bool _ok, uint256 _mult) = _accumPerUnit.tryMul(_userDCA.rate);
