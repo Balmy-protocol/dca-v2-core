@@ -195,7 +195,17 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
         _accumPerUnit = _multiplierTerm.sub(_accumRatesLastWidthraw[0].sub(_accumRatesPerformed[0]));
       }
     }
-    _swapped = _accumPerUnit.mul(_userDCA.rate).div(_magnitude);
+    (bool _ok, uint256 _mult) = _accumPerUnit.tryMul(_userDCA.rate);
+    if (_ok) {
+      _swapped = _mult.div(_magnitude);
+    } else {
+      // Since we can't multiply accum and rate because of overflows, we need to figure out which to divide
+      // We don't want to divide a term that is smaller than magnitude, because it would go to 0.
+      // And if neither are smaller than magnitude, then we will choose the one that loses less information, and that would be the one with smallest reminder
+      bool _divideAccumFirst =
+        _userDCA.rate < _magnitude || (_accumPerUnit > _magnitude && _accumPerUnit.mod(_magnitude) < _userDCA.rate.mod(_magnitude));
+      _swapped = _divideAccumFirst ? _accumPerUnit.div(_magnitude).mul(_userDCA.rate) : _userDCA.rate.div(_magnitude).mul(_accumPerUnit);
+    }
   }
 
   /** Returns how many FROM remains unswapped  */
