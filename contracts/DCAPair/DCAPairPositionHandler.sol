@@ -176,7 +176,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
       L = last widthraw
       RATE_PER_UNIT = Amount TO tokens * magnitude(TO)
       RATE = Amount FROM tokens * magnitude(FROM)
-      accumPerUnit(X) = RATE_PER_UNIT(X) + RATE_PER_UNIT(X - 1) + ... + RATE_PER_UNIT(1)
+      accumPerUnit(swap) = RATE_PER_UNIT(swap) + RATE_PER_UNIT(swap - 1) + ... + RATE_PER_UNIT(1)
 
       swapped = (accumPerUnit(P) - accumPerUnit(L)) * RATE / magnitude(FROM)
       swapped = ((multiplier(P) - multiplier(L)) * MAX_UINT + accum(P) - accum(L)) * RATE / magnitude(FROM)
@@ -195,7 +195,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
         _accumPerUnit = _multiplierTerm.sub(_accumRatesLastWidthraw[0].sub(_accumRatesPerformed[0]));
       }
     }
-    _swapped = _accumPerUnit.mul(_userDCA.rate.div(_magnitude));
+    _swapped = _accumPerUnit.mul(_userDCA.rate).div(_magnitude);
   }
 
   /** Returns how many FROM remains unswapped  */
