@@ -599,6 +599,173 @@ describe('DCAPositionHandler', () => {
     });
   });
 
+  describe('calculateSwapped', () => {
+    when('multiplier is 1 and accum is negative', () => {
+      then('swapped is calculated correctly', async () => {
+        const swapped = await calculateSwappedWith({
+          accumRate: -10,
+          rateMultiplier: 1,
+        });
+        expect(swapped).to.equal(constants.MAX_UINT_256.sub(fromEther(10)));
+      });
+    });
+
+    when('last swap ended before calculation', () => {
+      then('swapped is calculated correctly', async () => {
+        const { dcaId } = await deposit(tokenA, 1, 1);
+
+        // Set up max(uint256) in PERFORMED_SWAPS_10 + 1
+        await setRatePerUnit({
+          accumRate: 0,
+          rateMultiplier: 1,
+          onSwap: PERFORMED_SWAPS_10 + 1,
+        });
+
+        // Set up overflow in PERFORMED_SWAPS_10 + 2
+        await setRatePerUnit({
+          accumRate: 1,
+          rateMultiplier: 1,
+          onSwap: PERFORMED_SWAPS_10 + 2,
+        });
+
+        await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 3);
+
+        // It shouldn't revert, since the position ended before the overflow
+        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
+        expect(swapped).to.equal(constants.MAX_UINT_256);
+      });
+    });
+
+    describe('verify overflow errors', () => {
+      when('multiplier is 1 and accum is positive', () => {
+        then('there is an overflow', async () => {
+          await expectCalculationToFailWithOverflow({
+            accumRate: 1,
+            rateMultiplier: 1,
+          });
+        });
+      });
+
+      when('multiplier is 2 and accum is not -MAX(uint256)', () => {
+        then('there is an overflow', async () => {
+          await expectCalculationToFailWithOverflow({
+            accumRate: constants.MAX_UINT_256.mul(-1).add(1),
+            rateMultiplier: 2,
+          });
+        });
+      });
+
+      when('multiplier is 3', () => {
+        then('there is an overflow', async () => {
+          await expectCalculationToFailWithOverflow({
+            accumRate: constants.MAX_UINT_256.mul(-1),
+            rateMultiplier: 3,
+          });
+        });
+      });
+    });
+
+    describe('verify overflow limits', () => {
+      when('multiplier is 1 and accum is 0', () => {
+        then('swapped should be max uint', async () => {
+          const swapped = await calculateSwappedWith({
+            accumRate: 0,
+            rateMultiplier: 1,
+          });
+          expect(swapped).to.equal(constants.MAX_UINT_256);
+        });
+      });
+
+      when('multiplier is 0 and accum is MAX(uint256)', () => {
+        then('swapped should be max uint', async () => {
+          const swapped = await calculateSwappedWith({
+            accumRate: constants.MAX_UINT_256,
+            rateMultiplier: 0,
+          });
+          expect(swapped).to.equal(constants.MAX_UINT_256);
+        });
+      });
+
+      when('multiplier is 2 and accum is -MAX(uint256)', () => {
+        then('swapped should be max uint', async () => {
+          const swapped = await calculateSwappedWith({
+            accumRate: constants.MAX_UINT_256.mul(-1),
+            rateMultiplier: 2,
+          });
+          expect(swapped).to.equal(constants.MAX_UINT_256);
+        });
+      });
+    });
+
+    async function setRatePerUnit({
+      accumRate,
+      rateMultiplier,
+      onSwap,
+    }: {
+      accumRate: number | BigNumber;
+      rateMultiplier: number;
+      onSwap: number;
+    }) {
+      await DCAPositionHandler.setRatePerUnit(
+        tokenA.address,
+        onSwap,
+        BigNumber.isBigNumber(accumRate) ? accumRate : fromEther(accumRate),
+        rateMultiplier
+      );
+    }
+
+    async function calculateSwappedWith({
+      accumRate,
+      rateMultiplier,
+    }: {
+      accumRate: number | BigNumber;
+      rateMultiplier: number;
+    }) {
+      const { dcaId } = await deposit(tokenA, 1, 1);
+      await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 1);
+      if (accumRate < 0) {
+        await setRatePerUnit({
+          accumRate: BigNumber.isBigNumber(accumRate)
+            ? accumRate.abs()
+            : fromEther(Math.abs(accumRate)),
+          rateMultiplier: 0,
+          onSwap: PERFORMED_SWAPS_10,
+        });
+        await setRatePerUnit({
+          accumRate: 0,
+          rateMultiplier,
+          onSwap: PERFORMED_SWAPS_10 + 1,
+        });
+      } else {
+        await setRatePerUnit({
+          accumRate,
+          rateMultiplier,
+          onSwap: PERFORMED_SWAPS_10 + 1,
+        });
+      }
+
+      return DCAPositionHandler.calculateSwapped(dcaId);
+    }
+
+    function expectCalculationToFailWithOverflow({
+      accumRate,
+      rateMultiplier,
+    }: {
+      accumRate: number | BigNumber;
+      rateMultiplier: number;
+    }) {
+      const tx = calculateSwappedWith({
+        accumRate,
+        rateMultiplier,
+      });
+
+      return behaviours.checkTxRevertedWithMessage({
+        tx,
+        message: new RegExp('\\boverflow\\b'),
+      });
+    }
+  });
+
   function modifyPositionTest({
     title,
     initialRate,

@@ -165,17 +165,49 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   /** Return the amount of tokens swapped in TO */
   function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = userTrades[_dcaId];
+    uint256 _lastSwap = Math.min(performedSwaps, _userDCA.lastSwap);
     uint256[2] memory _accumRatesLastWidthraw = accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
-    uint256[2] memory _accumRatesPerformed = accumRatesPerUnit[_userDCA.from][performedSwaps];
+    uint256[2] memory _accumRatesLastSwap = accumRatesPerUnit[_userDCA.from][_lastSwap];
 
     IERC20Decimals _from = _getFrom(_dcaId);
     uint256 _magnitude = 10**_from.decimals();
 
-    _swapped = _accumRatesPerformed[1].sub(_accumRatesLastWidthraw[1]).mul(_userDCA.rate).mul(type(uint256).max.div(_magnitude)).add(
-      _accumRatesPerformed[0].sub(_accumRatesLastWidthraw[0]).mul(_userDCA.rate).div(_magnitude)
-    );
+    /*
+      LS = last swap = min(performed swaps, position.finalSwap)
+      LW = last widthraw
+      RATE_PER_UNIT(swap) = TO tokens for one unit of FROM = amount TO tokens * magnitude(TO)
+      RATE(position) = amount FROM tokens * magnitude(FROM)
+      accumPerUnit(swap) = RATE_PER_UNIT(swap) + RATE_PER_UNIT(swap - 1) + ... + RATE_PER_UNIT(1)
 
-    // TODO: Check for overflows
+      swapped = (accumPerUnit(LS) - accumPerUnit(LW)) * RATE / magnitude(FROM)
+      swapped = ((multiplier(LS) - multiplier(LW)) * MAX_UINT + accum(LS) - accum(LW)) * RATE / magnitude(FROM)
+    */
+
+    uint256 _multiplierDifference = _accumRatesLastSwap[1].sub(_accumRatesLastWidthraw[1]);
+    uint256 _accumPerUnit;
+    if (_multiplierDifference == 2) {
+      // If multiplier difference is 2, then the only way it won't overflow is if accum(LS) - accum(LW) == -max(uint256).
+      // This line will revert for all other scenarios
+      _accumPerUnit = type(uint256).max.sub(_accumRatesLastWidthraw[0].sub(_accumRatesLastSwap[0])).add(type(uint256).max);
+    } else {
+      uint256 _multiplierTerm = _multiplierDifference.mul(type(uint256).max);
+      if (_accumRatesLastSwap[0] >= _accumRatesLastWidthraw[0]) {
+        _accumPerUnit = _multiplierTerm.add(_accumRatesLastSwap[0].sub(_accumRatesLastWidthraw[0]));
+      } else {
+        _accumPerUnit = _multiplierTerm.sub(_accumRatesLastWidthraw[0].sub(_accumRatesLastSwap[0]));
+      }
+    }
+    (bool _ok, uint256 _mult) = _accumPerUnit.tryMul(_userDCA.rate);
+    if (_ok) {
+      _swapped = _mult.div(_magnitude);
+    } else {
+      // Since we can't multiply accum and rate because of overflows, we need to figure out which to divide
+      // We don't want to divide a term that is smaller than magnitude, because it would go to 0.
+      // And if neither are smaller than magnitude, then we will choose the one that loses less information, and that would be the one with smallest reminder
+      bool _divideAccumFirst =
+        _userDCA.rate < _magnitude || (_accumPerUnit > _magnitude && _accumPerUnit.mod(_magnitude) < _userDCA.rate.mod(_magnitude));
+      _swapped = _divideAccumFirst ? _accumPerUnit.div(_magnitude).mul(_userDCA.rate) : _userDCA.rate.div(_magnitude).mul(_accumPerUnit);
+    }
   }
 
   /** Returns how many FROM remains unswapped  */

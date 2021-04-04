@@ -210,4 +210,5 @@ export default {
   deployShouldSetVariablesAndEmitEvents,
   txShouldHaveSetVariablesAndEmitEvents,
   txShouldSetVariableAndEmitEvent,
+  checkTxRevertedWithMessage,
 };

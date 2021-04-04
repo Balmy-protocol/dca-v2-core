@@ -3,6 +3,7 @@ import { ethers } from 'hardhat';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NOT_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
 const MAX_INT_256 = ethers.BigNumber.from('2').pow('255').sub(1);
+const MAX_UINT_256 = ethers.BigNumber.from('2').pow('256').sub(1);
 const MIN_INT_256 = ethers.BigNumber.from(
   '-0x8000000000000000000000000000000000000000000000000000000000000000'
 );
@@ -12,4 +13,5 @@ export default {
   NOT_ZERO_ADDRESS,
   MAX_INT_256,
   MIN_INT_256,
+  MAX_UINT_256,
 };
