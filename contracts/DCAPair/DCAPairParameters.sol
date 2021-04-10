@@ -43,7 +43,7 @@ interface IDCAPairParameters {
 
   // TODO: function accumRatesPerUnit(uint256) external returns (uint256[2] memory);
 
-  function userTrades(uint256)
+  function userPositions(uint256)
     external
     returns (
       address,
@@ -65,7 +65,7 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   // Tracking
   mapping(address => mapping(uint256 => int256)) public override swapAmountDelta;
   mapping(address => mapping(uint256 => uint256[2])) public accumRatesPerUnit;
-  mapping(uint256 => DCA) public override userTrades;
+  mapping(uint256 => DCA) public override userPositions;
 
   constructor(
     IERC20Decimals _tokenA,
