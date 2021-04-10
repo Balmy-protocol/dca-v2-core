@@ -13,7 +13,7 @@ contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandle
     IERC20Decimals _tokenB,
     IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
-  ) DCAPairParameters(_tokenA, _tokenB, _uniswap) DCAPairSwapHandler(IDCAFactory(msg.sender), _swapInterval) {}
+  ) DCAPairParameters(_tokenA, _tokenB, _uniswap) DCAPairSwapHandler(IDCAFactory(msg.sender), ISlidingOracle(address(0xe)), _swapInterval) {}
 
   // PositionHandler
   function deposit(
@@ -49,6 +49,10 @@ contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandle
   }
 
   // Swap Handler
+  function setOracle(ISlidingOracle _oracle) public override {
+    _setOracle(_oracle);
+  }
+
   function setSwapInterval(uint256 _swapInterval) public override {
     _setSwapInterval(_swapInterval);
   }

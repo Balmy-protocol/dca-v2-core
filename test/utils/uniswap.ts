@@ -1,8 +1,10 @@
 import UniswapV2FactoryContract from '@uniswap/v2-core/build/UniswapV2Factory.json';
 import UniswapV2Router02Contract from '@uniswap/v2-periphery/build/UniswapV2Router02.json';
+import IUniswapV2Pair from '@uniswap/v2-core/build/IUniswapV2Pair.json';
 import WETHContract from '@uniswap/v2-periphery/build/WETH9.json';
 import { deployContract } from 'ethereum-waffle';
-import { BigNumber, Contract, ethers, Signer, utils } from 'ethers';
+import { BigNumber, Contract, Signer, utils } from 'ethers';
+import { ethers } from 'hardhat';
 
 let WETH: Contract, uniswapV2Factory: Contract, uniswapV2Router02: Contract;
 
@@ -36,6 +38,12 @@ const createPair = async ({
   token1: Contract;
 }) => {
   await uniswapV2Factory.createPair(token0.address, token1.address);
+  const pairAddress = await uniswapV2Factory.getPair(
+    token0.address,
+    token1.address
+  );
+  const pair = await ethers.getContractAt(IUniswapV2Pair.abi, pairAddress);
+  return pair;
 };
 
 const addLiquidity = async ({

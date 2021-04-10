@@ -11,8 +11,9 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairSwapHandle
     IERC20Decimals _tokenB,
     IUniswapV2Router02 _uniswap,
     IDCAFactory _factory,
+    ISlidingOracle _oracle,
     uint256 _swapInterval
-  ) DCAPairSwapHandlerMock(_tokenA, _tokenB, _uniswap, _factory, _swapInterval) {
+  ) DCAPairSwapHandlerMock(_tokenA, _tokenB, _uniswap, _factory, _oracle, _swapInterval) {
     /* */
   }
 

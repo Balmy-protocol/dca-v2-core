@@ -22,15 +22,23 @@ describe('DCAPositionHandler', () => {
   const INITIAL_TOKEN_B_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_B_BALANCE_USER = 100;
 
+  const swapInterval = moment.duration(1, 'days').as('seconds');
+
   let owner: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
+  let pair: Contract;
   let DCAPositionHandlerContract: ContractFactory;
   let DCAPositionHandler: Contract;
+  let slidingOracleContract: ContractFactory;
+  let slidingOracle: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
     DCAPositionHandlerContract = await ethers.getContractFactory(
       'contracts/mocks/DCAPair/DCAPairPositionHandler.sol:DCAPairPositionHandlerMock'
+    );
+    slidingOracleContract = await ethers.getContractFactory(
+      'contracts/SlidingOracle.sol:SimplifiedSlidingOracle'
     );
   });
 
@@ -50,12 +58,22 @@ describe('DCAPositionHandler', () => {
       initialAccount: owner.address,
       initialAmount: fromEther(INITIAL_TOKEN_B_BALANCE_USER),
     });
+    pair = await uniswap.createPair({
+      token0: tokenB,
+      token1: tokenA,
+    });
+    slidingOracle = await slidingOracleContract.deploy(
+      uniswap.getUniswapV2Factory().address,
+      pair.address,
+      swapInterval
+    );
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
       uniswap.getUniswapV2Router02().address,
       constants.NOT_ZERO_ADDRESS, // factory
-      moment.duration(1, 'days').as('seconds')
+      slidingOracle.address,
+      swapInterval
     );
     await tokenA.approveInternal(
       owner.address,
