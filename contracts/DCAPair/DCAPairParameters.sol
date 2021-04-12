@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.7.0;
+pragma experimental ABIEncoderV2;
 
 import 'hardhat/console.sol';
 
@@ -13,8 +14,6 @@ import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
 
 import '../DCAFactory/DCAFactory.sol';
 import '../interfaces/IERC20Decimals.sol';
-
-pragma experimental ABIEncoderV2;
 
 interface IDCAPairParameters {
   struct DCA {
@@ -40,8 +39,6 @@ interface IDCAPairParameters {
   function uniswap() external view returns (IUniswapV2Router02);
 
   function swapAmountDelta(address, uint256) external view returns (int256);
-
-  // TODO: function accumRatesPerUnit(uint256) external returns (uint256[2] memory);
 
   function userPositions(uint256)
     external
