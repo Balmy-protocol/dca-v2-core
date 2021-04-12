@@ -30,6 +30,10 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairSwapHandle
     _swapped = _withdrawSwapped(_dcaId);
   }
 
+  function withdrawSwappedMany(uint256[] calldata _dcaIds) external override returns (uint256 _swappedTokenA, uint256 _swappedTokenB) {
+    (_swappedTokenA, _swappedTokenB) = _withdrawSwappedMany(_dcaIds);
+  }
+
   function modifyRate(uint256 _dcaId, uint256 _newRate) external override {
     _modifyRate(_dcaId, _newRate);
   }
