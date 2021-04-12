@@ -10,7 +10,7 @@ import { readArgFromEvent } from '../../utils/event-utils';
 
 const MINIMUM_SWAP_INTERVAL = BigNumber.from('60');
 
-describe('DCAPairSwapHandler', function () {
+describe.only('DCAPairSwapHandler', function () {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
@@ -140,29 +140,28 @@ describe('DCAPairSwapHandler', function () {
   });
 
   describe('_setOracle', () => {
+    let setOracleTx: TransactionResponse;
     when('oracle is zero address', () => {
       given(function () {
-        this.setOracleTx = DCAPairSwapHandler.setOracle(constants.ZERO_ADDRESS);
+        setOracleTx = DCAPairSwapHandler.setOracle(constants.ZERO_ADDRESS);
       });
       then('tx is reverted with reason', async function () {
-        await expect(this.setOracleTx).to.be.revertedWith(
-          'DCAPair: zero-address'
-        );
+        await expect(setOracleTx).to.be.revertedWith('DCAPair: zero-address');
       });
     });
     when('oracle is a valid address', () => {
+      let newOracle: string = constants.NOT_ZERO_ADDRESS;
       given(async function () {
-        this.newOracle = constants.NOT_ZERO_ADDRESS;
-        this.setOracleTx = DCAPairSwapHandler.setOracle(this.newOracle);
-        await this.setOracleTx;
+        setOracleTx = DCAPairSwapHandler.setOracle(newOracle);
+        await setOracleTx;
       });
       then('oracle is set', async function () {
-        expect(await DCAPairSwapHandler.oracle()).to.be.equal(this.newOracle);
+        expect(await DCAPairSwapHandler.oracle()).to.be.equal(newOracle);
       });
       then('event is emitted', async function () {
-        expect(this.setOracleTx)
+        expect(setOracleTx)
           .to.emit(DCAPairSwapHandler, 'OracleSet')
-          .withArgs(this.newOracle);
+          .withArgs(newOracle);
       });
     });
   });
@@ -613,6 +612,16 @@ describe('DCAPairSwapHandler', function () {
     });
   };
 
+  type NextSwapInfo = {
+    _swapToPerform: BigNumber;
+    _amountToSwapTokenA: BigNumber;
+    _amountToSwapTokenB: BigNumber;
+    _ratePerUnitBToA: BigNumber;
+    _ratePerUnitAToB: BigNumber;
+    _amountToBeProvidedExternally: BigNumber;
+    _tokenToBeProvidedExternally: string;
+  };
+
   function getNextSwapInfoTest({
     title,
     nextSwapToPerform,
@@ -636,6 +645,7 @@ describe('DCAPairSwapHandler', function () {
     ratePerUnitAToB = bn.toBN(ratePerUnitAToB);
     amountToBeProvidedExternally = bn.toBN(amountToBeProvidedExternally);
 
+    let nextSwapInfo: NextSwapInfo;
     when(title, () => {
       given(async function () {
         await setNextSwapInfo({
@@ -644,25 +654,21 @@ describe('DCAPairSwapHandler', function () {
           amountToSwapOfTokenB: amountToSwapOfTokenB,
           ratePerUnitAToB: ratePerUnitAToB,
         });
-        this.nextSwapInfo = await DCAPairSwapHandler.getNextSwapInfo();
+        nextSwapInfo = await DCAPairSwapHandler.getNextSwapInfo();
       });
       then('swap to perform is current + 1', function () {
-        expect(this.nextSwapInfo._swapToPerform).to.equal(nextSwapToPerform);
+        expect(nextSwapInfo._swapToPerform).to.equal(nextSwapToPerform);
       });
       then('amount to swap of token A is correct', function () {
-        expect(this.nextSwapInfo._amountToSwapTokenA).to.equal(
-          amountToSwapOfTokenA
-        );
+        expect(nextSwapInfo._amountToSwapTokenA).to.equal(amountToSwapOfTokenA);
       });
       then('amount to swap of token B is correct', function () {
-        expect(this.nextSwapInfo._amountToSwapTokenB).to.equal(
-          amountToSwapOfTokenB
-        );
+        expect(nextSwapInfo._amountToSwapTokenB).to.equal(amountToSwapOfTokenB);
       });
       then('rate of unit a to b is correct', function () {
         expect(
           bn.equal({
-            value: this.nextSwapInfo._ratePerUnitAToB,
+            value: nextSwapInfo._ratePerUnitAToB,
             to: ratePerUnitAToB,
             threshold: BigNumber.from('1'),
           })
@@ -680,19 +686,19 @@ describe('DCAPairSwapHandler', function () {
         );
         const ratePerUnitBToA = tokenBDecimals
           .mul(tokenADecimals)
-          .div(this.nextSwapInfo._ratePerUnitAToB);
-        expect(this.nextSwapInfo._ratePerUnitBToA).to.equal(ratePerUnitBToA);
+          .div(nextSwapInfo._ratePerUnitAToB);
+        expect(nextSwapInfo._ratePerUnitBToA).to.equal(ratePerUnitBToA);
       });
       then(
         'the amount of tokens to be provided externally is correct',
         async function () {
-          expect(this.nextSwapInfo._amountToBeProvidedExternally).to.be.equal(
+          expect(nextSwapInfo._amountToBeProvidedExternally).to.be.equal(
             amountToBeProvidedExternally
           );
         }
       );
       then('token to be provided externally is correct', async function () {
-        expect(this.nextSwapInfo._tokenToBeProvidedExternally).to.be.equal(
+        expect(nextSwapInfo._tokenToBeProvidedExternally).to.be.equal(
           tokenToBeProvidedExternally()
         );
       });
@@ -1031,6 +1037,13 @@ describe('DCAPairSwapHandler', function () {
     amountToSwapOfTokenB = bn.toBN(amountToSwapOfTokenB);
     ratePerUnitAToB = bn.toBN(ratePerUnitAToB);
     amountToBeProvidedExternally = bn.toBN(amountToBeProvidedExternally);
+
+    let initialContractTokenABalance: BigNumber;
+    let initialContractTokenBBalance: BigNumber;
+    let initialSwapperTokenABalance: BigNumber;
+    let initialSwapperTokenBBalance: BigNumber;
+    let initialLastSwapPerformed: BigNumber;
+    let swapTx: TransactionResponse;
     when(title, () => {
       given(async function () {
         await setNextSwapInfo({
@@ -1039,19 +1052,15 @@ describe('DCAPairSwapHandler', function () {
           amountToSwapOfTokenB: amountToSwapOfTokenB,
           ratePerUnitAToB: ratePerUnitAToB,
         });
-        this.initialContractTokenABalance = await tokenA.balanceOf(
+        initialContractTokenABalance = await tokenA.balanceOf(
           DCAPairSwapHandler.address
         );
-        this.initialContractTokenBBalance = await tokenB.balanceOf(
+        initialContractTokenBBalance = await tokenB.balanceOf(
           DCAPairSwapHandler.address
         );
-        this.initialSwapperTokenABalance = await tokenA.balanceOf(
-          owner.address
-        );
-        this.initialSwapperTokenBBalance = await tokenB.balanceOf(
-          owner.address
-        );
-        this.initialLastSwapPerformed = await DCAPairSwapHandler.lastSwapPerformed();
+        initialSwapperTokenABalance = await tokenA.balanceOf(owner.address);
+        initialSwapperTokenBBalance = await tokenB.balanceOf(owner.address);
+        initialLastSwapPerformed = await DCAPairSwapHandler.lastSwapPerformed();
         if (
           tokenToBeProvidedExternally().toLowerCase() ===
           tokenA.address.toLowerCase()
@@ -1066,10 +1075,10 @@ describe('DCAPairSwapHandler', function () {
             amountToBeProvidedExternally
           );
         }
-        this.swapTx = DCAPairSwapHandler.swap();
+        swapTx = DCAPairSwapHandler.swap();
       });
       then('tx is not reverted', async function () {
-        await expect(this.swapTx).to.not.be.reverted;
+        await expect(swapTx).to.not.be.reverted;
       });
       then('external amount of token needed is provided', async function () {
         if (
@@ -1077,22 +1086,22 @@ describe('DCAPairSwapHandler', function () {
           tokenA.address.toLowerCase()
         ) {
           expect(await tokenA.balanceOf(DCAPairSwapHandler.address)).to.equal(
-            this.initialContractTokenABalance.add(amountToBeProvidedExternally)
+            initialContractTokenABalance.add(amountToBeProvidedExternally)
           );
         } else {
           expect(await tokenB.balanceOf(DCAPairSwapHandler.address)).to.equal(
-            this.initialContractTokenBBalance.add(amountToBeProvidedExternally)
+            initialContractTokenBBalance.add(amountToBeProvidedExternally)
           );
         }
       });
       then('external amount of token is taken from swapper', async function () {
         if (tokenToBeProvidedExternally() === tokenA.address) {
           expect(await tokenA.balanceOf(owner.address)).to.equal(
-            this.initialSwapperTokenABalance.sub(amountToBeProvidedExternally)
+            initialSwapperTokenABalance.sub(amountToBeProvidedExternally)
           );
         } else {
           expect(await tokenB.balanceOf(owner.address)).to.equal(
-            this.initialSwapperTokenBBalance.sub(amountToBeProvidedExternally)
+            initialSwapperTokenBBalance.sub(amountToBeProvidedExternally)
           );
         }
       });
@@ -1133,11 +1142,11 @@ describe('DCAPairSwapHandler', function () {
       });
       then('updates last swap performend timestamp', async function () {
         expect(await DCAPairSwapHandler.lastSwapPerformed()).to.be.gt(
-          this.initialLastSwapPerformed
+          initialLastSwapPerformed
         );
       });
       then('emits event with correct information', async function () {
-        const transactionResponse = await this.swapTx;
+        const transactionResponse = await swapTx;
         expect(
           await readArgFromEvent(
             transactionResponse,
