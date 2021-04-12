@@ -7,6 +7,7 @@ interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
   event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
   event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
+  event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
   event Modified(address indexed _user, uint256 _dcaId, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
 
   function deposit(
@@ -16,6 +17,8 @@ interface IDCAPairPositionHandler {
   ) external;
 
   function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
+
+  function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
 
   function modifyRate(uint256 _dcaId, uint256 _newRate) external;
 
@@ -63,6 +66,34 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
       _to.safeTransfer(msg.sender, _swapped);
 
       emit Withdrew(msg.sender, _dcaId, address(_to), _swapped);
+    }
+  }
+
+  function _withdrawSwappedMany(uint256[] calldata _dcaIds) internal returns (uint256 _swappedTokenA, uint256 _swappedTokenB) {
+    _swappedTokenA = 0;
+    _swappedTokenB = 0;
+
+    for (uint256 i = 0; i < _dcaIds.length; i++) {
+      uint256 _dcaId = _dcaIds[i];
+      _assertPositionExists(_dcaId);
+      uint256 _swappedDCA = _calculateSwapped(_dcaId);
+      if (userTrades[_dcaId].from == address(tokenA)) {
+        _swappedTokenB = _swappedTokenB.add(_swappedDCA);
+      } else {
+        _swappedTokenA = _swappedTokenA.add(_swappedDCA);
+      }
+      userTrades[_dcaId].lastWithdrawSwap = performedSwaps;
+    }
+
+    if (_swappedTokenA > 0 || _swappedTokenB > 0) {
+      if (_swappedTokenA > 0) {
+        tokenA.safeTransfer(msg.sender, _swappedTokenA);
+      }
+
+      if (_swappedTokenB > 0) {
+        tokenB.safeTransfer(msg.sender, _swappedTokenB);
+      }
+      emit WithdrewMany(msg.sender, _dcaIds, _swappedTokenA, _swappedTokenB);
     }
   }
 
@@ -145,7 +176,6 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   ) internal returns (uint256 _startingSwap, uint256 _finalSwap) {
     require(_rate > 0, 'DCAPair: Invalid rate. It must be positive');
     require(_amountOfSwaps > 0, 'DCAPair: Invalid amount of swaps. It must be positive');
-    // TODO: Consider requesting _amountOfSwaps to be 2 or more, to avoid flash loans/mints
     _startingSwap = performedSwaps.add(1);
     _finalSwap = performedSwaps.add(_amountOfSwaps);
     swapAmountDelta[_from][_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
@@ -230,5 +260,3 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     _to = _userDCA.from == address(tokenA) ? tokenB : tokenA;
   }
 }
-
-// TODO: withdrawAllSwappedAssets
