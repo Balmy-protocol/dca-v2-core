@@ -11,11 +11,10 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   constructor(
     IERC20Decimals _token0,
     IERC20Decimals _token1,
-    IUniswapV2Router02 _uniswap,
     IDCAFactory _factory,
     ISlidingOracle _oracle,
     uint256 _swapInterval
-  ) DCAPairParametersMock(_token0, _token1, _uniswap) DCAPairSwapHandler(_factory, _oracle, _swapInterval) {
+  ) DCAPairParametersMock(_token0, _token1) DCAPairSwapHandler(_factory, _oracle, _swapInterval) {
     /* */
   }
 
@@ -41,27 +40,11 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     return _getAmountToSwap(_tokenAddress, _swap);
   }
 
-  function addNewRatePerUnit(
-    address _tokenAddress,
-    uint256 _swap,
-    uint256 _ratePerUnit
-  ) public {
-    _addNewRatePerUnit(_tokenAddress, _swap, _ratePerUnit);
-  }
-
   function swap() public override {
     _swap();
   }
 
   // Mocks setters
-  function setRatePerUnit(
-    address _tokenAddress,
-    uint256 _swap,
-    uint256 _rate,
-    uint256 _rateMultiplier
-  ) public {
-    accumRatesPerUnit[_tokenAddress][_swap] = [_rate, _rateMultiplier];
-  }
 
   function setSwapAmountAccumulator(address _tokenAddress, uint256 _swapAmountAccumulator) public {
     swapAmountAccumulator[_tokenAddress] = _swapAmountAccumulator;
@@ -69,9 +52,5 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
 
   function setLastSwapPerformed(uint256 _lastSwapPerformend) public {
     lastSwapPerformed = _lastSwapPerformend;
-  }
-
-  function setPerformedSwaps(uint256 _performedSwaps) public {
-    performedSwaps = _performedSwaps;
   }
 }

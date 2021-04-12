@@ -5,11 +5,7 @@ pragma solidity 0.7.0;
 import '../../DCAPair/DCAPairParameters.sol';
 
 contract DCAPairParametersMock is DCAPairParameters {
-  constructor(
-    IERC20Decimals _tokenA,
-    IERC20Decimals _tokenB,
-    IUniswapV2Router02 _uniswap
-  ) DCAPairParameters(_tokenA, _tokenB, _uniswap) {}
+  constructor(IERC20Decimals _tokenA, IERC20Decimals _tokenB) DCAPairParameters(_tokenA, _tokenB) {}
 
   // Mocks setters
 
@@ -23,10 +19,6 @@ contract DCAPairParametersMock is DCAPairParameters {
 
   function setTokenB(IERC20Decimals _tokenB) public {
     _setTokenB(_tokenB);
-  }
-
-  function setUniswap(IUniswapV2Router02 _uniswap) public {
-    _setUniswap(_uniswap);
   }
 
   function setSwapAmountDelta(
@@ -45,9 +37,24 @@ contract DCAPairParametersMock is DCAPairParameters {
     accumRatesPerUnit[_tokenAddress][_swap] = _accumRatePerUnit;
   }
 
-  // Mocks getters
+  function setPerformedSwaps(uint256 _performedSwaps) public {
+    performedSwaps = _performedSwaps;
+  }
 
-  function magnitude() public view returns (uint256) {
-    return _magnitude;
+  function setRatePerUnit(
+    address _tokenAddress,
+    uint256 _swap,
+    uint256 _rate,
+    uint256 _rateMultiplier
+  ) public {
+    accumRatesPerUnit[_tokenAddress][_swap] = [_rate, _rateMultiplier];
+  }
+
+  function addNewRatePerUnit(
+    address _tokenAddress,
+    uint256 _swap,
+    uint256 _ratePerUnit
+  ) public {
+    _addNewRatePerUnit(_tokenAddress, _swap, _ratePerUnit);
   }
 }

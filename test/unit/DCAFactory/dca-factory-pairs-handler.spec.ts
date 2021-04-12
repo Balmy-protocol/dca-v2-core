@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import { Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, uniswap, erc20, behaviours } from '../../utils';
+import { constants, erc20, behaviours } from '../../utils';
 
 describe('DCAFactoryPairsHandler', function () {
   let owner: Signer, feeRecipient: Signer;
-  let fromToken: Contract;
+  let fromToken: Contract, toToken: Contract;
   let DCAFactoryPairsHandlerContract: ContractFactory;
   let DCAFactoryPairsHandler: Contract;
 
@@ -17,18 +17,20 @@ describe('DCAFactoryPairsHandler', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    await uniswap.deploy({
-      owner,
-    });
     fromToken = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
+    toToken = await erc20.deploy({
+      name: 'DAI2',
+      symbol: 'DAI2',
+      initialAccount: await owner.getAddress(),
+      initialAmount: utils.parseEther('1'),
+    });
     DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(
-      await feeRecipient.getAddress(),
-      uniswap.getUniswapV2Router02().address
+      await feeRecipient.getAddress()
     );
   });
 
@@ -44,7 +46,7 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [fromToken.address, uniswap.getWETH().address, 1],
+          args: [fromToken.address, toToken.address, 1],
           message: 'DCAFactory: interval-not-allowed',
         });
       });
@@ -54,11 +56,7 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithZeroAddress({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [
-            constants.ZERO_ADDRESS,
-            uniswap.getWETH().address,
-            allowedIntervals[0],
-          ],
+          args: [constants.ZERO_ADDRESS, toToken.address, allowedIntervals[0]],
         });
       });
     });
@@ -79,7 +77,7 @@ describe('DCAFactoryPairsHandler', function () {
       beforeEach(async () => {
         await DCAFactoryPairsHandler.createPair(
           fromToken.address,
-          uniswap.getWETH().address,
+          toToken.address,
           allowedIntervals[0]
         );
       });
@@ -87,11 +85,7 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [
-            fromToken.address,
-            uniswap.getWETH().address,
-            allowedIntervals[0],
-          ],
+          args: [fromToken.address, toToken.address, allowedIntervals[0]],
           message: 'DCAFactory: pair-exists',
         });
       });
@@ -103,26 +97,26 @@ describe('DCAFactoryPairsHandler', function () {
           expect(
             await DCAFactoryPairsHandler.pairByTokensAndSwapInterval(
               fromToken.address,
-              uniswap.getWETH().address,
+              toToken.address,
               allowedIntervals[0]
             )
           ).to.equal(constants.ZERO_ADDRESS);
           const pairAddress = await DCAFactoryPairsHandler.callStatic.createPair(
             fromToken.address,
-            uniswap.getWETH().address,
+            toToken.address,
             allowedIntervals[0]
           );
           await expect(
             DCAFactoryPairsHandler.createPair(
               fromToken.address,
-              uniswap.getWETH().address,
+              toToken.address,
               allowedIntervals[0]
             )
           )
             .to.emit(DCAFactoryPairsHandler, 'PairCreated')
             .withArgs(
               fromToken.address,
-              uniswap.getWETH().address,
+              toToken.address,
               allowedIntervals[0],
               pairAddress
             );
@@ -136,21 +130,21 @@ describe('DCAFactoryPairsHandler', function () {
           expect(
             await DCAFactoryPairsHandler.pairByTokensAndSwapInterval(
               fromToken.address,
-              uniswap.getWETH().address,
+              toToken.address,
               allowedIntervals[0]
             )
           ).to.equal(pairAddress);
           expect(
             await DCAFactoryPairsHandler.pairsByTokens(
               fromToken.address,
-              uniswap.getWETH().address,
+              toToken.address,
               0
             )
           ).to.equal(pairAddress);
           expect(
             await DCAFactoryPairsHandler.getPairsByTokens(
               fromToken.address,
-              uniswap.getWETH().address
+              toToken.address
             )
           ).to.eql([pairAddress]);
           expect(await DCAFactoryPairsHandler.allPairs(0)).to.equal(
