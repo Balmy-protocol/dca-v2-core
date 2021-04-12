@@ -2,6 +2,7 @@
 pragma solidity 0.7.0;
 
 import './DCAPairSwapHandler.sol';
+import './ERC721.sol';
 
 interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
@@ -30,12 +31,12 @@ interface IDCAPairPositionHandler {
   function terminate(uint256 _dcaId) external;
 }
 
-abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPositionHandler {
+abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPositionHandler, ERC721 {
   using SafeERC20 for IERC20Decimals;
   using SafeMath for uint256;
   using SignedSafeMath for int256;
 
-  uint256 internal _totalDCAs = 0; // TODO: Replace for NFT hash
+  uint256 internal _idCounter = 0;
 
   function _deposit(
     address _tokenAddress,
@@ -45,14 +46,15 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     require(_tokenAddress == address(tokenA) || _tokenAddress == address(tokenB), 'DCAPair: Invalid deposit address');
     IERC20Decimals _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
     _from.safeTransferFrom(msg.sender, address(this), _rate.mul(_amountOfSwaps));
-    _totalDCAs += 1;
-    _dcaId = _totalDCAs;
+    _idCounter = _idCounter.add(1);
+    _dcaId = _idCounter;
+    _safeMint(msg.sender, _dcaId);
     (uint256 _startingSwap, uint256 _finalSwap) = _addPosition(_dcaId, _tokenAddress, _rate, _amountOfSwaps);
     emit Deposited(msg.sender, _dcaId, _tokenAddress, _rate, _startingSwap, _finalSwap);
   }
 
   function _withdrawSwapped(uint256 _dcaId) internal returns (uint256 _swapped) {
-    _assertPositionExists(_dcaId);
+    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
 
     _swapped = _calculateSwapped(_dcaId);
 
@@ -67,7 +69,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   }
 
   function _terminate(uint256 _dcaId) internal {
-    _assertPositionExists(_dcaId);
+    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
 
     uint256 _swapped = _calculateSwapped(_dcaId);
     uint256 _unswapped = _calculateUnswapped(_dcaId);
@@ -75,6 +77,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     IERC20Decimals _from = _getFrom(_dcaId);
     IERC20Decimals _to = _getTo(_dcaId);
     _removePosition(_dcaId);
+    _burn(_dcaId);
 
     if (_swapped > 0) {
       _to.safeTransfer(msg.sender, _swapped);
@@ -88,7 +91,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   }
 
   function _modifyRate(uint256 _dcaId, uint256 _newRate) internal {
-    _assertPositionExists(_dcaId);
+    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
 
     DCA memory _userDCA = userTrades[_dcaId];
 
@@ -99,7 +102,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
   }
 
   function _modifySwaps(uint256 _dcaId, uint256 _newSwaps) internal {
-    _assertPositionExists(_dcaId);
+    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
 
     DCA memory _userDCA = userTrades[_dcaId];
 
@@ -111,7 +114,7 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     uint256 _newRate,
     uint256 _newAmountOfSwaps
   ) internal {
-    _assertPositionExists(_dcaId);
+    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _totalNecessary = _newRate.mul(_newAmountOfSwaps);
@@ -133,8 +136,9 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
     emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _finalSwap);
   }
 
-  function _assertPositionExists(uint256 _dcaId) internal view {
+  function _assertPositionExistsAndBeOperatedByCaller(uint256 _dcaId) internal view {
     require(userTrades[_dcaId].rate > 0, 'DCAPair: Invalid position id');
+    require(_isApprovedOrOwner(msg.sender, _dcaId), 'DCAPair: Called must be owner, or approved by owner');
   }
 
   function _addPosition(

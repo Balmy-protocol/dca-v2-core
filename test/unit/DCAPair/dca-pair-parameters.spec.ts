@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, uniswap, erc20, behaviours } from '../../utils';
+import { then, when } from '../../utils/bdd';
 
 describe('DCAPairParameters', function () {
   let owner: Signer;
@@ -83,6 +84,35 @@ describe('DCAPairParameters', function () {
             {
               getterFunc: 'tokenA',
               variable: tokenA.address,
+              eventEmitted: 'TokenASet',
+            },
+            {
+              getterFunc: 'tokenB',
+              variable: uniswap.getWETH().address,
+              eventEmitted: 'TokenBSet',
+            },
+            {
+              getterFunc: 'uniswap',
+              variable: uniswap.getUniswapV2Router02().address,
+              eventEmitted: 'UniswapSet',
+            },
+          ],
+        });
+      });
+    });
+    when('uniswap is zero address', () => {
+      then('reverts with message error', async () => {
+        await behaviours.deployShouldSetVariablesAndEmitEvents({
+          contract: DCAPairParametersContract,
+          args: [
+            tokenA.address,
+            uniswap.getWETH().address,
+            uniswap.getUniswapV2Router02().address,
+          ],
+          settersGettersVariablesAndEvents: [
+            {
+              getterFunc: 'name',
+              variable: 'DCA: ' + tokenA.symbol,
               eventEmitted: 'TokenASet',
             },
             {
