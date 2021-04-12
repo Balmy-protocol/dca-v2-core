@@ -77,12 +77,12 @@ abstract contract DCAPairPositionHandler is DCAPairSwapHandler, IDCAPairPosition
       uint256 _dcaId = _dcaIds[i];
       _assertPositionExists(_dcaId);
       uint256 _swappedDCA = _calculateSwapped(_dcaId);
-      if (userTrades[_dcaId].from == address(tokenA)) {
+      if (userPositions[_dcaId].from == address(tokenA)) {
         _swappedTokenB = _swappedTokenB.add(_swappedDCA);
       } else {
         _swappedTokenA = _swappedTokenA.add(_swappedDCA);
       }
-      userTrades[_dcaId].lastWithdrawSwap = performedSwaps;
+      userPositions[_dcaId].lastWithdrawSwap = performedSwaps;
     }
 
     if (_swappedTokenA > 0 || _swappedTokenB > 0) {
