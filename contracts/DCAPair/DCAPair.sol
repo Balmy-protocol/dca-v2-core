@@ -11,9 +11,8 @@ contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandle
   constructor(
     IERC20Decimals _tokenA,
     IERC20Decimals _tokenB,
-    IUniswapV2Router02 _uniswap,
     uint256 _swapInterval
-  ) DCAPairParameters(_tokenA, _tokenB, _uniswap) DCAPairSwapHandler(IDCAFactory(msg.sender), ISlidingOracle(address(0xe)), _swapInterval) {}
+  ) DCAPairParameters(_tokenA, _tokenB) DCAPairSwapHandler(IDCAFactory(msg.sender), ISlidingOracle(address(0xe)), _swapInterval) {}
 
   // PositionHandler
   function deposit(

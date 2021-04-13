@@ -10,8 +10,6 @@ import '@openzeppelin/contracts/math/SignedSafeMath.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 
-import '@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol';
-
 import '../DCAFactory/DCAFactory.sol';
 import '../interfaces/IERC20Decimals.sol';
 
@@ -27,7 +25,6 @@ interface IDCAPairParameters {
   event TokenASet(IERC20Decimals _tokenA);
   event TokenBSet(IERC20Decimals _tokenB);
   event FactorySet(IDCAFactory _factory);
-  event UniswapSet(IUniswapV2Router02 _uniswap);
 
   /* Public getters */
   function factory() external view returns (IDCAFactory);
@@ -35,8 +32,6 @@ interface IDCAPairParameters {
   function tokenA() external view returns (IERC20Decimals);
 
   function tokenB() external view returns (IERC20Decimals);
-
-  function uniswap() external view returns (IUniswapV2Router02);
 
   function swapAmountDelta(address, uint256) external view returns (int256);
 
@@ -48,30 +43,25 @@ interface IDCAPairParameters {
       uint256,
       uint256
     );
+
+  function performedSwaps() external returns (uint256);
 }
 
 abstract contract DCAPairParameters is IDCAPairParameters {
-  uint256 internal _magnitude;
-
   // Basic setup
   IDCAFactory public override factory;
   IERC20Decimals public override tokenA;
   IERC20Decimals public override tokenB;
-  IUniswapV2Router02 public override uniswap;
 
   // Tracking
   mapping(address => mapping(uint256 => int256)) public override swapAmountDelta;
   mapping(address => mapping(uint256 => uint256[2])) public accumRatesPerUnit;
   mapping(uint256 => DCA) public override userPositions;
+  uint256 public override performedSwaps;
 
-  constructor(
-    IERC20Decimals _tokenA,
-    IERC20Decimals _tokenB,
-    IUniswapV2Router02 _uniswap
-  ) {
+  constructor(IERC20Decimals _tokenA, IERC20Decimals _tokenB) {
     _setTokenA(_tokenA);
     _setTokenB(_tokenB);
-    _setUniswap(_uniswap);
   }
 
   function _setFactory(IDCAFactory _factory) internal {
@@ -89,13 +79,6 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   function _setTokenB(IERC20Decimals _tokenB) internal {
     require(address(_tokenB) != address(0), 'DCAPair: zero-address');
     tokenB = _tokenB;
-    _magnitude = 10**_tokenB.decimals();
     emit TokenBSet(_tokenB);
-  }
-
-  function _setUniswap(IUniswapV2Router02 _uniswap) internal {
-    require(address(_uniswap) != address(0), 'DCAPair: zero-address');
-    uniswap = _uniswap;
-    emit UniswapSet(_uniswap);
   }
 }

@@ -1,7 +1,6 @@
-import moment from 'moment';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { uniswap, erc20, behaviours, constants } from '../../utils';
+import { erc20, behaviours, constants } from '../../utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import {
@@ -22,30 +21,19 @@ describe('DCAPositionHandler', () => {
   const INITIAL_TOKEN_B_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_B_BALANCE_USER = 100;
 
-  const swapInterval = moment.duration(1, 'days').as('seconds');
-
   let owner: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
-  let pair: Contract;
   let DCAPositionHandlerContract: ContractFactory;
   let DCAPositionHandler: Contract;
-  let slidingOracleContract: ContractFactory;
-  let slidingOracle: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
     DCAPositionHandlerContract = await ethers.getContractFactory(
       'contracts/mocks/DCAPair/DCAPairPositionHandler.sol:DCAPairPositionHandlerMock'
     );
-    slidingOracleContract = await ethers.getContractFactory(
-      'contracts/SlidingOracle.sol:SimplifiedSlidingOracle'
-    );
   });
 
   beforeEach('Deploy and configure', async () => {
-    await uniswap.deploy({
-      owner,
-    });
     tokenA = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
@@ -58,22 +46,9 @@ describe('DCAPositionHandler', () => {
       initialAccount: owner.address,
       initialAmount: fromEther(INITIAL_TOKEN_B_BALANCE_USER),
     });
-    pair = await uniswap.createPair({
-      token0: tokenB,
-      token1: tokenA,
-    });
-    slidingOracle = await slidingOracleContract.deploy(
-      uniswap.getUniswapV2Factory().address,
-      pair.address,
-      swapInterval
-    );
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(
       tokenA.address,
-      tokenB.address,
-      uniswap.getUniswapV2Router02().address,
-      constants.NOT_ZERO_ADDRESS, // factory
-      slidingOracle.address,
-      swapInterval
+      tokenB.address
     );
     await tokenA.approveInternal(
       owner.address,
@@ -1050,10 +1025,11 @@ describe('DCAPositionHandler', () => {
     const fromTokenReal = fromToken ?? tokenA;
     const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
     await DCAPositionHandler.setPerformedSwaps(swap);
-    await DCAPositionHandler.addNewRatePerUnit(
+    await DCAPositionHandler.setRatePerUnit(
       fromTokenReal.address,
       swap,
-      fromEther(ratePerUnit)
+      fromEther(ratePerUnit),
+      0
     );
     await fromTokenReal.burn(DCAPositionHandler.address, fromEther(amount));
     await toToken.mint(

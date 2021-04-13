@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory, Signer, utils } from 'ethers';
+import { Contract, ContractFactory, Signer } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, uniswap, behaviours } from '../../utils';
+import { constants, behaviours } from '../../utils';
 
 describe('DCAFactoryParameters', function () {
   let owner: Signer, feeRecipient: Signer;
@@ -16,12 +16,8 @@ describe('DCAFactoryParameters', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    await uniswap.deploy({
-      owner,
-    });
     DCAFactoryParameters = await DCAFactoryParametersContract.deploy(
-      await feeRecipient.getAddress(),
-      uniswap.getUniswapV2Router02().address
+      await feeRecipient.getAddress()
     );
   });
 
@@ -30,18 +26,7 @@ describe('DCAFactoryParameters', function () {
       it('reverts with message error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAFactoryParametersContract,
-          args: [
-            constants.ZERO_ADDRESS,
-            uniswap.getUniswapV2Router02().address,
-          ],
-        });
-      });
-    });
-    context('when uniswap is zero address', () => {
-      it('reverts with message error', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
-          contract: DCAFactoryParametersContract,
-          args: [await feeRecipient.getAddress(), constants.ZERO_ADDRESS],
+          args: [constants.ZERO_ADDRESS],
         });
       });
     });
@@ -49,20 +34,12 @@ describe('DCAFactoryParameters', function () {
       it('initizalizes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAFactoryParametersContract,
-          args: [
-            await feeRecipient.getAddress(),
-            uniswap.getUniswapV2Router02().address,
-          ],
+          args: [await feeRecipient.getAddress()],
           settersGettersVariablesAndEvents: [
             {
               getterFunc: 'feeRecipient',
               variable: await feeRecipient.getAddress(),
               eventEmitted: 'FeeRecipientSet',
-            },
-            {
-              getterFunc: 'uniswap',
-              variable: uniswap.getUniswapV2Router02().address,
-              eventEmitted: 'UniswapSet',
             },
           ],
         });
@@ -88,29 +65,6 @@ describe('DCAFactoryParameters', function () {
           setterFunc: 'setFeeRecipient',
           variable: constants.NOT_ZERO_ADDRESS,
           eventEmitted: 'FeeRecipientSet',
-        });
-      });
-    });
-  });
-
-  describe('setUniswap', () => {
-    context('when address is zero', () => {
-      it('reverts with message', async () => {
-        await behaviours.txShouldRevertWithZeroAddress({
-          contract: DCAFactoryParameters,
-          func: 'setUniswap',
-          args: [constants.ZERO_ADDRESS],
-        });
-      });
-    });
-    context('when address is not zero', () => {
-      it('sets uniswap and emits event with correct arguments', async () => {
-        await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAFactoryParameters,
-          getterFunc: 'uniswap',
-          setterFunc: 'setUniswap',
-          variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'UniswapSet',
         });
       });
     });

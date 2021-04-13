@@ -5,14 +5,10 @@ pragma solidity 0.7.0;
 import '../../DCAFactory/DCAFactoryParameters.sol';
 
 contract DCAFactoryParametersMock is DCAFactoryParameters {
-  constructor(address _feeRecipient, IUniswapV2Router02 _uniswap) DCAFactoryParameters(_feeRecipient, _uniswap) {}
+  constructor(address _feeRecipient) DCAFactoryParameters(_feeRecipient) {}
 
   function setFeeRecipient(address _feeRecipient) public override {
     _setFeeRecipient(_feeRecipient);
-  }
-
-  function setUniswap(IUniswapV2Router02 _uniswap) public override {
-    _setUniswap(_uniswap);
   }
 
   function addSwapIntervalsToAllowedList(uint256[] calldata _swapIntervals) public override {
