@@ -48,8 +48,6 @@ interface IDCAPairParameters {
 }
 
 abstract contract DCAPairParameters is IDCAPairParameters {
-  using SafeMath for uint256;
-
   // Basic setup
   IDCAFactory public override factory;
   IERC20Decimals public override tokenA;
@@ -82,25 +80,5 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     require(address(_tokenB) != address(0), 'DCAPair: zero-address');
     tokenB = _tokenB;
     emit TokenBSet(_tokenB);
-  }
-
-  function _addNewRatePerUnit(
-    address _address,
-    uint256 _performedSwap,
-    uint256 _ratePerUnit
-  ) internal {
-    uint256 _previousSwap = _performedSwap - 1;
-    if (accumRatesPerUnit[_address][_previousSwap][0] + _ratePerUnit < accumRatesPerUnit[_address][_previousSwap][0]) {
-      uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[_address][_previousSwap][0]);
-      accumRatesPerUnit[_address][_performedSwap] = [
-        _ratePerUnit.sub(_missingUntilOverflow),
-        accumRatesPerUnit[_address][_previousSwap][1].add(1)
-      ];
-    } else {
-      accumRatesPerUnit[_address][_performedSwap] = [
-        accumRatesPerUnit[_address][_previousSwap][0].add(_ratePerUnit),
-        accumRatesPerUnit[_address][_previousSwap][1]
-      ];
-    }
   }
 }

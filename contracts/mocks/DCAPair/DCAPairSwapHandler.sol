@@ -46,6 +46,14 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
 
   // Mocks setters
 
+  function addNewRatePerUnit(
+    address _tokenAddress,
+    uint256 _swap,
+    uint256 _ratePerUnit
+  ) public {
+    _addNewRatePerUnit(_tokenAddress, _swap, _ratePerUnit);
+  }
+
   function setSwapAmountAccumulator(address _tokenAddress, uint256 _swapAmountAccumulator) public {
     swapAmountAccumulator[_tokenAddress] = _swapAmountAccumulator;
   }

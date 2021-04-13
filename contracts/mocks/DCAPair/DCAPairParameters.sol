@@ -49,12 +49,4 @@ contract DCAPairParametersMock is DCAPairParameters {
   ) public {
     accumRatesPerUnit[_tokenAddress][_swap] = [_rate, _rateMultiplier];
   }
-
-  function addNewRatePerUnit(
-    address _tokenAddress,
-    uint256 _swap,
-    uint256 _ratePerUnit
-  ) public {
-    _addNewRatePerUnit(_tokenAddress, _swap, _ratePerUnit);
-  }
 }

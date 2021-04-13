@@ -1025,10 +1025,11 @@ describe('DCAPositionHandler', () => {
     const fromTokenReal = fromToken ?? tokenA;
     const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
     await DCAPositionHandler.setPerformedSwaps(swap);
-    await DCAPositionHandler.addNewRatePerUnit(
+    await DCAPositionHandler.setRatePerUnit(
       fromTokenReal.address,
       swap,
-      fromEther(ratePerUnit)
+      fromEther(ratePerUnit),
+      0
     );
     await fromTokenReal.burn(DCAPositionHandler.address, fromEther(amount));
     await toToken.mint(

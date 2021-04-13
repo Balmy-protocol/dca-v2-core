@@ -83,6 +83,26 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     emit SwapIntervalSet(_swapInterval);
   }
 
+  function _addNewRatePerUnit(
+    address _address,
+    uint256 _performedSwap,
+    uint256 _ratePerUnit
+  ) internal {
+    uint256 _previousSwap = _performedSwap - 1;
+    if (accumRatesPerUnit[_address][_previousSwap][0] + _ratePerUnit < accumRatesPerUnit[_address][_previousSwap][0]) {
+      uint256 _missingUntilOverflow = type(uint256).max.sub(accumRatesPerUnit[_address][_previousSwap][0]);
+      accumRatesPerUnit[_address][_performedSwap] = [
+        _ratePerUnit.sub(_missingUntilOverflow),
+        accumRatesPerUnit[_address][_previousSwap][1].add(1)
+      ];
+    } else {
+      accumRatesPerUnit[_address][_performedSwap] = [
+        accumRatesPerUnit[_address][_previousSwap][0].add(_ratePerUnit),
+        accumRatesPerUnit[_address][_previousSwap][1]
+      ];
+    }
+  }
+
   function _registerSwap(
     address _token,
     uint256 _internalAmountUsedToSwap,
