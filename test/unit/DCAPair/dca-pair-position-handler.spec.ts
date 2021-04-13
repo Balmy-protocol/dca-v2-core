@@ -53,7 +53,7 @@ describe('DCAPositionHandler', () => {
 
   describe('constructor', () => {
     when('contract is initiated', () => {
-      then('name and symbol are created based on pair tokens', async () => {
+      then('name and symbol are created based on token pair', async () => {
         const name = await DCAPositionHandler.name();
         const symbol = await DCAPositionHandler.symbol();
         expect(name).to.equal(`DCA: ${await tokenA.symbol()} - ${await tokenB.symbol()}`);
@@ -781,6 +781,9 @@ describe('DCAPositionHandler', () => {
     }
   });
 
+  /**
+   * Verify that approved addresses can also execute the action, but that other addresses can't
+   */
   function erc721PermissionTest(execute: (contract: Contract, dcaId: BigNumber) => Promise<TransactionResponse>) {
     when(`executing address is approved for deposit`, () => {
       let dcaId: BigNumber;
