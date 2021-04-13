@@ -13,9 +13,7 @@ describe('DCAPairParameters', function () {
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    DCAPairParametersContract = await ethers.getContractFactory(
-      'contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock'
-    );
+    DCAPairParametersContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -31,10 +29,7 @@ describe('DCAPairParameters', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAPairParameters = await DCAPairParametersContract.deploy(
-      tokenA.address,
-      tokenB.address
-    );
+    DCAPairParameters = await DCAPairParametersContract.deploy(tokenA.address, tokenB.address);
   });
 
   describe('constructor', () => {

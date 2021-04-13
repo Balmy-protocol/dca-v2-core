@@ -2,47 +2,28 @@ import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import chai from 'chai';
 import { Contract, ContractFactory, ContractInterface, Signer } from 'ethers';
-import {
-  TransactionRequest,
-  TransactionResponse,
-} from '@ethersproject/abstract-provider';
+import { TransactionRequest, TransactionResponse } from '@ethersproject/abstract-provider';
 import { getStatic } from 'ethers/lib/utils';
 
 chai.use(chaiAsPromised);
 
-const checkTxRevertedWithMessage = async ({
-  tx,
-  message,
-}: {
-  tx: Promise<TransactionRequest>;
-  message: RegExp | string;
-}): Promise<void> => {
+const checkTxRevertedWithMessage = async ({ tx, message }: { tx: Promise<TransactionRequest>; message: RegExp | string }): Promise<void> => {
   await expect(tx).to.be.reverted;
   if (message instanceof RegExp) {
-    await expect(tx)
-      .eventually.rejected.have.property('message')
-      .match(message);
+    await expect(tx).eventually.rejected.have.property('message').match(message);
   } else {
     await expect(tx).to.be.revertedWith(message);
   }
 };
 
-const checkTxRevertedWithZeroAddress = async (
-  tx: Promise<TransactionRequest>
-): Promise<void> => {
+const checkTxRevertedWithZeroAddress = async (tx: Promise<TransactionRequest>): Promise<void> => {
   await checkTxRevertedWithMessage({
     tx,
     message: /zero-address/,
   });
 };
 
-const deployShouldRevertWithZeroAddress = async ({
-  contract,
-  args,
-}: {
-  contract: ContractFactory;
-  args: any[];
-}): Promise<void> => {
+const deployShouldRevertWithZeroAddress = async ({ contract, args }: { contract: ContractFactory; args: any[] }): Promise<void> => {
   const deployContractTx = await contract.getDeployTransaction(...args);
   const tx = contract.signer.sendTransaction(deployContractTx);
   await checkTxRevertedWithZeroAddress(tx);
@@ -122,21 +103,11 @@ const deployShouldSetVariablesAndEmitEvents = async ({
 }): Promise<void> => {
   const deployContractTx = await contract.getDeployTransaction(...args);
   const tx = contract.signer.sendTransaction(deployContractTx);
-  const address = getStatic<(tx: TransactionResponse) => string>(
+  const address = getStatic<(tx: TransactionResponse) => string>(contract.constructor, 'getContractAddress')(await tx);
+  const deployedContract = getStatic<(address: string, contractInterface: ContractInterface, signer?: Signer) => Contract>(
     contract.constructor,
-    'getContractAddress'
-  )(await tx);
-  const deployedContract = getStatic<
-    (
-      address: string,
-      contractInterface: ContractInterface,
-      signer?: Signer
-    ) => Contract
-  >(contract.constructor, 'getContract')(
-    address,
-    contract.interface,
-    contract.signer
-  );
+    'getContract'
+  )(address, contract.interface, contract.signer);
   await txShouldHaveSetVariablesAndEmitEvents({
     contract: deployedContract,
     tx,
@@ -168,9 +139,7 @@ const txShouldHaveSetVariablesAndEmitEvents = async ({
         },
       ],
     });
-    expect(
-      await contract[settersGettersVariablesAndEvents[i].getterFunc].apply(this)
-    ).to.eq(settersGettersVariablesAndEvents[i].variable);
+    expect(await contract[settersGettersVariablesAndEvents[i].getterFunc].apply(this)).to.eq(settersGettersVariablesAndEvents[i].variable);
   }
 };
 

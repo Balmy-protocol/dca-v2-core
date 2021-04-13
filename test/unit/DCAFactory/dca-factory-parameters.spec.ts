@@ -16,9 +16,7 @@ describe('DCAFactoryParameters', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    DCAFactoryParameters = await DCAFactoryParametersContract.deploy(
-      await feeRecipient.getAddress()
-    );
+    DCAFactoryParameters = await DCAFactoryParametersContract.deploy(await feeRecipient.getAddress());
   });
 
   describe('constructor', () => {
@@ -118,29 +116,18 @@ describe('DCAFactoryParameters', function () {
         });
       });
     });
-    context(
-      'when swap intervals are not zero and were not previously allowed',
-      () => {
-        it('adds swap intervals to allowed list and emits event', async () => {
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be
-            .false;
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be
-            .false;
-          const intervalsToBeAdded = [1, 100];
-          await expect(
-            DCAFactoryParameters.addSwapIntervalsToAllowedList(
-              intervalsToBeAdded
-            )
-          )
-            .to.emit(DCAFactoryParameters, 'SwapIntervalsAllowed')
-            .withArgs(intervalsToBeAdded);
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be
-            .true;
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be
-            .true;
-        });
-      }
-    );
+    context('when swap intervals are not zero and were not previously allowed', () => {
+      it('adds swap intervals to allowed list and emits event', async () => {
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.false;
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be.false;
+        const intervalsToBeAdded = [1, 100];
+        await expect(DCAFactoryParameters.addSwapIntervalsToAllowedList(intervalsToBeAdded))
+          .to.emit(DCAFactoryParameters, 'SwapIntervalsAllowed')
+          .withArgs(intervalsToBeAdded);
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.true;
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be.true;
+      });
+    });
   });
   describe('removeSwapIntervalsFromAllowedList', () => {
     beforeEach(async () => {
@@ -165,9 +152,7 @@ describe('DCAFactoryParameters', function () {
     context('when swap interval was previously allowed', () => {
       it('removes swap interval and emits event', async () => {
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.true;
-        await expect(
-          DCAFactoryParameters.removeSwapIntervalsFromAllowedList([1])
-        )
+        await expect(DCAFactoryParameters.removeSwapIntervalsFromAllowedList([1]))
           .to.emit(DCAFactoryParameters, 'SwapIntervalsForbidden')
           .withArgs([1]);
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.false;

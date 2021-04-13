@@ -3,10 +3,7 @@ import { ethers } from 'hardhat';
 import { erc20, behaviours, constants } from '../../utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import {
-  expectNoEventWithName,
-  readArgFromEventOrFail,
-} from '../../utils/event-utils';
+import { expectNoEventWithName, readArgFromEventOrFail } from '../../utils/event-utils';
 import { when, then, given } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
@@ -46,43 +43,16 @@ describe('DCAPositionHandler', () => {
       initialAccount: owner.address,
       initialAmount: fromEther(INITIAL_TOKEN_B_BALANCE_USER),
     });
-    DCAPositionHandler = await DCAPositionHandlerContract.deploy(
-      tokenA.address,
-      tokenB.address
-    );
-    await tokenA.approveInternal(
-      owner.address,
-      DCAPositionHandler.address,
-      fromEther(1000)
-    );
-    await tokenB.approveInternal(
-      owner.address,
-      DCAPositionHandler.address,
-      fromEther(1000)
-    );
-    await tokenA.mint(
-      DCAPositionHandler.address,
-      fromEther(INITIAL_TOKEN_A_BALANCE_CONTRACT)
-    );
-    await tokenB.mint(
-      DCAPositionHandler.address,
-      fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT)
-    );
+    DCAPositionHandler = await DCAPositionHandlerContract.deploy(tokenA.address, tokenB.address);
+    await tokenA.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));
+    await tokenB.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));
+    await tokenA.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_A_BALANCE_CONTRACT));
+    await tokenB.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10);
   });
 
   describe('deposit', () => {
-    const depositShouldRevert = ({
-      address,
-      rate,
-      swaps,
-      error,
-    }: {
-      address: string;
-      rate: number;
-      swaps: number;
-      error: string;
-    }) =>
+    const depositShouldRevert = ({ address, rate, swaps, error }: { address: string; rate: number; swaps: number; error: string }) =>
       behaviours.txShouldRevertWithMessage({
         contract: DCAPositionHandler,
         func: 'deposit',
@@ -128,11 +98,7 @@ describe('DCAPositionHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        const depositTx = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        );
+        const depositTx = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
         tx = depositTx.response;
         dcaId = depositTx.dcaId;
       });
@@ -151,17 +117,11 @@ describe('DCAPositionHandler', () => {
       });
 
       then('correct amount is transferred from sender', async () => {
-        await expectBalanceToBe(
-          tokenA,
-          owner.address,
-          INITIAL_TOKEN_A_BALANCE_USER -
-            POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
-        );
+        await expectBalanceToBe(tokenA, owner.address, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
         await expectBalanceToBe(
           tokenA,
           DCAPositionHandler.address,
-          INITIAL_TOKEN_A_BALANCE_USER +
-            POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
+          INITIAL_TOKEN_A_BALANCE_USER + POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
         );
       });
 
@@ -175,18 +135,9 @@ describe('DCAPositionHandler', () => {
       });
 
       then('trade is recorded', async () => {
-        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(
-          tokenA.address,
-          PERFORMED_SWAPS_10
-        );
-        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(
-          tokenA.address,
-          PERFORMED_SWAPS_10 + 1
-        );
-        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
-          tokenA.address,
-          PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10
-        );
+        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(tokenA.address, PERFORMED_SWAPS_10);
+        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, PERFORMED_SWAPS_10 + 1);
+        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10);
 
         expect(deltaPerformedSwaps).to.equal(0);
         expect(deltaFirstDay).to.equal(fromEther(POSITION_RATE_5));
@@ -207,61 +158,44 @@ describe('DCAPositionHandler', () => {
       });
     });
 
-    when(
-      `withdrawing swapped with position that didn't have swaps executed`,
-      () => {
-        let response: TransactionResponse;
-        let dcaId: BigNumber;
+    when(`withdrawing swapped with position that didn't have swaps executed`, () => {
+      let response: TransactionResponse;
+      let dcaId: BigNumber;
 
-        given(async () => {
-          ({ dcaId } = await deposit(
-            tokenA,
-            POSITION_RATE_5,
-            POSITION_SWAPS_TO_PERFORM_10
-          ));
-          response = await withdrawSwapped(dcaId);
-        });
+      given(async () => {
+        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        response = await withdrawSwapped(dcaId);
+      });
 
-        then('no event is emitted', async () => {
-          await expectNoEventWithName(response, 'Withdrew');
-        });
+      then('no event is emitted', async () => {
+        await expectNoEventWithName(response, 'Withdrew');
+      });
 
-        then('no token transfer was made', async () => {
-          await expectBalanceToBe(
-            tokenA,
-            owner.address,
-            INITIAL_TOKEN_A_BALANCE_USER -
-              POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
-          );
-          await expectBalanceToBe(
-            tokenA,
-            DCAPositionHandler.address,
-            INITIAL_TOKEN_A_BALANCE_CONTRACT +
-              POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
-          );
-        });
+      then('no token transfer was made', async () => {
+        await expectBalanceToBe(tokenA, owner.address, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
+        await expectBalanceToBe(
+          tokenA,
+          DCAPositionHandler.address,
+          INITIAL_TOKEN_A_BALANCE_CONTRACT + POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
+        );
+      });
 
-        then(`position wasn't modified`, async () => {
-          await expectPositionToBe(dcaId, {
-            from: tokenA,
-            rate: POSITION_RATE_5,
-            lastWithdrawSwap: PERFORMED_SWAPS_10,
-            lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
-          });
+      then(`position wasn't modified`, async () => {
+        await expectPositionToBe(dcaId, {
+          from: tokenA,
+          rate: POSITION_RATE_5,
+          lastWithdrawSwap: PERFORMED_SWAPS_10,
+          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
         });
-      }
-    );
+      });
+    });
 
     when(`withdrawing swapped with executed position,`, () => {
       let response: TransactionResponse;
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        ));
+        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
           ratePerUnit: RATE_PER_UNIT_5,
@@ -271,16 +205,8 @@ describe('DCAPositionHandler', () => {
       });
 
       then('swapped tokens are sent to the user', async () => {
-        await expectBalanceToBe(
-          tokenB,
-          owner.address,
-          INITIAL_TOKEN_B_BALANCE_USER + RATE_PER_UNIT_5 * POSITION_RATE_5
-        );
-        await expectBalanceToBe(
-          tokenB,
-          DCAPositionHandler.address,
-          INITIAL_TOKEN_B_BALANCE_CONTRACT
-        );
+        await expectBalanceToBe(tokenB, owner.address, INITIAL_TOKEN_B_BALANCE_USER + RATE_PER_UNIT_5 * POSITION_RATE_5);
+        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
       });
 
       then('position is updated', async () => {
@@ -295,12 +221,7 @@ describe('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Withdrew')
-          .withArgs(
-            owner.address,
-            dcaId,
-            tokenB.address,
-            fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5)
-          );
+          .withArgs(owner.address, dcaId, tokenB.address, fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5));
       });
     });
   });
@@ -317,73 +238,50 @@ describe('DCAPositionHandler', () => {
       });
     });
 
-    when(
-      `withdrawing swapped with positions that didn't have swaps executed`,
-      () => {
-        let response: TransactionResponse;
-        let dcaId1: BigNumber, dcaId2: BigNumber;
+    when(`withdrawing swapped with positions that didn't have swaps executed`, () => {
+      let response: TransactionResponse;
+      let dcaId1: BigNumber, dcaId2: BigNumber;
 
-        given(async () => {
-          ({ dcaId: dcaId1 } = await deposit(
-            tokenA,
-            POSITION_RATE_5,
-            POSITION_SWAPS_TO_PERFORM_10
-          ));
-          ({ dcaId: dcaId2 } = await deposit(
-            tokenB,
-            POSITION_RATE_5,
-            POSITION_SWAPS_TO_PERFORM_10
-          ));
-          response = await withdrawSwappedMany(dcaId1, dcaId2);
-        });
+      given(async () => {
+        ({ dcaId: dcaId1 } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId: dcaId2 } = await deposit(tokenB, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        response = await withdrawSwappedMany(dcaId1, dcaId2);
+      });
 
-        then('no event is emitted', async () => {
-          await expectNoEventWithName(response, 'WithdrewMany');
-        });
+      then('no event is emitted', async () => {
+        await expectNoEventWithName(response, 'WithdrewMany');
+      });
 
-        then('no token transfer was made', async () => {
-          await expectBalanceToBe(
-            tokenA,
-            owner.address,
-            INITIAL_TOKEN_A_BALANCE_USER -
-              POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
-          );
-          await expectBalanceToBe(
-            tokenA,
-            DCAPositionHandler.address,
-            INITIAL_TOKEN_A_BALANCE_CONTRACT +
-              POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
-          );
-          await expectBalanceToBe(
-            tokenB,
-            owner.address,
-            INITIAL_TOKEN_B_BALANCE_USER -
-              POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
-          );
-          await expectBalanceToBe(
-            tokenB,
-            DCAPositionHandler.address,
-            INITIAL_TOKEN_B_BALANCE_CONTRACT +
-              POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
-          );
-        });
+      then('no token transfer was made', async () => {
+        await expectBalanceToBe(tokenA, owner.address, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
+        await expectBalanceToBe(
+          tokenA,
+          DCAPositionHandler.address,
+          INITIAL_TOKEN_A_BALANCE_CONTRACT + POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
+        );
+        await expectBalanceToBe(tokenB, owner.address, INITIAL_TOKEN_B_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
+        await expectBalanceToBe(
+          tokenB,
+          DCAPositionHandler.address,
+          INITIAL_TOKEN_B_BALANCE_CONTRACT + POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
+        );
+      });
 
-        then(`position wasn't modified`, async () => {
-          await expectPositionToBe(dcaId1, {
-            from: tokenA,
-            rate: POSITION_RATE_5,
-            lastWithdrawSwap: PERFORMED_SWAPS_10,
-            lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
-          });
-          await expectPositionToBe(dcaId2, {
-            from: tokenB,
-            rate: POSITION_RATE_5,
-            lastWithdrawSwap: PERFORMED_SWAPS_10,
-            lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
-          });
+      then(`position wasn't modified`, async () => {
+        await expectPositionToBe(dcaId1, {
+          from: tokenA,
+          rate: POSITION_RATE_5,
+          lastWithdrawSwap: PERFORMED_SWAPS_10,
+          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
         });
-      }
-    );
+        await expectPositionToBe(dcaId2, {
+          from: tokenB,
+          rate: POSITION_RATE_5,
+          lastWithdrawSwap: PERFORMED_SWAPS_10,
+          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+        });
+      });
+    });
 
     when(`withdrawing swapped with executed positions`, () => {
       const POSITION_RATE_3 = 3;
@@ -391,16 +289,8 @@ describe('DCAPositionHandler', () => {
       let dcaId1: BigNumber, dcaId2: BigNumber;
 
       given(async () => {
-        ({ dcaId: dcaId1 } = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        ));
-        ({ dcaId: dcaId2 } = await deposit(
-          tokenB,
-          POSITION_RATE_3,
-          POSITION_SWAPS_TO_PERFORM_10
-        ));
+        ({ dcaId: dcaId1 } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId: dcaId2 } = await deposit(tokenB, POSITION_RATE_3, POSITION_SWAPS_TO_PERFORM_10));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
           ratePerUnit: RATE_PER_UNIT_5,
@@ -452,12 +342,7 @@ describe('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'WithdrewMany')
-          .withArgs(
-            owner.address,
-            [dcaId1, dcaId2],
-            fromEther(RATE_PER_UNIT_5 * POSITION_RATE_3),
-            fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5)
-          );
+          .withArgs(owner.address, [dcaId1, dcaId2], fromEther(RATE_PER_UNIT_5 * POSITION_RATE_3), fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5));
       });
     });
   });
@@ -476,18 +361,13 @@ describe('DCAPositionHandler', () => {
 
     when(`terminating a valid position`, () => {
       const swappedWhenTerminated = RATE_PER_UNIT_5 * POSITION_RATE_5;
-      const unswappedWhenTerminated =
-        (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5;
+      const unswappedWhenTerminated = (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5;
 
       let response: TransactionResponse;
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        ));
+        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
@@ -501,38 +381,17 @@ describe('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Terminated')
-          .withArgs(
-            owner.address,
-            dcaId,
-            fromEther(unswappedWhenTerminated),
-            fromEther(swappedWhenTerminated)
-          );
+          .withArgs(owner.address, dcaId, fromEther(unswappedWhenTerminated), fromEther(swappedWhenTerminated));
       });
 
       then('un-swapped balance is returned', async () => {
-        await expectBalanceToBe(
-          tokenA,
-          owner.address,
-          INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5
-        );
-        await expectBalanceToBe(
-          tokenA,
-          DCAPositionHandler.address,
-          INITIAL_TOKEN_A_BALANCE_CONTRACT
-        );
+        await expectBalanceToBe(tokenA, owner.address, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5);
+        await expectBalanceToBe(tokenA, DCAPositionHandler.address, INITIAL_TOKEN_A_BALANCE_CONTRACT);
       });
 
       then('swapped balance is returned', async () => {
-        await expectBalanceToBe(
-          tokenB,
-          owner.address,
-          INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated
-        );
-        await expectBalanceToBe(
-          tokenB,
-          DCAPositionHandler.address,
-          INITIAL_TOKEN_B_BALANCE_CONTRACT
-        );
+        await expectBalanceToBe(tokenB, owner.address, INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated);
+        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
       });
 
       then(`position is removed`, async () => {
@@ -560,11 +419,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 rate', async () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        );
+        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -577,11 +432,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 swaps', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        );
+        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -598,8 +449,7 @@ describe('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 9,
       newSwaps: 5,
-      exec: ({ dcaId, newRate, newSwaps }) =>
-        modifyRateAndSwaps(dcaId, newRate, newSwaps),
+      exec: ({ dcaId, newRate, newSwaps }) => modifyRateAndSwaps(dcaId, newRate, newSwaps),
     });
 
     modifyPositionTest({
@@ -608,8 +458,7 @@ describe('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 11,
       newSwaps: 5,
-      exec: ({ dcaId, newRate, newSwaps }) =>
-        modifyRateAndSwaps(dcaId, newRate, newSwaps),
+      exec: ({ dcaId, newRate, newSwaps }) => modifyRateAndSwaps(dcaId, newRate, newSwaps),
     });
 
     modifyPositionTest({
@@ -618,8 +467,7 @@ describe('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 7,
       newSwaps: 5,
-      exec: ({ dcaId, newRate, newSwaps }) =>
-        modifyRateAndSwaps(dcaId, newRate, newSwaps),
+      exec: ({ dcaId, newRate, newSwaps }) => modifyRateAndSwaps(dcaId, newRate, newSwaps),
     });
   });
 
@@ -637,11 +485,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 swaps', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        );
+        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -691,11 +535,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 rate', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(
-          tokenA,
-          POSITION_RATE_5,
-          POSITION_SWAPS_TO_PERFORM_10
-        );
+        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -747,8 +587,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [dcaId, POSITION_RATE_5 + 1],
-          message:
-            'DCAPair: You cannot modify only the rate of a position that has already been completed',
+          message: 'DCAPair: You cannot modify only the rate of a position that has already been completed',
         });
       });
     });
@@ -869,20 +708,12 @@ describe('DCAPositionHandler', () => {
       );
     }
 
-    async function calculateSwappedWith({
-      accumRate,
-      rateMultiplier,
-    }: {
-      accumRate: number | BigNumber;
-      rateMultiplier: number;
-    }) {
+    async function calculateSwappedWith({ accumRate, rateMultiplier }: { accumRate: number | BigNumber; rateMultiplier: number }) {
       const { dcaId } = await deposit(tokenA, 1, 1);
       await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 1);
       if (accumRate < 0) {
         await setRatePerUnit({
-          accumRate: BigNumber.isBigNumber(accumRate)
-            ? accumRate.abs()
-            : fromEther(Math.abs(accumRate)),
+          accumRate: BigNumber.isBigNumber(accumRate) ? accumRate.abs() : fromEther(Math.abs(accumRate)),
           rateMultiplier: 0,
           onSwap: PERFORMED_SWAPS_10,
         });
@@ -902,13 +733,7 @@ describe('DCAPositionHandler', () => {
       return DCAPositionHandler.calculateSwapped(dcaId);
     }
 
-    function expectCalculationToFailWithOverflow({
-      accumRate,
-      rateMultiplier,
-    }: {
-      accumRate: number | BigNumber;
-      rateMultiplier: number;
-    }) {
+    function expectCalculationToFailWithOverflow({ accumRate, rateMultiplier }: { accumRate: number | BigNumber; rateMultiplier: number }) {
       const tx = calculateSwappedWith({
         accumRate,
         rateMultiplier,
@@ -934,11 +759,7 @@ describe('DCAPositionHandler', () => {
     initialSwaps: number;
     newRate?: number;
     newSwaps?: number;
-    exec: (params: {
-      dcaId: BigNumber;
-      newRate: number;
-      newSwaps: number;
-    }) => Promise<TransactionResponse>;
+    exec: (params: { dcaId: BigNumber; newRate: number; newSwaps: number }) => Promise<TransactionResponse>;
   }) {
     newRate = newRate ?? initialRate;
     newSwaps = newSwaps ?? initialSwaps;
@@ -966,13 +787,7 @@ describe('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Modified')
-          .withArgs(
-            owner.address,
-            dcaId,
-            fromEther(newRate!),
-            PERFORMED_SWAPS_10 + 2,
-            PERFORMED_SWAPS_10 + newSwaps! + 1
-          );
+          .withArgs(owner.address, dcaId, fromEther(newRate!), PERFORMED_SWAPS_10 + 2, PERFORMED_SWAPS_10 + newSwaps! + 1);
       });
 
       then('final balances are as expected', async () => {
@@ -983,21 +798,9 @@ describe('DCAPositionHandler', () => {
             initialRate * 1 - // Already executed trade
             newRate! * newSwaps! // New position
         );
-        await expectBalanceToBe(
-          tokenA,
-          DCAPositionHandler.address,
-          INITIAL_TOKEN_A_BALANCE_USER + newRate! * newSwaps!
-        );
-        await expectBalanceToBe(
-          tokenB,
-          owner.address,
-          INITIAL_TOKEN_B_BALANCE_USER
-        );
-        await expectBalanceToBe(
-          tokenB,
-          DCAPositionHandler.address,
-          INITIAL_TOKEN_B_BALANCE_CONTRACT + RATE_PER_UNIT_5 * initialRate
-        );
+        await expectBalanceToBe(tokenA, DCAPositionHandler.address, INITIAL_TOKEN_A_BALANCE_USER + newRate! * newSwaps!);
+        await expectBalanceToBe(tokenB, owner.address, INITIAL_TOKEN_B_BALANCE_USER);
+        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT + RATE_PER_UNIT_5 * initialRate);
       });
 
       then(`position is modified`, async () => {
@@ -1025,38 +828,20 @@ describe('DCAPositionHandler', () => {
     const fromTokenReal = fromToken ?? tokenA;
     const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
     await DCAPositionHandler.setPerformedSwaps(swap);
-    await DCAPositionHandler.setRatePerUnit(
-      fromTokenReal.address,
-      swap,
-      fromEther(ratePerUnit),
-      0
-    );
+    await DCAPositionHandler.setRatePerUnit(fromTokenReal.address, swap, fromEther(ratePerUnit), 0);
     await fromTokenReal.burn(DCAPositionHandler.address, fromEther(amount));
-    await toToken.mint(
-      DCAPositionHandler.address,
-      fromEther(amount * ratePerUnit)
-    );
+    await toToken.mint(DCAPositionHandler.address, fromEther(amount * ratePerUnit));
   }
 
-  function modifyRate(
-    dcaId: BigNumber,
-    rate: number
-  ): Promise<TransactionResponse> {
+  function modifyRate(dcaId: BigNumber, rate: number): Promise<TransactionResponse> {
     return DCAPositionHandler.modifyRate(dcaId, fromEther(rate));
   }
 
-  function modifySwaps(
-    dcaId: BigNumber,
-    swaps: number
-  ): Promise<TransactionResponse> {
+  function modifySwaps(dcaId: BigNumber, swaps: number): Promise<TransactionResponse> {
     return DCAPositionHandler.modifySwaps(dcaId, swaps);
   }
 
-  function modifyRateAndSwaps(
-    dcaId: BigNumber,
-    rate: number,
-    swaps: number
-  ): Promise<TransactionResponse> {
+  function modifyRateAndSwaps(dcaId: BigNumber, rate: number, swaps: number): Promise<TransactionResponse> {
     return DCAPositionHandler.modifyRateAndSwaps(dcaId, fromEther(rate), swaps);
   }
 
@@ -1064,9 +849,7 @@ describe('DCAPositionHandler', () => {
     return DCAPositionHandler.withdrawSwapped(dcaId);
   }
 
-  function withdrawSwappedMany(
-    ...dcaIds: BigNumber[]
-  ): Promise<TransactionResponse> {
+  function withdrawSwappedMany(...dcaIds: BigNumber[]): Promise<TransactionResponse> {
     return DCAPositionHandler.withdrawSwappedMany(dcaIds);
   }
 
@@ -1075,24 +858,12 @@ describe('DCAPositionHandler', () => {
   }
 
   async function deposit(token: Contract, rate: number, swaps: number) {
-    const response: TransactionResponse = await DCAPositionHandler.deposit(
-      token.address,
-      fromEther(rate),
-      swaps
-    );
-    const dcaId = await readArgFromEventOrFail<BigNumber>(
-      response,
-      'Deposited',
-      '_dcaId'
-    );
+    const response: TransactionResponse = await DCAPositionHandler.deposit(token.address, fromEther(rate), swaps);
+    const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
     return { response, dcaId };
   }
 
-  async function expectBalanceToBe(
-    token: Contract,
-    address: string,
-    asEther: string | number
-  ) {
+  async function expectBalanceToBe(token: Contract, address: string, asEther: string | number) {
     const balance = await token.balanceOf(address);
     expect(balance).to.be.equal(fromEther(asEther));
   }
@@ -1118,13 +889,9 @@ describe('DCAPositionHandler', () => {
       lastSwap: positionLastSwap,
     } = await DCAPositionHandler.userPositions(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;
-    expect(positionFromAddress, 'Wrong from address in position').to.equal(
-      fromAddress
-    );
+    expect(positionFromAddress, 'Wrong from address in position').to.equal(fromAddress);
     expect(positionRate, 'Wrong from rate').to.equal(fromEther(rate));
-    expect(positionLastWithdrawSwap, 'Wrong last withdraw swap').to.equal(
-      lastWithdrawSwap
-    );
+    expect(positionLastWithdrawSwap, 'Wrong last withdraw swap').to.equal(lastWithdrawSwap);
     expect(positionLastSwap, 'Wrong last swap').to.equal(lastSwap);
   }
 
