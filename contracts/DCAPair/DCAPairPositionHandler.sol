@@ -41,6 +41,10 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
   uint256 internal _idCounter = 0;
 
+  constructor(IERC20Decimals _tokenA, IERC20Decimals _tokenB)
+    ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), '-', _tokenB.symbol())), 'DCA')
+  {}
+
   function _deposit(
     address _tokenAddress,
     uint256 _rate,
@@ -57,7 +61,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   }
 
   function _withdrawSwapped(uint256 _dcaId) internal returns (uint256 _swapped) {
-    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
+    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     _swapped = _calculateSwapped(_dcaId);
 
@@ -77,7 +81,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     for (uint256 i = 0; i < _dcaIds.length; i++) {
       uint256 _dcaId = _dcaIds[i];
-      _assertPositionExists(_dcaId);
+      _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
       uint256 _swappedDCA = _calculateSwapped(_dcaId);
       if (userPositions[_dcaId].from == address(tokenA)) {
         _swappedTokenB = _swappedTokenB.add(_swappedDCA);
@@ -100,7 +104,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   }
 
   function _terminate(uint256 _dcaId) internal {
-    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
+    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     uint256 _swapped = _calculateSwapped(_dcaId);
     uint256 _unswapped = _calculateUnswapped(_dcaId);
@@ -122,7 +126,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   }
 
   function _modifyRate(uint256 _dcaId, uint256 _newRate) internal {
-    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
+    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     DCA memory _userDCA = userPositions[_dcaId];
 
@@ -133,7 +137,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   }
 
   function _modifySwaps(uint256 _dcaId, uint256 _newSwaps) internal {
-    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
+    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     DCA memory _userDCA = userPositions[_dcaId];
 
@@ -145,7 +149,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     uint256 _newRate,
     uint256 _newAmountOfSwaps
   ) internal {
-    _assertPositionExistsAndBeOperatedByCaller(_dcaId);
+    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _totalNecessary = _newRate.mul(_newAmountOfSwaps);
@@ -167,7 +171,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _finalSwap);
   }
 
-  function _assertPositionExistsAndBeOperatedByCaller(uint256 _dcaId) internal view {
+  function _assertPositionExistsAndCanBeOperatedByCaller(uint256 _dcaId) internal view {
     require(userPositions[_dcaId].rate > 0, 'DCAPair: Invalid position id');
     require(_isApprovedOrOwner(msg.sender, _dcaId), 'DCAPair: Called must be owner, or approved by owner');
   }

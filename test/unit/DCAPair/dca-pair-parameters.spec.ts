@@ -69,31 +69,6 @@ describe('DCAPairParameters', function () {
         });
       });
     });
-    when('uniswap is zero address', () => {
-      then('reverts with message error', async () => {
-        await behaviours.deployShouldSetVariablesAndEmitEvents({
-          contract: DCAPairParametersContract,
-          args: [tokenA.address, uniswap.getWETH().address, uniswap.getUniswapV2Router02().address],
-          settersGettersVariablesAndEvents: [
-            {
-              getterFunc: 'name',
-              variable: 'DCA: ' + tokenA.symbol,
-              eventEmitted: 'TokenASet',
-            },
-            {
-              getterFunc: 'tokenB',
-              variable: uniswap.getWETH().address,
-              eventEmitted: 'TokenBSet',
-            },
-            {
-              getterFunc: 'uniswap',
-              variable: uniswap.getUniswapV2Router02().address,
-              eventEmitted: 'UniswapSet',
-            },
-          ],
-        });
-      });
-    });
   });
 
   describe('setFactory', () => {
