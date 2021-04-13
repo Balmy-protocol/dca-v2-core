@@ -29,17 +29,13 @@ describe('DCAFactoryPairsHandler', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(
-      await feeRecipient.getAddress()
-    );
+    DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(await feeRecipient.getAddress());
   });
 
   describe('createPair', () => {
     const allowedIntervals = [1000];
     beforeEach(async () => {
-      await DCAFactoryPairsHandler.addSwapIntervalsToAllowedList(
-        allowedIntervals
-      );
+      await DCAFactoryPairsHandler.addSwapIntervalsToAllowedList(allowedIntervals);
     });
     context('when swap interval is not allowed', () => {
       it('reverts with message', async () => {
@@ -65,21 +61,13 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithZeroAddress({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [
-            fromToken.address,
-            constants.ZERO_ADDRESS,
-            allowedIntervals[0],
-          ],
+          args: [fromToken.address, constants.ZERO_ADDRESS, allowedIntervals[0]],
         });
       });
     });
     context('when pair already exists', () => {
       beforeEach(async () => {
-        await DCAFactoryPairsHandler.createPair(
-          fromToken.address,
-          toToken.address,
-          allowedIntervals[0]
-        );
+        await DCAFactoryPairsHandler.createPair(fromToken.address, toToken.address, allowedIntervals[0]);
       });
       it('reverts with message', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -90,68 +78,24 @@ describe('DCAFactoryPairsHandler', function () {
         });
       });
     });
-    context(
-      'when swap interval is allowed, no token is zero address and pair does not exist',
-      () => {
-        it('creates pair with correct information, adds it to registry and emits event', async () => {
-          expect(
-            await DCAFactoryPairsHandler.pairByTokensAndSwapInterval(
-              fromToken.address,
-              toToken.address,
-              allowedIntervals[0]
-            )
-          ).to.equal(constants.ZERO_ADDRESS);
-          const pairAddress = await DCAFactoryPairsHandler.callStatic.createPair(
-            fromToken.address,
-            toToken.address,
-            allowedIntervals[0]
-          );
-          await expect(
-            DCAFactoryPairsHandler.createPair(
-              fromToken.address,
-              toToken.address,
-              allowedIntervals[0]
-            )
-          )
-            .to.emit(DCAFactoryPairsHandler, 'PairCreated')
-            .withArgs(
-              fromToken.address,
-              toToken.address,
-              allowedIntervals[0],
-              pairAddress
-            );
-          const dcaPair = await ethers.getContractAt(
-            'contracts/DCAPair/DCAPair.sol:DCAPair',
-            pairAddress
-          );
-          expect(await dcaPair.factory()).to.equal(
-            DCAFactoryPairsHandler.address
-          );
-          expect(
-            await DCAFactoryPairsHandler.pairByTokensAndSwapInterval(
-              fromToken.address,
-              toToken.address,
-              allowedIntervals[0]
-            )
-          ).to.equal(pairAddress);
-          expect(
-            await DCAFactoryPairsHandler.pairsByTokens(
-              fromToken.address,
-              toToken.address,
-              0
-            )
-          ).to.equal(pairAddress);
-          expect(
-            await DCAFactoryPairsHandler.getPairsByTokens(
-              fromToken.address,
-              toToken.address
-            )
-          ).to.eql([pairAddress]);
-          expect(await DCAFactoryPairsHandler.allPairs(0)).to.equal(
-            pairAddress
-          );
-        });
-      }
-    );
+    context('when swap interval is allowed, no token is zero address and pair does not exist', () => {
+      it('creates pair with correct information, adds it to registry and emits event', async () => {
+        expect(await DCAFactoryPairsHandler.pairByTokensAndSwapInterval(fromToken.address, toToken.address, allowedIntervals[0])).to.equal(
+          constants.ZERO_ADDRESS
+        );
+        const pairAddress = await DCAFactoryPairsHandler.callStatic.createPair(fromToken.address, toToken.address, allowedIntervals[0]);
+        await expect(DCAFactoryPairsHandler.createPair(fromToken.address, toToken.address, allowedIntervals[0]))
+          .to.emit(DCAFactoryPairsHandler, 'PairCreated')
+          .withArgs(fromToken.address, toToken.address, allowedIntervals[0], pairAddress);
+        const dcaPair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', pairAddress);
+        expect(await dcaPair.factory()).to.equal(DCAFactoryPairsHandler.address);
+        expect(await DCAFactoryPairsHandler.pairByTokensAndSwapInterval(fromToken.address, toToken.address, allowedIntervals[0])).to.equal(
+          pairAddress
+        );
+        expect(await DCAFactoryPairsHandler.pairsByTokens(fromToken.address, toToken.address, 0)).to.equal(pairAddress);
+        expect(await DCAFactoryPairsHandler.getPairsByTokens(fromToken.address, toToken.address)).to.eql([pairAddress]);
+        expect(await DCAFactoryPairsHandler.allPairs(0)).to.equal(pairAddress);
+      });
+    });
   });
 });
