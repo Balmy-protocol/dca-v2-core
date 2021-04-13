@@ -1116,7 +1116,7 @@ describe('DCAPositionHandler', () => {
       rate: positionRate,
       lastWithdrawSwap: positionLastWithdrawSwap,
       lastSwap: positionLastSwap,
-    } = await DCAPositionHandler.userTrades(dcaId);
+    } = await DCAPositionHandler.userPositions(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;
     expect(positionFromAddress, 'Wrong from address in position').to.equal(
       fromAddress
