@@ -14,15 +14,8 @@ const getUniswapV2Router02 = () => uniswapV2Router02;
 
 const deploy = async ({ owner }: { owner: Signer }) => {
   WETH = await deployContract(owner, WETHContract);
-  uniswapV2Factory = await deployContract(owner, UniswapV2FactoryContract, [
-    await owner.getAddress(),
-  ]);
-  uniswapV2Router02 = await deployContract(
-    owner,
-    UniswapV2Router02Contract,
-    [uniswapV2Factory.address, WETH.address],
-    { gasLimit: 9500000 }
-  );
+  uniswapV2Factory = await deployContract(owner, UniswapV2FactoryContract, [await owner.getAddress()]);
+  uniswapV2Router02 = await deployContract(owner, UniswapV2Router02Contract, [uniswapV2Factory.address, WETH.address], { gasLimit: 9500000 });
   return {
     WETH,
     uniswapV2Factory,
@@ -30,18 +23,9 @@ const deploy = async ({ owner }: { owner: Signer }) => {
   };
 };
 
-const createPair = async ({
-  token0,
-  token1,
-}: {
-  token0: Contract;
-  token1: Contract;
-}) => {
+const createPair = async ({ token0, token1 }: { token0: Contract; token1: Contract }) => {
   await uniswapV2Factory.createPair(token0.address, token1.address);
-  const pairAddress = await uniswapV2Factory.getPair(
-    token0.address,
-    token1.address
-  );
+  const pairAddress = await uniswapV2Factory.getPair(token0.address, token1.address);
   const pair = await ethers.getContractAt(IUniswapV2Pair.abi, pairAddress);
   return pair;
 };

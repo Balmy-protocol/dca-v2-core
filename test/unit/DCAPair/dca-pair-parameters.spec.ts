@@ -1,37 +1,35 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory, Signer, utils } from 'ethers';
+import { BigNumber, Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, uniswap, erc20, behaviours } from '../../utils';
-import { then, when } from '../../utils/bdd';
+import { constants, erc20, behaviours, bn } from '../../utils';
+
+import { given, then, when } from '../../utils/bdd';
 
 describe('DCAPairParameters', function () {
   let owner: Signer;
-  let tokenA: Contract;
+  let tokenA: Contract, tokenB: Contract;
   let DCAPairParametersContract: ContractFactory;
   let DCAPairParameters: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    DCAPairParametersContract = await ethers.getContractFactory(
-      'contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock'
-    );
+    DCAPairParametersContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock');
   });
 
   beforeEach('Deploy and configure', async () => {
-    await uniswap.deploy({
-      owner,
-    });
     tokenA = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAPairParameters = await DCAPairParametersContract.deploy(
-      tokenA.address,
-      uniswap.getWETH().address,
-      uniswap.getUniswapV2Router02().address
-    );
+    tokenB = await erc20.deploy({
+      name: 'DAI',
+      symbol: 'DAI',
+      initialAccount: await owner.getAddress(),
+      initialAmount: utils.parseEther('1'),
+    });
+    DCAPairParameters = await DCAPairParametersContract.deploy(tokenA.address, tokenB.address);
   });
 
   describe('constructor', () => {
@@ -39,11 +37,7 @@ describe('DCAPairParameters', function () {
       it('reverts with message error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairParametersContract,
-          args: [
-            constants.ZERO_ADDRESS,
-            uniswap.getWETH().address,
-            uniswap.getUniswapV2Router02().address,
-          ],
+          args: [constants.ZERO_ADDRESS, tokenB.address],
         });
       });
     });
@@ -51,23 +45,7 @@ describe('DCAPairParameters', function () {
       it('reverts with message error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairParametersContract,
-          args: [
-            tokenA.address,
-            constants.ZERO_ADDRESS,
-            uniswap.getUniswapV2Router02().address,
-          ],
-        });
-      });
-    });
-    context('when uniswap is zero address', () => {
-      it('reverts with message error', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
-          contract: DCAPairParametersContract,
-          args: [
-            tokenA.address,
-            uniswap.getWETH().address,
-            constants.ZERO_ADDRESS,
-          ],
+          args: [tokenA.address, constants.ZERO_ADDRESS],
         });
       });
     });
@@ -75,11 +53,7 @@ describe('DCAPairParameters', function () {
       it('initizalizes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAPairParametersContract,
-          args: [
-            tokenA.address,
-            uniswap.getWETH().address,
-            uniswap.getUniswapV2Router02().address,
-          ],
+          args: [tokenA.address, tokenB.address],
           settersGettersVariablesAndEvents: [
             {
               getterFunc: 'tokenA',
@@ -88,13 +62,8 @@ describe('DCAPairParameters', function () {
             },
             {
               getterFunc: 'tokenB',
-              variable: uniswap.getWETH().address,
+              variable: tokenB.address,
               eventEmitted: 'TokenBSet',
-            },
-            {
-              getterFunc: 'uniswap',
-              variable: uniswap.getUniswapV2Router02().address,
-              eventEmitted: 'UniswapSet',
             },
           ],
         });
@@ -104,11 +73,7 @@ describe('DCAPairParameters', function () {
       then('reverts with message error', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAPairParametersContract,
-          args: [
-            tokenA.address,
-            uniswap.getWETH().address,
-            uniswap.getUniswapV2Router02().address,
-          ],
+          args: [tokenA.address, uniswap.getWETH().address, uniswap.getUniswapV2Router02().address],
           settersGettersVariablesAndEvents: [
             {
               getterFunc: 'name',
@@ -198,43 +163,12 @@ describe('DCAPairParameters', function () {
         });
       });
       it('sets to and emits event with correct arguments', async () => {
-        const previousMagnitude = ethers.BigNumber.from(10).pow(
-          await uniswap.getWETH().decimals()
-        );
-        expect(await DCAPairParameters.magnitude()).to.equal(previousMagnitude);
         await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DCAPairParameters,
           getterFunc: 'tokenB',
           setterFunc: 'setTokenB',
           variable: newTo.address,
           eventEmitted: 'TokenBSet',
-        });
-        const postMagnitude = ethers.BigNumber.from(10).pow(
-          await newTo.decimals()
-        );
-        expect(await DCAPairParameters.magnitude()).to.equal(postMagnitude);
-      });
-    });
-  });
-
-  describe('setUniswap', () => {
-    context('when address is zero', () => {
-      it('reverts with message', async () => {
-        await behaviours.txShouldRevertWithZeroAddress({
-          contract: DCAPairParameters,
-          func: 'setUniswap',
-          args: [constants.ZERO_ADDRESS],
-        });
-      });
-    });
-    context('when address is not zero', () => {
-      it('sets uniswap and emits event with correct arguments', async () => {
-        await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAPairParameters,
-          getterFunc: 'uniswap',
-          setterFunc: 'setUniswap',
-          variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'UniswapSet',
         });
       });
     });

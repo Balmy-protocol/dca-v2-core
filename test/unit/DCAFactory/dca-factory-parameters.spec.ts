@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory, Signer, utils } from 'ethers';
+import { Contract, ContractFactory, Signer } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, uniswap, behaviours } from '../../utils';
+import { constants, behaviours } from '../../utils';
 
 describe('DCAFactoryParameters', function () {
   let owner: Signer, feeRecipient: Signer;
@@ -16,13 +16,7 @@ describe('DCAFactoryParameters', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    await uniswap.deploy({
-      owner,
-    });
-    DCAFactoryParameters = await DCAFactoryParametersContract.deploy(
-      await feeRecipient.getAddress(),
-      uniswap.getUniswapV2Router02().address
-    );
+    DCAFactoryParameters = await DCAFactoryParametersContract.deploy(await feeRecipient.getAddress());
   });
 
   describe('constructor', () => {
@@ -30,18 +24,7 @@ describe('DCAFactoryParameters', function () {
       it('reverts with message error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAFactoryParametersContract,
-          args: [
-            constants.ZERO_ADDRESS,
-            uniswap.getUniswapV2Router02().address,
-          ],
-        });
-      });
-    });
-    context('when uniswap is zero address', () => {
-      it('reverts with message error', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
-          contract: DCAFactoryParametersContract,
-          args: [await feeRecipient.getAddress(), constants.ZERO_ADDRESS],
+          args: [constants.ZERO_ADDRESS],
         });
       });
     });
@@ -49,20 +32,12 @@ describe('DCAFactoryParameters', function () {
       it('initizalizes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAFactoryParametersContract,
-          args: [
-            await feeRecipient.getAddress(),
-            uniswap.getUniswapV2Router02().address,
-          ],
+          args: [await feeRecipient.getAddress()],
           settersGettersVariablesAndEvents: [
             {
               getterFunc: 'feeRecipient',
               variable: await feeRecipient.getAddress(),
               eventEmitted: 'FeeRecipientSet',
-            },
-            {
-              getterFunc: 'uniswap',
-              variable: uniswap.getUniswapV2Router02().address,
-              eventEmitted: 'UniswapSet',
             },
           ],
         });
@@ -88,29 +63,6 @@ describe('DCAFactoryParameters', function () {
           setterFunc: 'setFeeRecipient',
           variable: constants.NOT_ZERO_ADDRESS,
           eventEmitted: 'FeeRecipientSet',
-        });
-      });
-    });
-  });
-
-  describe('setUniswap', () => {
-    context('when address is zero', () => {
-      it('reverts with message', async () => {
-        await behaviours.txShouldRevertWithZeroAddress({
-          contract: DCAFactoryParameters,
-          func: 'setUniswap',
-          args: [constants.ZERO_ADDRESS],
-        });
-      });
-    });
-    context('when address is not zero', () => {
-      it('sets uniswap and emits event with correct arguments', async () => {
-        await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAFactoryParameters,
-          getterFunc: 'uniswap',
-          setterFunc: 'setUniswap',
-          variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'UniswapSet',
         });
       });
     });
@@ -164,29 +116,18 @@ describe('DCAFactoryParameters', function () {
         });
       });
     });
-    context(
-      'when swap intervals are not zero and were not previously allowed',
-      () => {
-        it('adds swap intervals to allowed list and emits event', async () => {
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be
-            .false;
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be
-            .false;
-          const intervalsToBeAdded = [1, 100];
-          await expect(
-            DCAFactoryParameters.addSwapIntervalsToAllowedList(
-              intervalsToBeAdded
-            )
-          )
-            .to.emit(DCAFactoryParameters, 'SwapIntervalsAllowed')
-            .withArgs(intervalsToBeAdded);
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be
-            .true;
-          expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be
-            .true;
-        });
-      }
-    );
+    context('when swap intervals are not zero and were not previously allowed', () => {
+      it('adds swap intervals to allowed list and emits event', async () => {
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.false;
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be.false;
+        const intervalsToBeAdded = [1, 100];
+        await expect(DCAFactoryParameters.addSwapIntervalsToAllowedList(intervalsToBeAdded))
+          .to.emit(DCAFactoryParameters, 'SwapIntervalsAllowed')
+          .withArgs(intervalsToBeAdded);
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.true;
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be.true;
+      });
+    });
   });
   describe('removeSwapIntervalsFromAllowedList', () => {
     beforeEach(async () => {
@@ -211,9 +152,7 @@ describe('DCAFactoryParameters', function () {
     context('when swap interval was previously allowed', () => {
       it('removes swap interval and emits event', async () => {
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.true;
-        await expect(
-          DCAFactoryParameters.removeSwapIntervalsFromAllowedList([1])
-        )
+        await expect(DCAFactoryParameters.removeSwapIntervalsFromAllowedList([1]))
           .to.emit(DCAFactoryParameters, 'SwapIntervalsForbidden')
           .withArgs([1]);
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.false;

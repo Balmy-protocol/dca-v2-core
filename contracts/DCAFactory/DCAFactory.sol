@@ -7,7 +7,7 @@ import './DCAFactoryPairsHandler.sol';
 interface IDCAFactory {}
 
 contract DCAFactory is DCAFactoryParameters, DCAFactoryPairsHandler, IDCAFactory {
-  constructor(address _feeRecipient, IUniswapV2Router02 _uniswap) DCAFactoryParameters(_feeRecipient, _uniswap) {}
+  constructor(address _feeRecipient) DCAFactoryParameters(_feeRecipient) {}
 
   function createPair(
     address _from,
@@ -18,10 +18,6 @@ contract DCAFactory is DCAFactoryParameters, DCAFactoryPairsHandler, IDCAFactory
   }
 
   function setFeeRecipient(address _feeRecipient) public override {
-    // TODO: Only governance
-  }
-
-  function setUniswap(IUniswapV2Router02 _uniswap) public override {
     // TODO: Only governance
   }
 

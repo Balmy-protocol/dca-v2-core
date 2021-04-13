@@ -6,7 +6,7 @@ import '../../DCAFactory/DCAFactoryPairsHandler.sol';
 import './DCAFactoryParameters.sol';
 
 contract DCAFactoryPairsHandlerMock is DCAFactoryParametersMock, DCAFactoryPairsHandler {
-  constructor(address _feeRecipient, IUniswapV2Router02 _uniswap) DCAFactoryParametersMock(_feeRecipient, _uniswap) {}
+  constructor(address _feeRecipient) DCAFactoryParametersMock(_feeRecipient) {}
 
   function createPair(
     address _from,
