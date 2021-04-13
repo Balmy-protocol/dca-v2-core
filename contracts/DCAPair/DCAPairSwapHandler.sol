@@ -27,8 +27,6 @@ interface IDCAPairSwapHandler {
 
   function swapAmountAccumulator(address) external returns (uint256);
 
-  function performedSwaps() external returns (uint256);
-
   function oracle() external returns (ISlidingOracle);
 
   function setOracle(ISlidingOracle _oracle) external;
@@ -61,7 +59,6 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   mapping(address => uint256) public override swapAmountAccumulator;
   uint256 public override swapInterval;
   uint256 public override lastSwapPerformed;
-  uint256 public override performedSwaps;
   ISlidingOracle public override oracle;
 
   constructor(

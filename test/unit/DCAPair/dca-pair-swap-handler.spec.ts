@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory, Signer, utils } from 'ethers';
+import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, uniswap, erc20, behaviours, evm, bn } from '../../utils';
@@ -10,7 +10,7 @@ import { readArgFromEvent } from '../../utils/event-utils';
 
 const MINIMUM_SWAP_INTERVAL = BigNumber.from('60');
 
-describe.only('DCAPairSwapHandler', function () {
+describe('DCAPairSwapHandler', function () {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
@@ -61,7 +61,6 @@ describe.only('DCAPairSwapHandler', function () {
     DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
-      uniswap.getUniswapV2Router02().address,
       constants.NOT_ZERO_ADDRESS, // factory
       slidingOracle.address, // oracle
       swapInterval
@@ -76,7 +75,6 @@ describe.only('DCAPairSwapHandler', function () {
           args: [
             tokenA.address,
             tokenB.address,
-            uniswap.getUniswapV2Router02().address,
             constants.NOT_ZERO_ADDRESS, // factory
             slidingOracle.address,
             MINIMUM_SWAP_INTERVAL.sub(1),
@@ -92,7 +90,6 @@ describe.only('DCAPairSwapHandler', function () {
           args: [
             tokenA.address,
             tokenB.address,
-            uniswap.getUniswapV2Router02().address,
             constants.ZERO_ADDRESS,
             slidingOracle.address,
             MINIMUM_SWAP_INTERVAL,
@@ -107,7 +104,6 @@ describe.only('DCAPairSwapHandler', function () {
           args: [
             tokenA.address,
             tokenB.address,
-            uniswap.getUniswapV2Router02().address,
             constants.NOT_ZERO_ADDRESS,
             constants.ZERO_ADDRESS,
             MINIMUM_SWAP_INTERVAL,
@@ -122,7 +118,6 @@ describe.only('DCAPairSwapHandler', function () {
           args: [
             tokenA.address,
             tokenB.address,
-            uniswap.getUniswapV2Router02().address,
             constants.NOT_ZERO_ADDRESS, // factory
             slidingOracle.address,
             MINIMUM_SWAP_INTERVAL,
