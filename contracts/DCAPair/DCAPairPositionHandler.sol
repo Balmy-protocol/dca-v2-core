@@ -42,7 +42,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   uint256 internal _idCounter = 0;
 
   constructor(IERC20Decimals _tokenA, IERC20Decimals _tokenB)
-    ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), '-', _tokenB.symbol())), 'DCA')
+    ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA')
   {}
 
   function _deposit(

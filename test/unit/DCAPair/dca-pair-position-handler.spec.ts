@@ -18,13 +18,13 @@ describe('DCAPositionHandler', () => {
   const INITIAL_TOKEN_B_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_B_BALANCE_USER = 100;
 
-  let owner: SignerWithAddress;
+  let owner: SignerWithAddress, approved: SignerWithAddress, stranger: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
   let DCAPositionHandlerContract: ContractFactory;
   let DCAPositionHandler: Contract;
 
   before('Setup accounts and contracts', async () => {
-    [owner] = await ethers.getSigners();
+    [owner, approved, stranger] = await ethers.getSigners();
     DCAPositionHandlerContract = await ethers.getContractFactory(
       'contracts/mocks/DCAPair/DCAPairPositionHandler.sol:DCAPairPositionHandlerMock'
     );
@@ -49,6 +49,17 @@ describe('DCAPositionHandler', () => {
     await tokenA.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await tokenB.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10);
+  });
+
+  describe('constructor', () => {
+    when('contract is initiated', () => {
+      then('name and symbol are created based on pair tokens', async () => {
+        const name = await DCAPositionHandler.name();
+        const symbol = await DCAPositionHandler.symbol();
+        expect(name).to.equal(`DCA: ${await tokenA.symbol()} - ${await tokenB.symbol()}`);
+        expect(symbol).to.equal('DCA');
+      });
+    });
   });
 
   describe('deposit', () => {
@@ -143,6 +154,13 @@ describe('DCAPositionHandler', () => {
         expect(deltaFirstDay).to.equal(fromEther(POSITION_RATE_5));
         expect(deltaLastDay).to.equal(fromEther(POSITION_RATE_5).mul(-1));
       });
+
+      then('nft is created', async () => {
+        const tokenOwner = await DCAPositionHandler.ownerOf(dcaId);
+        const balance = await DCAPositionHandler.balanceOf(owner.address);
+        expect(tokenOwner).to.equal(owner.address);
+        expect(balance).to.equal(1);
+      });
     });
   });
 
@@ -157,6 +175,8 @@ describe('DCAPositionHandler', () => {
         });
       });
     });
+
+    erc721PermissionTest((contract, dcaId) => contract.withdrawSwapped(dcaId));
 
     when(`withdrawing swapped with position that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -237,6 +257,8 @@ describe('DCAPositionHandler', () => {
         });
       });
     });
+
+    erc721PermissionTest((contract, dcaId) => contract.withdrawSwappedMany([dcaId]));
 
     when(`withdrawing swapped with positions that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -359,6 +381,8 @@ describe('DCAPositionHandler', () => {
       });
     });
 
+    erc721PermissionTest((contract, dcaId) => contract.terminate(dcaId));
+
     when(`terminating a valid position`, () => {
       const swappedWhenTerminated = RATE_PER_UNIT_5 * POSITION_RATE_5;
       const unswappedWhenTerminated = (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5;
@@ -402,6 +426,11 @@ describe('DCAPositionHandler', () => {
           lastSwap: 0,
         });
       });
+
+      then('nft is burned', async () => {
+        const balance = await DCAPositionHandler.balanceOf(owner.address);
+        expect(balance).to.equal(0);
+      });
     });
   });
 
@@ -442,6 +471,8 @@ describe('DCAPositionHandler', () => {
         });
       });
     });
+
+    erc721PermissionTest((contract, dcaId) => contract.modifyRateAndSwaps(dcaId, fromEther(9), 5));
 
     modifyPositionTest({
       title: `re-allocating deposited rate and swaps of a valid position`,
@@ -496,6 +527,8 @@ describe('DCAPositionHandler', () => {
       });
     });
 
+    erc721PermissionTest((contract, dcaId) => contract.modifySwaps(dcaId, POSITION_SWAPS_TO_PERFORM_10));
+
     modifyPositionTest({
       title: `calling modify with the same amount of swaps`,
       initialRate: POSITION_RATE_5,
@@ -545,6 +578,8 @@ describe('DCAPositionHandler', () => {
         });
       });
     });
+
+    erc721PermissionTest((contract, dcaId) => contract.modifyRate(dcaId, fromEther(POSITION_RATE_5 - 2)));
 
     modifyPositionTest({
       title: `calling modify with the same rate`,
@@ -745,6 +780,49 @@ describe('DCAPositionHandler', () => {
       });
     }
   });
+
+  function erc721PermissionTest(execute: (contract: Contract, dcaId: BigNumber) => Promise<TransactionResponse>) {
+    when(`executing address is approved for deposit`, () => {
+      let dcaId: BigNumber;
+
+      given(async () => {
+        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        await DCAPositionHandler.approve(approved.address, dcaId);
+      });
+
+      then('they can execute the operation even if they are not the owner', async () => {
+        const result: Promise<TransactionResponse> = execute(DCAPositionHandler.connect(approved), dcaId);
+        await expect(result).to.not.be.reverted;
+      });
+    });
+
+    when(`executing address is approved for all`, () => {
+      let dcaId: BigNumber;
+
+      given(async () => {
+        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        await DCAPositionHandler.setApprovalForAll(approved.address, true);
+      });
+
+      then('they can execute the operation even if they are not the owner', async () => {
+        const result: Promise<TransactionResponse> = execute(DCAPositionHandler.connect(approved), dcaId);
+        await expect(result).to.not.be.reverted;
+      });
+    });
+
+    when(`executing address isn't approved`, () => {
+      let dcaId: BigNumber;
+
+      given(async () => {
+        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+      });
+
+      then('operation is reverted', async () => {
+        const result: Promise<TransactionResponse> = execute(DCAPositionHandler.connect(stranger), dcaId);
+        await expect(result).to.be.revertedWith('DCAPair: Called must be owner, or approved by owner');
+      });
+    });
+  }
 
   function modifyPositionTest({
     title,
