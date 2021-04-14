@@ -557,12 +557,15 @@ describe('DCAPositionHandler', () => {
   });
 
   describe('addFundsToPosition', () => {
-    when('adding funds a position with invalid id', () => {
+    const NEW_SWAPS_TO_PERFORM_5 = 5;
+    const EXTRA_AMOUNT_TO_ADD_1 = 1;
+
+    when('adding funds to a position with invalid id', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'addFundsToPosition',
-          args: [100, fromEther(1), POSITION_SWAPS_TO_PERFORM_10],
+          args: [100, fromEther(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
           message: 'DCAPair: Invalid position id',
         });
       });
@@ -587,9 +590,9 @@ describe('DCAPositionHandler', () => {
       title: `adding more funds to the position`,
       initialRate: POSITION_RATE_5,
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
-      newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 + 1) / 5, // We are subtracting one to the positions to perform, because there was one trade already
-      newSwaps: 5,
-      exec: ({ dcaId, newSwaps }) => addFundsToPosition(dcaId, 1, newSwaps),
+      newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 + EXTRA_AMOUNT_TO_ADD_1) / NEW_SWAPS_TO_PERFORM_5, // We are subtracting one to the positions to perform, because there was one trade already
+      newSwaps: NEW_SWAPS_TO_PERFORM_5,
+      exec: ({ dcaId, newSwaps }) => addFundsToPosition(dcaId, EXTRA_AMOUNT_TO_ADD_1, newSwaps),
     });
   });
 
