@@ -6,7 +6,7 @@ import '../../DCAPair/DCAPairPositionHandler.sol';
 import './DCAPairSwapHandler.sol';
 
 contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairParametersMock {
-  constructor(IERC20Decimals _tokenA, IERC20Decimals _tokenB) DCAPairParametersMock(_tokenA, _tokenB) DCAPairPositionHandler(_tokenA, _tokenB) {
+  constructor(IERC20Detailed _tokenA, IERC20Detailed _tokenB) DCAPairParametersMock(_tokenA, _tokenB) DCAPairPositionHandler(_tokenA, _tokenB) {
     /* */
   }
 

@@ -9,8 +9,8 @@ interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionH
 
 contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandler, IDCAPair {
   constructor(
-    IERC20Decimals _tokenA,
-    IERC20Decimals _tokenB,
+    IERC20Detailed _tokenA,
+    IERC20Detailed _tokenB,
     uint256 _swapInterval
   )
     DCAPairParameters(_tokenA, _tokenB)

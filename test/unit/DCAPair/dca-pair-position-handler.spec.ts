@@ -785,7 +785,7 @@ describe('DCAPositionHandler', () => {
    * Verify that approved addresses can also execute the action, but that other addresses can't
    */
   function erc721PermissionTest(execute: (contract: Contract, dcaId: BigNumber) => Promise<TransactionResponse>) {
-    when(`executing address is approved for deposit`, () => {
+    when(`executing address is approved for position`, () => {
       let dcaId: BigNumber;
 
       given(async () => {
