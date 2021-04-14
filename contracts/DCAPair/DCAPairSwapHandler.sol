@@ -18,7 +18,7 @@ interface IDCAPairSwapHandler {
     uint256 _ratePerUnitBToA,
     uint256 _ratePerUnitAToB,
     uint256 _amountToBeProvidedExternally,
-    IERC20Decimals _tokenToBeProvidedExternally
+    IERC20Detailed _tokenToBeProvidedExternally
   );
 
   function swapInterval() external returns (uint256);
@@ -43,14 +43,14 @@ interface IDCAPairSwapHandler {
       uint256 _ratePerUnitBToA,
       uint256 _ratePerUnitAToB,
       uint256 _amountToBeProvidedExternally,
-      IERC20Decimals _tokenToBeProvidedExternally
+      IERC20Detailed _tokenToBeProvidedExternally
     );
 
   function swap() external;
 }
 
 abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
-  using SafeERC20 for IERC20Decimals;
+  using SafeERC20 for IERC20Detailed;
   using SafeMath for uint256;
   using SignedSafeMath for int256;
 
@@ -129,7 +129,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
       uint256 _ratePerUnitBToA,
       uint256 _ratePerUnitAToB,
       uint256 _amountToBeProvidedExternally,
-      IERC20Decimals _tokenToBeProvidedExternally
+      IERC20Detailed _tokenToBeProvidedExternally
     )
   {
     _swapToPerform = performedSwaps.add(1);
@@ -174,7 +174,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
       _amountToBeProvidedExternally = _amountOfTokenAIfTokenBSwapped.sub(_amountToSwapTokenA);
     } else {
       _amountToBeProvidedExternally = 0;
-      _tokenToBeProvidedExternally = IERC20Decimals(address(0));
+      _tokenToBeProvidedExternally = IERC20Detailed(address(0));
     }
   }
 
@@ -187,7 +187,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
       uint256 _ratePerUnitBToA,
       uint256 _ratePerUnitAToB,
       uint256 _amountToBeProvidedExternally,
-      IERC20Decimals _tokenToBeProvidedExternally
+      IERC20Detailed _tokenToBeProvidedExternally
     ) = getNextSwapInfo();
     if (_amountToBeProvidedExternally > 0) {
       _tokenToBeProvidedExternally.safeTransferFrom(msg.sender, address(this), _amountToBeProvidedExternally);

@@ -5,7 +5,7 @@ pragma solidity 0.7.0;
 import '../../DCAPair/DCAPairParameters.sol';
 
 contract DCAPairParametersMock is DCAPairParameters {
-  constructor(IERC20Decimals _tokenA, IERC20Decimals _tokenB) DCAPairParameters(_tokenA, _tokenB) {}
+  constructor(IERC20Detailed _tokenA, IERC20Detailed _tokenB) DCAPairParameters(_tokenA, _tokenB) {}
 
   // Mocks setters
 
@@ -13,11 +13,11 @@ contract DCAPairParametersMock is DCAPairParameters {
     _setFactory(_factory);
   }
 
-  function setTokenA(IERC20Decimals _tokenA) public {
+  function setTokenA(IERC20Detailed _tokenA) public {
     _setTokenA(_tokenA);
   }
 
-  function setTokenB(IERC20Decimals _tokenB) public {
+  function setTokenB(IERC20Detailed _tokenB) public {
     _setTokenB(_tokenB);
   }
 

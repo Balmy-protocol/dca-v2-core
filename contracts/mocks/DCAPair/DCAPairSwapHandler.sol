@@ -9,8 +9,8 @@ import './DCAPairParameters.sol';
 
 contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   constructor(
-    IERC20Decimals _token0,
-    IERC20Decimals _token1,
+    IERC20Detailed _token0,
+    IERC20Detailed _token1,
     IDCAFactory _factory,
     ISlidingOracle _oracle,
     uint256 _swapInterval

@@ -1,9 +1,6 @@
-import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory, Signer, utils } from 'ethers';
+import { Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, erc20, behaviours, bn } from '../../utils';
-
-import { given, then, when } from '../../utils/bdd';
 
 describe('DCAPairParameters', function () {
   let owner: Signer;
