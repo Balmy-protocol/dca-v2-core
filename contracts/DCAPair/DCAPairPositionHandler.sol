@@ -31,6 +31,12 @@ interface IDCAPairPositionHandler {
     uint256 _newSwaps
   ) external;
 
+  function addFundsToPosition(
+    uint256 _dcaId,
+    uint256 _amount,
+    uint256 _newSwaps
+  ) external;
+
   function terminate(uint256 _dcaId) external;
 }
 
@@ -153,19 +159,44 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _totalNecessary = _newRate.mul(_newAmountOfSwaps);
-    int256 _needed = int256(_totalNecessary - _unswapped);
 
+    _modifyPosition(_dcaId, _totalNecessary, _unswapped, _newRate, _newAmountOfSwaps);
+  }
+
+  function _addFundsToPosition(
+    uint256 _dcaId,
+    uint256 _amount,
+    uint256 _newSwaps
+  ) internal {
+    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
+    require(_amount > 0, 'DCAPair: The amount to add must be positive');
+
+    uint256 _unswapped = _calculateUnswapped(_dcaId);
+    uint256 _total = _unswapped.add(_amount);
+    uint256 _newRate = _total.div(_newSwaps);
+
+    _modifyPosition(_dcaId, _total, _unswapped, _newRate, _newSwaps);
+  }
+
+  /** Helper function to modify a position */
+  function _modifyPosition(
+    uint256 _dcaId,
+    uint256 _totalNecessary,
+    uint256 _unswapped,
+    uint256 _newRate,
+    uint256 _newAmountOfSwaps
+  ) internal {
     IERC20Detailed _from = _getFrom(_dcaId);
 
     _removePosition(_dcaId);
     (uint256 _startingSwap, uint256 _finalSwap) = _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps);
 
-    if (_needed > 0) {
+    if (_totalNecessary > _unswapped) {
       // We need to ask for more funds
-      _from.safeTransferFrom(msg.sender, address(this), uint256(_needed));
-    } else if (_needed < 0) {
+      _from.safeTransferFrom(msg.sender, address(this), _totalNecessary.sub(_unswapped));
+    } else if (_totalNecessary < _unswapped) {
       // We need to return to the owner the amount that won't be used anymore
-      _from.safeTransfer(msg.sender, uint256(-_needed));
+      _from.safeTransfer(msg.sender, _unswapped.sub(_totalNecessary));
     }
 
     emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _finalSwap);

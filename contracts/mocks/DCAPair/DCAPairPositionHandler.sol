@@ -50,4 +50,12 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairParameters
   function calculateSwapped(uint256 _dcaId) external view returns (uint256 _swapped) {
     _swapped = _calculateSwapped(_dcaId);
   }
+
+  function addFundsToPosition(
+    uint256 _dcaId,
+    uint256 _amount,
+    uint256 _newSwaps
+  ) external override {
+    _addFundsToPosition(_dcaId, _amount, _newSwaps);
+  }
 }
