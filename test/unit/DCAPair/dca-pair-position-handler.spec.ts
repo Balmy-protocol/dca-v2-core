@@ -48,6 +48,8 @@ describe('DCAPositionHandler', () => {
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));
     await tokenA.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await tokenB.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT));
+    await tokenA.mint(approved.address, fromEther(INITIAL_TOKEN_A_BALANCE_USER));
+    await tokenA.approveInternal(approved.address, DCAPositionHandler.address, fromEther(1000));
     await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10);
   });
 
@@ -554,6 +556,46 @@ describe('DCAPositionHandler', () => {
     });
   });
 
+  describe('addFundsToPosition', () => {
+    const NEW_SWAPS_TO_PERFORM_5 = 5;
+    const EXTRA_AMOUNT_TO_ADD_1 = 1;
+
+    when('adding funds to a position with invalid id', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'addFundsToPosition',
+          args: [100, fromEther(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
+          message: 'DCAPair: Invalid position id',
+        });
+      });
+    });
+
+    when('adding 0 funds to a position', () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'addFundsToPosition',
+          args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
+          message: 'DCAPair: The amount to add must be positive',
+        });
+      });
+    });
+
+    erc721PermissionTest((contract, dcaId) => contract.addFundsToPosition(dcaId, fromEther(1), 2));
+
+    modifyPositionTest({
+      title: `adding more funds to the position`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 + EXTRA_AMOUNT_TO_ADD_1) / NEW_SWAPS_TO_PERFORM_5, // We are subtracting one to the positions to perform, because there was one trade already
+      newSwaps: NEW_SWAPS_TO_PERFORM_5,
+      exec: ({ dcaId, newSwaps }) => addFundsToPosition(dcaId, EXTRA_AMOUNT_TO_ADD_1, newSwaps),
+    });
+  });
+
   describe('modifyRate', () => {
     when('modifying a position with invalid id', () => {
       then('tx is reverted with message', async () => {
@@ -926,6 +968,10 @@ describe('DCAPositionHandler', () => {
     return DCAPositionHandler.modifyRateAndSwaps(dcaId, fromEther(rate), swaps);
   }
 
+  function addFundsToPosition(dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
+    return DCAPositionHandler.addFundsToPosition(dcaId, fromEther(amount), swaps);
+  }
+
   function withdrawSwapped(dcaId: BigNumber): Promise<TransactionResponse> {
     return DCAPositionHandler.withdrawSwapped(dcaId);
   }
@@ -971,7 +1017,7 @@ describe('DCAPositionHandler', () => {
     } = await DCAPositionHandler.userPositions(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;
     expect(positionFromAddress, 'Wrong from address in position').to.equal(fromAddress);
-    expect(positionRate, 'Wrong from rate').to.equal(fromEther(rate));
+    expect(positionRate, 'Wrong rate').to.equal(fromEther(rate));
     expect(positionLastWithdrawSwap, 'Wrong last withdraw swap').to.equal(lastWithdrawSwap);
     expect(positionLastSwap, 'Wrong last swap').to.equal(lastSwap);
   }
