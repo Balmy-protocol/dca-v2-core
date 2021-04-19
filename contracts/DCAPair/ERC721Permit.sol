@@ -87,8 +87,7 @@ abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
    * @dev 'Consume a nonce': return the current value and increment.
    */
   function _useNonce(address owner) internal virtual returns (uint256 current) {
-    Counters.Counter storage nonce = _nonces[owner];
-    current = nonce.current();
-    nonce.increment();
+    current = _nonces[owner].current();
+    _nonces[owner].increment();
   }
 }
