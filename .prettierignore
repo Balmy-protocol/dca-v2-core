@@ -1,4 +1,5 @@
 # General
+workspace.code-workspace
 .DS_STORE
 .prettierignore
 .solhintignore
