@@ -121,7 +121,7 @@ describe('DCAPairSwapHandler', () => {
         setOracleTx = DCAPairSwapHandler.setOracle(constants.ZERO_ADDRESS);
       });
       then('tx is reverted with reason', async () => {
-        await expect(setOracleTx).to.be.revertedWith('DCAPair: zero-address');
+        await expect(setOracleTx).to.be.revertedWith('DCAPair: zero address');
       });
     });
     when('oracle is a valid address', () => {

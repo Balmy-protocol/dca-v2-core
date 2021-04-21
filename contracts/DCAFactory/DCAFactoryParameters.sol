@@ -33,7 +33,7 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
   }
 
   function _setFeeRecipient(address _feeRecipient) internal {
-    require(_feeRecipient != address(0), 'DCAFactory: zero-address');
+    require(_feeRecipient != address(0), 'DCAFactory: zero address');
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
   }

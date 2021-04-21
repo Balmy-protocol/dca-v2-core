@@ -19,7 +19,7 @@ const checkTxRevertedWithMessage = async ({ tx, message }: { tx: Promise<Transac
 const checkTxRevertedWithZeroAddress = async (tx: Promise<TransactionRequest>): Promise<void> => {
   await checkTxRevertedWithMessage({
     tx,
-    message: /zero-address/,
+    message: /zero address/,
   });
 };
 

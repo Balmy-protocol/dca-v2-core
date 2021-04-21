@@ -65,19 +65,19 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   }
 
   function _setFactory(IDCAFactory _factory) internal {
-    require(address(_factory) != address(0), 'DCAPair: zero-address');
+    require(address(_factory) != address(0), 'DCAPair: zero address');
     factory = _factory;
     emit FactorySet(_factory);
   }
 
   function _setTokenA(IERC20Detailed _tokenA) internal {
-    require(address(_tokenA) != address(0), 'DCAPair: zero-address');
+    require(address(_tokenA) != address(0), 'DCAPair: zero address');
     tokenA = _tokenA;
     emit TokenASet(_tokenA);
   }
 
   function _setTokenB(IERC20Detailed _tokenB) internal {
-    require(address(_tokenB) != address(0), 'DCAPair: zero-address');
+    require(address(_tokenB) != address(0), 'DCAPair: zero address');
     tokenB = _tokenB;
     emit TokenBSet(_tokenB);
   }

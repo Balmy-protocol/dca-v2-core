@@ -72,7 +72,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   }
 
   function _setOracle(ISlidingOracle _oracle) internal {
-    require(address(_oracle) != address(0), 'DCAPair: zero-address');
+    require(address(_oracle) != address(0), 'DCAPair: zero address');
     oracle = _oracle;
     emit OracleSet(_oracle);
   }
