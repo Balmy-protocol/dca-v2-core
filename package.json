@@ -30,13 +30,10 @@
     "test:e2e:gas": "REPORT_GAS=1 npm run test:e2e",
     "test:gas": "REPORT_GAS=1 npm run test",
     "test:unit": "npm run test 'test/unit/**/*.spec.ts'",
-    "test:unit:gas": "TEST=true REPORT_GAS=1 npx hardhat test"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint:fix && git add -A",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
+    "test:unit:gas": "TEST=true REPORT_GAS=1 npx hardhat test",
+    "postinstall": "husky install",
+    "prepublishOnly": "pinst --disable",
+    "postpublish": "pinst --enable"
   },
   "dependencies": {
     "@openzeppelin/contracts": "3.4.1",
@@ -62,7 +59,7 @@
     "hardhat": "2.1.2",
     "hardhat-gas-reporter": "1.0.4",
     "hardhat-preprocessor": "0.1.2",
-    "husky": "4.3.8",
+    "husky": "^6.0.0",
     "moment": "2.29.1",
     "pinst": "2.1.6",
     "prettier": "2.2.1",
