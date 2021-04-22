@@ -20,13 +20,15 @@ abstract contract ERC721Batch is ERC721, IERC721Batch {
     bytes calldata _data
   ) public virtual override {
     require(_to != address(0), 'ERC721Batch: transfer to the zero address');
+    require(_ids.length > 0, 'ERC721Batch: you need to transfer at least one token');
 
     for (uint256 i = 0; i < _ids.length; i++) {
       uint256 _tokenId = _ids[i];
       require(_isApprovedOrOwner(_msgSender(), _tokenId), 'ERC721Batch: transfer caller is not owner nor approved');
       _internalTransfer(_from, _to, _tokenId);
-      require(_checkOnERC721Received(_from, _to, _tokenId, _data), 'ERC721Batch: transfer to non ERC721Receiver implementer');
     }
+
+    require(_checkOnERC721Received(_from, _to, _ids[0], _data), 'ERC721Batch: transfer to non ERC721Receiver implementer');
 
     emit TransferBatch(_from, _to, _ids);
   }
