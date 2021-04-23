@@ -14,6 +14,6 @@ interface IERC721Batch {
     address _from,
     address _to,
     uint256[] calldata _ids,
-    bytes calldata _data
+    bytes memory _data
   ) external;
 }
