@@ -36,7 +36,7 @@ jobs:
         run: npm install
 
       - name: Run unit tests
-        run: npm run test:unit
+        run: npm run test:unit:parallel
 
   # e2e:
   #   runs-on: ubuntu-latest
