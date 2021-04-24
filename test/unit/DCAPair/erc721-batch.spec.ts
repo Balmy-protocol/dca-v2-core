@@ -159,7 +159,7 @@ describe('ERC721Batch', () => {
     to: string | SignerWithAddress;
     ids: BigNumber[];
     signer?: SignerWithAddress;
-  }) {
+  }): Promise<TransactionResponse> {
     const contract = signer ? ERC721Batch.connect(signer) : ERC721Batch;
     return contract['safeBatchTransferFrom(address,address,uint256[])'](getAddress(from), getAddress(to), ids);
   }
