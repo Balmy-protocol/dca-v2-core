@@ -3,8 +3,8 @@ import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { _TypedDataEncoder } from '@ethersproject/hash';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { when, then, given } from '../../utils/bdd';
-import { constants, behaviours } from '../../utils';
+import { when, then, given } from '../../../utils/bdd';
+import { constants, behaviours } from '../../../utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 describe('ERC721Batch', () => {
@@ -18,7 +18,7 @@ describe('ERC721Batch', () => {
 
   before('Setup accounts and contracts', async () => {
     [owner, approved, to, stranger] = await ethers.getSigners();
-    ERC721BatchContract = await ethers.getContractFactory('contracts/mocks/DCAPair/ERC721Batch.sol:ERC721BatchMock');
+    ERC721BatchContract = await ethers.getContractFactory('contracts/mocks/DCAPair/ERC721/ERC721Batch.sol:ERC721BatchMock');
   });
 
   beforeEach('Deploy and configure', async () => {

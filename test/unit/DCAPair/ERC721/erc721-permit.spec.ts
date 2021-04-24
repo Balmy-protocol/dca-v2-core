@@ -3,8 +3,8 @@ import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { _TypedDataEncoder } from '@ethersproject/hash';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { when, then, given } from '../../utils/bdd';
-import { constants, behaviours } from '../../utils';
+import { when, then, given } from '../../../utils/bdd';
+import { constants, behaviours } from '../../../utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { fromRpcSig } from 'ethereumjs-util';
 
@@ -19,7 +19,7 @@ describe('ERC721Permit', () => {
 
   before('Setup accounts and contracts', async () => {
     [owner, approved, approved2, stranger] = await ethers.getSigners();
-    ERC721PermitContract = await ethers.getContractFactory('contracts/mocks/DCAPair/ERC721Permit.sol:ERC721PermitMock');
+    ERC721PermitContract = await ethers.getContractFactory('contracts/mocks/DCAPair/ERC721/ERC721Permit.sol:ERC721PermitMock');
     chainId = BigNumber.from((await ethers.provider.getNetwork()).chainId);
   });
 

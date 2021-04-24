@@ -2,8 +2,8 @@
 
 pragma solidity 0.7.0;
 
-import '../../DCAPair/ERC721Permit.sol';
-import '../../interfaces/IERC721Permit.sol';
+import '../../../DCAPair/ERC721/ERC721Permit.sol';
+import '../../../interfaces/ERC721/IERC721Permit.sol';
 
 contract ERC721PermitMock is ERC721Permit {
   constructor(string memory name) ERC721Permit(name) ERC721(name, 'symbol') {
