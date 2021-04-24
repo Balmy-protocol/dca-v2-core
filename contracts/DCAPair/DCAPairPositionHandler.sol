@@ -3,8 +3,6 @@ pragma solidity 0.7.0;
 
 import './DCAPairParameters.sol';
 import './ERC721/ERC721.sol';
-import './ERC721/ERC721Batch.sol';
-import './ERC721/ERC721Permit.sol';
 
 interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
@@ -42,7 +40,7 @@ interface IDCAPairPositionHandler {
   function terminate(uint256 _dcaId) external;
 }
 
-abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionHandler, ERC721, ERC721Batch, ERC721Permit {
+abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionHandler, ERC721 {
   using SafeERC20 for IERC20Detailed;
   using SafeMath for uint256;
   using SignedSafeMath for int256;
@@ -51,7 +49,6 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
   constructor(IERC20Detailed _tokenA, IERC20Detailed _tokenB)
     ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA')
-    ERC721Permit(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())))
   {}
 
   function _deposit(
