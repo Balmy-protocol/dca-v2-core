@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.7.0;
 
-import '../interfaces/IERC721Batch.sol';
+import '../../interfaces/ERC721/IERC721Batch.sol';
 import './ERC721.sol';
 
 abstract contract ERC721Batch is ERC721, IERC721Batch {
