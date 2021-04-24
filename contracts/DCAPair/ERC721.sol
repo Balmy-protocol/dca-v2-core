@@ -409,9 +409,19 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable 
     address to,
     uint256 tokenId
   ) internal virtual {
-    require(ERC721.ownerOf(tokenId) == from, 'ERC721: transfer of token that is not own'); // internal owner
     require(to != address(0), 'ERC721: transfer to the zero address');
 
+    _internalTransfer(from, to, tokenId);
+
+    emit Transfer(from, to, tokenId);
+  }
+
+  function _internalTransfer(
+    address from,
+    address to,
+    uint256 tokenId
+  ) internal virtual {
+    require(ERC721.ownerOf(tokenId) == from, 'ERC721: transfer of token that is not own'); // internal owner
     _beforeTokenTransfer(from, to, tokenId);
 
     // Clear approvals from the previous owner
@@ -421,8 +431,6 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable 
     _holderTokens[to].add(tokenId);
 
     _tokenOwners.set(tokenId, to);
-
-    emit Transfer(from, to, tokenId);
   }
 
   /**
@@ -461,7 +469,7 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable 
     address to,
     uint256 tokenId,
     bytes memory _data
-  ) private returns (bool) {
+  ) internal virtual returns (bool) {
     if (!to.isContract()) {
       return true;
     }
