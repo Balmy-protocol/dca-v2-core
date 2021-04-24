@@ -9,7 +9,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 
 describe('ERC721Batch', () => {
   const NAME = 'name';
-  const TOKEN_ID = BigNumber.from(1);
+  const TOKEN_ID_1 = BigNumber.from(1);
+  const TOKEN_ID_2 = BigNumber.from(2);
 
   let owner: SignerWithAddress, approved: SignerWithAddress, to: SignerWithAddress, stranger: SignerWithAddress;
   let ERC721BatchContract: ContractFactory;
@@ -22,7 +23,8 @@ describe('ERC721Batch', () => {
 
   beforeEach('Deploy and configure', async () => {
     ERC721Batch = await ERC721BatchContract.deploy(NAME);
-    await ERC721Batch.mint(owner.address, TOKEN_ID);
+    await ERC721Batch.mint(owner.address, TOKEN_ID_1);
+    await ERC721Batch.mint(owner.address, TOKEN_ID_2);
   });
 
   describe('safeBatchTransferFrom', () => {
@@ -30,7 +32,7 @@ describe('ERC721Batch', () => {
       when: 'transfer is called by owner',
       from: () => owner,
       to: () => to,
-      ids: [TOKEN_ID],
+      ids: [TOKEN_ID_1],
     });
 
     testBatchTransferWorks({
@@ -39,21 +41,29 @@ describe('ERC721Batch', () => {
       to: () => to,
       beforeTransfer: () => ERC721Batch.setApprovalForAll(approved.address, true),
       signer: approved,
-      ids: [TOKEN_ID],
+      ids: [TOKEN_ID_1],
     });
 
     testBatchTransferWorks({
       when: 'transfer is called by approved token operator',
       from: () => owner,
       to: () => to,
-      beforeTransfer: () => ERC721Batch.approve(approved.address, TOKEN_ID),
+      beforeTransfer: () => ERC721Batch.approve(approved.address, TOKEN_ID_1),
       signer: approved,
-      ids: [TOKEN_ID],
+      ids: [TOKEN_ID_1],
+    });
+
+    testBatchTransferWorks({
+      when: 'many tokens are transferred',
+      from: () => owner,
+      to: () => to,
+      signer: owner,
+      ids: [TOKEN_ID_1, TOKEN_ID_2],
     });
 
     testTxIsReverted({
       when: 'to is zero address',
-      exec: () => batchTransfer({ from: owner, to: constants.ZERO_ADDRESS, ids: [TOKEN_ID] }),
+      exec: () => batchTransfer({ from: owner, to: constants.ZERO_ADDRESS, ids: [TOKEN_ID_1] }),
       errorMessage: 'ERC721Batch: transfer to the zero address',
     });
 
@@ -66,16 +76,16 @@ describe('ERC721Batch', () => {
     testTxIsReverted({
       when: `one of the tokens isn't owned or approved`,
       exec: async () => {
-        const TOKEN_ID_2 = BigNumber.from(2);
-        await ERC721Batch.mint(stranger.address, TOKEN_ID_2);
-        return batchTransfer({ from: owner, to, ids: [TOKEN_ID, TOKEN_ID_2] });
+        const TOKEN_ID_3 = BigNumber.from(3);
+        await ERC721Batch.mint(stranger.address, TOKEN_ID_3);
+        return batchTransfer({ from: owner, to, ids: [TOKEN_ID_1, TOKEN_ID_3] });
       },
       errorMessage: 'ERC721Batch: transfer caller is not owner nor approved',
     });
 
     testTxIsReverted({
       when: 'receiver is a contact that does implement ERC721Receiver',
-      exec: () => batchTransfer({ from: owner, to: ERC721Batch.address, ids: [TOKEN_ID] }),
+      exec: () => batchTransfer({ from: owner, to: ERC721Batch.address, ids: [TOKEN_ID_1] }),
       errorMessage: 'ERC721: transfer to non ERC721Receiver implementer',
     });
   });
@@ -112,7 +122,7 @@ describe('ERC721Batch', () => {
       });
 
       then('balanceOf is increased', async () => {
-        expect(await ERC721Batch.balanceOf(getAddress(to()))).to.be.equal(1);
+        expect(await ERC721Batch.balanceOf(getAddress(to()))).to.be.equal(ids.length);
       });
 
       then(`token's approval is now zero-address`, async () => {
