@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import 'hardhat/console.sol';
 
-import '../SlidingOracle.sol';
+import '../interfaces/ISlidingOracle.sol';
 import './DCAPairParameters.sol';
 
 interface IDCAPairSwapHandler {

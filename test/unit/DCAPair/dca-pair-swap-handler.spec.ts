@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse, TransactionRequest } from '@ethersproject/abstract-provider';
-import { constants, uniswap, erc20, behaviours, evm, bn, wallet } from '../../utils';
+import { constants, erc20, behaviours, evm, bn, wallet } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { readArgFromEvent } from '../../utils/event-utils';
@@ -31,9 +31,6 @@ describe('DCAPairSwapHandler', () => {
 
   beforeEach('Deploy and configure', async () => {
     await evm.reset();
-    await uniswap.deploy({
-      owner,
-    });
     tokenA = await erc20.deploy({
       name: 'tokenA',
       symbol: 'TKN0',

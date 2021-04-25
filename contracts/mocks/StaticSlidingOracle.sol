@@ -2,7 +2,7 @@
 pragma solidity 0.7.6;
 
 import 'hardhat/console.sol';
-import '../SlidingOracle.sol';
+import '../interfaces/ISlidingOracle.sol';
 
 contract StaticSlidingOracle is ISlidingOracle {
   uint256 public rate;
