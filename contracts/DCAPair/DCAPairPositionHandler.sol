@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
 import './DCAPairParameters.sol';
 import './ERC721/ERC721.sol';
+import './utils/Math.sol';
 
 interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
@@ -42,8 +43,6 @@ interface IDCAPairPositionHandler {
 
 abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionHandler, ERC721 {
   using SafeERC20 for IERC20Detailed;
-  using SafeMath for uint256;
-  using SignedSafeMath for int256;
 
   uint256 internal _idCounter = 0;
 
@@ -58,8 +57,8 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   ) internal returns (uint256) {
     require(_tokenAddress == address(tokenA) || _tokenAddress == address(tokenB), 'DCAPair: Invalid deposit address');
     IERC20Detailed _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
-    _from.safeTransferFrom(msg.sender, address(this), _rate.mul(_amountOfSwaps));
-    _idCounter = _idCounter.add(1);
+    _from.safeTransferFrom(msg.sender, address(this), _rate * _amountOfSwaps);
+    _idCounter += 1;
     _safeMint(msg.sender, _idCounter);
     (uint256 _startingSwap, uint256 _finalSwap) = _addPosition(_idCounter, _tokenAddress, _rate, _amountOfSwaps);
     emit Deposited(msg.sender, _idCounter, _tokenAddress, _rate, _startingSwap, _finalSwap);
@@ -87,9 +86,9 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
       _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
       uint256 _swappedDCA = _calculateSwapped(_dcaId);
       if (userPositions[_dcaId].from == address(tokenA)) {
-        _swappedTokenB = _swappedTokenB.add(_swappedDCA);
+        _swappedTokenB += _swappedDCA;
       } else {
-        _swappedTokenA = _swappedTokenA.add(_swappedDCA);
+        _swappedTokenA += _swappedDCA;
       }
       userPositions[_dcaId].lastWithdrawSwap = performedSwaps;
     }
@@ -133,7 +132,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     DCA memory _userDCA = userPositions[_dcaId];
 
-    uint256 _swapsLeft = _userDCA.lastSwap.sub(performedSwaps);
+    uint256 _swapsLeft = _userDCA.lastSwap - performedSwaps;
     require(_swapsLeft > 0, 'DCAPair: You cannot modify only the rate of a position that has already been completed');
 
     _modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
@@ -155,7 +154,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
-    uint256 _totalNecessary = _newRate.mul(_newAmountOfSwaps);
+    uint256 _totalNecessary = _newRate * _newAmountOfSwaps;
 
     _modifyPosition(_dcaId, _totalNecessary, _unswapped, _newRate, _newAmountOfSwaps);
   }
@@ -169,8 +168,8 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     require(_amount > 0, 'DCAPair: The amount to add must be positive');
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
-    uint256 _total = _unswapped.add(_amount);
-    uint256 _newRate = _total.div(_newSwaps);
+    uint256 _total = _unswapped + _amount;
+    uint256 _newRate = _total / _newSwaps;
 
     _modifyPosition(_dcaId, _total, _unswapped, _newRate, _newSwaps);
   }
@@ -190,10 +189,10 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     if (_totalNecessary > _unswapped) {
       // We need to ask for more funds
-      _from.safeTransferFrom(msg.sender, address(this), _totalNecessary.sub(_unswapped));
+      _from.safeTransferFrom(msg.sender, address(this), _totalNecessary - _unswapped);
     } else if (_totalNecessary < _unswapped) {
       // We need to return to the owner the amount that won't be used anymore
-      _from.safeTransfer(msg.sender, _unswapped.sub(_totalNecessary));
+      _from.safeTransfer(msg.sender, _unswapped - _totalNecessary);
     }
 
     emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _finalSwap);
@@ -212,18 +211,18 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   ) internal returns (uint256 _startingSwap, uint256 _finalSwap) {
     require(_rate > 0, 'DCAPair: Invalid rate. It must be positive');
     require(_amountOfSwaps > 0, 'DCAPair: Invalid amount of swaps. It must be positive');
-    _startingSwap = performedSwaps.add(1);
-    _finalSwap = performedSwaps.add(_amountOfSwaps);
-    swapAmountDelta[_from][_startingSwap] += int256(_rate); // TODO: use SignedSafeMath
-    swapAmountDelta[_from][_finalSwap] -= int256(_rate); // TODO: use SignedSafeMath
+    _startingSwap = performedSwaps + 1;
+    _finalSwap = performedSwaps + _amountOfSwaps;
+    swapAmountDelta[_from][_startingSwap] += int256(_rate);
+    swapAmountDelta[_from][_finalSwap] -= int256(_rate);
     userPositions[_dcaId] = DCA(_from, _rate, performedSwaps, _finalSwap);
   }
 
   function _removePosition(uint256 _dcaId) internal {
     DCA memory _userDCA = userPositions[_dcaId];
     if (_userDCA.lastSwap > performedSwaps) {
-      swapAmountDelta[_userDCA.from][performedSwaps.add(1)] -= int256(_userDCA.rate); // TODO: use SignedSafeMath
-      swapAmountDelta[_userDCA.from][_userDCA.lastSwap] += int256(_userDCA.rate); // TODO: use SignedSafeMath
+      swapAmountDelta[_userDCA.from][performedSwaps + 1] -= int256(_userDCA.rate);
+      swapAmountDelta[_userDCA.from][_userDCA.lastSwap] += int256(_userDCA.rate);
     }
     delete userPositions[_dcaId];
   }
@@ -245,37 +244,37 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
       swapped = ((multiplier(LS) - multiplier(LW)) * MAX_UINT + accum(LS) - accum(LW)) * RATE / magnitude(FROM)
     */
 
-    uint256 _multiplierDifference = _accumRatesLastSwap[1].sub(_accumRatesLastWidthraw[1]);
+    uint256 _multiplierDifference = _accumRatesLastSwap[1] - _accumRatesLastWidthraw[1];
     uint256 _accumPerUnit;
     if (_multiplierDifference == 2) {
       // If multiplier difference is 2, then the only way it won't overflow is if accum(LS) - accum(LW) == -max(uint256).
       // This line will revert for all other scenarios
-      _accumPerUnit = type(uint256).max.sub(_accumRatesLastWidthraw[0].sub(_accumRatesLastSwap[0])).add(type(uint256).max);
+      _accumPerUnit = type(uint256).max - (_accumRatesLastWidthraw[0] - _accumRatesLastSwap[0]) + type(uint256).max;
     } else {
-      uint256 _multiplierTerm = _multiplierDifference.mul(type(uint256).max);
+      uint256 _multiplierTerm = _multiplierDifference * type(uint256).max;
       if (_accumRatesLastSwap[0] >= _accumRatesLastWidthraw[0]) {
-        _accumPerUnit = _multiplierTerm.add(_accumRatesLastSwap[0].sub(_accumRatesLastWidthraw[0]));
+        _accumPerUnit = _multiplierTerm + (_accumRatesLastSwap[0] - _accumRatesLastWidthraw[0]);
       } else {
-        _accumPerUnit = _multiplierTerm.sub(_accumRatesLastWidthraw[0].sub(_accumRatesLastSwap[0]));
+        _accumPerUnit = _multiplierTerm - (_accumRatesLastWidthraw[0] - _accumRatesLastSwap[0]);
       }
     }
 
     uint256 _magnitude = (_userDCA.from == address(tokenA)) ? _magnitudeA : _magnitudeB;
-    (bool _ok, uint256 _mult) = _accumPerUnit.tryMul(_userDCA.rate);
+    (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
     uint256 _actuallySwapped;
     if (_ok) {
-      _actuallySwapped = _mult.div(_magnitude);
+      _actuallySwapped = _mult / _magnitude;
     } else {
       // Since we can't multiply accum and rate because of overflows, we need to figure out which to divide
       // We don't want to divide a term that is smaller than magnitude, because it would go to 0.
       // And if neither are smaller than magnitude, then we will choose the one that loses less information, and that would be the one with smallest reminder
       bool _divideAccumFirst =
-        _userDCA.rate < _magnitude || (_accumPerUnit > _magnitude && _accumPerUnit.mod(_magnitude) < _userDCA.rate.mod(_magnitude));
-      _actuallySwapped = _divideAccumFirst ? _accumPerUnit.div(_magnitude).mul(_userDCA.rate) : _userDCA.rate.div(_magnitude).mul(_accumPerUnit);
+        _userDCA.rate < _magnitude || (_accumPerUnit > _magnitude && _accumPerUnit % _magnitude < _userDCA.rate % _magnitude);
+      _actuallySwapped = _divideAccumFirst ? (_accumPerUnit / _magnitude) * _userDCA.rate : (_userDCA.rate / _magnitude) * _accumPerUnit;
     }
 
     uint256 _fee = _getFeeFromAmount(_actuallySwapped);
-    _swapped = _actuallySwapped.sub(_fee);
+    _swapped = _actuallySwapped - _fee;
   }
 
   /** Returns how many FROM remains unswapped  */
@@ -285,7 +284,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
       return 0;
     }
     uint256 _remainingSwaps = _userDCA.lastSwap - performedSwaps;
-    _unswapped = _remainingSwaps.mul(_userDCA.rate);
+    _unswapped = _remainingSwaps * _userDCA.rate;
   }
 
   function _getFrom(uint256 _dcaId) internal view returns (IERC20Detailed _from) {

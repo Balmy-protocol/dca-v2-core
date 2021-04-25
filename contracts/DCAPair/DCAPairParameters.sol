@@ -1,13 +1,11 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 
 import 'hardhat/console.sol';
 
-import '@openzeppelin/contracts/math/SafeMath.sol';
-import '@openzeppelin/contracts/math/Math.sol';
-import '@openzeppelin/contracts/math/SignedSafeMath.sol';
+import './utils/Math.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import '../DCAFactory/DCAFactory.sol';
 import '../interfaces/IERC20Detailed.sol';
@@ -49,8 +47,6 @@ interface IDCAPairParameters {
 }
 
 abstract contract DCAPairParameters is IDCAPairParameters {
-  using SafeMath for uint256;
-
   uint256 public constant override FEE_PRECISION = 10000; // TODO: Take from factory in initiation
 
   // Internal constants
@@ -100,13 +96,11 @@ abstract contract DCAPairParameters is IDCAPairParameters {
 
   function _getFeeFromAmount(uint256 _amount) internal view returns (uint256) {
     uint256 _protocolFee = factory.fee();
-    (bool _ok, uint256 _fee) = _amount.tryMul(_protocolFee);
+    (bool _ok, uint256 _fee) = Math.tryMul(_amount, _protocolFee);
     if (_ok) {
-      _fee = _fee.div(FEE_PRECISION).div(100);
+      _fee = _fee / FEE_PRECISION / 100;
     } else {
-      _fee = (_protocolFee < FEE_PRECISION)
-        ? _amount.div(FEE_PRECISION).mul(_protocolFee).div(100)
-        : _amount.div(FEE_PRECISION).div(100).mul(_protocolFee);
+      _fee = (_protocolFee < FEE_PRECISION) ? ((_amount / FEE_PRECISION) * _protocolFee) / 100 : (_amount / FEE_PRECISION / 100) * _protocolFee;
     }
     return _fee;
   }

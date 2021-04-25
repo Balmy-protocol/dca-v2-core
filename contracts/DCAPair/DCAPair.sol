@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.6;
+pragma solidity 0.8.4;
 pragma abicoder v2;
 
 import './DCAPairParameters.sol';
