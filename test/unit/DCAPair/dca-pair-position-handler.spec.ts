@@ -905,7 +905,7 @@ describe('DCAPositionHandler', () => {
 
       return behaviours.checkTxRevertedWithMessage({
         tx,
-        message: new RegExp('\\boverflow\\b'),
+        message: new RegExp("\\b(overflow|Transaction reverted and Hardhat couldn't infer the reason)\\b"),
       });
     }
   });
