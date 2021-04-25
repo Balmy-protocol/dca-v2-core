@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
 import './DCAPairParameters.sol';
 import './ERC721/ERC721.sol';

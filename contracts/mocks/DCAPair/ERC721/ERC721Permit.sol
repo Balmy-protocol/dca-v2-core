@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
 import '../../../DCAPair/ERC721/ERC721Permit.sol';
 import '../../../interfaces/ERC721/IERC721Permit.sol';

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
 import '../../interfaces/ERC721/IERC721Batch.sol';
 import './ERC721.sol';

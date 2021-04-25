@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.0;
+pragma solidity 0.8.4;
 
 library Math {
   function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
