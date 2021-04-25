@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { Contract, ContractFactory, Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, behaviours } from '../../utils';
+import { then, when } from '../../utils/bdd';
 
 describe('DCAFactoryParameters', function () {
   let owner: Signer, feeRecipient: Signer;
@@ -20,16 +21,16 @@ describe('DCAFactoryParameters', function () {
   });
 
   describe('constructor', () => {
-    context('when feeRecipient is zero address', () => {
-      it('reverts with message error', async () => {
+    when('feeRecipient is zero address', () => {
+      then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAFactoryParametersContract,
           args: [constants.ZERO_ADDRESS],
         });
       });
     });
-    context('when all arguments are valid', () => {
-      it('initizalizes correctly and emits events', async () => {
+    when('all arguments are valid', () => {
+      then('initizalizes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAFactoryParametersContract,
           args: [await feeRecipient.getAddress()],
@@ -46,8 +47,8 @@ describe('DCAFactoryParameters', function () {
   });
 
   describe('setFeeRecipient', () => {
-    context('when address is zero', () => {
-      it('reverts with message', async () => {
+    when('address is zero', () => {
+      then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
           contract: DCAFactoryParameters,
           func: 'setFeeRecipient',
@@ -55,8 +56,8 @@ describe('DCAFactoryParameters', function () {
         });
       });
     });
-    context('when address is not zero', () => {
-      it('sets feeRecipient and emits event with correct arguments', async () => {
+    when('address is not zero', () => {
+      then('sets feeRecipient and emits event with correct arguments', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DCAFactoryParameters,
           getterFunc: 'feeRecipient',
@@ -68,56 +69,91 @@ describe('DCAFactoryParameters', function () {
     });
   });
 
+  describe('setFee', () => {
+    when('sets fee bigger than MAX_FEE', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAFactoryParameters,
+          func: 'setFee',
+          args: [(await DCAFactoryParameters.MAX_FEE()).add(1)],
+          message: 'DCAFactory: fee too high',
+        });
+      });
+    });
+    when('sets fee equal to MAX_FEE', () => {
+      then('sets fee and emits event', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAFactoryParameters,
+          getterFunc: 'fee',
+          setterFunc: 'setFee',
+          variable: await DCAFactoryParameters.MAX_FEE(),
+          eventEmitted: 'FeeSet',
+        });
+      });
+    });
+    when('sets fee lower to MAX_FEE', () => {
+      then('sets fee and emits event', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAFactoryParameters,
+          getterFunc: 'fee',
+          setterFunc: 'setFee',
+          variable: (await DCAFactoryParameters.MAX_FEE()).sub(1),
+          eventEmitted: 'FeeSet',
+        });
+      });
+    });
+  });
+
   describe('addSwapIntervalsToAllowedList', () => {
-    context('when a swap interval is zero', () => {
-      it('reverts with message', async () => {
+    when('one of the intervals is zero', () => {
+      then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[0, 1]],
-          message: 'DCAFactory: zero-interval',
+          message: 'DCAFactory: zero interval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[1, 0]],
-          message: 'DCAFactory: zero-interval',
+          message: 'DCAFactory: zero interval',
         });
       });
     });
-    context('when a swap interval was already allowed', () => {
+    when('one of the intervals was already allowed', () => {
       beforeEach(async () => {
         await DCAFactoryParameters.addSwapIntervalsToAllowedList([10, 11]);
       });
-      it('reverts with message', async () => {
+      then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[1, 10]],
-          message: 'DCAFactory: allowed-swap-interval',
+          message: 'DCAFactory: allowed swap interval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[1, 11]],
-          message: 'DCAFactory: allowed-swap-interval',
+          message: 'DCAFactory: allowed swap interval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[10, 1]],
-          message: 'DCAFactory: allowed-swap-interval',
+          message: 'DCAFactory: allowed swap interval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[11, 1]],
-          message: 'DCAFactory: allowed-swap-interval',
+          message: 'DCAFactory: allowed swap interval',
         });
       });
     });
-    context('when swap intervals are not zero and were not previously allowed', () => {
-      it('adds swap intervals to allowed list and emits event', async () => {
+    when('swap intervals are not zero and were not previously allowed', () => {
+      then('adds swap intervals to allowed list and emits event', async () => {
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.false;
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be.false;
         const intervalsToBeAdded = [1, 100];
@@ -133,24 +169,24 @@ describe('DCAFactoryParameters', function () {
     beforeEach(async () => {
       await DCAFactoryParameters.addSwapIntervalsToAllowedList([1]);
     });
-    context('when swap interval was not previously allowed', () => {
-      it('reverts with message', async () => {
+    when('swap interval was not previously allowed', () => {
+      then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'removeSwapIntervalsFromAllowedList',
           args: [[1, 2]],
-          message: 'DCAFactory: swap-interval-not-allowed',
+          message: 'DCAFactory: swap interval not allowed',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'removeSwapIntervalsFromAllowedList',
           args: [[2, 3]],
-          message: 'DCAFactory: swap-interval-not-allowed',
+          message: 'DCAFactory: swap interval not allowed',
         });
       });
     });
-    context('when swap interval was previously allowed', () => {
-      it('removes swap interval and emits event', async () => {
+    when('swap interval was previously allowed', () => {
+      then('removes swap interval and emits event', async () => {
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.true;
         await expect(DCAFactoryParameters.removeSwapIntervalsFromAllowedList([1]))
           .to.emit(DCAFactoryParameters, 'SwapIntervalsForbidden')

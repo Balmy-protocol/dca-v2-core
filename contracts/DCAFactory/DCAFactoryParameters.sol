@@ -1,10 +1,11 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.0;
+//SPDX License Identifier: Unlicense
+pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts/utils/EnumerableSet.sol';
 
 interface IDCAFactoryParameters {
   event FeeRecipientSet(address _feeRecipient);
+  event FeeSet(uint256 _feeSet);
   event SwapIntervalsAllowed(uint256[] _swapIntervals);
   event SwapIntervalsForbidden(uint256[] _swapIntervals);
 
@@ -12,10 +13,18 @@ interface IDCAFactoryParameters {
 
   function feeRecipient() external view returns (address);
 
+  function fee() external view returns (uint256);
+
+  function FEE_PRECISION() external view returns (uint256);
+
+  function MAX_FEE() external view returns (uint256);
+
   function isSwapIntervalAllowed(uint256 _swapInterval) external view returns (bool);
 
   /* Public setters */
   function setFeeRecipient(address _feeRecipient) external;
+
+  function setFee(uint256 _fee) external;
 
   function addSwapIntervalsToAllowedList(uint256[] calldata _swapIntervals) external;
 
@@ -26,6 +35,9 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   address public override feeRecipient;
+  uint256 public override fee = 2000; // 0.2%
+  uint256 public constant override FEE_PRECISION = 10000;
+  uint256 public constant override MAX_FEE = 10 * FEE_PRECISION; // 10%
   EnumerableSet.UintSet _allowedSwapIntervals; // TODO: check if callable from outside
 
   constructor(address _feeRecipient) {
@@ -38,10 +50,16 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
     emit FeeRecipientSet(_feeRecipient);
   }
 
+  function _setFee(uint256 _fee) internal {
+    require(_fee <= MAX_FEE, 'DCAFactory: fee too high');
+    fee = _fee;
+    emit FeeSet(_fee);
+  }
+
   function _addSwapIntervalsToAllowedList(uint256[] calldata _swapIntervals) internal {
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
-      require(_swapIntervals[i] > 0, 'DCAFactory: zero-interval');
-      require(!isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: allowed-swap-interval');
+      require(_swapIntervals[i] > 0, 'DCAFactory: zero interval');
+      require(!isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: allowed swap interval');
       _allowedSwapIntervals.add(_swapIntervals[i]);
     }
     emit SwapIntervalsAllowed(_swapIntervals);
@@ -49,7 +67,7 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
 
   function _removeSwapIntervalsFromAllowedList(uint256[] calldata _swapIntervals) internal {
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
-      require(isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: swap-interval-not-allowed');
+      require(isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: swap interval not allowed');
       _allowedSwapIntervals.remove(_swapIntervals[i]);
     }
     emit SwapIntervalsForbidden(_swapIntervals);

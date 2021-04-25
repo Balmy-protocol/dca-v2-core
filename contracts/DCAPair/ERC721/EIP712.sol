@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
 
 /**
  * @dev https://eips.ethereum.org/EIPS/eip-712[EIP 712] is a standard for hashing and signing of typed structured data.

@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import 'hardhat/console.sol';
 
@@ -7,19 +8,25 @@ import '../SlidingOracle.sol';
 import './DCAPairParameters.sol';
 
 interface IDCAPairSwapHandler {
+  struct NextSwapInformation {
+    uint256 swapToPerform;
+    uint256 amountToSwapTokenA;
+    uint256 amountToSwapTokenB;
+    uint256 ratePerUnitBToA;
+    uint256 ratePerUnitAToB;
+    uint256 tokenAFee;
+    uint256 tokenBFee;
+    uint256 amountToBeProvidedBySwapper;
+    uint256 amountToRewardSwapperWith;
+    IERC20Detailed tokenToBeProvidedBySwapper;
+    IERC20Detailed tokenToRewardSwapperWith;
+  }
+
   event OracleSet(ISlidingOracle _oracle);
 
   event SwapIntervalSet(uint256 _swapInterval);
 
-  event Swapped(
-    uint256 _swapToPerform,
-    uint256 _amountToSwapTokenA,
-    uint256 _amountToSwapTokenB,
-    uint256 _ratePerUnitBToA,
-    uint256 _ratePerUnitAToB,
-    uint256 _amountToBeProvidedExternally,
-    IERC20Detailed _tokenToBeProvidedExternally
-  );
+  event Swapped(NextSwapInformation _nextSwapInformation);
 
   function swapInterval() external returns (uint256);
 
@@ -33,18 +40,7 @@ interface IDCAPairSwapHandler {
 
   function setSwapInterval(uint256 _swapInterval) external;
 
-  function getNextSwapInfo()
-    external
-    view
-    returns (
-      uint256 _swapToPerform,
-      uint256 _amountToSwapTokenA,
-      uint256 _amountToSwapTokenB,
-      uint256 _ratePerUnitBToA,
-      uint256 _ratePerUnitAToB,
-      uint256 _amountToBeProvidedExternally,
-      IERC20Detailed _tokenToBeProvidedExternally
-    );
+  function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 
   function swap() external;
 }
@@ -61,12 +57,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   uint256 public override lastSwapPerformed;
   ISlidingOracle public override oracle;
 
-  constructor(
-    IDCAFactory _factory,
-    ISlidingOracle _oracle,
-    uint256 _swapInterval
-  ) {
-    _setFactory(_factory);
+  constructor(ISlidingOracle _oracle, uint256 _swapInterval) {
     _setOracle(_oracle);
     _setSwapInterval(_swapInterval);
   }
@@ -118,92 +109,81 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     _swapAmountAccumulator = swapAmountAccumulator[_address] + uint256(swapAmountDelta[_address][_swapToPerform]);
   }
 
-  function getNextSwapInfo()
-    public
-    view
-    override
-    returns (
-      uint256 _swapToPerform,
-      uint256 _amountToSwapTokenA,
-      uint256 _amountToSwapTokenB,
-      uint256 _ratePerUnitBToA,
-      uint256 _ratePerUnitAToB,
-      uint256 _amountToBeProvidedExternally,
-      IERC20Detailed _tokenToBeProvidedExternally
-    )
-  {
-    _swapToPerform = performedSwaps.add(1);
-    _amountToSwapTokenA = _getAmountToSwap(address(tokenA), _swapToPerform);
-    _amountToSwapTokenB = _getAmountToSwap(address(tokenB), _swapToPerform);
+  function _convertTo(
+    uint256 _fromTokenMagnitude,
+    uint256 _amountFrom,
+    uint256 _rateFromTo
+  ) internal pure returns (uint256 _amountTo) {
+    _amountTo = _amountFrom.mul(_rateFromTo).div(_fromTokenMagnitude);
+  }
+
+  function _calculateNecessary(
+    uint256 _fromTokenMagnitude,
+    uint256 _amountTo,
+    uint256 _rateFromTo
+  ) internal pure returns (uint256 _amountFrom) {
+    _amountFrom = _amountTo.mul(_fromTokenMagnitude).div(_rateFromTo);
+  }
+
+  function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
+    _nextSwapInformation.swapToPerform = performedSwaps.add(1);
+    _nextSwapInformation.amountToSwapTokenA = _getAmountToSwap(address(tokenA), _nextSwapInformation.swapToPerform);
+    _nextSwapInformation.tokenAFee = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenA);
+    _nextSwapInformation.amountToSwapTokenB = _getAmountToSwap(address(tokenB), _nextSwapInformation.swapToPerform);
+    _nextSwapInformation.tokenBFee = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenB);
     // TODO: Instead of using current, it should use quote to get a moving average and not current?
-    _ratePerUnitBToA = oracle.current(address(tokenB), 10**tokenA.decimals(), address(tokenA));
-    // 1eDecimalsB    - 1.23e17 As
-    // X              - 1eDecimalsA
-    _ratePerUnitAToB = (10**tokenA.decimals()).mul(10**tokenB.decimals()).div(_ratePerUnitBToA);
+    _nextSwapInformation.ratePerUnitBToA = oracle.current(address(tokenB), _magnitudeB, address(tokenA));
+    _nextSwapInformation.ratePerUnitAToB = _calculateNecessary(_magnitudeB, _magnitudeA, _nextSwapInformation.ratePerUnitBToA);
 
-    // 1eDecimalsB        - 1.2e17 As
-    // amountToSwapTokenB - X
-    // => X = amountToSwapTokenBs * ratePerUnitBToA / 1eDecimalsB
-    uint256 _amountOfTokenAIfTokenBSwapped = _amountToSwapTokenB.mul(_ratePerUnitBToA).div(10**tokenB.decimals());
+    uint256 _amountOfTokenAIfTokenBSwapped =
+      _convertTo(_magnitudeB, _nextSwapInformation.amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
-    // CASE A
-    // # token a to swap = 500
-    // # token b to swap = 350
-    // tokenA = 1.05 tokenB
-    // => token b would give us = 367.5 token a
-    // => we have a surplus of (500 - 367.5) = 132.5 token a's in the trade.
-    // => we need more token B's to be provided externally for this to be fair
-    // => at the same rate we would need (132.5 / 1.05) = 126.19047619 token B to be provided from an external source
-
-    // CASE B
-    // # token a to swap = 500
-    // # token b to swap = 650
-    // tokenA = 1.05 tokenB
-    // => token b would give us = 619.047619048 token a
-    // we are missing (619.047619048 - 500) = 119.047619048 token a's in trade.
-
-    if (_amountOfTokenAIfTokenBSwapped < _amountToSwapTokenA) {
-      uint256 _tokenASurplus = _amountToSwapTokenA.sub(_amountOfTokenAIfTokenBSwapped);
-      _tokenToBeProvidedExternally = tokenB;
-      // 1eDecimalsB  - 1.2e17 As
-      // X            - surplus As
-      // X = surplusAs * 1eDecimalsB / ratePerUnitBToA
-      _amountToBeProvidedExternally = _tokenASurplus.mul(10**tokenB.decimals()).div(_ratePerUnitBToA);
-    } else if (_amountOfTokenAIfTokenBSwapped > _amountToSwapTokenA) {
-      _tokenToBeProvidedExternally = tokenA;
-      _amountToBeProvidedExternally = _amountOfTokenAIfTokenBSwapped.sub(_amountToSwapTokenA);
-    } else {
-      _amountToBeProvidedExternally = 0;
-      _tokenToBeProvidedExternally = IERC20Detailed(address(0));
+    if (_amountOfTokenAIfTokenBSwapped < _nextSwapInformation.amountToSwapTokenA) {
+      _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
+      _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
+      uint256 _tokenASurplus = _nextSwapInformation.amountToSwapTokenA.sub(_amountOfTokenAIfTokenBSwapped);
+      _nextSwapInformation.amountToBeProvidedBySwapper = _convertTo(_magnitudeA, _tokenASurplus, _nextSwapInformation.ratePerUnitAToB);
+      _nextSwapInformation.amountToRewardSwapperWith = _tokenASurplus.add(_getFeeFromAmount(_tokenASurplus));
+    } else if (_amountOfTokenAIfTokenBSwapped > _nextSwapInformation.amountToSwapTokenA) {
+      _nextSwapInformation.tokenToBeProvidedBySwapper = tokenA;
+      _nextSwapInformation.tokenToRewardSwapperWith = tokenB;
+      _nextSwapInformation.amountToBeProvidedBySwapper = _amountOfTokenAIfTokenBSwapped.sub(_nextSwapInformation.amountToSwapTokenA);
+      _nextSwapInformation.amountToRewardSwapperWith = _convertTo(
+        _magnitudeA,
+        _nextSwapInformation.amountToBeProvidedBySwapper.add(_getFeeFromAmount(_nextSwapInformation.amountToBeProvidedBySwapper)),
+        _nextSwapInformation.ratePerUnitAToB
+      );
     }
   }
 
   function _swap() internal {
     require(lastSwapPerformed <= block.timestamp.sub(swapInterval), 'DCAPair: within swap interval');
-    (
-      uint256 _swapToPerform,
-      uint256 _amountToSwapTokenA,
-      uint256 _amountToSwapTokenB,
-      uint256 _ratePerUnitBToA,
-      uint256 _ratePerUnitAToB,
-      uint256 _amountToBeProvidedExternally,
-      IERC20Detailed _tokenToBeProvidedExternally
-    ) = getNextSwapInfo();
-    if (_amountToBeProvidedExternally > 0) {
-      _tokenToBeProvidedExternally.safeTransferFrom(msg.sender, address(this), _amountToBeProvidedExternally);
-    }
-    _registerSwap(address(tokenA), _amountToSwapTokenA, _ratePerUnitAToB, _swapToPerform);
-    _registerSwap(address(tokenB), _amountToSwapTokenB, _ratePerUnitBToA, _swapToPerform);
-    performedSwaps = _swapToPerform;
-    lastSwapPerformed = block.timestamp;
-    emit Swapped(
-      _swapToPerform,
-      _amountToSwapTokenA,
-      _amountToSwapTokenB,
-      _ratePerUnitBToA,
-      _ratePerUnitAToB,
-      _amountToBeProvidedExternally,
-      _tokenToBeProvidedExternally
+    NextSwapInformation memory _nextSwapInformation = getNextSwapInfo();
+    _registerSwap(
+      address(tokenA),
+      _nextSwapInformation.amountToSwapTokenA,
+      _nextSwapInformation.ratePerUnitAToB,
+      _nextSwapInformation.swapToPerform
     );
+    _registerSwap(
+      address(tokenB),
+      _nextSwapInformation.amountToSwapTokenB,
+      _nextSwapInformation.ratePerUnitBToA,
+      _nextSwapInformation.swapToPerform
+    );
+    performedSwaps = _nextSwapInformation.swapToPerform;
+    lastSwapPerformed = block.timestamp;
+    // Send fees
+    if (_nextSwapInformation.amountToBeProvidedBySwapper > 0) {
+      _nextSwapInformation.tokenToBeProvidedBySwapper.safeTransferFrom(
+        msg.sender,
+        address(this),
+        _nextSwapInformation.amountToBeProvidedBySwapper
+      );
+      _nextSwapInformation.tokenToRewardSwapperWith.safeTransfer(msg.sender, _nextSwapInformation.amountToRewardSwapperWith);
+    }
+    tokenA.safeTransfer(factory.feeRecipient(), _nextSwapInformation.tokenAFee);
+    tokenB.safeTransfer(factory.feeRecipient(), _nextSwapInformation.tokenBFee);
+    emit Swapped(_nextSwapInformation);
   }
 }

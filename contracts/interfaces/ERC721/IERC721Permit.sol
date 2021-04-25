@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
 
 /**
  * @dev Interface of the ERC721 Permit extension allowing approvals to be made via signatures, as defined in

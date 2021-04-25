@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
+pragma abicoder v2;
 
 import 'hardhat/console.sol';
 
@@ -14,7 +14,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     IDCAFactory _factory,
     ISlidingOracle _oracle,
     uint256 _swapInterval
-  ) DCAPairParametersMock(_token0, _token1) DCAPairSwapHandler(_factory, _oracle, _swapInterval) {
+  ) DCAPairParametersMock(_factory, _token0, _token1) DCAPairSwapHandler(_oracle, _swapInterval) {
     /* */
   }
 

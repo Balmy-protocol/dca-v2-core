@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 /* solhint-disable */
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
 
 interface IUniswapV2Pair {
   event Approval(address indexed owner, address indexed spender, uint256 value);

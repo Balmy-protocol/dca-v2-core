@@ -1,9 +1,9 @@
 import moment from 'moment';
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
+import { BigNumber, Contract, ContractFactory, utils, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
-import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, uniswap, erc20, behaviours, evm, bn } from '../../utils';
+import { TransactionResponse, TransactionRequest } from '@ethersproject/abstract-provider';
+import { constants, uniswap, erc20, behaviours, evm, bn, wallet } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { readArgFromEvent } from '../../utils/event-utils';
@@ -12,20 +12,21 @@ const MINIMUM_SWAP_INTERVAL = BigNumber.from('60');
 
 describe('DCAPairSwapHandler', () => {
   let owner: SignerWithAddress;
-  let alice: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
-  let pair: Contract;
   let DCAPairSwapHandlerContract: ContractFactory;
   let DCAPairSwapHandler: Contract;
-  let slidingOracleContract: ContractFactory;
-  let slidingOracle: Contract;
+  let staticSlidingOracleContract: ContractFactory;
+  let staticSlidingOracle: Contract;
+  let DCAFactoryContract: ContractFactory;
+  let DCAFactory: Contract;
   const swapInterval = moment.duration(1, 'days').as('seconds');
 
   before('Setup accounts and contracts', async () => {
-    [owner, alice, feeRecipient] = await ethers.getSigners();
+    [owner, feeRecipient] = await ethers.getSigners();
+    DCAFactoryContract = await ethers.getContractFactory('contracts/DCAFactory/DCAFactory.sol:DCAFactory');
     DCAPairSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairSwapHandler.sol:DCAPairSwapHandlerMock');
-    slidingOracleContract = await ethers.getContractFactory('contracts/SlidingOracle.sol:SimplifiedSlidingOracle');
+    staticSlidingOracleContract = await ethers.getContractFactory('contracts/mocks/StaticSlidingOracle.sol:StaticSlidingOracle');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -36,25 +37,22 @@ describe('DCAPairSwapHandler', () => {
     tokenA = await erc20.deploy({
       name: 'tokenA',
       symbol: 'TKN0',
-      initialAccount: await owner.getAddress(),
+      initialAccount: owner.address,
       initialAmount: ethers.constants.MaxUint256,
     });
     tokenB = await erc20.deploy({
       name: 'tokenB',
       symbol: 'TKN1',
-      initialAccount: await owner.getAddress(),
+      initialAccount: owner.address,
       initialAmount: ethers.constants.MaxUint256,
     });
-    pair = await uniswap.createPair({
-      token0: tokenB,
-      token1: tokenA,
-    });
-    slidingOracle = await slidingOracleContract.deploy(uniswap.getUniswapV2Factory().address, pair.address, swapInterval);
+    staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
+    DCAFactory = await DCAFactoryContract.deploy(feeRecipient.address);
     DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
-      constants.NOT_ZERO_ADDRESS, // factory
-      slidingOracle.address, // oracle
+      DCAFactory.address, // factory
+      staticSlidingOracle.address, // oracle
       swapInterval
     );
   });
@@ -64,13 +62,7 @@ describe('DCAPairSwapHandler', () => {
       then('reverts with message', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAPairSwapHandlerContract,
-          args: [
-            tokenA.address,
-            tokenB.address,
-            constants.NOT_ZERO_ADDRESS, // factory
-            slidingOracle.address,
-            MINIMUM_SWAP_INTERVAL.sub(1),
-          ],
+          args: [tokenA.address, tokenB.address, DCAFactory.address, staticSlidingOracle.address, MINIMUM_SWAP_INTERVAL.sub(1)],
           message: 'DCAPair: interval too short',
         });
       });
@@ -79,7 +71,7 @@ describe('DCAPairSwapHandler', () => {
       then('reverts with message', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, constants.ZERO_ADDRESS, slidingOracle.address, MINIMUM_SWAP_INTERVAL],
+          args: [tokenA.address, tokenB.address, constants.ZERO_ADDRESS, staticSlidingOracle.address, MINIMUM_SWAP_INTERVAL],
         });
       });
     });
@@ -87,7 +79,7 @@ describe('DCAPairSwapHandler', () => {
       then('reverts with message', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, MINIMUM_SWAP_INTERVAL],
+          args: [tokenA.address, tokenB.address, DCAFactory.address, constants.ZERO_ADDRESS, MINIMUM_SWAP_INTERVAL],
         });
       });
     });
@@ -98,8 +90,8 @@ describe('DCAPairSwapHandler', () => {
           args: [
             tokenA.address,
             tokenB.address,
-            constants.NOT_ZERO_ADDRESS, // factory
-            slidingOracle.address,
+            DCAFactory.address, // factory
+            staticSlidingOracle.address,
             MINIMUM_SWAP_INTERVAL,
           ],
           settersGettersVariablesAndEvents: [
@@ -403,58 +395,48 @@ describe('DCAPairSwapHandler', () => {
     });
   });
 
-  const setOracleData = async ({ ratePerUnitAToB, observations }: { ratePerUnitAToB: BigNumber; observations: number }) => {
-    // 1eDecimals A - ratePerUnitAToB
-    const tokenADecimals = BigNumber.from(await tokenA.decimals());
-    await uniswap.addLiquidity({
-      owner,
-      token0: tokenA,
-      amountA: BigNumber.from('10').pow(tokenADecimals).mul('100000'),
-      token1: tokenB,
-      amountB: ratePerUnitAToB.mul('100000'),
-    });
-    for (let i = 0; i < observations; i++) {
-      await slidingOracle.update();
-      await evm.advanceTimeAndBlock(swapInterval);
-    }
-    // await tokenA.transfer(pair.address, utils.parseEther('100'));
-    // await pair.sync();
+  const setOracleData = async ({ ratePerUnitBToA }: { ratePerUnitBToA: BigNumber }) => {
+    const tokenBDecimals = BigNumber.from(await tokenB.decimals());
+    await staticSlidingOracle.setRate(ratePerUnitBToA, tokenBDecimals);
   };
 
   const setNextSwapInfo = async ({
     nextSwapToPerform,
     amountToSwapOfTokenA,
     amountToSwapOfTokenB,
-    ratePerUnitAToB,
+    ratePerUnitBToA,
   }: {
     nextSwapToPerform: BigNumber | number | string;
     amountToSwapOfTokenA: BigNumber | number | string;
     amountToSwapOfTokenB: BigNumber | number | string;
-    ratePerUnitAToB: BigNumber | number | string;
+    ratePerUnitBToA: BigNumber | number | string;
   }) => {
     nextSwapToPerform = bn.toBN(nextSwapToPerform);
     amountToSwapOfTokenA = bn.toBN(amountToSwapOfTokenA);
     amountToSwapOfTokenB = bn.toBN(amountToSwapOfTokenB);
-    ratePerUnitAToB = bn.toBN(ratePerUnitAToB);
+    ratePerUnitBToA = bn.toBN(ratePerUnitBToA);
     await DCAPairSwapHandler.setPerformedSwaps(nextSwapToPerform.sub(1));
     await DCAPairSwapHandler.setSwapAmountAccumulator(tokenA.address, amountToSwapOfTokenA.div(2));
     await DCAPairSwapHandler.setSwapAmountDelta(tokenA.address, nextSwapToPerform, amountToSwapOfTokenA.div(2));
     await DCAPairSwapHandler.setSwapAmountAccumulator(tokenB.address, amountToSwapOfTokenB.div(2));
     await DCAPairSwapHandler.setSwapAmountDelta(tokenB.address, nextSwapToPerform, amountToSwapOfTokenB.div(2));
     await setOracleData({
-      ratePerUnitAToB,
-      observations: 10,
+      ratePerUnitBToA,
     });
   };
 
   type NextSwapInfo = {
-    _swapToPerform: BigNumber;
-    _amountToSwapTokenA: BigNumber;
-    _amountToSwapTokenB: BigNumber;
-    _ratePerUnitBToA: BigNumber;
-    _ratePerUnitAToB: BigNumber;
-    _amountToBeProvidedExternally: BigNumber;
-    _tokenToBeProvidedExternally: string;
+    swapToPerform: BigNumber;
+    amountToSwapTokenA: BigNumber;
+    amountToSwapTokenB: BigNumber;
+    ratePerUnitBToA: BigNumber;
+    ratePerUnitAToB: BigNumber;
+    tokenAFee: BigNumber;
+    tokenBFee: BigNumber;
+    amountToBeProvidedBySwapper: BigNumber;
+    amountToRewardSwapperWith: BigNumber;
+    tokenToBeProvidedBySwapper: string;
+    tokenToRewardSwapperWith: string;
   };
 
   function getNextSwapInfoTest({
@@ -462,67 +444,97 @@ describe('DCAPairSwapHandler', () => {
     nextSwapToPerform,
     amountToSwapOfTokenA,
     amountToSwapOfTokenB,
+    ratePerUnitBToA,
     ratePerUnitAToB,
-    amountToBeProvidedExternally,
-    tokenToBeProvidedExternally,
+    tokenAFee,
+    tokenBFee,
+    amountToBeProvidedBySwapper,
+    amountToRewardSwapperWith,
+    tokenToBeProvidedBySwapper,
+    tokenToRewardSwapperWith,
   }: {
     title: string;
     nextSwapToPerform: BigNumber | number | string;
     amountToSwapOfTokenA: BigNumber | number | string;
     amountToSwapOfTokenB: BigNumber | number | string;
+    ratePerUnitBToA: BigNumber | number | string;
     ratePerUnitAToB: BigNumber | number | string;
-    amountToBeProvidedExternally: BigNumber | number | string;
-    tokenToBeProvidedExternally: () => string;
+    tokenAFee: BigNumber | number | string;
+    tokenBFee: BigNumber | number | string;
+    amountToBeProvidedBySwapper: BigNumber | number | string;
+    amountToRewardSwapperWith: BigNumber | number | string;
+    tokenToBeProvidedBySwapper: () => string;
+    tokenToRewardSwapperWith: () => string;
   }) {
     nextSwapToPerform = bn.toBN(nextSwapToPerform);
     amountToSwapOfTokenA = bn.toBN(amountToSwapOfTokenA);
     amountToSwapOfTokenB = bn.toBN(amountToSwapOfTokenB);
+    ratePerUnitBToA = bn.toBN(ratePerUnitBToA);
     ratePerUnitAToB = bn.toBN(ratePerUnitAToB);
-    amountToBeProvidedExternally = bn.toBN(amountToBeProvidedExternally);
+    tokenAFee = bn.toBN(tokenAFee);
+    tokenBFee = bn.toBN(tokenBFee);
+    amountToBeProvidedBySwapper = bn.toBN(amountToBeProvidedBySwapper);
+    amountToRewardSwapperWith = bn.toBN(amountToRewardSwapperWith);
 
     let nextSwapInfo: NextSwapInfo;
     when(title, () => {
       given(async () => {
         await setNextSwapInfo({
-          nextSwapToPerform: nextSwapToPerform,
-          amountToSwapOfTokenA: amountToSwapOfTokenA,
-          amountToSwapOfTokenB: amountToSwapOfTokenB,
-          ratePerUnitAToB: ratePerUnitAToB,
+          nextSwapToPerform,
+          amountToSwapOfTokenA,
+          amountToSwapOfTokenB,
+          ratePerUnitBToA,
         });
         nextSwapInfo = await DCAPairSwapHandler.getNextSwapInfo();
       });
       then('swap to perform is current + 1', () => {
-        expect(nextSwapInfo._swapToPerform).to.equal(nextSwapToPerform);
+        expect(nextSwapInfo.swapToPerform).to.equal(nextSwapToPerform);
       });
       then('amount to swap of token A is correct', () => {
-        expect(nextSwapInfo._amountToSwapTokenA).to.equal(amountToSwapOfTokenA);
+        expect(nextSwapInfo.amountToSwapTokenA).to.equal(amountToSwapOfTokenA);
       });
       then('amount to swap of token B is correct', () => {
-        expect(nextSwapInfo._amountToSwapTokenB).to.equal(amountToSwapOfTokenB);
-      });
-      then('rate of unit a to b is correct', () => {
-        expect(
-          bn.equal({
-            value: nextSwapInfo._ratePerUnitAToB,
-            to: ratePerUnitAToB,
-            threshold: BigNumber.from('1'),
-          })
-        ).to.be.true;
+        expect(nextSwapInfo.amountToSwapTokenB).to.equal(amountToSwapOfTokenB);
       });
       then('rate of unit b to a is correct', async () => {
-        // 1e18 A = 1e17.5 B
-        // X A      = 1eDecimals B
-        // => rate = 1eDecimals B * 1eDecimals A / 1e17.5 B
-        const tokenBDecimals = BigNumber.from('10').pow(BigNumber.from(await tokenB.decimals()));
-        const tokenADecimals = BigNumber.from('10').pow(BigNumber.from(await tokenA.decimals()));
-        const ratePerUnitBToA = tokenBDecimals.mul(tokenADecimals).div(nextSwapInfo._ratePerUnitAToB);
-        expect(nextSwapInfo._ratePerUnitBToA).to.equal(ratePerUnitBToA);
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.ratePerUnitBToA,
+          to: ratePerUnitBToA,
+          threshold: BigNumber.from('1'),
+        });
       });
-      then('the amount of tokens to be provided externally is correct', async () => {
-        expect(nextSwapInfo._amountToBeProvidedExternally).to.be.equal(amountToBeProvidedExternally);
+      then('rate of unit a to b is correct', () => {
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.ratePerUnitAToB,
+          to: ratePerUnitAToB,
+          threshold: BigNumber.from('1'),
+        });
       });
-      then('token to be provided externally is correct', async () => {
-        expect(nextSwapInfo._tokenToBeProvidedExternally).to.be.equal(tokenToBeProvidedExternally());
+      then('token a fee is correct', async () => {
+        expect(nextSwapInfo.tokenAFee).to.equal(tokenAFee);
+      });
+      then('token b fee is correct', async () => {
+        expect(nextSwapInfo.tokenBFee).to.equal(tokenBFee);
+      });
+      then('the amount of tokens to be provided by swapper is correct', async () => {
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.amountToBeProvidedBySwapper,
+          to: amountToBeProvidedBySwapper,
+          threshold: BigNumber.from('1'),
+        });
+      });
+      then('the amount of tokens to reward swapper with is correct', async () => {
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.amountToRewardSwapperWith,
+          to: amountToRewardSwapperWith,
+          threshold: BigNumber.from('1'),
+        });
+      });
+      then('token to be provided by swapper is correct', async () => {
+        expect(nextSwapInfo.tokenToBeProvidedBySwapper).to.be.equal(tokenToBeProvidedBySwapper());
+      });
+      then('token to reward swapper with is correct', async () => {
+        expect(nextSwapInfo.tokenToRewardSwapperWith).to.be.equal(tokenToRewardSwapperWith());
       });
     });
   }
@@ -533,9 +545,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1.4'),
       amountToSwapOfTokenB: utils.parseEther('1.3'),
+      ratePerUnitBToA: utils.parseEther('1'),
       ratePerUnitAToB: utils.parseEther('1'),
-      amountToBeProvidedExternally: utils.parseEther('0.1'),
-      tokenToBeProvidedExternally: () => tokenB.address,
+      tokenAFee: utils.parseEther('0.0028'),
+      tokenBFee: utils.parseEther('0.0026'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.1'),
+      amountToRewardSwapperWith: utils.parseEther('0.1002'),
+      tokenToBeProvidedBySwapper: () => tokenB.address,
+      tokenToRewardSwapperWith: () => tokenA.address,
     });
 
     getNextSwapInfoTest({
@@ -543,9 +560,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('1.3'),
+      ratePerUnitBToA: utils.parseEther('1'),
       ratePerUnitAToB: utils.parseEther('1'),
-      amountToBeProvidedExternally: utils.parseEther('0.3'),
-      tokenToBeProvidedExternally: () => tokenA.address,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.0026'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.3'),
+      amountToRewardSwapperWith: utils.parseEther('0.3006'),
+      tokenToBeProvidedBySwapper: () => tokenA.address,
+      tokenToRewardSwapperWith: () => tokenB.address,
     });
 
     getNextSwapInfoTest({
@@ -553,9 +575,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('1'),
+      ratePerUnitBToA: utils.parseEther('1'),
       ratePerUnitAToB: utils.parseEther('1'),
-      amountToBeProvidedExternally: utils.parseEther('0'),
-      tokenToBeProvidedExternally: () => constants.ZERO_ADDRESS,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.002'),
+      amountToBeProvidedBySwapper: utils.parseEther('0'),
+      amountToRewardSwapperWith: utils.parseEther('0'),
+      tokenToBeProvidedBySwapper: () => constants.ZERO_ADDRESS,
+      tokenToRewardSwapperWith: () => constants.ZERO_ADDRESS,
     });
 
     getNextSwapInfoTest({
@@ -563,9 +590,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1.4'),
       amountToSwapOfTokenB: utils.parseEther('2.6'),
+      ratePerUnitBToA: utils.parseEther('0.5'),
       ratePerUnitAToB: utils.parseEther('2'),
-      amountToBeProvidedExternally: utils.parseEther('0.2'),
-      tokenToBeProvidedExternally: () => tokenB.address,
+      tokenAFee: utils.parseEther('0.0028'),
+      tokenBFee: utils.parseEther('0.0052'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.2'),
+      amountToRewardSwapperWith: utils.parseEther('0.1002'),
+      tokenToBeProvidedBySwapper: () => tokenB.address,
+      tokenToRewardSwapperWith: () => tokenA.address,
     });
 
     getNextSwapInfoTest({
@@ -573,9 +605,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('2.6'),
+      ratePerUnitBToA: utils.parseEther('0.5'),
       ratePerUnitAToB: utils.parseEther('2'),
-      amountToBeProvidedExternally: utils.parseEther('0.3'),
-      tokenToBeProvidedExternally: () => tokenA.address,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.0052'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.3'),
+      amountToRewardSwapperWith: utils.parseEther('0.6012'),
+      tokenToBeProvidedBySwapper: () => tokenA.address,
+      tokenToRewardSwapperWith: () => tokenB.address,
     });
 
     getNextSwapInfoTest({
@@ -583,9 +620,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('2'),
+      ratePerUnitBToA: utils.parseEther('0.5'),
       ratePerUnitAToB: utils.parseEther('2'),
-      amountToBeProvidedExternally: utils.parseEther('0'),
-      tokenToBeProvidedExternally: () => constants.ZERO_ADDRESS,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.004'),
+      amountToBeProvidedBySwapper: utils.parseEther('0'),
+      amountToRewardSwapperWith: utils.parseEther('0'),
+      tokenToBeProvidedBySwapper: () => constants.ZERO_ADDRESS,
+      tokenToRewardSwapperWith: () => constants.ZERO_ADDRESS,
     });
 
     getNextSwapInfoTest({
@@ -593,9 +635,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1.4'),
       amountToSwapOfTokenB: utils.parseEther('2'),
-      ratePerUnitAToB: utils.parseEther('1.6666666666'),
-      amountToBeProvidedExternally: utils.parseEther('0.33333333324'),
-      tokenToBeProvidedExternally: () => tokenB.address,
+      ratePerUnitBToA: utils.parseEther('0.6'),
+      ratePerUnitAToB: utils.parseEther('1.666666666666666666'),
+      tokenAFee: utils.parseEther('0.0028'),
+      tokenBFee: utils.parseEther('0.004'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.333333333333333332'),
+      amountToRewardSwapperWith: utils.parseEther('0.200399999999999999'),
+      tokenToBeProvidedBySwapper: () => tokenB.address,
+      tokenToRewardSwapperWith: () => tokenA.address,
     });
 
     getNextSwapInfoTest({
@@ -603,9 +650,14 @@ describe('DCAPairSwapHandler', () => {
       nextSwapToPerform: 2,
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('5'),
-      ratePerUnitAToB: utils.parseEther('1.6666666666'),
-      amountToBeProvidedExternally: utils.parseEther('2.00000000012'),
-      tokenToBeProvidedExternally: () => tokenA.address,
+      ratePerUnitBToA: utils.parseEther('0.6'),
+      ratePerUnitAToB: utils.parseEther('1.666666666666666666'),
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.010'),
+      amountToBeProvidedBySwapper: utils.parseEther('2'),
+      amountToRewardSwapperWith: utils.parseEther('3.339999999999999998'),
+      tokenToBeProvidedBySwapper: () => tokenA.address,
+      tokenToRewardSwapperWith: () => tokenB.address,
     });
 
     // TODO: This requires external stuff because of DUST we must set a possible slippage to avoid not executing internally
@@ -622,159 +674,333 @@ describe('DCAPairSwapHandler', () => {
     // });
   });
 
-  describe('_swap', () => {
-    when('last swap was < than swap interval ago', () => {
+  const swapTestFailed = ({
+    title,
+    nextSwapToPerform,
+    lastSwapPerformed,
+    initialSwapperBalanceTokenA,
+    approvedTokenA,
+    initialSwapperBalanceTokenB,
+    approvedTokenB,
+    amountToSwapOfTokenA,
+    amountToSwapOfTokenB,
+    ratePerUnitBToA,
+    reason,
+  }: {
+    title: string;
+    nextSwapToPerform: BigNumber | number | string;
+    lastSwapPerformed: () => BigNumber | number | string;
+    initialSwapperBalanceTokenA: BigNumber | number | string;
+    approvedTokenA: BigNumber | number | string;
+    initialSwapperBalanceTokenB: BigNumber | number | string;
+    approvedTokenB: BigNumber | number | string;
+    amountToSwapOfTokenA: BigNumber | number | string;
+    amountToSwapOfTokenB: BigNumber | number | string;
+    ratePerUnitBToA: BigNumber | number | string;
+    reason: string;
+  }) => {
+    nextSwapToPerform = bn.toBN(nextSwapToPerform);
+    when(title, () => {
+      let swapper: Wallet;
+      let initialPairBalanceTokenA: BigNumber;
+      let initialPairBalanceTokenB: BigNumber;
+      let swapTx: Promise<TransactionResponse>;
+      let staticLastSwapPerformed = lastSwapPerformed();
       given(async () => {
-        await DCAPairSwapHandler.setLastSwapPerformed(moment().unix());
+        swapper = await (await wallet.generateRandom()).connect(ethers.provider);
+        await DCAPairSwapHandler.setLastSwapPerformed(staticLastSwapPerformed);
+        await setNextSwapInfo({
+          nextSwapToPerform,
+          amountToSwapOfTokenA,
+          amountToSwapOfTokenB,
+          ratePerUnitBToA,
+        });
+        await tokenA.transfer(await swapper.getAddress(), initialSwapperBalanceTokenA);
+        await tokenB.transfer(await swapper.getAddress(), initialSwapperBalanceTokenB);
+        await tokenA.connect(swapper).approve(DCAPairSwapHandler.address, approvedTokenA, { gasPrice: 0 });
+        await tokenB.connect(swapper).approve(DCAPairSwapHandler.address, approvedTokenB, { gasPrice: 0 });
+        initialPairBalanceTokenA = await tokenA.balanceOf(DCAPairSwapHandler.address);
+        initialPairBalanceTokenB = await tokenB.balanceOf(DCAPairSwapHandler.address);
+        swapTx = DCAPairSwapHandler.connect(swapper).swap({ gasPrice: 0 });
+        await behaviours.waitForTxAndNotThrow(swapTx);
       });
-      then('reverts with message', async () => {
-        await expect(DCAPairSwapHandler.swap()).to.be.revertedWith('DCAPair: within swap interval');
+
+      then('tx is reverted with reason', async () => {
+        await expect(swapTx).to.be.revertedWith(reason);
+      });
+      then('swapper balance of token A remains the same', async () => {
+        expect(await tokenA.balanceOf(await swapper.getAddress())).to.equal(initialSwapperBalanceTokenA);
+      });
+      then('swapper balance of token B remains the same', async () => {
+        expect(await tokenB.balanceOf(await swapper.getAddress())).to.equal(initialSwapperBalanceTokenB);
+      });
+      then('pair balance of token A remains the same', async () => {
+        expect(await tokenA.balanceOf(DCAPairSwapHandler.address)).to.equal(initialPairBalanceTokenA);
+      });
+      then('pair balance of token B remains the same', async () => {
+        expect(await tokenB.balanceOf(DCAPairSwapHandler.address)).to.equal(initialPairBalanceTokenB);
+      });
+      then('swap was not registered on token a', async () => {
+        expect(await DCAPairSwapHandler.swapAmountDelta(tokenA.address, nextSwapToPerform)).to.not.be.equal(0);
+      });
+      then('swap was not registered on token b', async () => {
+        expect(await DCAPairSwapHandler.swapAmountDelta(tokenB.address, nextSwapToPerform)).to.not.be.equal(0);
+      });
+      then('last swap performed did not increase', async () => {
+        expect(await DCAPairSwapHandler.lastSwapPerformed()).to.equal(staticLastSwapPerformed);
+      });
+      then('performed swaps did not increase', async () => {
+        expect(await DCAPairSwapHandler.performedSwaps()).to.equal((nextSwapToPerform as BigNumber).sub(1));
       });
     });
-    when('external amount of token a to be provided is not approved', () => {
-      given(async () => {
-        await setNextSwapInfo({
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: utils.parseEther('1'),
-          amountToSwapOfTokenB: utils.parseEther('2'),
-          ratePerUnitAToB: utils.parseEther('1'),
-        });
-      });
-      then('tx is reverted with reason', async () => {
-        await expect(DCAPairSwapHandler.swap()).to.be.revertedWith('ERC20: transfer amount exceeds allowance');
-      });
-    });
-    when('external amount of token a to be provided is approved but swapper does not own', () => {
-      given(async () => {
-        await setNextSwapInfo({
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: utils.parseEther('1'),
-          amountToSwapOfTokenB: utils.parseEther('2'),
-          ratePerUnitAToB: utils.parseEther('1'),
-        });
-        await tokenA.transfer(constants.NOT_ZERO_ADDRESS, await tokenA.balanceOf(owner.address));
-        await tokenA.approve(DCAPairSwapHandler.address, ethers.constants.MaxUint256);
-      });
-      then('tx is reverted with reason', async () => {
-        await expect(DCAPairSwapHandler.swap()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
-      });
+  };
+
+  describe('swap', () => {
+    swapTestFailed({
+      title: 'last swap was < than swap interval ago',
+      lastSwapPerformed: () => moment().unix() + swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: utils.parseEther('1'),
+      approvedTokenA: utils.parseEther('1'),
+      initialSwapperBalanceTokenB: utils.parseEther('1'),
+      approvedTokenB: utils.parseEther('1'),
+      amountToSwapOfTokenA: utils.parseEther('1'),
+      amountToSwapOfTokenB: utils.parseEther('1'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      reason: 'DCAPair: within swap interval',
     });
 
-    when('external amount of token b to be provided is not approved', () => {
-      given(async () => {
-        await setNextSwapInfo({
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: utils.parseEther('2'),
-          amountToSwapOfTokenB: utils.parseEther('1'),
-          ratePerUnitAToB: utils.parseEther('1'),
-        });
-      });
-      then('tx is reverted with reason', async () => {
-        await expect(DCAPairSwapHandler.swap()).to.be.revertedWith('ERC20: transfer amount exceeds allowance');
-      });
+    swapTestFailed({
+      title: 'external amount of token a to be provided is not approved',
+      lastSwapPerformed: () => moment().unix() - swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: utils.parseEther('1'),
+      approvedTokenA: utils.parseEther('1').sub(1),
+      initialSwapperBalanceTokenB: utils.parseEther('0'),
+      approvedTokenB: utils.parseEther('0'),
+      amountToSwapOfTokenA: utils.parseEther('1'),
+      amountToSwapOfTokenB: utils.parseEther('2'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      reason: 'ERC20: transfer amount exceeds allowance',
     });
-    when('external amount of token b to be provided is approved but swapper does not own', () => {
-      given(async () => {
-        await setNextSwapInfo({
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: utils.parseEther('2'),
-          amountToSwapOfTokenB: utils.parseEther('1'),
-          ratePerUnitAToB: utils.parseEther('1'),
-        });
-        await tokenB.transfer(constants.NOT_ZERO_ADDRESS, await tokenB.balanceOf(owner.address));
-        await tokenB.approve(DCAPairSwapHandler.address, ethers.constants.MaxUint256);
-      });
-      then('tx is reverted with reason', async () => {
-        await expect(DCAPairSwapHandler.swap()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
-      });
+
+    swapTestFailed({
+      title: 'external amount of token a to be provided is approved but swapper does not own',
+      lastSwapPerformed: () => moment().unix() - swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: utils.parseEther('1').sub(1),
+      approvedTokenA: utils.parseEther('1'),
+      initialSwapperBalanceTokenB: utils.parseEther('0'),
+      approvedTokenB: utils.parseEther('0'),
+      amountToSwapOfTokenA: utils.parseEther('1'),
+      amountToSwapOfTokenB: utils.parseEther('2'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      reason: 'ERC20: transfer amount exceeds balance',
+    });
+
+    swapTestFailed({
+      title: 'external amount of token b to be provided is not approved',
+      lastSwapPerformed: () => moment().unix() - swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: utils.parseEther('0'),
+      approvedTokenA: utils.parseEther('0'),
+      initialSwapperBalanceTokenB: utils.parseEther('1'),
+      approvedTokenB: utils.parseEther('1').sub(1),
+      amountToSwapOfTokenA: utils.parseEther('2'),
+      amountToSwapOfTokenB: utils.parseEther('1'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      reason: 'ERC20: transfer amount exceeds allowance',
+    });
+
+    swapTestFailed({
+      title: 'external amount of token b to be provided is not approved',
+      lastSwapPerformed: () => moment().unix() - swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: utils.parseEther('0'),
+      approvedTokenA: utils.parseEther('0'),
+      initialSwapperBalanceTokenB: utils.parseEther('1').sub(1),
+      approvedTokenB: utils.parseEther('1'),
+      amountToSwapOfTokenA: utils.parseEther('2'),
+      amountToSwapOfTokenB: utils.parseEther('1'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      reason: 'ERC20: transfer amount exceeds balance',
+    });
+
+    swapTestFailed({
+      title: 'external amount of token b to be provided is approved but swapper does not own',
+      lastSwapPerformed: () => moment().unix() - swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: utils.parseEther('0'),
+      approvedTokenA: utils.parseEther('0'),
+      initialSwapperBalanceTokenB: utils.parseEther('1').sub(1),
+      approvedTokenB: utils.parseEther('1'),
+      amountToSwapOfTokenA: utils.parseEther('2'),
+      amountToSwapOfTokenB: utils.parseEther('1'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      reason: 'ERC20: transfer amount exceeds balance',
+    });
+
+    swapTestFailed({
+      title: 'pair swap handler does not own the amount of token to reward swapper with',
+      lastSwapPerformed: () => moment().unix() - swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: utils.parseEther('0'),
+      approvedTokenA: utils.parseEther('0'),
+      initialSwapperBalanceTokenB: utils.parseEther('1'),
+      approvedTokenB: utils.parseEther('1'),
+      amountToSwapOfTokenA: utils.parseEther('2'),
+      amountToSwapOfTokenB: utils.parseEther('1'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      reason: 'ERC20: transfer amount exceeds balance',
     });
 
     swapTest({
       title: 'rate per unit is 1:1 and needing token b to be provided externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1.4'),
       amountToSwapOfTokenB: utils.parseEther('1.3'),
       ratePerUnitBToA: utils.parseEther('1'),
       ratePerUnitAToB: utils.parseEther('1'),
-      amountToBeProvidedExternally: utils.parseEther('0.1'),
-      tokenToBeProvidedExternally: () => tokenB.address,
+      tokenAFee: utils.parseEther('0.0028'),
+      tokenBFee: utils.parseEther('0.0026'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.1'),
+      amountToRewardSwapperWith: utils.parseEther('0.1002'),
+      tokenToBeProvidedBySwapper: () => tokenB,
+      tokenToRewardSwapperWith: () => tokenA,
+    });
+
+    swapTest({
+      title: 'rate per unit is 1:1 and needing token b to be provided externally',
+      nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
+      amountToSwapOfTokenA: utils.parseEther('1.4'),
+      amountToSwapOfTokenB: utils.parseEther('1.3'),
+      ratePerUnitBToA: utils.parseEther('1'),
+      ratePerUnitAToB: utils.parseEther('1'),
+      tokenAFee: utils.parseEther('0.0028'),
+      tokenBFee: utils.parseEther('0.0026'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.1'),
+      amountToRewardSwapperWith: utils.parseEther('0.1002'),
+      tokenToBeProvidedBySwapper: () => tokenB,
+      tokenToRewardSwapperWith: () => tokenA,
     });
 
     swapTest({
       title: 'rate per unit is 1:1 and needing token a to be provided externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('1.3'),
       ratePerUnitBToA: utils.parseEther('1'),
       ratePerUnitAToB: utils.parseEther('1'),
-      amountToBeProvidedExternally: utils.parseEther('0.3'),
-      tokenToBeProvidedExternally: () => tokenA.address,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.0026'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.3'),
+      amountToRewardSwapperWith: utils.parseEther('0.3006'),
+      tokenToBeProvidedBySwapper: () => tokenA,
+      tokenToRewardSwapperWith: () => tokenB,
     });
 
     swapTest({
       title: 'rate per unit is 1:1 and there is no need to provide tokens externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('1'),
       ratePerUnitBToA: utils.parseEther('1'),
       ratePerUnitAToB: utils.parseEther('1'),
-      amountToBeProvidedExternally: utils.parseEther('0'),
-      tokenToBeProvidedExternally: () => constants.ZERO_ADDRESS,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.002'),
+      amountToBeProvidedBySwapper: utils.parseEther('0'),
+      amountToRewardSwapperWith: utils.parseEther('0'),
     });
 
     swapTest({
       title: 'rate per unit is 1:2 and needing token b to be provided externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1.4'),
       amountToSwapOfTokenB: utils.parseEther('2.6'),
       ratePerUnitBToA: utils.parseEther('0.5'),
       ratePerUnitAToB: utils.parseEther('2'),
-      amountToBeProvidedExternally: utils.parseEther('0.2'),
-      tokenToBeProvidedExternally: () => tokenB.address,
+      tokenAFee: utils.parseEther('0.0028'),
+      tokenBFee: utils.parseEther('0.0052'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.2'),
+      amountToRewardSwapperWith: utils.parseEther('0.1002'),
+      tokenToBeProvidedBySwapper: () => tokenB,
+      tokenToRewardSwapperWith: () => tokenA,
     });
 
     swapTest({
       title: 'rate per unit is 1:2 and needing token a to be provided externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('2.6'),
       ratePerUnitBToA: utils.parseEther('0.5'),
       ratePerUnitAToB: utils.parseEther('2'),
-      amountToBeProvidedExternally: utils.parseEther('0.3'),
-      tokenToBeProvidedExternally: () => tokenA.address,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.0052'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.3'),
+      amountToRewardSwapperWith: utils.parseEther('0.6012'),
+      tokenToBeProvidedBySwapper: () => tokenA,
+      tokenToRewardSwapperWith: () => tokenB,
     });
 
     swapTest({
       title: 'rate per unit is 1:2 and there is no need to provide tokens externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('2'),
       ratePerUnitBToA: utils.parseEther('0.5'),
       ratePerUnitAToB: utils.parseEther('2'),
-      amountToBeProvidedExternally: utils.parseEther('0'),
-      tokenToBeProvidedExternally: () => constants.ZERO_ADDRESS,
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.004'),
+      amountToBeProvidedBySwapper: utils.parseEther('0'),
+      amountToRewardSwapperWith: utils.parseEther('0'),
     });
 
     swapTest({
       title: 'rate per unit is 3:5 and needing token b to be provided externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1.4'),
       amountToSwapOfTokenB: utils.parseEther('2'),
-      ratePerUnitBToA: utils.parseEther('0.600000000024'),
-      ratePerUnitAToB: utils.parseEther('1.6666666666'),
-      amountToBeProvidedExternally: utils.parseEther('0.33333333324'),
-      tokenToBeProvidedExternally: () => tokenB.address,
+      ratePerUnitBToA: utils.parseEther('0.6'),
+      ratePerUnitAToB: utils.parseEther('1.666666666666666666'),
+      tokenAFee: utils.parseEther('0.0028'),
+      tokenBFee: utils.parseEther('0.004'),
+      amountToBeProvidedBySwapper: utils.parseEther('0.333333333333333332'),
+      amountToRewardSwapperWith: utils.parseEther('0.200399999999999999'),
+      tokenToBeProvidedBySwapper: () => tokenB,
+      tokenToRewardSwapperWith: () => tokenA,
     });
 
     swapTest({
       title: 'rate per unit is 3:5 and needing token a to be provided externally',
       nextSwapToPerform: 2,
+      initialContractTokenABalance: utils.parseEther('100'),
+      initialContractTokenBBalance: utils.parseEther('100'),
       amountToSwapOfTokenA: utils.parseEther('1'),
       amountToSwapOfTokenB: utils.parseEther('5'),
-      ratePerUnitBToA: utils.parseEther('0.600000000024'),
-      ratePerUnitAToB: utils.parseEther('1.6666666666'),
-      amountToBeProvidedExternally: utils.parseEther('2.00000000012'),
-      tokenToBeProvidedExternally: () => tokenA.address,
+      ratePerUnitBToA: utils.parseEther('0.6'),
+      ratePerUnitAToB: utils.parseEther('1.666666666666666666'),
+      tokenAFee: utils.parseEther('0.002'),
+      tokenBFee: utils.parseEther('0.010'),
+      amountToBeProvidedBySwapper: utils.parseEther('2'),
+      amountToRewardSwapperWith: utils.parseEther('3.339999999999999998'),
+      tokenToBeProvidedBySwapper: () => tokenA,
+      tokenToRewardSwapperWith: () => tokenB,
     });
 
     // TODO: This requires external stuff because of DUST we must set a possible slippage to avoid not executing internally
@@ -794,78 +1020,189 @@ describe('DCAPairSwapHandler', () => {
   function swapTest({
     title,
     nextSwapToPerform,
+    initialContractTokenABalance,
+    initialContractTokenBBalance,
     amountToSwapOfTokenA,
     amountToSwapOfTokenB,
     ratePerUnitBToA,
     ratePerUnitAToB,
-    amountToBeProvidedExternally,
-    tokenToBeProvidedExternally,
+    tokenAFee,
+    tokenBFee,
+    amountToBeProvidedBySwapper,
+    amountToRewardSwapperWith,
+    tokenToBeProvidedBySwapper,
+    tokenToRewardSwapperWith,
   }: {
     title: string;
     nextSwapToPerform: BigNumber | number | string;
+    initialContractTokenABalance: BigNumber | number | string;
+    initialContractTokenBBalance: BigNumber | number | string;
     amountToSwapOfTokenA: BigNumber | number | string;
     amountToSwapOfTokenB: BigNumber | number | string;
-    ratePerUnitAToB: BigNumber | number | string;
     ratePerUnitBToA: BigNumber | number | string;
-    amountToBeProvidedExternally: BigNumber | number | string;
-    tokenToBeProvidedExternally: () => string;
+    ratePerUnitAToB: BigNumber | number | string;
+    tokenAFee: BigNumber | number | string;
+    tokenBFee: BigNumber | number | string;
+    amountToBeProvidedBySwapper: BigNumber | number | string;
+    amountToRewardSwapperWith: BigNumber | number | string;
+    tokenToBeProvidedBySwapper?: () => Contract;
+    tokenToRewardSwapperWith?: () => Contract;
   }) {
     nextSwapToPerform = bn.toBN(nextSwapToPerform);
+    initialContractTokenABalance = bn.toBN(initialContractTokenABalance);
+    initialContractTokenBBalance = bn.toBN(initialContractTokenBBalance);
     amountToSwapOfTokenA = bn.toBN(amountToSwapOfTokenA);
     amountToSwapOfTokenB = bn.toBN(amountToSwapOfTokenB);
+    ratePerUnitBToA = bn.toBN(ratePerUnitBToA);
     ratePerUnitAToB = bn.toBN(ratePerUnitAToB);
-    amountToBeProvidedExternally = bn.toBN(amountToBeProvidedExternally);
-
-    let initialContractTokenABalance: BigNumber;
-    let initialContractTokenBBalance: BigNumber;
+    tokenAFee = bn.toBN(tokenAFee);
+    tokenBFee = bn.toBN(tokenBFee);
+    amountToBeProvidedBySwapper = bn.toBN(amountToBeProvidedBySwapper);
+    amountToRewardSwapperWith = bn.toBN(amountToRewardSwapperWith);
     let initialSwapperTokenABalance: BigNumber;
     let initialSwapperTokenBBalance: BigNumber;
     let initialLastSwapPerformed: BigNumber;
     let swapTx: Promise<TransactionResponse>;
+
     when(title, () => {
       given(async () => {
         await setNextSwapInfo({
-          nextSwapToPerform: nextSwapToPerform,
-          amountToSwapOfTokenA: amountToSwapOfTokenA,
-          amountToSwapOfTokenB: amountToSwapOfTokenB,
-          ratePerUnitAToB: ratePerUnitAToB,
+          nextSwapToPerform,
+          amountToSwapOfTokenA,
+          amountToSwapOfTokenB,
+          ratePerUnitBToA,
         });
-        initialContractTokenABalance = await tokenA.balanceOf(DCAPairSwapHandler.address);
-        initialContractTokenBBalance = await tokenB.balanceOf(DCAPairSwapHandler.address);
+        await tokenA.transfer(DCAPairSwapHandler.address, initialContractTokenABalance);
+        await tokenB.transfer(DCAPairSwapHandler.address, initialContractTokenBBalance);
         initialSwapperTokenABalance = await tokenA.balanceOf(owner.address);
         initialSwapperTokenBBalance = await tokenB.balanceOf(owner.address);
         initialLastSwapPerformed = await DCAPairSwapHandler.lastSwapPerformed();
-        if (tokenToBeProvidedExternally().toLowerCase() === tokenA.address.toLowerCase()) {
-          await tokenA.approve(DCAPairSwapHandler.address, amountToBeProvidedExternally);
-        } else {
-          await tokenB.approve(DCAPairSwapHandler.address, amountToBeProvidedExternally);
+        if (tokenToBeProvidedBySwapper) {
+          await tokenToBeProvidedBySwapper().approve(DCAPairSwapHandler.address, (amountToBeProvidedBySwapper as BigNumber).add(1)); // 1 wei for threshold
         }
         swapTx = DCAPairSwapHandler.swap();
       });
       then('tx is not reverted', async () => {
         await expect(swapTx).to.not.be.reverted;
       });
-      then('external amount of token needed is provided', async () => {
-        if (tokenToBeProvidedExternally().toLowerCase() === tokenA.address.toLowerCase()) {
-          expect(await tokenA.balanceOf(DCAPairSwapHandler.address)).to.equal(initialContractTokenABalance.add(amountToBeProvidedExternally));
-        } else {
-          expect(await tokenB.balanceOf(DCAPairSwapHandler.address)).to.equal(initialContractTokenBBalance.add(amountToBeProvidedExternally));
+      then('token to be provided by swapper needed is provided', async () => {
+        if (!tokenToBeProvidedBySwapper) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenA.balanceOf(DCAPairSwapHandler.address),
+            to: (initialContractTokenABalance as BigNumber).sub(tokenAFee),
+            threshold: BigNumber.from('1'),
+          });
+          bn.expectToEqualWithThreshold({
+            value: await tokenB.balanceOf(DCAPairSwapHandler.address),
+            to: (initialContractTokenBBalance as BigNumber).sub(tokenBFee),
+            threshold: BigNumber.from('1'),
+          });
+        } else if (tokenToBeProvidedBySwapper() === tokenA) {
+          bn.expectToEqualWithThreshold({
+            value: (await tokenA.balanceOf(DCAPairSwapHandler.address)).add(tokenAFee),
+            to: (initialContractTokenABalance as BigNumber).add(amountToBeProvidedBySwapper),
+            threshold: BigNumber.from('1'),
+          });
+        } else if (tokenToBeProvidedBySwapper() === tokenB) {
+          bn.expectToEqualWithThreshold({
+            value: (await tokenB.balanceOf(DCAPairSwapHandler.address)).add(tokenBFee),
+            to: (initialContractTokenBBalance as BigNumber).add(amountToBeProvidedBySwapper),
+            threshold: BigNumber.from('1'),
+          });
         }
       });
-      then('external amount of token is taken from swapper', async () => {
-        if (tokenToBeProvidedExternally() === tokenA.address) {
-          expect(await tokenA.balanceOf(owner.address)).to.equal(initialSwapperTokenABalance.sub(amountToBeProvidedExternally));
-        } else {
-          expect(await tokenB.balanceOf(owner.address)).to.equal(initialSwapperTokenBBalance.sub(amountToBeProvidedExternally));
+      then('token to be provided by swapper is taken from swapper', async () => {
+        if (!tokenToBeProvidedBySwapper) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenA.balanceOf(owner.address),
+            to: initialSwapperTokenABalance,
+            threshold: constants.ZERO,
+          });
+          bn.expectToEqualWithThreshold({
+            value: await tokenB.balanceOf(owner.address),
+            to: initialSwapperTokenBBalance,
+            threshold: constants.ZERO,
+          });
+        } else if (tokenToBeProvidedBySwapper() === tokenA) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenA.balanceOf(owner.address),
+            to: initialSwapperTokenABalance.sub(amountToBeProvidedBySwapper),
+            threshold: BigNumber.from('1'),
+          });
+        } else if (tokenToBeProvidedBySwapper() === tokenB) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenB.balanceOf(owner.address),
+            to: initialSwapperTokenBBalance.sub(amountToBeProvidedBySwapper),
+            threshold: BigNumber.from('1'),
+          });
+        }
+      });
+      then('token to reward the swapper with is taken from the pair', async () => {
+        if (!tokenToRewardSwapperWith) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenA.balanceOf(DCAPairSwapHandler.address),
+            to: (initialContractTokenABalance as BigNumber).sub(tokenAFee),
+            threshold: BigNumber.from('1'),
+          });
+          bn.expectToEqualWithThreshold({
+            value: await tokenB.balanceOf(DCAPairSwapHandler.address),
+            to: (initialContractTokenBBalance as BigNumber).sub(tokenBFee),
+            threshold: BigNumber.from('1'),
+          });
+        } else if (tokenToRewardSwapperWith() === tokenA) {
+          bn.expectToEqualWithThreshold({
+            value: (await tokenA.balanceOf(DCAPairSwapHandler.address)).add(tokenAFee),
+            to: (initialContractTokenABalance as BigNumber).sub(amountToRewardSwapperWith),
+            threshold: BigNumber.from('1'),
+          });
+        } else if (tokenToRewardSwapperWith() === tokenB) {
+          bn.expectToEqualWithThreshold({
+            value: (await tokenB.balanceOf(DCAPairSwapHandler.address)).add(tokenBFee),
+            to: (initialContractTokenBBalance as BigNumber).sub(amountToRewardSwapperWith),
+            threshold: BigNumber.from('1'),
+          });
+        }
+      });
+      then('token to reward the swapper (+ fee) is sent to the swapper', async () => {
+        if (!tokenToRewardSwapperWith) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenA.balanceOf(owner.address),
+            to: initialSwapperTokenABalance,
+            threshold: constants.ZERO,
+          });
+          bn.expectToEqualWithThreshold({
+            value: await tokenB.balanceOf(owner.address),
+            to: initialSwapperTokenBBalance,
+            threshold: constants.ZERO,
+          });
+        } else if (tokenToRewardSwapperWith() === tokenA) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenA.balanceOf(owner.address),
+            to: initialSwapperTokenABalance.add(amountToRewardSwapperWith),
+            threshold: BigNumber.from('1'),
+          });
+        } else if (tokenToRewardSwapperWith() === tokenB) {
+          bn.expectToEqualWithThreshold({
+            value: await tokenB.balanceOf(owner.address),
+            to: initialSwapperTokenBBalance.add(amountToRewardSwapperWith),
+            threshold: BigNumber.from('1'),
+          });
         }
       });
       then('register swaps from tokenA to tokenB with correct information', async () => {
         expect(await DCAPairSwapHandler.swapAmountAccumulator(tokenA.address)).to.equal(amountToSwapOfTokenA);
         expect(await DCAPairSwapHandler.accumRatesPerUnit(tokenA.address, nextSwapToPerform, 0)).to.not.equal(0);
+        expect(await DCAPairSwapHandler.accumRatesPerUnit(tokenA.address, nextSwapToPerform, 0)).to.equal(ratePerUnitAToB);
       });
       then('register swaps from tokenB to tokenA with correct information', async () => {
         expect(await DCAPairSwapHandler.swapAmountAccumulator(tokenB.address)).to.equal(amountToSwapOfTokenB);
-        expect(await DCAPairSwapHandler.accumRatesPerUnit(tokenB.address, nextSwapToPerform, 0)).to.not.equal(0);
+        expect(await DCAPairSwapHandler.accumRatesPerUnit(tokenB.address, nextSwapToPerform, 0)).to.equal(ratePerUnitBToA);
+      });
+      then('sends token a fee correctly to fee recipient', async () => {
+        expect(await tokenA.balanceOf(feeRecipient.address)).to.equal(tokenAFee);
+      });
+      then('sends token b fee correctly to fee recipient', async () => {
+        expect(await tokenB.balanceOf(feeRecipient.address)).to.equal(tokenBFee);
       });
       then('updates performed swaps', async () => {
         expect(await DCAPairSwapHandler.performedSwaps()).to.equal(nextSwapToPerform);
@@ -875,13 +1212,55 @@ describe('DCAPairSwapHandler', () => {
       });
       then('emits event with correct information', async () => {
         const transactionResponse = await swapTx;
-        expect(await readArgFromEvent(transactionResponse, 'Swapped', '_swapToPerform')).to.equal(nextSwapToPerform);
-        expect(await readArgFromEvent(transactionResponse, 'Swapped', '_amountToSwapTokenA')).to.equal(amountToSwapOfTokenA);
-        expect(await readArgFromEvent(transactionResponse, 'Swapped', '_amountToSwapTokenB')).to.equal(amountToSwapOfTokenB);
-        expect(await readArgFromEvent(transactionResponse, 'Swapped', '_ratePerUnitBToA')).to.equal(ratePerUnitBToA);
-        expect(await readArgFromEvent(transactionResponse, 'Swapped', '_ratePerUnitAToB')).to.equal(ratePerUnitAToB);
-        expect(await readArgFromEvent(transactionResponse, 'Swapped', '_amountToBeProvidedExternally')).to.equal(amountToBeProvidedExternally);
-        expect(await readArgFromEvent(transactionResponse, 'Swapped', '_tokenToBeProvidedExternally')).to.equal(tokenToBeProvidedExternally());
+        const nextSwapInformation = (await readArgFromEvent(transactionResponse, 'Swapped', '_nextSwapInformation')) as NextSwapInfo;
+        expect(nextSwapInformation.swapToPerform).to.equal(nextSwapToPerform);
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.amountToSwapTokenA,
+          to: amountToSwapOfTokenA,
+          threshold: BigNumber.from('1'),
+        });
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.amountToSwapTokenB,
+          to: amountToSwapOfTokenB,
+          threshold: BigNumber.from('1'),
+        });
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.ratePerUnitBToA,
+          to: ratePerUnitBToA,
+          threshold: BigNumber.from('1'),
+        });
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.ratePerUnitAToB,
+          to: ratePerUnitAToB,
+          threshold: BigNumber.from('1'),
+        });
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.tokenAFee,
+          to: tokenAFee,
+          threshold: BigNumber.from('1'),
+        });
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.tokenBFee,
+          to: tokenBFee,
+          threshold: BigNumber.from('1'),
+        });
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.amountToBeProvidedBySwapper,
+          to: amountToBeProvidedBySwapper,
+          threshold: BigNumber.from('1'),
+        });
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInformation.amountToRewardSwapperWith,
+          to: amountToRewardSwapperWith,
+          threshold: BigNumber.from('1'),
+        });
+        if (!tokenToBeProvidedBySwapper) {
+          expect(nextSwapInformation.tokenToBeProvidedBySwapper).to.equal(constants.ZERO_ADDRESS);
+          expect(nextSwapInformation.tokenToRewardSwapperWith).to.equal(constants.ZERO_ADDRESS);
+        } else {
+          expect(nextSwapInformation.tokenToBeProvidedBySwapper).to.equal(tokenToBeProvidedBySwapper().address);
+          expect(nextSwapInformation.tokenToRewardSwapperWith).to.equal(tokenToRewardSwapperWith!().address);
+        }
       });
     });
   }

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';

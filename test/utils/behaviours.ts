@@ -171,6 +171,12 @@ const txShouldSetVariableAndEmitEvent = async ({
   });
 };
 
+const waitForTxAndNotThrow = (tx: Promise<TransactionRequest>): Promise<any> => {
+  return new Promise((resolve) => {
+    tx.then(resolve).catch(resolve);
+  });
+};
+
 export default {
   deployShouldRevertWithMessage,
   deployShouldRevertWithZeroAddress,
@@ -180,4 +186,5 @@ export default {
   txShouldHaveSetVariablesAndEmitEvents,
   txShouldSetVariableAndEmitEvent,
   checkTxRevertedWithMessage,
+  waitForTxAndNotThrow,
 };

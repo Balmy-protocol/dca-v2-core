@@ -1,6 +1,7 @@
 import { BigNumber } from 'ethers';
+import { expect } from 'chai';
 
-const equal = ({
+const expectToEqualWithThreshold = ({
   value,
   to,
   threshold,
@@ -8,11 +9,14 @@ const equal = ({
   value: BigNumber | number | string;
   to: BigNumber | number | string;
   threshold: BigNumber | number | string;
-}): boolean => {
+}): void => {
   value = toBN(value);
   to = toBN(to);
   threshold = toBN(threshold);
-  return to.sub(threshold).lte(value) && to.add(threshold).gte(value);
+  expect(
+    to.sub(threshold).lte(value) && to.add(threshold).gte(value),
+    `Expected ${value.toString()} to be between ${to.sub(threshold).toString()} and ${to.add(threshold).toString()}`
+  ).to.be.true;
 };
 
 const toBN = (value: string | number | BigNumber): BigNumber => {
@@ -20,6 +24,6 @@ const toBN = (value: string | number | BigNumber): BigNumber => {
 };
 
 export default {
-  equal,
+  expectToEqualWithThreshold,
   toBN,
 };

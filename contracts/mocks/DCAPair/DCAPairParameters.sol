@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
 
 import '../../DCAPair/DCAPairParameters.sol';
 
 contract DCAPairParametersMock is DCAPairParameters {
-  constructor(IERC20Detailed _tokenA, IERC20Detailed _tokenB) DCAPairParameters(_tokenA, _tokenB) {}
+  constructor(
+    IDCAFactory _factory,
+    IERC20Detailed _tokenA,
+    IERC20Detailed _tokenB
+  ) DCAPairParameters(_factory, _tokenA, _tokenB) {}
 
   // Mocks setters
 
@@ -17,8 +21,16 @@ contract DCAPairParametersMock is DCAPairParameters {
     _setTokenA(_tokenA);
   }
 
+  function magnitudeA() public view returns (uint256) {
+    return _magnitudeA;
+  }
+
   function setTokenB(IERC20Detailed _tokenB) public {
     _setTokenB(_tokenB);
+  }
+
+  function magnitudeB() public view returns (uint256) {
+    return _magnitudeB;
   }
 
   function setSwapAmountDelta(
@@ -48,5 +60,9 @@ contract DCAPairParametersMock is DCAPairParameters {
     uint256 _rateMultiplier
   ) public {
     accumRatesPerUnit[_tokenAddress][_swap] = [_rate, _rateMultiplier];
+  }
+
+  function getFeeFromAmount(uint256 _amount) public view returns (uint256) {
+    return _getFeeFromAmount(_amount);
   }
 }

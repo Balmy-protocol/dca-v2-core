@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
 
 import './DCAFactoryParameters.sol';
 import './DCAFactoryPairsHandler.sol';
@@ -19,13 +19,21 @@ contract DCAFactory is DCAFactoryParameters, DCAFactoryPairsHandler, IDCAFactory
 
   function setFeeRecipient(address _feeRecipient) public override {
     // TODO: Only governance
+    _setFeeRecipient(_feeRecipient);
+  }
+
+  function setFee(uint256 _fee) public override {
+    // TODO: Only governance
+    _setFee(_fee);
   }
 
   function addSwapIntervalsToAllowedList(uint256[] calldata _swapIntervals) public override {
     // TODO: Only governance
+    _addSwapIntervalsToAllowedList(_swapIntervals);
   }
 
   function removeSwapIntervalsFromAllowedList(uint256[] calldata _swapIntervals) public override {
     // TODO: Only governance
+    _removeSwapIntervalsFromAllowedList(_swapIntervals);
   }
 }

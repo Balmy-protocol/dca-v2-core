@@ -1,6 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.7.6;
 
 import 'hardhat/console.sol';
 
@@ -29,6 +28,8 @@ interface IDCAPairParameters {
   /* Public getters */
   function factory() external view returns (IDCAFactory);
 
+  function FEE_PRECISION() external view returns (uint256);
+
   function tokenA() external view returns (IERC20Detailed);
 
   function tokenB() external view returns (IERC20Detailed);
@@ -48,6 +49,14 @@ interface IDCAPairParameters {
 }
 
 abstract contract DCAPairParameters is IDCAPairParameters {
+  using SafeMath for uint256;
+
+  uint256 public constant override FEE_PRECISION = 10000; // TODO: Take from factory in initiation
+
+  // Internal constants
+  uint256 internal _magnitudeA;
+  uint256 internal _magnitudeB;
+
   // Basic setup
   IDCAFactory public override factory;
   IERC20Detailed public override tokenA;
@@ -59,7 +68,12 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   mapping(uint256 => DCA) public override userPositions;
   uint256 public override performedSwaps;
 
-  constructor(IERC20Detailed _tokenA, IERC20Detailed _tokenB) {
+  constructor(
+    IDCAFactory _factory,
+    IERC20Detailed _tokenA,
+    IERC20Detailed _tokenB
+  ) {
+    _setFactory(_factory);
     _setTokenA(_tokenA);
     _setTokenB(_tokenB);
   }
@@ -73,12 +87,27 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   function _setTokenA(IERC20Detailed _tokenA) internal {
     require(address(_tokenA) != address(0), 'DCAPair: zero address');
     tokenA = _tokenA;
+    _magnitudeA = 10**_tokenA.decimals();
     emit TokenASet(_tokenA);
   }
 
   function _setTokenB(IERC20Detailed _tokenB) internal {
     require(address(_tokenB) != address(0), 'DCAPair: zero address');
     tokenB = _tokenB;
+    _magnitudeB = 10**_tokenB.decimals();
     emit TokenBSet(_tokenB);
+  }
+
+  function _getFeeFromAmount(uint256 _amount) internal view returns (uint256) {
+    uint256 _protocolFee = factory.fee();
+    (bool _ok, uint256 _fee) = _amount.tryMul(_protocolFee);
+    if (_ok) {
+      _fee = _fee.div(FEE_PRECISION).div(100);
+    } else {
+      _fee = (_protocolFee < FEE_PRECISION)
+        ? _amount.div(FEE_PRECISION).mul(_protocolFee).div(100)
+        : _amount.div(FEE_PRECISION).div(100).mul(_protocolFee);
+    }
+    return _fee;
   }
 }

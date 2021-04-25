@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 /* solhint-disable */
-pragma solidity 0.7.0;
+pragma solidity 0.7.6;
 
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
