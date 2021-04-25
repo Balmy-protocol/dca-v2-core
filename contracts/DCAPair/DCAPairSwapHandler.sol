@@ -78,14 +78,12 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     uint256 _ratePerUnit
   ) internal {
     uint256 _previousSwap = _performedSwap - 1;
-    if (accumRatesPerUnit[_address][_previousSwap][0] + _ratePerUnit < accumRatesPerUnit[_address][_previousSwap][0]) {
+    (bool _ok, uint256 _result) = Math.tryAdd(accumRatesPerUnit[_address][_previousSwap][0], _ratePerUnit);
+    if (_ok) {
+      accumRatesPerUnit[_address][_performedSwap] = [_result, accumRatesPerUnit[_address][_previousSwap][1]];
+    } else {
       uint256 _missingUntilOverflow = type(uint256).max - accumRatesPerUnit[_address][_previousSwap][0];
       accumRatesPerUnit[_address][_performedSwap] = [_ratePerUnit - _missingUntilOverflow, accumRatesPerUnit[_address][_previousSwap][1] + 1];
-    } else {
-      accumRatesPerUnit[_address][_performedSwap] = [
-        accumRatesPerUnit[_address][_previousSwap][0] + _ratePerUnit,
-        accumRatesPerUnit[_address][_previousSwap][1]
-      ];
     }
   }
 
