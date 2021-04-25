@@ -1,7 +1,7 @@
 //SPDX License Identifier: Unlicense
-pragma solidity 0.7.6;
+pragma solidity 0.8.0;
 
-import '@openzeppelin/contracts/utils/EnumerableSet.sol';
+import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
 interface IDCAFactoryParameters {
   event FeeRecipientSet(address _feeRecipient);

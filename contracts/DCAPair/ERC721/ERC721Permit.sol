@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.7.6;
+pragma solidity 0.8.0;
 
-import '@openzeppelin/contracts/cryptography/ECDSA.sol';
+import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Counters.sol';
 import '../../interfaces/ERC721/IERC721Permit.sol';
 import './ERC721.sol';
-import './EIP712.sol';
+import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
 
 abstract contract ERC721Permit is ERC721, IERC721Permit, EIP712 {
   using Counters for Counters.Counter;

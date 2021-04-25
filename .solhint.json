@@ -9,6 +9,7 @@
     "quotes": ["error", "single"],
     "private-vars-leading-underscore": ["warn", { "strict": false }],
     "reason-string": ["off"],
-    "not-rely-on-time": "off"
+    "not-rely-on-time": "off",
+    "no-empty-blocks": "off"
   }
 }
