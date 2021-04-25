@@ -907,6 +907,7 @@ describe('DCAPositionHandler', () => {
         tx,
         message: new RegExp("\\b(overflow|Transaction reverted and Hardhat couldn't infer the reason)\\b"),
       });
+      // TODO: Remove hack above when Hardhat detects native overflows correctly
     }
   });
 
