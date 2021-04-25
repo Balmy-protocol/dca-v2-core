@@ -1,6 +1,6 @@
-import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
+import { BigNumber, BigNumberish, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { erc20, behaviours, constants, bn } from '../../utils';
+import { erc20, behaviours, constants } from '../../utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { expectNoEventWithName, readArgFromEventOrFail } from '../../utils/event-utils';
@@ -248,8 +248,8 @@ describe('DCAPositionHandler', () => {
 
       then('event is emitted', async () => {
         const swapped = fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5);
-        const fee = await getFeeFrom(swapped);
-        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, dcaId, tokenB.address, swapped, fee);
+        const swappedWithFeeApplied = await withFeeApplied(swapped);
+        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, dcaId, tokenB.address, swappedWithFeeApplied);
       });
     });
   });
@@ -386,16 +386,11 @@ describe('DCAPositionHandler', () => {
       });
 
       then('event is emitted', async () => {
+        const swappedA = fromEther(RATE_PER_UNIT_5 * POSITION_RATE_3);
+        const swappedB = fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5);
         await expect(response)
           .to.emit(DCAPositionHandler, 'WithdrewMany')
-          .withArgs(
-            owner.address,
-            [dcaId1, dcaId2],
-            fromEther(RATE_PER_UNIT_5 * POSITION_RATE_3),
-            await getFeeFrom(fromEther(RATE_PER_UNIT_5 * POSITION_RATE_3)),
-            fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5),
-            await getFeeFrom(fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5))
-          );
+          .withArgs(owner.address, [dcaId1, dcaId2], await withFeeApplied(swappedA), await withFeeApplied(swappedB));
       });
     });
   });
@@ -436,7 +431,7 @@ describe('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Terminated')
-          .withArgs(owner.address, dcaId, fromEther(unswappedWhenTerminated), fromEther(swappedWhenTerminated));
+          .withArgs(owner.address, dcaId, fromEther(unswappedWhenTerminated), await withFeeApplied(fromEther(swappedWhenTerminated)));
       });
 
       then('un-swapped balance is returned', async () => {
@@ -445,8 +440,13 @@ describe('DCAPositionHandler', () => {
       });
 
       then('swapped balance is returned', async () => {
-        await expectBalanceToBe(tokenB, owner.address, INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated);
-        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
+        const fee = await getFeeFrom(fromEther(swappedWhenTerminated));
+
+        const userBalance = await tokenB.balanceOf(owner.address);
+        expect(userBalance).to.be.equal(fromEther(INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated).sub(fee));
+
+        const contractBalance = await tokenB.balanceOf(DCAPositionHandler.address);
+        expect(contractBalance).to.be.equal(fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT).add(fee));
       });
 
       then(`position is removed`, async () => {
@@ -702,12 +702,12 @@ describe('DCAPositionHandler', () => {
   describe('calculateSwapped', () => {
     when('multiplier is 1 and accum is negative', () => {
       then('swapped is calculated correctly', async () => {
-        const { _swapped } = await calculateSwappedWith({
+        const swapped = await calculateSwappedWith({
           accumRate: -10,
           rateMultiplier: 1,
           fee: 0,
         });
-        expect(_swapped).to.equal(constants.MAX_UINT_256.sub(fromEther(10)));
+        expect(swapped).to.equal(constants.MAX_UINT_256.sub(fromEther(10)));
       });
     });
 
@@ -735,8 +735,8 @@ describe('DCAPositionHandler', () => {
         await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 3);
 
         // It shouldn't revert, since the position ended before the overflow
-        const { _swapped } = await DCAPositionHandler.calculateSwapped(dcaId);
-        expect(_swapped).to.equal(constants.MAX_UINT_256);
+        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
+        expect(swapped).to.equal(constants.MAX_UINT_256);
       });
     });
 
@@ -775,7 +775,7 @@ describe('DCAPositionHandler', () => {
     describe('verify overflow limits', () => {
       when('multiplier is 1 and accum is 0', () => {
         then('swapped should be max uint', async () => {
-          const { _swapped } = await calculateSwappedWith({
+          const _swapped = await calculateSwappedWith({
             accumRate: 0,
             rateMultiplier: 1,
             fee: 0,
@@ -786,23 +786,23 @@ describe('DCAPositionHandler', () => {
 
       when('multiplier is 0 and accum is MAX(uint256)', () => {
         then('swapped should be max uint', async () => {
-          const { _swapped } = await calculateSwappedWith({
+          const swapped = await calculateSwappedWith({
             accumRate: constants.MAX_UINT_256,
             rateMultiplier: 0,
             fee: 0,
           });
-          expect(_swapped).to.equal(constants.MAX_UINT_256);
+          expect(swapped).to.equal(constants.MAX_UINT_256);
         });
       });
 
       when('multiplier is 2 and accum is -MAX(uint256)', () => {
         then('swapped should be max uint', async () => {
-          const { _swapped } = await calculateSwappedWith({
+          const swapped = await calculateSwappedWith({
             accumRate: constants.MAX_UINT_256.mul(-1),
             rateMultiplier: 2,
             fee: 0,
           });
-          expect(_swapped).to.equal(constants.MAX_UINT_256);
+          expect(swapped).to.equal(constants.MAX_UINT_256);
         });
       });
 
@@ -811,28 +811,27 @@ describe('DCAPositionHandler', () => {
           then('looses the least amount of information', async () => {
             const feePrecision = await DCAFactory.FEE_PRECISION();
             const protocolFee = feePrecision.sub(1);
-            const { _swapped, _fee } = await calculateSwappedWith({
+            const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
               rateMultiplier: 0,
               fee: protocolFee,
             });
             const fee = constants.MAX_UINT_256.div(feePrecision).mul(protocolFee).div(100);
-            expect(_swapped).to.equal(constants.MAX_UINT_256);
-            expect(_fee).to.equal(fee);
+            expect(swapped.add(fee)).to.equal(constants.MAX_UINT_256);
           });
         });
+
         when('precision is smaller than fee', () => {
           then('looses the least amount of information', async () => {
             const feePrecision = await DCAFactory.FEE_PRECISION();
             const protocolFee = feePrecision.add(1);
-            const { _swapped, _fee } = await calculateSwappedWith({
+            const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
               rateMultiplier: 0,
               fee: protocolFee,
             });
             const fee = constants.MAX_UINT_256.div(feePrecision).div(100).mul(protocolFee);
-            expect(_swapped).to.equal(constants.MAX_UINT_256);
-            expect(_fee).to.equal(fee);
+            expect(swapped.add(fee)).to.equal(constants.MAX_UINT_256);
           });
         });
       });
@@ -1110,11 +1109,17 @@ describe('DCAPositionHandler', () => {
     expect(positionLastSwap, 'Wrong last swap').to.equal(lastSwap);
   }
 
-  async function getFeeFrom(value: BigNumber | string | number): Promise<BigNumber> {
-    value = bn.toBN(value) as BigNumber;
+  async function getFeeFrom(value: BigNumberish): Promise<BigNumber> {
+    value = BigNumber.from(value) as BigNumber;
     const feePrecision = await DCAFactory.FEE_PRECISION();
     const fee = await DCAFactory.fee();
     return value.mul(fee).div(feePrecision).div(100);
+  }
+
+  async function withFeeApplied(value: BigNumberish): Promise<BigNumber> {
+    const applyFeeTo = BigNumber.from(value);
+    const fee = await getFeeFrom(applyFeeTo);
+    return applyFeeTo.sub(fee);
   }
 
   function fromEther(asEther: string | number): BigNumber {

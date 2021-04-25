@@ -7,15 +7,8 @@ import './ERC721/ERC721.sol';
 interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
   event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
-  event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount, uint256 _fee);
-  event WithdrewMany(
-    address indexed _user,
-    uint256[] _dcaIds,
-    uint256 _swappedTokenA,
-    uint256 _tokenAFee,
-    uint256 _swappedTokenB,
-    uint256 _tokenBFee
-  );
+  event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
+  event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
   event Modified(address indexed _user, uint256 _dcaId, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
 
   function deposit(
@@ -24,16 +17,9 @@ interface IDCAPairPositionHandler {
     uint256 _amountOfSwaps
   ) external;
 
-  function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped, uint256 _fee);
+  function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
 
-  function withdrawSwappedMany(uint256[] calldata _dcaIds)
-    external
-    returns (
-      uint256 _swappedTokenA,
-      uint256 _tokenAFee,
-      uint256 _swappedTokenB,
-      uint256 _tokenBFee
-    );
+  function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
 
   function modifyRate(uint256 _dcaId, uint256 _newRate) external;
 
@@ -80,60 +66,50 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     return _idCounter;
   }
 
-  function _withdrawSwapped(uint256 _dcaId) internal returns (uint256 _swapped, uint256 _fee) {
+  function _withdrawSwapped(uint256 _dcaId) internal returns (uint256 _swapped) {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    (_swapped, _fee) = _calculateSwapped(_dcaId);
+    _swapped = _calculateSwapped(_dcaId);
 
     if (_swapped > 0) {
       userPositions[_dcaId].lastWithdrawSwap = performedSwaps;
 
       IERC20Detailed _to = _getTo(_dcaId);
-      _to.safeTransfer(msg.sender, _swapped.sub(_fee));
+      _to.safeTransfer(msg.sender, _swapped);
 
-      emit Withdrew(msg.sender, _dcaId, address(_to), _swapped, _fee);
+      emit Withdrew(msg.sender, _dcaId, address(_to), _swapped);
     }
   }
 
-  function _withdrawSwappedMany(uint256[] calldata _dcaIds)
-    internal
-    returns (
-      uint256 _swappedTokenA,
-      uint256 _tokenAFee,
-      uint256 _swappedTokenB,
-      uint256 _tokenBFee
-    )
-  {
+  function _withdrawSwappedMany(uint256[] calldata _dcaIds) internal returns (uint256 _swappedTokenA, uint256 _swappedTokenB) {
     for (uint256 i = 0; i < _dcaIds.length; i++) {
       uint256 _dcaId = _dcaIds[i];
       _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-      (uint256 _swappedDCA, uint256 _feeDCA) = _calculateSwapped(_dcaId);
+      uint256 _swappedDCA = _calculateSwapped(_dcaId);
       if (userPositions[_dcaId].from == address(tokenA)) {
         _swappedTokenB = _swappedTokenB.add(_swappedDCA);
-        _tokenBFee = _tokenBFee.add(_feeDCA);
       } else {
         _swappedTokenA = _swappedTokenA.add(_swappedDCA);
-        _tokenAFee = _tokenAFee.add(_feeDCA);
       }
       userPositions[_dcaId].lastWithdrawSwap = performedSwaps;
     }
 
     if (_swappedTokenA > 0 || _swappedTokenB > 0) {
       if (_swappedTokenA > 0) {
-        tokenA.safeTransfer(msg.sender, _swappedTokenA.sub(_tokenAFee));
+        tokenA.safeTransfer(msg.sender, _swappedTokenA);
       }
 
       if (_swappedTokenB > 0) {
-        tokenB.safeTransfer(msg.sender, _swappedTokenB.sub(_tokenBFee));
+        tokenB.safeTransfer(msg.sender, _swappedTokenB);
       }
-      emit WithdrewMany(msg.sender, _dcaIds, _swappedTokenA, _tokenAFee, _swappedTokenB, _tokenBFee);
+      emit WithdrewMany(msg.sender, _dcaIds, _swappedTokenA, _swappedTokenB);
     }
   }
 
   function _terminate(uint256 _dcaId) internal {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    (uint256 _swapped, ) = _calculateSwapped(_dcaId);
+    uint256 _swapped = _calculateSwapped(_dcaId);
     uint256 _unswapped = _calculateUnswapped(_dcaId);
 
     IERC20Detailed _from = _getFrom(_dcaId);
@@ -253,7 +229,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   }
 
   /** Return the amount of tokens swapped in TO */
-  function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped, uint256 _fee) {
+  function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = userPositions[_dcaId];
     uint256[2] memory _accumRatesLastWidthraw = accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
     uint256[2] memory _accumRatesLastSwap = accumRatesPerUnit[_userDCA.from][Math.min(performedSwaps, _userDCA.lastSwap)];
@@ -284,21 +260,22 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
       }
     }
 
-    // uint256 _magnitude = (_userDCA.from == address(tokenA)) ? _magnitudeA : _magnitudeB;
+    uint256 _magnitude = (_userDCA.from == address(tokenA)) ? _magnitudeA : _magnitudeB;
     (bool _ok, uint256 _mult) = _accumPerUnit.tryMul(_userDCA.rate);
+    uint256 _actuallySwapped;
     if (_ok) {
-      _swapped = _mult.div((_userDCA.from == address(tokenA)) ? _magnitudeA : _magnitudeB);
+      _actuallySwapped = _mult.div(_magnitude);
     } else {
       // Since we can't multiply accum and rate because of overflows, we need to figure out which to divide
       // We don't want to divide a term that is smaller than magnitude, because it would go to 0.
       // And if neither are smaller than magnitude, then we will choose the one that loses less information, and that would be the one with smallest reminder
-      uint256 _magnitude = (_userDCA.from == address(tokenA)) ? _magnitudeA : _magnitudeB;
       bool _divideAccumFirst =
         _userDCA.rate < _magnitude || (_accumPerUnit > _magnitude && _accumPerUnit.mod(_magnitude) < _userDCA.rate.mod(_magnitude));
-      _swapped = _divideAccumFirst ? _accumPerUnit.div(_magnitude).mul(_userDCA.rate) : _userDCA.rate.div(_magnitude).mul(_accumPerUnit);
+      _actuallySwapped = _divideAccumFirst ? _accumPerUnit.div(_magnitude).mul(_userDCA.rate) : _userDCA.rate.div(_magnitude).mul(_accumPerUnit);
     }
 
-    _fee = _getFeeFromAmount(_swapped);
+    uint256 _fee = _getFeeFromAmount(_actuallySwapped);
+    _swapped = _actuallySwapped.sub(_fee);
   }
 
   /** Returns how many FROM remains unswapped  */

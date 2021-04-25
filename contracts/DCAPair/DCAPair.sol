@@ -28,21 +28,12 @@ contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandle
     _deposit(_token, _rate, _amountOfSwaps);
   }
 
-  function withdrawSwapped(uint256 _dcaId) external override returns (uint256 _swapped, uint256 _fee) {
-    (_swapped, _fee) = _withdrawSwapped(_dcaId);
+  function withdrawSwapped(uint256 _dcaId) external override returns (uint256 _swapped) {
+    _swapped = _withdrawSwapped(_dcaId);
   }
 
-  function withdrawSwappedMany(uint256[] calldata _dcaIds)
-    external
-    override
-    returns (
-      uint256 _swappedTokenA,
-      uint256 _tokenAFee,
-      uint256 _swappedTokenB,
-      uint256 _tokenBFee
-    )
-  {
-    (_swappedTokenA, _tokenAFee, _swappedTokenB, _tokenBFee) = _withdrawSwappedMany(_dcaIds);
+  function withdrawSwappedMany(uint256[] calldata _dcaIds) external override returns (uint256 _swappedTokenA, uint256 _swappedTokenB) {
+    (_swappedTokenA, _swappedTokenB) = _withdrawSwappedMany(_dcaIds);
   }
 
   function modifyRate(uint256 _dcaId, uint256 _newRate) external override {
