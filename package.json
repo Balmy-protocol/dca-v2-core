@@ -39,7 +39,7 @@
     "postpublish": "pinst --enable"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.0.0"
+    "@openzeppelin/contracts": "4.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "12.1.1",
