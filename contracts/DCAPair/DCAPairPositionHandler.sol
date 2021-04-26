@@ -230,8 +230,8 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   /** Return the amount of tokens swapped in TO */
   function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = userPositions[_dcaId];
-    uint256[2] memory _accumRatesLastWidthraw = accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
-    uint256[2] memory _accumRatesLastSwap = accumRatesPerUnit[_userDCA.from][Math.min(performedSwaps, _userDCA.lastSwap)];
+    uint256[2] memory _accumRatesLastWidthraw = _accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
+    uint256[2] memory _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.from][Math.min(performedSwaps, _userDCA.lastSwap)];
 
     /*
       LS = last swap = min(performed swaps, position.finalSwap)

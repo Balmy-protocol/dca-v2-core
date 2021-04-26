@@ -60,9 +60,9 @@ abstract contract DCAPairParameters is IDCAPairParameters {
 
   // Tracking
   mapping(address => mapping(uint256 => int256)) public override swapAmountDelta;
-  mapping(address => mapping(uint256 => uint256[2])) public accumRatesPerUnit;
   mapping(uint256 => DCA) public override userPositions;
   uint256 public override performedSwaps;
+  mapping(address => mapping(uint256 => uint256[2])) internal _accumRatesPerUnit;
 
   constructor(
     IDCAFactory _factory,
