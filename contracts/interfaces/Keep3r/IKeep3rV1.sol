@@ -26,6 +26,14 @@ interface IKeep3rV1 is IERC20 {
     uint256 _age
   ) external returns (bool);
 
+  function addCreditETH(address job) external payable;
+
+  function addCredit(
+    address credit,
+    address job,
+    uint256 amount
+  ) external;
+
   function addKPRCredit(address _job, uint256 _amount) external;
 
   function addJob(address _job) external;

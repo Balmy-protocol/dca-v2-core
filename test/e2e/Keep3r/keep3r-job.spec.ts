@@ -12,11 +12,11 @@ const KEEP3R_V1 = '0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44';
 const keep3rGovernanceAddress = '0x0d5dc686d0a2abbfdafdfb4d0533e886517d4e83';
 
 describe.only('Keep3rJob', () => {
+  let keeper: SignerWithAddress;
   let keep3rV1: Contract;
   let keep3rJobContract: ContractFactory;
   let keep3rJob: Contract;
   let keep3rGovernance: JsonRpcSigner;
-  let keeper: SignerWithAddress;
   const INITIAL_JOB_KP3RS = utils.parseEther('50');
 
   before('Setup accounts and contracts', async () => {
@@ -30,7 +30,7 @@ describe.only('Keep3rJob', () => {
       jsonRpcUrl: process.env.MAINNET_HTTPS_URL,
       blockNumber: forkBlockNumber,
     });
-    keep3rJob = await keep3rJobContract.deploy(KEEP3R_V1);
+    keep3rJob = await keep3rJobContract.connect(keeper).deploy(KEEP3R_V1);
     await network.provider.request({
       method: 'hardhat_impersonateAccount',
       params: [keep3rGovernanceAddress],
@@ -95,10 +95,9 @@ describe.only('Keep3rJob', () => {
       const gasToSpend = utils.parseEther('1');
       const gasPrice = utils.parseUnits('5000', 'gwei');
       let initialKp3rBonded: BigNumber;
-      let spendGasTx: TransactionResponse;
       given(async () => {
         initialKp3rBonded = await keep3rV1.bonds(keeper.address, keep3rV1.address);
-        spendGasTx = await keep3rJob.spendGas(gasToSpend, gasPrice, { gasPrice });
+        await keep3rJob.spendGas(gasToSpend, gasPrice, { gasPrice });
       });
       then('keeper gets gas used paid in bonded kp3r tokens', async () => {
         expect(await keep3rV1.bonds(keeper.address, keep3rV1.address)).to.be.gt(initialKp3rBonded);
@@ -113,11 +112,10 @@ describe.only('Keep3rJob', () => {
   describe('paysKeeperAmount', () => {
     when('executed', () => {
       let initialKp3rBonded: BigNumber;
-      let spendGasTx: TransactionResponse;
       const kp3rToReward = utils.parseEther('0.10');
       given(async () => {
         initialKp3rBonded = await keep3rV1.bonds(keeper.address, keep3rV1.address);
-        spendGasTx = await keep3rJob.paysKeeperAmount(keeper.address, kp3rToReward);
+        await keep3rJob.paysKeeperAmount(keeper.address, kp3rToReward);
       });
       then('keeper gets gas used paid in bonded kp3r tokens', async () => {
         expect(await keep3rV1.bonds(keeper.address, keep3rV1.address)).to.be.equal(kp3rToReward);
@@ -127,12 +125,54 @@ describe.only('Keep3rJob', () => {
       });
     });
   });
-  describe('paysKeeperCredit', () => {
-    then('keeper gets amount paid in bonded erc20 tokens');
-    then('erc20 credit from job gets reduced');
+  describe.only('paysKeeperEth', () => {
+    let initialETHCredits: BigNumber;
+    let initialETHBalanceKeeper: BigNumber;
+    const initialAddedETHCredits = utils.parseEther('5.34');
+    const rewardedETHCredits = utils.parseEther('3.45');
+    given(async () => {
+      console.log('1');
+      await keeper.sendTransaction({ to: keep3rGovernanceAddress, value: initialAddedETHCredits });
+      console.log('1.1', utils.formatEther(await ethers.provider.getBalance(keep3rGovernanceAddress)));
+      await keep3rV1.connect(keep3rGovernance).addCreditETH(keep3rJob.address, { value: initialAddedETHCredits, gasPrice: 0 });
+      console.log('1.2');
+      initialETHCredits = await keep3rV1.credits(keep3rJob.address, await keep3rV1.ETH());
+      console.log('1.3');
+      initialETHBalanceKeeper = await ethers.provider.getBalance(keeper.address);
+      console.log('1.4');
+      // await keep3rJob.paysKeeperEth(keeper.address, rewardedETHCredits);
+    });
+    then('keeper gets ETH amount paid', async () => {
+      expect(await ethers.provider.getBalance(keeper.address)).to.equal(initialETHBalanceKeeper.add(rewardedETHCredits));
+    });
+    then('ETH credit from job gets reduced', async () => {
+      expect(await keep3rV1.credits(keep3rJob.address, await keep3rV1.ETH())).to.equal(initialETHCredits.sub(rewardedETHCredits));
+    });
   });
-  describe('paysKeeperEth', () => {
-    then('keeper gets ETH amount paid');
-    then('ETH credit from job gets reduced');
+  describe('paysKeeperCredit', () => {
+    let creditToken: Contract;
+    let initialCredits: BigNumber;
+    let initialCreditBalanceKeeper: BigNumber;
+    const initialAddedCredits = utils.parseEther('5.34');
+    const rewardedCredits = utils.parseEther('3.45');
+    given(async () => {
+      creditToken = await erc20.deploy({
+        name: 'Credit Token',
+        symbol: 'CRT',
+        initialAccount: keep3rGovernanceAddress,
+        initialAmount: utils.parseEther('1000'),
+      });
+      await creditToken.connect(keep3rGovernance).approve(keep3rV1.address, initialAddedCredits, { gasPrice: 0 });
+      await keep3rV1.connect(keep3rGovernance).addCredit(creditToken.address, keep3rJob.address, initialAddedCredits, { gasPrice: 0 });
+      initialCredits = await keep3rV1.credits(keep3rJob.address, creditToken.address);
+      initialCreditBalanceKeeper = await creditToken.balanceOf(keeper.address);
+      await keep3rJob.paysKeeperCredit(creditToken.address, keeper.address, rewardedCredits);
+    });
+    then('keeper gets amount paid in erc20 tokens', async () => {
+      expect(await creditToken.balanceOf(keeper.address)).to.equal(rewardedCredits);
+    });
+    then('erc20 credit from job gets reduced', async () => {
+      expect(await keep3rV1.credits(keep3rJob.address, creditToken.address)).to.equal(initialCredits.sub(rewardedCredits));
+    });
   });
 });
