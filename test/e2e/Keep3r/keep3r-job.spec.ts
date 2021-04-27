@@ -112,8 +112,19 @@ describe.only('Keep3rJob', () => {
   });
   describe('paysKeeperAmount', () => {
     when('executed', () => {
-      then('keeper gets amount paid in bonded kp3r tokens');
-      then('kp3r credit from job gets reduced');
+      let initialKp3rBonded: BigNumber;
+      let spendGasTx: TransactionResponse;
+      const kp3rToReward = utils.parseEther('0.10');
+      given(async () => {
+        initialKp3rBonded = await keep3rV1.bonds(keeper.address, keep3rV1.address);
+        spendGasTx = await keep3rJob.paysKeeperAmount(keeper.address, kp3rToReward);
+      });
+      then('keeper gets gas used paid in bonded kp3r tokens', async () => {
+        expect(await keep3rV1.bonds(keeper.address, keep3rV1.address)).to.be.equal(kp3rToReward);
+      });
+      then('kp3r credit from job gets reduced', async () => {
+        expect(await keep3rV1.credits(keep3rJob.address, keep3rV1.address)).to.equal(INITIAL_JOB_KP3RS.sub(kp3rToReward));
+      });
     });
   });
   describe('paysKeeperCredit', () => {

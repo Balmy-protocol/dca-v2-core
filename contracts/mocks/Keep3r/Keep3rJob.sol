@@ -13,7 +13,7 @@ contract Keep3rJobMock is Keep3rJob {
 
   function spendGas(uint256 _amountToSpend, uint256 _gasPrice) external {
     uint256 _initialGas = gasleft();
-    keep3rV1.isKeeper(msg.sender); // sets _gasUsed in keep3rV1 contract
+    keep3rV1.isKeeper(msg.sender);
     while ((_initialGas - gasleft()) * _gasPrice < _amountToSpend) {}
     _paysKp3rInBondedTokens(msg.sender);
   }
@@ -23,6 +23,7 @@ contract Keep3rJobMock is Keep3rJob {
   }
 
   function paysKeeperAmount(address _keeper, uint256 _amount) external {
+    keep3rV1.isKeeper(msg.sender);
     _paysKeeperAmount(_keeper, _amount);
   }
 
