@@ -16,6 +16,7 @@ interface IDCAPairParameters {
     uint256 rate;
     uint256 lastWithdrawSwap;
     uint256 lastSwap;
+    uint256 swappedBeforeModified;
   }
 
   /* Events */
@@ -38,6 +39,7 @@ interface IDCAPairParameters {
     external
     returns (
       address,
+      uint256,
       uint256,
       uint256,
       uint256

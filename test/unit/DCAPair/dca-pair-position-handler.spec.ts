@@ -251,6 +251,11 @@ describe('DCAPositionHandler', () => {
         const swappedWithFeeApplied = await withFeeApplied(swapped);
         await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, dcaId, tokenB.address, swappedWithFeeApplied);
       });
+
+      then('calculateSwapped returns 0', async () => {
+        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
+        expect(swapped).to.equal(0);
+      });
     });
   });
 
@@ -385,6 +390,13 @@ describe('DCAPositionHandler', () => {
         });
       });
 
+      then('calculateSwapped returns 0', async () => {
+        const swapped1 = await DCAPositionHandler.calculateSwapped(dcaId1);
+        const swapped2 = await DCAPositionHandler.calculateSwapped(dcaId2);
+        expect(swapped1).to.equal(0);
+        expect(swapped2).to.equal(0);
+      });
+
       then('event is emitted', async () => {
         const swappedA = fromEther(RATE_PER_UNIT_5 * POSITION_RATE_3);
         const swappedB = fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5);
@@ -500,6 +512,47 @@ describe('DCAPositionHandler', () => {
           args: [dcaId, POSITION_RATE_5, 0],
           message: 'DCAPair: Invalid amount of swaps. It must be positive',
         });
+      });
+    });
+
+    when('modifying a position many times', () => {
+      const POSITION_RATE_6 = 6;
+      const POSITION_RATE_7 = 7;
+
+      then('the amount of swapped tokens is correct', async () => {
+        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+
+        // Execute first swap
+        await performTrade({
+          swap: PERFORMED_SWAPS_10 + 1,
+          ratePerUnit: RATE_PER_UNIT_5,
+          amount: POSITION_RATE_5,
+        });
+
+        // Modify the position
+        await modifyRateAndSwaps(dcaId, POSITION_RATE_6, POSITION_SWAPS_TO_PERFORM_10);
+
+        // Execute second swap
+        await performTrade({
+          swap: PERFORMED_SWAPS_10 + 2,
+          ratePerUnit: RATE_PER_UNIT_5 * 2,
+          amount: POSITION_RATE_6,
+        });
+
+        // Modify the position once again
+        await modifyRateAndSwaps(dcaId, POSITION_RATE_7, POSITION_SWAPS_TO_PERFORM_10);
+
+        // Execute final swap
+        await performTrade({
+          swap: PERFORMED_SWAPS_10 + 3,
+          ratePerUnit: RATE_PER_UNIT_5 * 3,
+          amount: POSITION_RATE_7,
+        });
+
+        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
+        const amountSwapped = RATE_PER_UNIT_5 * (POSITION_RATE_5 + POSITION_RATE_6 + POSITION_RATE_7);
+        const expected = await withFeeApplied(fromEther(amountSwapped));
+        expect(swapped).to.equal(expected);
       });
     });
 
@@ -1021,6 +1074,12 @@ describe('DCAPositionHandler', () => {
           lastWithdrawSwap: PERFORMED_SWAPS_10 + 1,
           lastSwap: PERFORMED_SWAPS_10 + newSwaps! + 1,
         });
+      });
+
+      then(`swapped amount isn't modified`, async () => {
+        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
+        const expected = await withFeeApplied(fromEther(initialRate * RATE_PER_UNIT_5)); // Only one swap was executed
+        expect(swapped).to.equal(expected);
       });
     });
   }
