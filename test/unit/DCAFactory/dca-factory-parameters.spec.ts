@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import { Contract, ContractFactory, Signer } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, behaviours } from '../../utils';
-import { then, when } from '../../utils/bdd';
+import { constants, behaviours, bn } from '../../utils';
+import { given, then, when } from '../../utils/bdd';
 
 describe('DCAFactoryParameters', function () {
   let owner: Signer, feeRecipient: Signer;
@@ -192,6 +192,40 @@ describe('DCAFactoryParameters', function () {
           .to.emit(DCAFactoryParameters, 'SwapIntervalsForbidden')
           .withArgs([1]);
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.false;
+      });
+    });
+  });
+
+  describe('allowedSwapIntervals', () => {
+    when('no swap interval is allowed', () => {
+      then('returns empty array', async () => {
+        expect(await DCAFactoryParameters.allowedSwapIntervals()).to.be.empty;
+      });
+    });
+    when('there are swap intervals allowed', () => {
+      const allowedIntervals = [1, 100, 200];
+      given(async () => {
+        await DCAFactoryParameters.addSwapIntervalsToAllowedList(allowedIntervals);
+      });
+      then('array returns correct intervals', async () => {
+        bn.expectArraysToBeEqual(await DCAFactoryParameters.allowedSwapIntervals(), allowedIntervals);
+      });
+    });
+  });
+
+  describe('isSwapIntervalAllowed', () => {
+    when('querying for a swap interval not allowed', () => {
+      then('returns false', async () => {
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(1240)).to.be.false;
+      });
+    });
+    when('querying for an allowed swap interval', () => {
+      const allowedInterval = 639;
+      given(async () => {
+        await DCAFactoryParameters.addSwapIntervalsToAllowedList([allowedInterval]);
+      });
+      then('returns true', async () => {
+        expect(await DCAFactoryParameters.isSwapIntervalAllowed(allowedInterval)).to.be.true;
       });
     });
   });

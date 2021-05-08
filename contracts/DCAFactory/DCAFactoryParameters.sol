@@ -15,9 +15,13 @@ interface IDCAFactoryParameters {
 
   function fee() external view returns (uint256);
 
+  // solhint-disable-next-line func-name-mixedcase
   function FEE_PRECISION() external view returns (uint256);
 
+  // solhint-disable-next-line func-name-mixedcase
   function MAX_FEE() external view returns (uint256);
+
+  function allowedSwapIntervals() external view returns (uint256[] memory __allowedSwapIntervals);
 
   function isSwapIntervalAllowed(uint256 _swapInterval) external view returns (bool);
 
@@ -38,7 +42,7 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
   uint256 public override fee = 2000; // 0.2%
   uint256 public constant override FEE_PRECISION = 10000;
   uint256 public constant override MAX_FEE = 10 * FEE_PRECISION; // 10%
-  EnumerableSet.UintSet _allowedSwapIntervals; // TODO: check if callable from outside
+  EnumerableSet.UintSet internal _allowedSwapIntervals;
 
   constructor(address _feeRecipient) {
     _setFeeRecipient(_feeRecipient);
@@ -71,6 +75,14 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
       _allowedSwapIntervals.remove(_swapIntervals[i]);
     }
     emit SwapIntervalsForbidden(_swapIntervals);
+  }
+
+  function allowedSwapIntervals() external view override returns (uint256[] memory __allowedSwapIntervals) {
+    uint256 _allowedSwapIntervalsLength = _allowedSwapIntervals.length();
+    __allowedSwapIntervals = new uint256[](_allowedSwapIntervalsLength);
+    for (uint256 i = 0; i < _allowedSwapIntervalsLength; i++) {
+      __allowedSwapIntervals[i] = _allowedSwapIntervals.at(i);
+    }
   }
 
   function isSwapIntervalAllowed(uint256 _swapInterval) public view override returns (bool) {

@@ -19,11 +19,20 @@ const expectToEqualWithThreshold = ({
   ).to.be.true;
 };
 
+const expectArraysToBeEqual = (arr1: BigNumber[] | number[] | string[], arr2: BigNumber[] | number[] | string[]): void => {
+  const parsedArr1 = arr1.map((val: BigNumber | number | string) => toBN(val));
+  const parsedArr2 = arr2.map((val: BigNumber | number | string) => toBN(val));
+  parsedArr1.forEach((val: BigNumber, index: number) => {
+    expect(val).to.be.equal(parsedArr2[index], `array differs on index ${index}`);
+  });
+};
+
 const toBN = (value: string | number | BigNumber): BigNumber => {
   return BigNumber.isBigNumber(value) ? value : BigNumber.from(value);
 };
 
 export default {
   expectToEqualWithThreshold,
+  expectArraysToBeEqual,
   toBN,
 };
