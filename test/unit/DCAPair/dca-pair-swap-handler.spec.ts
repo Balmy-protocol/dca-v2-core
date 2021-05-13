@@ -24,7 +24,7 @@ describe('DCAPairSwapHandler', () => {
 
   before('Setup accounts and contracts', async () => {
     [owner, feeRecipient] = await ethers.getSigners();
-    DCAFactoryContract = await ethers.getContractFactory('contracts/DCAFactory/DCAFactory.sol:DCAFactory');
+    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
     DCAPairSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairSwapHandler.sol:DCAPairSwapHandlerMock');
     staticSlidingOracleContract = await ethers.getContractFactory('contracts/mocks/StaticSlidingOracle.sol:StaticSlidingOracle');
   });

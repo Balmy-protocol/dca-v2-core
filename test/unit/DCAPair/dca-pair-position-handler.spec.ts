@@ -30,7 +30,7 @@ describe('DCAPositionHandler', () => {
     DCAPositionHandlerContract = await ethers.getContractFactory(
       'contracts/mocks/DCAPair/DCAPairPositionHandler.sol:DCAPairPositionHandlerMock'
     );
-    DCAFactoryContract = await ethers.getContractFactory('contracts/DCAFactory/DCAFactory.sol:DCAFactory');
+    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
   });
 
   beforeEach('Deploy and configure', async () => {

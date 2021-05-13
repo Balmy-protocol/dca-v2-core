@@ -16,7 +16,7 @@ describe('DCAPairParameters', function () {
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    DCAFactoryContract = await ethers.getContractFactory('contracts/DCAFactory/DCAFactory.sol:DCAFactory');
+    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
     DCAPairParametersContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock');
   });
 
