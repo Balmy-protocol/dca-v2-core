@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
 import 'hardhat/console.sol';
@@ -16,6 +16,7 @@ interface IDCAPairParameters {
     uint256 rate;
     uint256 lastWithdrawSwap;
     uint256 lastSwap;
+    uint256 swappedBeforeModified;
   }
 
   /* Events */
@@ -40,6 +41,7 @@ interface IDCAPairParameters {
       address,
       uint256,
       uint256,
+      uint256,
       uint256
     );
 
@@ -60,9 +62,9 @@ abstract contract DCAPairParameters is IDCAPairParameters {
 
   // Tracking
   mapping(address => mapping(uint256 => int256)) public override swapAmountDelta;
-  mapping(address => mapping(uint256 => uint256[2])) public accumRatesPerUnit;
   mapping(uint256 => DCA) public override userPositions;
   uint256 public override performedSwaps;
+  mapping(address => mapping(uint256 => uint256[2])) internal _accumRatesPerUnit;
 
   constructor(
     IDCAFactory _factory,

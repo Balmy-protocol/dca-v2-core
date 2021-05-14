@@ -1,7 +1,8 @@
 import { Wallet } from 'ethers';
+import { ethers } from 'hardhat';
 
 const generateRandom = async () => {
-  const wallet = await Wallet.createRandom();
+  const wallet = (await Wallet.createRandom()).connect(ethers.provider);
   return wallet;
 };
 

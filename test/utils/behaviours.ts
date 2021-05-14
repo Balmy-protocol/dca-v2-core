@@ -1,13 +1,16 @@
 import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import chai from 'chai';
-import { Contract, ContractFactory, ContractInterface, Signer } from 'ethers';
-import { TransactionRequest, TransactionResponse } from '@ethersproject/abstract-provider';
+import { Contract, ContractFactory, ContractInterface, Signer, Wallet } from 'ethers';
+import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { getStatic } from 'ethers/lib/utils';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { given, then, when } from './bdd';
+import { wallet } from '.';
 
 chai.use(chaiAsPromised);
 
-const checkTxRevertedWithMessage = async ({ tx, message }: { tx: Promise<TransactionRequest>; message: RegExp | string }): Promise<void> => {
+const checkTxRevertedWithMessage = async ({ tx, message }: { tx: Promise<TransactionResponse>; message: RegExp | string }): Promise<void> => {
   await expect(tx).to.be.reverted;
   if (message instanceof RegExp) {
     await expect(tx).eventually.rejected.have.property('message').match(message);
@@ -16,10 +19,10 @@ const checkTxRevertedWithMessage = async ({ tx, message }: { tx: Promise<Transac
   }
 };
 
-const checkTxRevertedWithZeroAddress = async (tx: Promise<TransactionRequest>): Promise<void> => {
+const checkTxRevertedWithZeroAddress = async (tx: Promise<TransactionResponse>): Promise<void> => {
   await checkTxRevertedWithMessage({
     tx,
-    message: /zero address/,
+    message: /zero\saddress/,
   });
 };
 
@@ -51,7 +54,7 @@ const txShouldRevertWithZeroAddress = async ({
   contract: Contract;
   func: string;
   args: any[];
-  tx?: Promise<TransactionRequest>;
+  tx?: Promise<TransactionResponse>;
 }): Promise<void> => {
   const tx = contract[func].apply(this, args);
   await checkTxRevertedWithZeroAddress(tx);
@@ -78,11 +81,11 @@ const checkTxEmittedEvents = async ({
   events,
 }: {
   contract: Contract;
-  tx: Promise<TransactionRequest>;
+  tx: TransactionResponse;
   events: { name: string; args: any[] }[];
 }): Promise<void> => {
   for (let i = 0; i < events.length; i++) {
-    await expect(tx)
+    expect(tx)
       .to.emit(contract, events[i].name)
       .withArgs(...events[i].args);
   }
@@ -102,8 +105,8 @@ const deployShouldSetVariablesAndEmitEvents = async ({
   }[];
 }): Promise<void> => {
   const deployContractTx = await contract.getDeployTransaction(...args);
-  const tx = contract.signer.sendTransaction(deployContractTx);
-  const address = getStatic<(tx: TransactionResponse) => string>(contract.constructor, 'getContractAddress')(await tx);
+  const tx = await contract.signer.sendTransaction(deployContractTx);
+  const address = getStatic<(tx: TransactionResponse) => string>(contract.constructor, 'getContractAddress')(tx);
   const deployedContract = getStatic<(address: string, contractInterface: ContractInterface, signer?: Signer) => Contract>(
     contract.constructor,
     'getContract'
@@ -121,7 +124,7 @@ const txShouldHaveSetVariablesAndEmitEvents = async ({
   settersGettersVariablesAndEvents,
 }: {
   contract: Contract;
-  tx: Promise<TransactionRequest>;
+  tx: TransactionResponse;
   settersGettersVariablesAndEvents: {
     getterFunc: string;
     variable: any;
@@ -171,7 +174,83 @@ const txShouldSetVariableAndEmitEvent = async ({
   });
 };
 
-const waitForTxAndNotThrow = (tx: Promise<TransactionRequest>): Promise<any> => {
+const shouldBeExecutableOnlyByGovernor = ({
+  contract,
+  funcAndSignature,
+  params,
+  governor,
+}: {
+  contract: () => Contract;
+  funcAndSignature: string;
+  params?: any[];
+  governor: () => SignerWithAddress | Wallet;
+}) => {
+  params = params ?? [];
+  when('not called from governor', () => {
+    let onlyGovernorAllowedTx: Promise<TransactionResponse>;
+    given(async () => {
+      const notGovernor = await wallet.generateRandom();
+      onlyGovernorAllowedTx = contract()
+        .connect(notGovernor)
+        [funcAndSignature](...params!, { gasPrice: 0 });
+    });
+    then('tx is reverted with reason', async () => {
+      await expect(onlyGovernorAllowedTx).to.be.revertedWith('Governable: only governor');
+    });
+  });
+  when('called from governor', () => {
+    let onlyGovernorAllowedTx: Promise<TransactionResponse>;
+    given(async () => {
+      onlyGovernorAllowedTx = contract()
+        .connect(governor())
+        [funcAndSignature](...params!, { gasPrice: 0 });
+    });
+    then('tx is not reverted or not reverted with reason only governor', async () => {
+      await expect(onlyGovernorAllowedTx).to.not.be.revertedWith('Governable: only governor');
+    });
+  });
+};
+
+const shouldBeExecutableOnlyByPendingGovernor = ({
+  contract,
+  funcAndSignature,
+  params,
+  governor,
+}: {
+  contract: () => Contract;
+  funcAndSignature: string;
+  params?: any[];
+  governor: () => SignerWithAddress | Wallet;
+}) => {
+  params = params ?? [];
+  when('not called from pending governor', () => {
+    let onlyPendingGovernorAllowedTx: Promise<TransactionResponse>;
+    given(async () => {
+      const notPendingGovernor = await wallet.generateRandom();
+      onlyPendingGovernorAllowedTx = contract()
+        .connect(notPendingGovernor)
+        [funcAndSignature](...params!, { gasPrice: 0 });
+    });
+    then('tx is reverted with reason', async () => {
+      await expect(onlyPendingGovernorAllowedTx).to.be.revertedWith('Governable: only pending governor');
+    });
+  });
+  when('called from pending governor', () => {
+    let onlyPendingGovernorAllowedTx: Promise<TransactionResponse>;
+    given(async () => {
+      const pendingGovernor = await wallet.generateRandom();
+      await contract().connect(governor()).setPendingGovernor(pendingGovernor.address);
+      onlyPendingGovernorAllowedTx = contract()
+        .connect(pendingGovernor)
+        [funcAndSignature](...params!, { gasPrice: 0 });
+    });
+    then('tx is not reverted or not reverted with reason only pending governor', async () => {
+      await expect(onlyPendingGovernorAllowedTx).to.not.be.revertedWith('Governable: only pending governor');
+    });
+  });
+};
+
+const waitForTxAndNotThrow = (tx: Promise<TransactionResponse>): Promise<any> => {
   return new Promise((resolve) => {
     tx.then(resolve).catch(resolve);
   });
@@ -187,4 +266,6 @@ export default {
   txShouldSetVariableAndEmitEvent,
   checkTxRevertedWithMessage,
   waitForTxAndNotThrow,
+  shouldBeExecutableOnlyByGovernor,
+  shouldBeExecutableOnlyByPendingGovernor,
 };
