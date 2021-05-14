@@ -3,7 +3,7 @@ import { BigNumber, Contract, ContractFactory, Signer, utils } from 'ethers';
 import { ethers, network } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { JsonRpcSigner } from '@ethersproject/providers';
-import { constants, erc20, behaviours, evm } from '../../utils';
+import { constants, erc20, behaviours, evm, wallet } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
@@ -11,7 +11,7 @@ const forkBlockNumber = 12313262; // will allow to cache blockchain state
 const KEEP3R_V1 = '0x1cEB5cB57C4D4E2b2433641b95Dd330A33185A44';
 const keep3rGovernanceAddress = '0x0d5dc686d0a2abbfdafdfb4d0533e886517d4e83';
 
-describe.only('Keep3rJob', () => {
+describe('Keep3rJob', () => {
   let keeper: SignerWithAddress;
   let keep3rV1: Contract;
   let keep3rJobContract: ContractFactory;
@@ -125,22 +125,23 @@ describe.only('Keep3rJob', () => {
       });
     });
   });
-  describe.only('paysKeeperEth', () => {
+  describe('paysKeeperEth', () => {
     let initialETHCredits: BigNumber;
     let initialETHBalanceKeeper: BigNumber;
     const initialAddedETHCredits = utils.parseEther('5.34');
     const rewardedETHCredits = utils.parseEther('3.45');
     given(async () => {
-      console.log('1');
       await keeper.sendTransaction({ to: keep3rGovernanceAddress, value: initialAddedETHCredits });
-      console.log('1.1', utils.formatEther(await ethers.provider.getBalance(keep3rGovernanceAddress)));
+      const randomGovernor = await wallet.generateRandom();
+      // INIT: This is a fix for a bug found in HH (https://discord.com/channels/750408878008827925/750408878008827928/842726598968344598).
+      await keep3rV1.connect(keep3rGovernance).setGovernance(randomGovernor.address);
+      await keep3rV1.connect(randomGovernor).acceptGovernance({ gasPrice: 0 });
+      // END
+      await keeper.sendTransaction({ to: keep3rGovernanceAddress, value: initialAddedETHCredits });
       await keep3rV1.connect(keep3rGovernance).addCreditETH(keep3rJob.address, { value: initialAddedETHCredits, gasPrice: 0 });
-      console.log('1.2');
       initialETHCredits = await keep3rV1.credits(keep3rJob.address, await keep3rV1.ETH());
-      console.log('1.3');
       initialETHBalanceKeeper = await ethers.provider.getBalance(keeper.address);
-      console.log('1.4');
-      // await keep3rJob.paysKeeperEth(keeper.address, rewardedETHCredits);
+      await keep3rJob.paysKeeperEth(keeper.address, rewardedETHCredits, { gasPrice: 0 });
     });
     then('keeper gets ETH amount paid', async () => {
       expect(await ethers.provider.getBalance(keeper.address)).to.equal(initialETHBalanceKeeper.add(rewardedETHCredits));

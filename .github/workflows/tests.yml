@@ -68,4 +68,5 @@ jobs:
 
   #     - name: Run e2e tests
   #       run: npm run test:e2e
-  #       env: MAINNET_HTTPS_URL=
+  #       env:
+  #         MAINNET_HTTPS_URL: https://eth-mainnet.alchemyapi.io/v2/kJbQ5Ia0j8V_9HDRmnTBKpFjq_G73oTN

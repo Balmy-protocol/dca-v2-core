@@ -7,6 +7,8 @@ import './IKeep3rV1Helper.sol';
 interface IKeep3rV1 is IERC20 {
   function name() external returns (string memory);
 
+  function ETH() external view returns (address);
+
   function KPRH() external view returns (IKeep3rV1Helper);
 
   function isKeeper(address _keeper) external returns (bool);
@@ -125,4 +127,8 @@ interface IKeep3rV1 is IERC20 {
   function unbond(address bonding, uint256 amount) external;
 
   function withdraw(address bonding) external;
+
+  function setGovernance(address _governance) external;
+
+  function acceptGovernance() external;
 }
