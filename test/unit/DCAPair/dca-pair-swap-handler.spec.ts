@@ -2,7 +2,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
-import { TransactionResponse, TransactionRequest } from '@ethersproject/abstract-provider';
+import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, evm, bn, wallet } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
