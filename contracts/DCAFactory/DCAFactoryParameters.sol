@@ -39,7 +39,7 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   address public override feeRecipient;
-  uint256 public override fee = 2000; // 0.2%
+  uint256 public override fee = 3000; // 0.3%
   uint256 public constant override FEE_PRECISION = 10000;
   uint256 public constant override MAX_FEE = 10 * FEE_PRECISION; // 10%
   EnumerableSet.UintSet internal _allowedSwapIntervals;
