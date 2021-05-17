@@ -36,7 +36,8 @@ jobs:
         run: npm install
 
       - name: Run unit tests
-        run: npm run test:unit:parallel
+        run: npm run test:unit
+        timeout-minutes: 6
 
   # e2e:
   #   runs-on: ubuntu-latest

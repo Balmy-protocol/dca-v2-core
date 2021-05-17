@@ -85,7 +85,7 @@ const checkTxEmittedEvents = async ({
   events: { name: string; args: any[] }[];
 }): Promise<void> => {
   for (let i = 0; i < events.length; i++) {
-    expect(tx)
+    await expect(tx)
       .to.emit(contract, events[i].name)
       .withArgs(...events[i].args);
   }
