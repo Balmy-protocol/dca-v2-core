@@ -74,6 +74,10 @@ contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandle
   }
 
   function swap() public override {
-    _swap();
+    _swap(address(0), '');
+  }
+
+  function swap(address _to, bytes calldata _data) public override {
+    _swap(_to, _data);
   }
 }
