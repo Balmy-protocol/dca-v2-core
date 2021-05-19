@@ -46,7 +46,7 @@ describe('DCAPositionHandler', () => {
       initialAccount: owner.address,
       initialAmount: fromEther(INITIAL_TOKEN_B_BALANCE_USER),
     });
-    DCAFactory = await DCAFactoryContract.deploy(feeRecipient.address);
+    DCAFactory = await DCAFactoryContract.deploy(owner.address, feeRecipient.address);
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(DCAFactory.address, tokenA.address, tokenB.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));

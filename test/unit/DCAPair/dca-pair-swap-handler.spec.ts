@@ -45,7 +45,7 @@ describe('DCAPairSwapHandler', () => {
       initialAmount: ethers.constants.MaxUint256.div(2),
     });
     staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
-    DCAFactory = await DCAFactoryContract.deploy(feeRecipient.address);
+    DCAFactory = await DCAFactoryContract.deploy(owner.address, feeRecipient.address);
     DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,

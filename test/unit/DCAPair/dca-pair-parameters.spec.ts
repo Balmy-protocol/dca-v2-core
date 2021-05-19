@@ -4,9 +4,10 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, bn, wallet, contracts } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { expect } from 'chai';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 describe('DCAPairParameters', function () {
-  let owner: Signer;
+  let owner: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
   let factory: string;
   let DCAPairParametersContract: ContractFactory;
@@ -34,7 +35,7 @@ describe('DCAPairParameters', function () {
       initialAmount: utils.parseEther('1'),
     });
     factory = await wallet.generateRandomAddress();
-    DCAFactory = await DCAFactoryContract.deploy(await wallet.generateRandomAddress());
+    DCAFactory = await DCAFactoryContract.deploy(owner.address, await wallet.generateRandomAddress());
     DCAPairParameters = await DCAPairParametersContract.deploy(DCAFactory.address, tokenA.address, tokenB.address);
   });
 

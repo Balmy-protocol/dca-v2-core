@@ -3,6 +3,7 @@ import '@nomiclabs/hardhat-waffle';
 import '@nomiclabs/hardhat-etherscan';
 import { removeConsoleLog } from 'hardhat-preprocessor';
 import 'hardhat-gas-reporter';
+import 'hardhat-contract-sizer';
 import 'solidity-coverage';
 
 module.exports = {

@@ -64,11 +64,11 @@ abstract contract DCAFactoryPairsHandler is DCAFactoryParameters, IDCAFactoryPai
     return pairsByTokens[_token0][_token1];
   }
 
-  function _createPair(
+  function createPair(
     address _tokenA,
     address _tokenB,
     uint32 _swapInterval
-  ) internal returns (address _pair) {
+  ) public override returns (address _pair) {
     require(isSwapIntervalAllowed(_swapInterval), 'DCAFactory: interval not allowed');
     require(_tokenA != address(0) && _tokenB != address(0), 'DCAFactory: zero address');
     require(_tokenA != _tokenB, 'DCAFactory: identical addresses');

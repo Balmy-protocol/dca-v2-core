@@ -4,9 +4,10 @@ import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 describe('DCAFactoryPairsHandler', function () {
-  let owner: Signer, feeRecipient: Signer;
+  let owner: SignerWithAddress, feeRecipient: Signer;
   let tokenA: Contract, tokenB: Contract;
   let DCAFactoryPairsHandlerContract: ContractFactory;
   let DCAFactoryPairsHandler: Contract;
@@ -31,7 +32,7 @@ describe('DCAFactoryPairsHandler', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(await feeRecipient.getAddress());
+    DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(owner.address, await feeRecipient.getAddress());
   });
 
   describe('createPair', () => {

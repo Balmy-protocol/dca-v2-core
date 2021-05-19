@@ -19,11 +19,11 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   }
 
   // SwapHandler
-  function setSwapInterval(uint256 _swapInterval) public override {
+  function setSwapInterval(uint256 _swapInterval) public {
     _setSwapInterval(_swapInterval);
   }
 
-  function setOracle(ISlidingOracle _oracle) public override {
+  function setOracle(ISlidingOracle _oracle) public {
     _setOracle(_oracle);
   }
 
@@ -38,14 +38,6 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
 
   function getAmountToSwap(address _tokenAddress, uint256 _swap) public view returns (uint256) {
     return _getAmountToSwap(_tokenAddress, _swap);
-  }
-
-  function swap() public override {
-    _swap(address(0), '');
-  }
-
-  function swap(address _to, bytes calldata _data) public override {
-    _swap(_to, _data);
   }
 
   // Mocks setters

@@ -1,3 +1,4 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
 import { Contract, ContractFactory, Signer } from 'ethers';
 import { ethers } from 'hardhat';
@@ -5,7 +6,7 @@ import { constants, behaviours, bn } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 
 describe('DCAFactoryParameters', function () {
-  let owner: Signer, feeRecipient: Signer;
+  let owner: SignerWithAddress, feeRecipient: Signer;
   let DCAFactoryParametersContract: ContractFactory;
   let DCAFactoryParameters: Contract;
 
@@ -17,7 +18,7 @@ describe('DCAFactoryParameters', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    DCAFactoryParameters = await DCAFactoryParametersContract.deploy(await feeRecipient.getAddress());
+    DCAFactoryParameters = await DCAFactoryParametersContract.deploy(owner.address, await feeRecipient.getAddress());
   });
 
   describe('constructor', () => {
@@ -25,15 +26,15 @@ describe('DCAFactoryParameters', function () {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAFactoryParametersContract,
-          args: [constants.ZERO_ADDRESS],
+          args: [owner.address, constants.ZERO_ADDRESS],
         });
       });
     });
     when('all arguments are valid', () => {
-      then('initizalizes correctly and emits events', async () => {
+      then('initializes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAFactoryParametersContract,
-          args: [await feeRecipient.getAddress()],
+          args: [owner.address, await feeRecipient.getAddress()],
           settersGettersVariablesAndEvents: [
             {
               getterFunc: 'feeRecipient',
@@ -66,6 +67,13 @@ describe('DCAFactoryParameters', function () {
           eventEmitted: 'FeeRecipientSet',
         });
       });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAFactoryParameters,
+      funcAndSignature: 'setFeeRecipient(address)',
+      params: [constants.NOT_ZERO_ADDRESS],
+      governor: () => owner,
     });
   });
 
@@ -101,6 +109,12 @@ describe('DCAFactoryParameters', function () {
           eventEmitted: 'FeeSet',
         });
       });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAFactoryParameters,
+      funcAndSignature: 'setFee(uint32)',
+      params: [1],
+      governor: () => owner,
     });
   });
 
@@ -164,6 +178,12 @@ describe('DCAFactoryParameters', function () {
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(100)).to.be.true;
       });
     });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAFactoryParameters,
+      funcAndSignature: 'addSwapIntervalsToAllowedList(uint32[])',
+      params: [[1]],
+      governor: () => owner,
+    });
   });
   describe('removeSwapIntervalsFromAllowedList', () => {
     beforeEach(async () => {
@@ -193,6 +213,12 @@ describe('DCAFactoryParameters', function () {
           .withArgs([1]);
         expect(await DCAFactoryParameters.isSwapIntervalAllowed(1)).to.be.false;
       });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAFactoryParameters,
+      funcAndSignature: 'removeSwapIntervalsFromAllowedList(uint32[])',
+      params: [[1]],
+      governor: () => owner,
     });
   });
 

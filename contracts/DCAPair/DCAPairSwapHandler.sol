@@ -37,10 +37,6 @@ interface IDCAPairSwapHandler {
 
   function oracle() external returns (ISlidingOracle);
 
-  function setOracle(ISlidingOracle _oracle) external;
-
-  function setSwapInterval(uint256 _swapInterval) external;
-
   function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 
   function swap() external;
@@ -153,7 +149,11 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     }
   }
 
-  function _swap(address _to, bytes memory _data) internal {
+  function swap() public override {
+    swap(address(0), '');
+  }
+
+  function swap(address _to, bytes memory _data) public override {
     require(lastSwapPerformed <= block.timestamp - swapInterval, 'DCAPair: within swap interval');
     NextSwapInformation memory _nextSwapInformation = getNextSwapInfo();
 

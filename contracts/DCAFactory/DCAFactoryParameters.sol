@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '../utils/Governable.sol';
 
 interface IDCAFactoryParameters {
   event FeeRecipientSet(address _feeRecipient);
@@ -35,7 +36,7 @@ interface IDCAFactoryParameters {
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external;
 }
 
-abstract contract DCAFactoryParameters is IDCAFactoryParameters {
+abstract contract DCAFactoryParameters is IDCAFactoryParameters, Governable {
   using EnumerableSet for EnumerableSet.UintSet;
 
   address public override feeRecipient;
@@ -44,23 +45,23 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
   uint32 public constant override MAX_FEE = 10 * FEE_PRECISION; // 10%
   EnumerableSet.UintSet internal _allowedSwapIntervals;
 
-  constructor(address _feeRecipient) {
-    _setFeeRecipient(_feeRecipient);
+  constructor(address _governor, address _feeRecipient) Governable(_governor) {
+    setFeeRecipient(_feeRecipient);
   }
 
-  function _setFeeRecipient(address _feeRecipient) internal {
+  function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
     require(_feeRecipient != address(0), 'DCAFactory: zero address');
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
   }
 
-  function _setFee(uint32 _fee) internal {
+  function setFee(uint32 _fee) public override onlyGovernor {
     require(_fee <= MAX_FEE, 'DCAFactory: fee too high');
     fee = _fee;
     emit FeeSet(_fee);
   }
 
-  function _addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) internal {
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
       require(_swapIntervals[i] > 0, 'DCAFactory: zero interval');
       require(!isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: allowed swap interval');
@@ -69,7 +70,7 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters {
     emit SwapIntervalsAllowed(_swapIntervals);
   }
 
-  function _removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) internal {
+  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
       require(isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: swap interval not allowed');
       _allowedSwapIntervals.remove(_swapIntervals[i]);
