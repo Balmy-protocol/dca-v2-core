@@ -14,7 +14,7 @@ contract DCAFactory is DCAFactoryParameters, DCAFactoryPairsHandler, IDCAFactory
   function createPair(
     address _tokenA,
     address _tokenB,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) external override returns (address _pair) {
     _pair = _createPair(_tokenA, _tokenB, _swapInterval);
   }
@@ -23,15 +23,15 @@ contract DCAFactory is DCAFactoryParameters, DCAFactoryPairsHandler, IDCAFactory
     _setFeeRecipient(_feeRecipient);
   }
 
-  function setFee(uint256 _fee) public override onlyGovernor {
+  function setFee(uint32 _fee) public override onlyGovernor {
     _setFee(_fee);
   }
 
-  function addSwapIntervalsToAllowedList(uint256[] calldata _swapIntervals) public override onlyGovernor {
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     _addSwapIntervalsToAllowedList(_swapIntervals);
   }
 
-  function removeSwapIntervalsFromAllowedList(uint256[] calldata _swapIntervals) public override onlyGovernor {
+  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     _removeSwapIntervalsFromAllowedList(_swapIntervals);
   }
 }

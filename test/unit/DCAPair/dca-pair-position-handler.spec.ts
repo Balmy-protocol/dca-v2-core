@@ -863,7 +863,7 @@ describe('DCAPositionHandler', () => {
         when('fee is smaller than precision', () => {
           then('looses the least amount of information', async () => {
             const feePrecision = await DCAFactory.FEE_PRECISION();
-            const protocolFee = feePrecision.sub(1);
+            const protocolFee = feePrecision - 1;
             const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
               rateMultiplier: 0,
@@ -877,7 +877,7 @@ describe('DCAPositionHandler', () => {
         when('precision is smaller than fee', () => {
           then('looses the least amount of information', async () => {
             const feePrecision = await DCAFactory.FEE_PRECISION();
-            const protocolFee = feePrecision.add(1);
+            const protocolFee = feePrecision + 1;
             const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
               rateMultiplier: 0,

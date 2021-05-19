@@ -10,18 +10,18 @@ import '../DCAPair/DCAPair.sol';
 import './DCAFactoryParameters.sol';
 
 interface IDCAFactoryPairsHandler is IDCAFactoryParameters {
-  event PairCreated(address indexed _token0, address indexed _token1, uint256 _swapInterval, address _pair);
+  event PairCreated(address indexed _token0, address indexed _token1, uint32 _swapInterval, address _pair);
 
   function pairByTokensAndSwapInterval(
     address _tokenA,
     address _tokenB,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) external view returns (address _pair);
 
   function getPairByTokensAndSwapInterval(
     address _tokenA,
     address _tokenB,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) external view returns (address _pair);
 
   function getPairsByTokens(address _tokenA, address _tokenB) external view returns (address[] memory _pairs);
@@ -37,12 +37,12 @@ interface IDCAFactoryPairsHandler is IDCAFactoryParameters {
   function createPair(
     address _tokenA,
     address _tokenB,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) external returns (address pair);
 }
 
 abstract contract DCAFactoryPairsHandler is DCAFactoryParameters, IDCAFactoryPairsHandler {
-  mapping(address => mapping(address => mapping(uint256 => address))) public override pairByTokensAndSwapInterval;
+  mapping(address => mapping(address => mapping(uint32 => address))) public override pairByTokensAndSwapInterval;
   mapping(address => mapping(address => address[])) public override pairsByTokens;
   address[] public override allPairs;
 
@@ -53,7 +53,7 @@ abstract contract DCAFactoryPairsHandler is DCAFactoryParameters, IDCAFactoryPai
   function getPairByTokensAndSwapInterval(
     address _tokenA,
     address _tokenB,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) external view override returns (address _pair) {
     (address _token0, address _token1) = _sortTokens(_tokenA, _tokenB);
     _pair = pairByTokensAndSwapInterval[_token0][_token1][_swapInterval];
@@ -67,7 +67,7 @@ abstract contract DCAFactoryPairsHandler is DCAFactoryParameters, IDCAFactoryPai
   function _createPair(
     address _tokenA,
     address _tokenB,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) internal returns (address _pair) {
     require(isSwapIntervalAllowed(_swapInterval), 'DCAFactory: interval not allowed');
     require(_tokenA != address(0) && _tokenB != address(0), 'DCAFactory: zero address');

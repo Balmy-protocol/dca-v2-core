@@ -7,7 +7,7 @@ import '../../DCAFactory/DCAFactoryParameters.sol';
 contract DCAFactoryParametersMock is DCAFactoryParameters {
   constructor(address _feeRecipient) DCAFactoryParameters(_feeRecipient) {}
 
-  function setFee(uint256 _fee) public override {
+  function setFee(uint32 _fee) public override {
     _setFee(_fee);
   }
 
@@ -15,11 +15,11 @@ contract DCAFactoryParametersMock is DCAFactoryParameters {
     _setFeeRecipient(_feeRecipient);
   }
 
-  function addSwapIntervalsToAllowedList(uint256[] calldata _swapIntervals) public override {
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) public override {
     _addSwapIntervalsToAllowedList(_swapIntervals);
   }
 
-  function removeSwapIntervalsFromAllowedList(uint256[] calldata _swapIntervals) public override {
+  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override {
     _removeSwapIntervalsFromAllowedList(_swapIntervals);
   }
 }

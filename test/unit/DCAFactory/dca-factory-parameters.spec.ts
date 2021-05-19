@@ -75,7 +75,7 @@ describe('DCAFactoryParameters', function () {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'setFee',
-          args: [(await DCAFactoryParameters.MAX_FEE()).add(1)],
+          args: [(await DCAFactoryParameters.MAX_FEE()) + 1],
           message: 'DCAFactory: fee too high',
         });
       });
@@ -97,7 +97,7 @@ describe('DCAFactoryParameters', function () {
           contract: DCAFactoryParameters,
           getterFunc: 'fee',
           setterFunc: 'setFee',
-          variable: (await DCAFactoryParameters.MAX_FEE()).sub(1),
+          variable: (await DCAFactoryParameters.MAX_FEE()) - 1,
           eventEmitted: 'FeeSet',
         });
       });

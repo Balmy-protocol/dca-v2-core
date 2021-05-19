@@ -30,7 +30,7 @@ describe('DCAFactory', function () {
   describe('setFee', () => {
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAFactory,
-      funcAndSignature: 'setFee(uint256)',
+      funcAndSignature: 'setFee(uint32)',
       params: [1],
       governor: () => governor,
     });
@@ -39,7 +39,7 @@ describe('DCAFactory', function () {
   describe('addSwapIntervalsToAllowedList', () => {
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAFactory,
-      funcAndSignature: 'addSwapIntervalsToAllowedList(uint256[])',
+      funcAndSignature: 'addSwapIntervalsToAllowedList(uint32[])',
       params: [[1]],
       governor: () => governor,
     });
@@ -48,7 +48,7 @@ describe('DCAFactory', function () {
   describe('removeSwapIntervalsFromAllowedList', () => {
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAFactory,
-      funcAndSignature: 'removeSwapIntervalsFromAllowedList(uint256[])',
+      funcAndSignature: 'removeSwapIntervalsFromAllowedList(uint32[])',
       params: [[1]],
       governor: () => governor,
     });

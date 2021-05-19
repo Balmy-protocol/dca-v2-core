@@ -15,7 +15,7 @@ contract DCAFactoryPairsHandlerMock is DCAFactoryParametersMock, DCAFactoryPairs
   function createPair(
     address _from,
     address _to,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) external override returns (address _pair) {
     _pair = _createPair(_from, _to, _swapInterval);
   }

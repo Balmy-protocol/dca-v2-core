@@ -227,8 +227,8 @@ describe('DCAPairParameters', function () {
 
   async function getFeeFrom(value: BigNumber | string | number): Promise<BigNumber> {
     value = bn.toBN(value) as BigNumber;
-    const feePrecision = await DCAFactory.FEE_PRECISION();
-    const fee = await DCAFactory.fee();
+    const feePrecision = BigNumber.from(await DCAFactory.FEE_PRECISION());
+    const fee = BigNumber.from(await DCAFactory.fee());
     if (value.mul(fee).lt(constants.MAX_UINT_256)) {
       return value.mul(fee).div(feePrecision).div(100);
     } else {
