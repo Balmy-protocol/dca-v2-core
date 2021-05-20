@@ -12,7 +12,7 @@ contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandle
   constructor(
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB,
-    uint256 _swapInterval
+    uint32 _swapInterval
   )
     DCAPairParameters(IDCAFactory(msg.sender), _tokenA, _tokenB)
     DCAPairSwapHandler(ISlidingOracle(address(0xe)), _swapInterval)

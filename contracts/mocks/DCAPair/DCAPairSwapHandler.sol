@@ -13,13 +13,13 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     IERC20Detailed _token1,
     IDCAFactory _factory,
     ISlidingOracle _oracle,
-    uint256 _swapInterval
+    uint32 _swapInterval
   ) DCAPairParametersMock(_factory, _token0, _token1) DCAPairSwapHandler(_oracle, _swapInterval) {
     /* */
   }
 
   // SwapHandler
-  function setSwapInterval(uint256 _swapInterval) public {
+  function setSwapInterval(uint32 _swapInterval) public {
     _setSwapInterval(_swapInterval);
   }
 
@@ -31,12 +31,12 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     address _token,
     uint256 _internalAmountUsedToSwap,
     uint256 _ratePerUnit,
-    uint256 _swapToRegister
+    uint32 _swapToRegister
   ) public {
     _registerSwap(_token, _internalAmountUsedToSwap, _ratePerUnit, _swapToRegister);
   }
 
-  function getAmountToSwap(address _tokenAddress, uint256 _swap) public view returns (uint256) {
+  function getAmountToSwap(address _tokenAddress, uint32 _swap) public view returns (uint256) {
     return _getAmountToSwap(_tokenAddress, _swap);
   }
 
@@ -44,7 +44,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
 
   function addNewRatePerUnit(
     address _tokenAddress,
-    uint256 _swap,
+    uint32 _swap,
     uint256 _ratePerUnit
   ) public {
     _addNewRatePerUnit(_tokenAddress, _swap, _ratePerUnit);

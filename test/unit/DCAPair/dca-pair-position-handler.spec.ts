@@ -752,6 +752,54 @@ describe('DCAPositionHandler', () => {
     });
   });
 
+  describe('_modifyPosition', () => {
+    const MAX = BigNumber.from(2).pow(248).sub(1);
+
+    when('the swapped amount is too high', () => {
+      let tx: Promise<TransactionResponse>;
+
+      given(async () => {
+        const { dcaId } = await deposit(tokenA, 1, 1);
+        await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 1);
+        await setRatePerUnit({
+          accumRate: MAX.add(1),
+          rateMultiplier: 0,
+          onSwap: PERFORMED_SWAPS_10 + 1,
+        });
+
+        tx = DCAPositionHandler.modifyPosition(dcaId, 1, 1, 1, 1);
+      });
+
+      then('tx is reverted', async () => {
+        await behaviours.checkTxRevertedWithMessage({
+          tx,
+          message: 'DCAPair: Please withdraw before modifying your position, because you might lose some funds otherwise.',
+        });
+      });
+    });
+
+    when('the swapped amount just at the limit', () => {
+      let dcaId: BigNumber;
+
+      given(async () => {
+        ({ dcaId } = await deposit(tokenA, 1, 1));
+        await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 1);
+        await setRatePerUnit({
+          accumRate: MAX,
+          rateMultiplier: 0,
+          onSwap: PERFORMED_SWAPS_10 + 1,
+        });
+
+        await DCAPositionHandler.modifyPosition(dcaId, 1, 1, 1, 1);
+      });
+
+      then('position is modified correctly', async () => {
+        const { swappedBeforeModified } = await DCAPositionHandler.userPositions(dcaId);
+        expect(swappedBeforeModified).to.equal(MAX);
+      });
+    });
+  });
+
   describe('calculateSwapped', () => {
     when('multiplier is 1 and accum is negative', () => {
       then('swapped is calculated correctly', async () => {
@@ -890,23 +938,6 @@ describe('DCAPositionHandler', () => {
       });
     });
 
-    async function setRatePerUnit({
-      accumRate,
-      rateMultiplier,
-      onSwap,
-    }: {
-      accumRate: number | BigNumber;
-      rateMultiplier: number;
-      onSwap: number;
-    }) {
-      await DCAPositionHandler.setRatePerUnit(
-        tokenA.address,
-        onSwap,
-        BigNumber.isBigNumber(accumRate) ? accumRate : fromEther(accumRate),
-        rateMultiplier
-      );
-    }
-
     async function calculateSwappedWith({
       accumRate,
       rateMultiplier,
@@ -963,6 +994,23 @@ describe('DCAPositionHandler', () => {
       // TODO: Remove hack above when Hardhat detects native overflows correctly
     }
   });
+
+  async function setRatePerUnit({
+    accumRate,
+    rateMultiplier,
+    onSwap,
+  }: {
+    accumRate: number | BigNumber;
+    rateMultiplier: number;
+    onSwap: number;
+  }) {
+    await DCAPositionHandler.setRatePerUnit(
+      tokenA.address,
+      onSwap,
+      BigNumber.isBigNumber(accumRate) ? accumRate : fromEther(accumRate),
+      rateMultiplier
+    );
+  }
 
   /**
    * Verify that approved addresses can also execute the action, but that other addresses can't
@@ -1157,13 +1205,13 @@ describe('DCAPositionHandler', () => {
     }
   ) {
     const {
-      from: positionFromAddress,
+      fromTokenA,
       rate: positionRate,
       lastWithdrawSwap: positionLastWithdrawSwap,
       lastSwap: positionLastSwap,
     } = await DCAPositionHandler.userPositions(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;
-    expect(positionFromAddress, 'Wrong from address in position').to.equal(fromAddress);
+    expect(fromTokenA, 'Wrong from address in position').to.equal(tokenA.address === fromAddress);
     expect(positionRate, 'Wrong rate').to.equal(fromEther(rate));
     expect(positionLastWithdrawSwap, 'Wrong last withdraw swap').to.equal(lastWithdrawSwap);
     expect(positionLastSwap, 'Wrong last swap').to.equal(lastSwap);

@@ -7,35 +7,35 @@ import './utils/Math.sol';
 
 interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
-  event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
+  event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
   event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
   event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
-  event Modified(address indexed _user, uint256 _dcaId, uint256 _rate, uint256 _startingSwap, uint256 _lastSwap);
+  event Modified(address indexed _user, uint256 _dcaId, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
 
   function deposit(
     address _tokenAddress,
-    uint256 _rate,
-    uint256 _amountOfSwaps
+    uint192 _rate,
+    uint32 _amountOfSwaps
   ) external returns (uint256 _dcaId);
 
   function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
 
   function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
 
-  function modifyRate(uint256 _dcaId, uint256 _newRate) external;
+  function modifyRate(uint256 _dcaId, uint192 _newRate) external;
 
-  function modifySwaps(uint256 _dcaId, uint256 _newSwaps) external;
+  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) external;
 
   function modifyRateAndSwaps(
     uint256 _dcaId,
-    uint256 _newRate,
-    uint256 _newSwaps
+    uint192 _newRate,
+    uint32 _newSwaps
   ) external;
 
   function addFundsToPosition(
     uint256 _dcaId,
     uint256 _amount,
-    uint256 _newSwaps
+    uint32 _newSwaps
   ) external;
 
   function terminate(uint256 _dcaId) external;
@@ -52,15 +52,15 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
   function deposit(
     address _tokenAddress,
-    uint256 _rate,
-    uint256 _amountOfSwaps
+    uint192 _rate,
+    uint32 _amountOfSwaps
   ) public override returns (uint256) {
     require(_tokenAddress == address(tokenA) || _tokenAddress == address(tokenB), 'DCAPair: Invalid deposit address');
     IERC20Detailed _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
     _from.safeTransferFrom(msg.sender, address(this), _rate * _amountOfSwaps);
     _idCounter += 1;
     _safeMint(msg.sender, _idCounter);
-    (uint256 _startingSwap, uint256 _finalSwap) = _addPosition(_idCounter, _tokenAddress, _rate, _amountOfSwaps, 0);
+    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_idCounter, _tokenAddress, _rate, _amountOfSwaps, 0);
     emit Deposited(msg.sender, _idCounter, _tokenAddress, _rate, _startingSwap, _finalSwap);
     return _idCounter;
   }
@@ -86,7 +86,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
       uint256 _dcaId = _dcaIds[i];
       _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
       uint256 _swappedDCA = _calculateSwapped(_dcaId);
-      if (userPositions[_dcaId].from == address(tokenA)) {
+      if (userPositions[_dcaId].fromTokenA) {
         _swappedTokenB += _swappedDCA;
       } else {
         _swappedTokenA += _swappedDCA;
@@ -129,16 +129,16 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     emit Terminated(msg.sender, _dcaId, _unswapped, _swapped);
   }
 
-  function modifyRate(uint256 _dcaId, uint256 _newRate) public override {
+  function modifyRate(uint256 _dcaId, uint192 _newRate) public override {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    uint256 _swapsLeft = userPositions[_dcaId].lastSwap - performedSwaps;
+    uint32 _swapsLeft = userPositions[_dcaId].lastSwap - performedSwaps;
     require(_swapsLeft > 0, 'DCAPair: You cannot modify only the rate of a position that has already been completed');
 
     modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
   }
 
-  function modifySwaps(uint256 _dcaId, uint256 _newSwaps) public override {
+  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) public override {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     modifyRateAndSwaps(_dcaId, userPositions[_dcaId].rate, _newSwaps);
@@ -146,8 +146,8 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
   function modifyRateAndSwaps(
     uint256 _dcaId,
-    uint256 _newRate,
-    uint256 _newAmountOfSwaps
+    uint192 _newRate,
+    uint32 _newAmountOfSwaps
   ) public override {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
@@ -160,7 +160,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   function addFundsToPosition(
     uint256 _dcaId,
     uint256 _amount,
-    uint256 _newSwaps
+    uint32 _newSwaps
   ) public override {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
     require(_amount > 0, 'DCAPair: The amount to add must be positive');
@@ -168,7 +168,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _total = _unswapped + _amount;
 
-    _modifyPosition(_dcaId, _total, _unswapped, _total / _newSwaps, _newSwaps);
+    _modifyPosition(_dcaId, _total, _unswapped, uint192(_total / _newSwaps), _newSwaps);
   }
 
   /** Helper function to modify a position */
@@ -176,16 +176,20 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     uint256 _dcaId,
     uint256 _totalNecessary,
     uint256 _unswapped,
-    uint256 _newRate,
-    uint256 _newAmountOfSwaps
+    uint192 _newRate,
+    uint32 _newAmountOfSwaps
   ) internal {
     IERC20Detailed _from = _getFrom(_dcaId);
 
     // We will store the swapped amount without the fee. The fee will be applied during withdraw/terminate
     uint256 _swapped = _calculateSwapped(_dcaId, false);
+    require(
+      _swapped <= type(uint248).max,
+      'DCAPair: Please withdraw before modifying your position, because you might lose some funds otherwise.'
+    );
 
     _removePosition(_dcaId);
-    (uint256 _startingSwap, uint256 _finalSwap) = _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps, _swapped);
+    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps, uint248(_swapped));
 
     if (_totalNecessary > _unswapped) {
       // We need to ask for more funds
@@ -206,24 +210,25 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
   function _addPosition(
     uint256 _dcaId,
     address _from,
-    uint256 _rate,
-    uint256 _amountOfSwaps,
-    uint256 _swappedBeforeModified
-  ) internal returns (uint256 _startingSwap, uint256 _finalSwap) {
+    uint192 _rate,
+    uint32 _amountOfSwaps,
+    uint248 _swappedBeforeModified
+  ) internal returns (uint32 _startingSwap, uint32 _finalSwap) {
     require(_rate > 0, 'DCAPair: Invalid rate. It must be positive');
     require(_amountOfSwaps > 0, 'DCAPair: Invalid amount of swaps. It must be positive');
     _startingSwap = performedSwaps + 1;
     _finalSwap = performedSwaps + _amountOfSwaps;
-    swapAmountDelta[_from][_startingSwap] += int256(_rate);
-    swapAmountDelta[_from][_finalSwap] -= int256(_rate);
-    userPositions[_dcaId] = DCA(_from, _rate, performedSwaps, _finalSwap, _swappedBeforeModified);
+    swapAmountDelta[_from][_startingSwap] += int192(_rate);
+    swapAmountDelta[_from][_finalSwap] -= int192(_rate);
+    userPositions[_dcaId] = DCA(performedSwaps, _finalSwap, _rate, _from == address(tokenA), _swappedBeforeModified);
   }
 
   function _removePosition(uint256 _dcaId) internal {
     DCA memory _userDCA = userPositions[_dcaId];
     if (_userDCA.lastSwap > performedSwaps) {
-      swapAmountDelta[_userDCA.from][performedSwaps + 1] -= int256(_userDCA.rate);
-      swapAmountDelta[_userDCA.from][_userDCA.lastSwap] += int256(_userDCA.rate);
+      address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
+      swapAmountDelta[_from][performedSwaps + 1] -= int192(_userDCA.rate);
+      swapAmountDelta[_from][_userDCA.lastSwap] += int192(_userDCA.rate);
     }
     delete userPositions[_dcaId];
   }
@@ -235,8 +240,9 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
   function _calculateSwapped(uint256 _dcaId, bool _applyFee) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = userPositions[_dcaId];
-    uint256[2] memory _accumRatesLastWidthraw = _accumRatesPerUnit[_userDCA.from][_userDCA.lastWithdrawSwap];
-    uint256[2] memory _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.from][Math.min(performedSwaps, _userDCA.lastSwap)];
+    address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
+    uint256[2] memory _accumRatesLastWidthraw = _accumRatesPerUnit[_from][_userDCA.lastWithdrawSwap];
+    uint256[2] memory _accumRatesLastSwap = _accumRatesPerUnit[_from][performedSwaps < _userDCA.lastSwap ? performedSwaps : _userDCA.lastSwap];
 
     /*
       LS = last swap = min(performed swaps, position.finalSwap)
@@ -264,7 +270,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
       }
     }
 
-    uint256 _magnitude = (_userDCA.from == address(tokenA)) ? _magnitudeA : _magnitudeB;
+    uint256 _magnitude = _userDCA.fromTokenA ? _magnitudeA : _magnitudeB;
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
     uint256 _swappedInCurrentPosition;
     if (_ok) {
@@ -294,17 +300,17 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     if (_userDCA.lastSwap <= performedSwaps) {
       return 0;
     }
-    uint256 _remainingSwaps = _userDCA.lastSwap - performedSwaps;
+    uint32 _remainingSwaps = _userDCA.lastSwap - performedSwaps;
     _unswapped = _remainingSwaps * _userDCA.rate;
   }
 
   function _getFrom(uint256 _dcaId) internal view returns (IERC20Detailed _from) {
     DCA memory _userDCA = userPositions[_dcaId];
-    _from = _userDCA.from == address(tokenA) ? tokenA : tokenB;
+    _from = _userDCA.fromTokenA ? tokenA : tokenB;
   }
 
   function _getTo(uint256 _dcaId) internal view returns (IERC20Detailed _to) {
     DCA memory _userDCA = userPositions[_dcaId];
-    _to = _userDCA.from == address(tokenA) ? tokenB : tokenA;
+    _to = _userDCA.fromTokenA ? tokenB : tokenA;
   }
 }
