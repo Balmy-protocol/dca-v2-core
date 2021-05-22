@@ -19,11 +19,6 @@ interface IDCAPairParameters {
     uint248 swappedBeforeModified;
   }
 
-  /* Events */
-  event TokenASet(IERC20Detailed _tokenA);
-  event TokenBSet(IERC20Detailed _tokenB);
-  event FactorySet(IDCAFactory _factory);
-
   /* Public getters */
   function factory() external view returns (IDCAFactory);
 
@@ -73,29 +68,14 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB
   ) {
-    _setFactory(_factory);
-    _setTokenA(_tokenA);
-    _setTokenB(_tokenB);
-  }
-
-  function _setFactory(IDCAFactory _factory) internal {
     require(address(_factory) != address(0), 'DCAPair: zero address');
-    factory = _factory;
-    emit FactorySet(_factory);
-  }
-
-  function _setTokenA(IERC20Detailed _tokenA) internal {
     require(address(_tokenA) != address(0), 'DCAPair: zero address');
-    tokenA = _tokenA;
-    _magnitudeA = 10**_tokenA.decimals();
-    emit TokenASet(_tokenA);
-  }
-
-  function _setTokenB(IERC20Detailed _tokenB) internal {
     require(address(_tokenB) != address(0), 'DCAPair: zero address');
+    factory = _factory;
+    tokenA = _tokenA;
     tokenB = _tokenB;
+    _magnitudeA = 10**_tokenA.decimals();
     _magnitudeB = 10**_tokenB.decimals();
-    emit TokenBSet(_tokenB);
   }
 
   function _getFeeFromAmount(uint256 _amount) internal view returns (uint256) {

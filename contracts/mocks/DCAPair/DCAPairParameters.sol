@@ -13,20 +13,8 @@ contract DCAPairParametersMock is DCAPairParameters {
 
   // Mocks setters
 
-  function setFactory(IDCAFactory _factory) public {
-    _setFactory(_factory);
-  }
-
-  function setTokenA(IERC20Detailed _tokenA) public {
-    _setTokenA(_tokenA);
-  }
-
   function magnitudeA() public view returns (uint256) {
     return _magnitudeA;
-  }
-
-  function setTokenB(IERC20Detailed _tokenB) public {
-    _setTokenB(_tokenB);
   }
 
   function magnitudeB() public view returns (uint256) {
