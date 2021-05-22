@@ -70,15 +70,13 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     _swapped = _calculateSwapped(_dcaId);
 
-    if (_swapped > 0) {
-      userPositions[_dcaId].lastWithdrawSwap = performedSwaps;
-      userPositions[_dcaId].swappedBeforeModified = 0;
+    userPositions[_dcaId].lastWithdrawSwap = performedSwaps;
+    userPositions[_dcaId].swappedBeforeModified = 0;
 
-      IERC20Detailed _to = _getTo(_dcaId);
-      _to.safeTransfer(msg.sender, _swapped);
+    IERC20Detailed _to = _getTo(_dcaId);
+    _to.safeTransfer(msg.sender, _swapped);
 
-      emit Withdrew(msg.sender, _dcaId, address(_to), _swapped);
-    }
+    emit Withdrew(msg.sender, _dcaId, address(_to), _swapped);
   }
 
   function withdrawSwappedMany(uint256[] calldata _dcaIds) public override returns (uint256 _swappedTokenA, uint256 _swappedTokenB) {
@@ -95,16 +93,14 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
       userPositions[_dcaId].swappedBeforeModified = 0;
     }
 
-    if (_swappedTokenA > 0 || _swappedTokenB > 0) {
-      if (_swappedTokenA > 0) {
-        tokenA.safeTransfer(msg.sender, _swappedTokenA);
-      }
-
-      if (_swappedTokenB > 0) {
-        tokenB.safeTransfer(msg.sender, _swappedTokenB);
-      }
-      emit WithdrewMany(msg.sender, _dcaIds, _swappedTokenA, _swappedTokenB);
+    if (_swappedTokenA > 0) {
+      tokenA.safeTransfer(msg.sender, _swappedTokenA);
     }
+
+    if (_swappedTokenB > 0) {
+      tokenB.safeTransfer(msg.sender, _swappedTokenB);
+    }
+    emit WithdrewMany(msg.sender, _dcaIds, _swappedTokenA, _swappedTokenB);
   }
 
   function terminate(uint256 _dcaId) public override {

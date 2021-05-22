@@ -193,8 +193,8 @@ describe('DCAPositionHandler', () => {
         response = await withdrawSwapped(dcaId);
       });
 
-      then('no event is emitted', async () => {
-        await expectNoEventWithName(response, 'Withdrew');
+      then('event is emitted', async () => {
+        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, dcaId, tokenB.address, 0);
       });
 
       then('no token transfer was made', async () => {
@@ -283,8 +283,8 @@ describe('DCAPositionHandler', () => {
         response = await withdrawSwappedMany(dcaId1, dcaId2);
       });
 
-      then('no event is emitted', async () => {
-        await expectNoEventWithName(response, 'WithdrewMany');
+      then('event is emitted', async () => {
+        await expect(response).to.emit(DCAPositionHandler, 'WithdrewMany').withArgs(owner.address, [dcaId1, dcaId2], 0, 0);
       });
 
       then('no token transfer was made', async () => {
