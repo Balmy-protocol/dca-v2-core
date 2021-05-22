@@ -234,7 +234,7 @@ describe('DCAPositionHandler', () => {
         const swapped = fromEther(RATE_PER_UNIT_5 * POSITION_RATE_5);
         const fee = await getFeeFrom(swapped);
         expect(await tokenB.balanceOf(owner.address)).to.equal(fromEther(INITIAL_TOKEN_B_BALANCE_USER).add(swapped).sub(fee));
-        expect(await tokenB.balanceOf(DCAPositionHandler.address)).to.equal(fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT).add(fee));
+        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
       });
 
       then('position is updated', async () => {
@@ -457,8 +457,7 @@ describe('DCAPositionHandler', () => {
         const userBalance = await tokenB.balanceOf(owner.address);
         expect(userBalance).to.be.equal(fromEther(INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated).sub(fee));
 
-        const contractBalance = await tokenB.balanceOf(DCAPositionHandler.address);
-        expect(contractBalance).to.be.equal(fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT).add(fee));
+        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
       });
 
       then(`position is removed`, async () => {
@@ -1112,7 +1111,8 @@ describe('DCAPositionHandler', () => {
         );
         await expectBalanceToBe(tokenA, DCAPositionHandler.address, INITIAL_TOKEN_A_BALANCE_USER + newRate! * newSwaps!);
         await expectBalanceToBe(tokenB, owner.address, INITIAL_TOKEN_B_BALANCE_USER);
-        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT + RATE_PER_UNIT_5 * initialRate);
+        const expectedRateWithFee = await withFeeApplied(fromEther(RATE_PER_UNIT_5 * initialRate));
+        await expectBalanceToBe(tokenB, DCAPositionHandler.address, expectedRateWithFee.add(fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT)));
       });
 
       then(`position is modified`, async () => {
@@ -1148,7 +1148,7 @@ describe('DCAPositionHandler', () => {
     await DCAPositionHandler.setPerformedSwaps(swap);
     await DCAPositionHandler.setRatePerUnit(fromTokenReal.address, swap, fromEther(ratePerUnit), 0);
     await fromTokenReal.burn(DCAPositionHandler.address, fromEther(amount));
-    await toToken.mint(DCAPositionHandler.address, fromEther(amount * ratePerUnit));
+    await toToken.mint(DCAPositionHandler.address, await withFeeApplied(fromEther(amount * ratePerUnit))); // We calculate and subtract the fee, similarly to how it would be when not unit tested
   }
 
   function modifyRate(dcaId: BigNumber, rate: number): Promise<TransactionResponse> {
@@ -1185,9 +1185,9 @@ describe('DCAPositionHandler', () => {
     return { response, dcaId };
   }
 
-  async function expectBalanceToBe(token: Contract, address: string, asEther: string | number) {
+  async function expectBalanceToBe(token: Contract, address: string, asEther: BigNumber | string | number) {
     const balance = await token.balanceOf(address);
-    expect(balance).to.be.equal(fromEther(asEther));
+    expect(balance).to.be.equal(BigNumber.isBigNumber(asEther) ? asEther : fromEther(asEther));
   }
 
   async function expectPositionToBe(
