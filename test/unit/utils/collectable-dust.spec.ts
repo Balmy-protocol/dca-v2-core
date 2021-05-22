@@ -1,8 +1,8 @@
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, wallet } from '../../../utils';
-import { given, then, when } from '../../../utils/bdd';
+import { constants, erc20, wallet } from '../../utils';
+import { given, then, when } from '../../utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
@@ -14,7 +14,7 @@ describe('CollectableDust', function () {
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    collectableDustContract = await ethers.getContractFactory('contracts/mocks/DCAPair/utils/CollectableDust.sol:CollectableDustMock');
+    collectableDustContract = await ethers.getContractFactory('contracts/mocks/utils/CollectableDust.sol:CollectableDustMock');
   });
 
   beforeEach('Deploy and configure', async () => {

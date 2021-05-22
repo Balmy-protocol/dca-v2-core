@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import './DCAPairParameters.sol';
 import './ERC721/ERC721.sol';
-import './utils/Math.sol';
+import '../utils/Math.sol';
 
 interface IDCAPairPositionHandler {
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);

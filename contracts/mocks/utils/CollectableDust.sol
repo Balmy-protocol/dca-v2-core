@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.4;
 
-import '../../../DCAPair/utils/CollectableDust.sol';
+import '../../utils/CollectableDust.sol';
 
 contract CollectableDustMock is CollectableDust {
   using EnumerableSet for EnumerableSet.AddressSet;
