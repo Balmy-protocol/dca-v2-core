@@ -19,13 +19,6 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   }
 
   // SwapHandler
-  function setSwapInterval(uint32 _swapInterval) public {
-    _setSwapInterval(_swapInterval);
-  }
-
-  function setOracle(ISlidingOracle _oracle) public {
-    _setOracle(_oracle);
-  }
 
   function registerSwap(
     address _token,

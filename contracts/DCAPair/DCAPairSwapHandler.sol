@@ -23,10 +23,6 @@ interface IDCAPairSwapHandler {
     IERC20Detailed tokenToRewardSwapperWith;
   }
 
-  event OracleSet(ISlidingOracle _oracle);
-
-  event SwapIntervalSet(uint32 _swapInterval);
-
   event Swapped(NextSwapInformation _nextSwapInformation);
 
   function swapInterval() external view returns (uint32);
@@ -55,20 +51,10 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   ISlidingOracle public override oracle;
 
   constructor(ISlidingOracle _oracle, uint32 _swapInterval) {
-    _setOracle(_oracle);
-    _setSwapInterval(_swapInterval);
-  }
-
-  function _setOracle(ISlidingOracle _oracle) internal {
     require(address(_oracle) != address(0), 'DCAPair: zero address');
-    oracle = _oracle;
-    emit OracleSet(_oracle);
-  }
-
-  function _setSwapInterval(uint32 _swapInterval) internal {
     require(_swapInterval >= _MINIMUM_SWAP_INTERVAL, 'DCAPair: interval too short');
+    oracle = _oracle;
     swapInterval = _swapInterval;
-    emit SwapIntervalSet(_swapInterval);
   }
 
   function _addNewRatePerUnit(

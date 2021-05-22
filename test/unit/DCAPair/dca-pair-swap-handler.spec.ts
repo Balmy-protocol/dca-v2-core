@@ -82,67 +82,24 @@ describe('DCAPairSwapHandler', () => {
       });
     });
     when('all arguments are valid', () => {
-      it('initizalizes correctly and emits events', async () => {
-        await behaviours.deployShouldSetVariablesAndEmitEvents({
-          contract: DCAPairSwapHandlerContract,
-          args: [
-            tokenA.address,
-            tokenB.address,
-            DCAFactory.address, // factory
-            staticSlidingOracle.address,
-            MINIMUM_SWAP_INTERVAL,
-          ],
-          settersGettersVariablesAndEvents: [
-            {
-              getterFunc: 'swapInterval',
-              variable: MINIMUM_SWAP_INTERVAL,
-              eventEmitted: 'SwapIntervalSet',
-            },
-          ],
-        });
-      });
-    });
-  });
+      let DCAPairSwapHandler: Contract;
 
-  describe('_setOracle', () => {
-    let setOracleTx: Promise<TransactionResponse>;
-    when('oracle is zero address', () => {
       given(async () => {
-        setOracleTx = DCAPairSwapHandler.setOracle(constants.ZERO_ADDRESS);
+        DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
+          tokenA.address,
+          tokenB.address,
+          DCAFactory.address, // factory
+          staticSlidingOracle.address,
+          MINIMUM_SWAP_INTERVAL
+        );
       });
-      then('tx is reverted with reason', async () => {
-        await expect(setOracleTx).to.be.revertedWith('DCAPair: zero address');
-      });
-    });
-    when('oracle is a valid address', () => {
-      let newOracle: string = constants.NOT_ZERO_ADDRESS;
-      given(async () => {
-        setOracleTx = DCAPairSwapHandler.setOracle(newOracle);
-      });
-      then('oracle is set', async () => {
-        expect(await DCAPairSwapHandler.oracle()).to.be.equal(newOracle);
-      });
-      then('event is emitted', async () => {
-        await expect(setOracleTx).to.emit(DCAPairSwapHandler, 'OracleSet').withArgs(newOracle);
-      });
-    });
-  });
 
-  describe('_setSwapInterval', () => {
-    when('swap interval is less than MINIMUM_SWAP_INTERVAL', () => {
-      then('reverts with message', async () => {
-        await expect(DCAPairSwapHandler.setSwapInterval(MINIMUM_SWAP_INTERVAL.sub(1))).to.be.revertedWith('DCAPair: interval too short');
+      it('oracle is set correctly', async () => {
+        expect(await DCAPairSwapHandler.oracle()).to.equal(staticSlidingOracle.address);
       });
-    });
-    when('swap interval is more than MINIMUM_SWAP_INTERVAL', () => {
-      then('sets new value, and emits event with correct args', async () => {
-        await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAPairSwapHandler,
-          getterFunc: 'swapInterval',
-          setterFunc: 'setSwapInterval',
-          variable: MINIMUM_SWAP_INTERVAL,
-          eventEmitted: 'SwapIntervalSet',
-        });
+
+      it('swap interval is set correctly', async () => {
+        expect(await DCAPairSwapHandler.swapInterval()).to.equal(MINIMUM_SWAP_INTERVAL);
       });
     });
   });
