@@ -384,8 +384,8 @@ describe('DCAPairSwapHandler', () => {
     amountToSwapTokenB: BigNumber;
     ratePerUnitBToA: BigNumber;
     ratePerUnitAToB: BigNumber;
-    tokenAFee: BigNumber;
-    tokenBFee: BigNumber;
+    platformFeeTokenA: BigNumber;
+    platformFeeTokenB: BigNumber;
     amountToBeProvidedBySwapper: BigNumber;
     amountToRewardSwapperWith: BigNumber;
     tokenToBeProvidedBySwapper: string;
@@ -412,8 +412,8 @@ describe('DCAPairSwapHandler', () => {
     threshold = bn.toBN(threshold ?? 1);
     let {
       ratePerUnitAToB,
-      tokenAFee,
-      tokenBFee,
+      platformFeeTokenA,
+      platformFeeTokenB,
       amountToBeProvidedBySwapper,
       amountToRewardSwapperWith,
       tokenToBeProvidedBySwapper,
@@ -455,10 +455,10 @@ describe('DCAPairSwapHandler', () => {
         });
       });
       then('token a fee is correct', async () => {
-        expect(nextSwapInfo.tokenAFee).to.equal(tokenAFee);
+        expect(nextSwapInfo.platformFeeTokenA).to.equal(platformFeeTokenA);
       });
       then('token b fee is correct', async () => {
-        expect(nextSwapInfo.tokenBFee).to.equal(tokenBFee);
+        expect(nextSwapInfo.platformFeeTokenB).to.equal(platformFeeTokenB);
       });
       then('the amount of tokens to be provided by swapper is correct', async () => {
         bn.expectToEqualWithThreshold({
@@ -479,6 +479,31 @@ describe('DCAPairSwapHandler', () => {
       });
       then('token to reward swapper with is correct', async () => {
         expect(nextSwapInfo.tokenToRewardSwapperWith).to.be.equal(tokenToRewardSwapperWith());
+      });
+      then('fees are no more than expected', () => {
+        const expectedFeesTokenA = APPLY_FEE(amountToSwapOfTokenA as BigNumber);
+        const expectedFeesTokenB = APPLY_FEE(amountToSwapOfTokenB as BigNumber);
+
+        let totalFeesTokenA = platformFeeTokenA;
+        let totalFeesTokenB = platformFeeTokenB;
+
+        if (tokenToRewardSwapperWith() === tokenA.address) {
+          const feesAsRewards = amountToRewardSwapperWith.sub(amountToBeProvidedBySwapper.mul(ratePerUnitBToA).div(BigNumber.from(10).pow(18)));
+          totalFeesTokenA = totalFeesTokenA.add(feesAsRewards);
+        } else {
+          const feesAsRewards = amountToRewardSwapperWith.sub(amountToBeProvidedBySwapper.mul(ratePerUnitAToB).div(BigNumber.from(10).pow(18)));
+          totalFeesTokenB = totalFeesTokenB.add(feesAsRewards);
+        }
+        bn.expectToEqualWithThreshold({
+          value: totalFeesTokenA,
+          to: expectedFeesTokenA,
+          threshold: threshold!,
+        });
+        bn.expectToEqualWithThreshold({
+          value: totalFeesTokenB,
+          to: expectedFeesTokenB,
+          threshold: threshold!,
+        });
       });
     });
   }
@@ -845,7 +870,7 @@ describe('DCAPairSwapHandler', () => {
     const [CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE] = [utils.parseEther('2'), utils.parseEther('2')];
     const [PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE] = [utils.parseEther('2'), utils.parseEther('2')];
     let DCAPairSwapCallee: Contract;
-    let amountToBeProvidedBySwapper: BigNumber, amountToRewardSwapperWith: BigNumber, tokenAFee: BigNumber, tokenBFee: BigNumber;
+    let amountToBeProvidedBySwapper: BigNumber, amountToRewardSwapperWith: BigNumber, platformFeeTokenA: BigNumber, platformFeeTokenB: BigNumber;
 
     given(async () => {
       const DCAPairSwapCalleeContract = await ethers.getContractFactory('contracts/mocks/DCAPairSwapCallee.sol:DCAPairSwapCalleeMock');
@@ -854,7 +879,7 @@ describe('DCAPairSwapHandler', () => {
       await tokenB.mint(DCAPairSwapCallee.address, CALLEE_TOKEN_B_INITIAL_BALANCE);
       await tokenA.mint(DCAPairSwapHandler.address, PAIR_TOKEN_A_INITIAL_BALANCE);
       await tokenB.mint(DCAPairSwapHandler.address, PAIR_TOKEN_B_INITIAL_BALANCE);
-      ({ amountToBeProvidedBySwapper, amountToRewardSwapperWith, tokenAFee, tokenBFee } = await setNextSwapInfo({
+      ({ amountToBeProvidedBySwapper, amountToRewardSwapperWith, platformFeeTokenA, platformFeeTokenB } = await setNextSwapInfo({
         nextSwapToPerform: 2,
         amountToSwapOfTokenA: utils.parseEther('2'),
         amountToSwapOfTokenB: utils.parseEther('1'),
@@ -890,8 +915,8 @@ describe('DCAPairSwapHandler', () => {
         const pairTokenABalance = await tokenA.balanceOf(DCAPairSwapHandler.address);
         const pairTokenBBalance = await tokenB.balanceOf(DCAPairSwapHandler.address);
 
-        expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE.sub(amountToRewardSwapperWith).sub(tokenAFee));
-        expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE.add(amountToBeProvidedBySwapper).sub(tokenBFee));
+        expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE.sub(amountToRewardSwapperWith).sub(platformFeeTokenA));
+        expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE.add(amountToBeProvidedBySwapper).sub(platformFeeTokenB));
       });
     });
 
@@ -959,8 +984,8 @@ describe('DCAPairSwapHandler', () => {
     threshold = bn.toBN(threshold ?? 1);
     let {
       ratePerUnitAToB,
-      tokenAFee,
-      tokenBFee,
+      platformFeeTokenA,
+      platformFeeTokenB,
       amountToBeProvidedBySwapper,
       amountToRewardSwapperWith,
       tokenToBeProvidedBySwapper,
@@ -995,23 +1020,23 @@ describe('DCAPairSwapHandler', () => {
         if (!tokenToBeProvidedBySwapper) {
           bn.expectToEqualWithThreshold({
             value: await tokenA.balanceOf(DCAPairSwapHandler.address),
-            to: (initialContractTokenABalance as BigNumber).sub(tokenAFee),
+            to: (initialContractTokenABalance as BigNumber).sub(platformFeeTokenA),
             threshold: threshold!,
           });
           bn.expectToEqualWithThreshold({
             value: await tokenB.balanceOf(DCAPairSwapHandler.address),
-            to: (initialContractTokenBBalance as BigNumber).sub(tokenBFee),
+            to: (initialContractTokenBBalance as BigNumber).sub(platformFeeTokenB),
             threshold: threshold!,
           });
         } else if (tokenToBeProvidedBySwapper() === tokenA.address) {
           bn.expectToEqualWithThreshold({
-            value: (await tokenA.balanceOf(DCAPairSwapHandler.address)).add(tokenAFee),
+            value: (await tokenA.balanceOf(DCAPairSwapHandler.address)).add(platformFeeTokenA),
             to: (initialContractTokenABalance as BigNumber).add(amountToBeProvidedBySwapper),
             threshold: threshold!,
           });
         } else if (tokenToBeProvidedBySwapper() === tokenB.address) {
           bn.expectToEqualWithThreshold({
-            value: (await tokenB.balanceOf(DCAPairSwapHandler.address)).add(tokenBFee),
+            value: (await tokenB.balanceOf(DCAPairSwapHandler.address)).add(platformFeeTokenB),
             to: (initialContractTokenBBalance as BigNumber).add(amountToBeProvidedBySwapper),
             threshold: threshold!,
           });
@@ -1047,23 +1072,23 @@ describe('DCAPairSwapHandler', () => {
         if (!tokenToRewardSwapperWith) {
           bn.expectToEqualWithThreshold({
             value: await tokenA.balanceOf(DCAPairSwapHandler.address),
-            to: (initialContractTokenABalance as BigNumber).sub(tokenAFee),
+            to: (initialContractTokenABalance as BigNumber).sub(platformFeeTokenA),
             threshold: threshold!,
           });
           bn.expectToEqualWithThreshold({
             value: await tokenB.balanceOf(DCAPairSwapHandler.address),
-            to: (initialContractTokenBBalance as BigNumber).sub(tokenBFee),
+            to: (initialContractTokenBBalance as BigNumber).sub(platformFeeTokenB),
             threshold: threshold!,
           });
         } else if (tokenToRewardSwapperWith() === tokenA.address) {
           bn.expectToEqualWithThreshold({
-            value: (await tokenA.balanceOf(DCAPairSwapHandler.address)).add(tokenAFee),
+            value: (await tokenA.balanceOf(DCAPairSwapHandler.address)).add(platformFeeTokenA),
             to: (initialContractTokenABalance as BigNumber).sub(amountToRewardSwapperWith),
             threshold: threshold!,
           });
         } else if (tokenToRewardSwapperWith() === tokenB.address) {
           bn.expectToEqualWithThreshold({
-            value: (await tokenB.balanceOf(DCAPairSwapHandler.address)).add(tokenBFee),
+            value: (await tokenB.balanceOf(DCAPairSwapHandler.address)).add(platformFeeTokenB),
             to: (initialContractTokenBBalance as BigNumber).sub(amountToRewardSwapperWith),
             threshold: threshold!,
           });
@@ -1107,10 +1132,10 @@ describe('DCAPairSwapHandler', () => {
         expect(accumRatesPerUnit[0]).to.equal(ratePerUnitBToA);
       });
       then('sends token a fee correctly to fee recipient', async () => {
-        expect(await tokenA.balanceOf(feeRecipient.address)).to.equal(tokenAFee);
+        expect(await tokenA.balanceOf(feeRecipient.address)).to.equal(platformFeeTokenA);
       });
       then('sends token b fee correctly to fee recipient', async () => {
-        expect(await tokenB.balanceOf(feeRecipient.address)).to.equal(tokenBFee);
+        expect(await tokenB.balanceOf(feeRecipient.address)).to.equal(platformFeeTokenB);
       });
       then('updates performed swaps', async () => {
         expect(await DCAPairSwapHandler.performedSwaps()).to.equal(nextSwapToPerform);
@@ -1142,13 +1167,13 @@ describe('DCAPairSwapHandler', () => {
           threshold: threshold!,
         });
         bn.expectToEqualWithThreshold({
-          value: nextSwapInformation.tokenAFee,
-          to: tokenAFee,
+          value: nextSwapInformation.platformFeeTokenA,
+          to: platformFeeTokenA,
           threshold: threshold!,
         });
         bn.expectToEqualWithThreshold({
-          value: nextSwapInformation.tokenBFee,
-          to: tokenBFee,
+          value: nextSwapInformation.platformFeeTokenB,
+          to: platformFeeTokenB,
           threshold: threshold!,
         });
         bn.expectToEqualWithThreshold({
@@ -1174,8 +1199,8 @@ describe('DCAPairSwapHandler', () => {
 
   function calculateSwapDetails(ratePerUnitBToA: BigNumber, amountToSwapOfTokenB: BigNumber, amountToSwapOfTokenA: BigNumber) {
     let ratePerUnitAToB: BigNumber;
-    let tokenAFee: BigNumber;
-    let tokenBFee: BigNumber;
+    let platformFeeTokenA: BigNumber;
+    let platformFeeTokenB: BigNumber;
     let amountToBeProvidedBySwapper: BigNumber;
     let amountToRewardSwapperWith: BigNumber;
     let tokenToBeProvidedBySwapper: () => string;
@@ -1189,12 +1214,16 @@ describe('DCAPairSwapHandler', () => {
       tokenToRewardSwapperWith = () => constants.ZERO_ADDRESS;
       amountToBeProvidedBySwapper = bn.toBN(0);
       amountToRewardSwapperWith = bn.toBN(0);
+      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA);
+      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB);
     } else if (amountToSwapBInA.gt(amountToSwapOfTokenA)) {
       tokenToBeProvidedBySwapper = () => tokenA.address;
       tokenToRewardSwapperWith = () => tokenB.address;
       amountToBeProvidedBySwapper = amountToSwapBInA.sub(amountToSwapOfTokenA);
       const amountToBeProvidedInB = amountToBeProvidedBySwapper.mul(ratePerUnitAToB).div(magnitude);
       amountToRewardSwapperWith = amountToBeProvidedInB.add(APPLY_FEE(amountToBeProvidedInB));
+      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA);
+      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB.sub(amountToBeProvidedInB));
     } else {
       tokenToBeProvidedBySwapper = () => tokenB.address;
       tokenToRewardSwapperWith = () => tokenA.address;
@@ -1202,13 +1231,14 @@ describe('DCAPairSwapHandler', () => {
       amountToBeProvidedBySwapper = amountToSwapAInB.sub(amountToSwapOfTokenB);
       const amountToBeProvidedInA = amountToBeProvidedBySwapper.mul(ratePerUnitBToA).div(magnitude);
       amountToRewardSwapperWith = amountToBeProvidedInA.add(APPLY_FEE(amountToBeProvidedInA));
+      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA.sub(amountToBeProvidedInA));
+      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB);
     }
-    tokenAFee = APPLY_FEE(amountToSwapOfTokenA);
-    tokenBFee = APPLY_FEE(amountToSwapOfTokenB);
+
     return {
       ratePerUnitAToB,
-      tokenAFee,
-      tokenBFee,
+      platformFeeTokenA,
+      platformFeeTokenB,
       amountToBeProvidedBySwapper,
       amountToRewardSwapperWith,
       tokenToBeProvidedBySwapper,

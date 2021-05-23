@@ -15,8 +15,8 @@ interface IDCAPairSwapHandler {
     uint256 amountToSwapTokenB;
     uint256 ratePerUnitBToA;
     uint256 ratePerUnitAToB;
-    uint256 tokenAFee;
-    uint256 tokenBFee;
+    uint256 platformFeeTokenA;
+    uint256 platformFeeTokenB;
     uint256 amountToBeProvidedBySwapper;
     uint256 amountToRewardSwapperWith;
     IERC20Detailed tokenToBeProvidedBySwapper;
@@ -96,42 +96,38 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
   }
 
-  function _calculateNecessary(
-    uint256 _fromTokenMagnitude,
-    uint256 _amountTo,
-    uint256 _rateFromTo
-  ) internal pure returns (uint256 _amountFrom) {
-    _amountFrom = (_amountTo * _fromTokenMagnitude) / _rateFromTo;
-  }
-
   function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
     _nextSwapInformation.swapToPerform = performedSwaps + 1;
     _nextSwapInformation.amountToSwapTokenA = _getAmountToSwap(address(tokenA), _nextSwapInformation.swapToPerform);
-    _nextSwapInformation.tokenAFee = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenA);
     _nextSwapInformation.amountToSwapTokenB = _getAmountToSwap(address(tokenB), _nextSwapInformation.swapToPerform);
-    _nextSwapInformation.tokenBFee = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenB);
     // TODO: Instead of using current, it should use quote to get a moving average and not current?
     _nextSwapInformation.ratePerUnitBToA = oracle.current(address(tokenB), _magnitudeB, address(tokenA));
-    _nextSwapInformation.ratePerUnitAToB = _calculateNecessary(_magnitudeB, _magnitudeA, _nextSwapInformation.ratePerUnitBToA);
+    _nextSwapInformation.ratePerUnitAToB = (_magnitudeB * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
 
     uint256 _amountOfTokenAIfTokenBSwapped =
       _convertTo(_magnitudeB, _nextSwapInformation.amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
+    // TODO: We are calling _getFeeFromAmount (which makes a call to the factory) a lot. See if we can call the factory only once
     if (_amountOfTokenAIfTokenBSwapped < _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
       uint256 _tokenASurplus = _nextSwapInformation.amountToSwapTokenA - _amountOfTokenAIfTokenBSwapped;
       _nextSwapInformation.amountToBeProvidedBySwapper = _convertTo(_magnitudeA, _tokenASurplus, _nextSwapInformation.ratePerUnitAToB);
       _nextSwapInformation.amountToRewardSwapperWith = _tokenASurplus + _getFeeFromAmount(_tokenASurplus);
+      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_amountOfTokenAIfTokenBSwapped);
+      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenB);
     } else if (_amountOfTokenAIfTokenBSwapped > _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenA;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenB;
       _nextSwapInformation.amountToBeProvidedBySwapper = _amountOfTokenAIfTokenBSwapped - _nextSwapInformation.amountToSwapTokenA;
-      _nextSwapInformation.amountToRewardSwapperWith = _convertTo(
-        _magnitudeA,
-        _nextSwapInformation.amountToBeProvidedBySwapper + _getFeeFromAmount(_nextSwapInformation.amountToBeProvidedBySwapper),
-        _nextSwapInformation.ratePerUnitAToB
-      );
+      uint256 _amountToBeProvidedConvertedToB =
+        _convertTo(_magnitudeA, _nextSwapInformation.amountToBeProvidedBySwapper, _nextSwapInformation.ratePerUnitAToB);
+      _nextSwapInformation.amountToRewardSwapperWith = _amountToBeProvidedConvertedToB + _getFeeFromAmount(_amountToBeProvidedConvertedToB);
+      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenA);
+      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenB - _amountToBeProvidedConvertedToB);
+    } else {
+      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenA);
+      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_nextSwapInformation.amountToSwapTokenB);
     }
   }
 
@@ -193,8 +189,8 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     }
 
     // Send fees
-    tokenA.safeTransfer(factory.feeRecipient(), _nextSwapInformation.tokenAFee);
-    tokenB.safeTransfer(factory.feeRecipient(), _nextSwapInformation.tokenBFee);
+    tokenA.safeTransfer(factory.feeRecipient(), _nextSwapInformation.platformFeeTokenA);
+    tokenB.safeTransfer(factory.feeRecipient(), _nextSwapInformation.platformFeeTokenB);
     emit Swapped(_nextSwapInformation);
   }
 }
