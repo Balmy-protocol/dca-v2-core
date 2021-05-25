@@ -129,7 +129,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     uint32 _swapsLeft = userPositions[_dcaId].lastSwap - performedSwaps;
-    require(_swapsLeft > 0, 'DCAPair: You cannot modify only the rate of a position that has already been completed');
+    require(_swapsLeft > 0, 'DCAPair: Position completed');
 
     modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
   }
@@ -159,7 +159,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     uint32 _newSwaps
   ) public override {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-    require(_amount > 0, 'DCAPair: The amount to add must be positive');
+    require(_amount > 0, 'DCAPair: Non-positive amount');
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _total = _unswapped + _amount;
@@ -179,10 +179,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     // We will store the swapped amount without the fee. The fee will be applied during withdraw/terminate
     uint256 _swapped = _calculateSwapped(_dcaId, false);
-    require(
-      _swapped <= type(uint248).max,
-      'DCAPair: Please withdraw before modifying your position, because you might lose some funds otherwise.'
-    );
+    require(_swapped <= type(uint248).max, 'DCAPair: Withdraw before'); // You should withdraw before modifying, to avoid loosing funds
 
     _removePosition(_dcaId);
     (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps, uint248(_swapped));
@@ -200,7 +197,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
   function _assertPositionExistsAndCanBeOperatedByCaller(uint256 _dcaId) internal view {
     require(userPositions[_dcaId].rate > 0, 'DCAPair: Invalid position id');
-    require(_isApprovedOrOwner(msg.sender, _dcaId), 'DCAPair: Called must be owner, or approved by owner');
+    require(_isApprovedOrOwner(msg.sender, _dcaId), 'DCAPair: Caller not allowed');
   }
 
   function _addPosition(
@@ -210,8 +207,8 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
     uint32 _amountOfSwaps,
     uint248 _swappedBeforeModified
   ) internal returns (uint32 _startingSwap, uint32 _finalSwap) {
-    require(_rate > 0, 'DCAPair: Invalid rate. It must be positive');
-    require(_amountOfSwaps > 0, 'DCAPair: Invalid amount of swaps. It must be positive');
+    require(_rate > 0, 'DCAPair: Non-positive rate');
+    require(_amountOfSwaps > 0, 'DCAPair: Non-positive amount');
     _startingSwap = performedSwaps + 1;
     _finalSwap = performedSwaps + _amountOfSwaps;
     swapAmountDelta[_from][_startingSwap] += int192(_rate);

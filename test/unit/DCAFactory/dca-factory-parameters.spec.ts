@@ -144,25 +144,25 @@ describe('DCAFactoryParameters', function () {
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[1, 10]],
-          message: 'DCAFactory: allowed swap interval',
+          message: 'DCAFactory: already allowed',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[1, 11]],
-          message: 'DCAFactory: allowed swap interval',
+          message: 'DCAFactory: already allowed',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[10, 1]],
-          message: 'DCAFactory: allowed swap interval',
+          message: 'DCAFactory: already allowed',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[11, 1]],
-          message: 'DCAFactory: allowed swap interval',
+          message: 'DCAFactory: already allowed',
         });
       });
     });
@@ -195,13 +195,13 @@ describe('DCAFactoryParameters', function () {
           contract: DCAFactoryParameters,
           func: 'removeSwapIntervalsFromAllowedList',
           args: [[1, 2]],
-          message: 'DCAFactory: swap interval not allowed',
+          message: 'DCAFactory: invalid interval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryParameters,
           func: 'removeSwapIntervalsFromAllowedList',
           args: [[2, 3]],
-          message: 'DCAFactory: swap interval not allowed',
+          message: 'DCAFactory: invalid interval',
         });
       });
     });

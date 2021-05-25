@@ -64,7 +64,7 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters, Governable {
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
       require(_swapIntervals[i] > 0, 'DCAFactory: zero interval');
-      require(!isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: allowed swap interval');
+      require(!isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: already allowed');
       _allowedSwapIntervals.add(_swapIntervals[i]);
     }
     emit SwapIntervalsAllowed(_swapIntervals);
@@ -72,7 +72,7 @@ abstract contract DCAFactoryParameters is IDCAFactoryParameters, Governable {
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
-      require(isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: swap interval not allowed');
+      require(isSwapIntervalAllowed(_swapIntervals[i]), 'DCAFactory: invalid interval');
       _allowedSwapIntervals.remove(_swapIntervals[i]);
     }
     emit SwapIntervalsForbidden(_swapIntervals);

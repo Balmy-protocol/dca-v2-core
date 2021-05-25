@@ -175,10 +175,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
       uint256 _balanceAfter = _nextSwapInformation.tokenToBeProvidedBySwapper.balanceOf(address(this));
 
       // Make sure that they sent the tokens back
-      require(
-        _balanceAfter >= _balanceBefore + _nextSwapInformation.amountToBeProvidedBySwapper,
-        'DCAPair: callee did not provide the expected liquidity'
-      );
+      require(_balanceAfter >= _balanceBefore + _nextSwapInformation.amountToBeProvidedBySwapper, 'DCAPair: not enough liquidity');
     } else if (_nextSwapInformation.amountToBeProvidedBySwapper > 0) {
       _nextSwapInformation.tokenToBeProvidedBySwapper.safeTransferFrom(
         msg.sender,

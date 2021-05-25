@@ -94,7 +94,7 @@ describe('DCAPositionHandler', () => {
           address: tokenA.address,
           rate: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'DCAPair: Invalid rate. It must be positive',
+          error: 'DCAPair: Non-positive rate',
         });
       });
     });
@@ -105,7 +105,7 @@ describe('DCAPositionHandler', () => {
           address: tokenA.address,
           rate: POSITION_RATE_5,
           swaps: 0,
-          error: 'DCAPair: Invalid amount of swaps. It must be positive',
+          error: 'DCAPair: Non-positive amount',
         });
       });
     });
@@ -496,7 +496,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: Invalid rate. It must be positive',
+          message: 'DCAPair: Non-positive rate',
         });
       });
     });
@@ -509,7 +509,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [dcaId, POSITION_RATE_5, 0],
-          message: 'DCAPair: Invalid amount of swaps. It must be positive',
+          message: 'DCAPair: Non-positive amount',
         });
       });
     });
@@ -605,7 +605,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifySwaps',
           args: [dcaId, 0],
-          message: 'DCAPair: Invalid amount of swaps. It must be positive',
+          message: 'DCAPair: Non-positive amount',
         });
       });
     });
@@ -660,7 +660,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'addFundsToPosition',
           args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: The amount to add must be positive',
+          message: 'DCAPair: Non-positive amount',
         });
       });
     });
@@ -697,7 +697,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [dcaId, 0],
-          message: 'DCAPair: Invalid rate. It must be positive',
+          message: 'DCAPair: Non-positive rate',
         });
       });
     });
@@ -745,7 +745,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [dcaId, POSITION_RATE_5 + 1],
-          message: 'DCAPair: You cannot modify only the rate of a position that has already been completed',
+          message: 'DCAPair: Position completed',
         });
       });
     });
@@ -772,7 +772,7 @@ describe('DCAPositionHandler', () => {
       then('tx is reverted', async () => {
         await behaviours.checkTxRevertedWithMessage({
           tx,
-          message: 'DCAPair: Please withdraw before modifying your position, because you might lose some funds otherwise.',
+          message: 'DCAPair: Withdraw before',
         });
       });
     });
@@ -1052,7 +1052,7 @@ describe('DCAPositionHandler', () => {
 
       then('operation is reverted', async () => {
         const result: Promise<TransactionResponse> = execute(DCAPositionHandler.connect(stranger), dcaId);
-        await expect(result).to.be.revertedWith('DCAPair: Called must be owner, or approved by owner');
+        await expect(result).to.be.revertedWith('DCAPair: Caller not allowed');
       });
     });
   }

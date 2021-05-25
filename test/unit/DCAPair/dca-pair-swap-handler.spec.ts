@@ -11,7 +11,7 @@ import { readArgFromEvent } from '../../utils/event-utils';
 const MINIMUM_SWAP_INTERVAL = BigNumber.from('60');
 const APPLY_FEE = (bn: BigNumber) => bn.mul(3).div(1000);
 
-describe('DCAPairSwapHandler', () => {
+describe.only('DCAPairSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
@@ -930,7 +930,7 @@ describe('DCAPairSwapHandler', () => {
       });
 
       then('tx is reverted', async () => {
-        await expect(tx).to.be.revertedWith('DCAPair: callee did not provide the expected liquidity');
+        await expect(tx).to.be.revertedWith('DCAPair: not enough liquidity');
       });
 
       then('callee state is not modified', async () => {
