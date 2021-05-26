@@ -11,7 +11,7 @@ import { readArgFromEvent } from '../../utils/event-utils';
 const MINIMUM_SWAP_INTERVAL = BigNumber.from('60');
 const APPLY_FEE = (bn: BigNumber) => bn.mul(3).div(1000);
 
-describe.only('DCAPairSwapHandler', () => {
+describe('DCAPairSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;

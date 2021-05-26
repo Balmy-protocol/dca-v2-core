@@ -3,7 +3,7 @@ import { ethers } from 'hardhat';
 import { erc20, behaviours, constants } from '../../utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { expectNoEventWithName, readArgFromEventOrFail } from '../../utils/event-utils';
+import { readArgFromEventOrFail } from '../../utils/event-utils';
 import { when, then, given } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
@@ -83,7 +83,7 @@ describe('DCAPositionHandler', () => {
           address: constants.NOT_ZERO_ADDRESS,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'DCAPair: Invalid deposit address',
+          error: 'DCAPair: invalid deposit address',
         });
       });
     });
@@ -94,7 +94,7 @@ describe('DCAPositionHandler', () => {
           address: tokenA.address,
           rate: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'DCAPair: Non-positive rate',
+          error: 'DCAPair: non-positive rate',
         });
       });
     });
@@ -105,7 +105,7 @@ describe('DCAPositionHandler', () => {
           address: tokenA.address,
           rate: POSITION_RATE_5,
           swaps: 0,
-          error: 'DCAPair: Non-positive amount',
+          error: 'DCAPair: non-positive amount',
         });
       });
     });
@@ -177,7 +177,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'withdrawSwapped',
           args: [100],
-          message: 'DCAPair: Invalid position id',
+          message: 'DCAPair: invalid position id',
         });
       });
     });
@@ -266,7 +266,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'withdrawSwappedMany',
           args: [[100]],
-          message: 'DCAPair: Invalid position id',
+          message: 'DCAPair: invalid position id',
         });
       });
     });
@@ -414,7 +414,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'terminate',
           args: [100],
-          message: 'DCAPair: Invalid position id',
+          message: 'DCAPair: invalid position id',
         });
       });
     });
@@ -483,7 +483,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [100, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: Invalid position id',
+          message: 'DCAPair: invalid position id',
         });
       });
     });
@@ -496,7 +496,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: Non-positive rate',
+          message: 'DCAPair: non-positive rate',
         });
       });
     });
@@ -509,7 +509,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [dcaId, POSITION_RATE_5, 0],
-          message: 'DCAPair: Non-positive amount',
+          message: 'DCAPair: non-positive amount',
         });
       });
     });
@@ -592,7 +592,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifySwaps',
           args: [100, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: Invalid position id',
+          message: 'DCAPair: invalid position id',
         });
       });
     });
@@ -605,7 +605,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifySwaps',
           args: [dcaId, 0],
-          message: 'DCAPair: Non-positive amount',
+          message: 'DCAPair: non-positive amount',
         });
       });
     });
@@ -647,7 +647,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'addFundsToPosition',
           args: [100, fromEther(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: Invalid position id',
+          message: 'DCAPair: invalid position id',
         });
       });
     });
@@ -660,7 +660,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'addFundsToPosition',
           args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: Non-positive amount',
+          message: 'DCAPair: non-positive amount',
         });
       });
     });
@@ -684,7 +684,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [100, POSITION_RATE_5],
-          message: 'DCAPair: Invalid position id',
+          message: 'DCAPair: invalid position id',
         });
       });
     });
@@ -697,7 +697,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [dcaId, 0],
-          message: 'DCAPair: Non-positive rate',
+          message: 'DCAPair: non-positive rate',
         });
       });
     });
@@ -745,7 +745,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [dcaId, POSITION_RATE_5 + 1],
-          message: 'DCAPair: Position completed',
+          message: 'DCAPair: position completed',
         });
       });
     });
@@ -772,7 +772,7 @@ describe('DCAPositionHandler', () => {
       then('tx is reverted', async () => {
         await behaviours.checkTxRevertedWithMessage({
           tx,
-          message: 'DCAPair: Withdraw before',
+          message: 'DCAPair: must withdraw before',
         });
       });
     });
@@ -1052,7 +1052,7 @@ describe('DCAPositionHandler', () => {
 
       then('operation is reverted', async () => {
         const result: Promise<TransactionResponse> = execute(DCAPositionHandler.connect(stranger), dcaId);
-        await expect(result).to.be.revertedWith('DCAPair: Caller not allowed');
+        await expect(result).to.be.revertedWith('DCAPair: caller not allowed');
       });
     });
   }
