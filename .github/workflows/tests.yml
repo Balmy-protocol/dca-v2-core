@@ -37,7 +37,7 @@ jobs:
 
       - name: Run unit tests
         run: npm run test:unit
-        timeout-minutes: 6
+        timeout-minutes: 8
 
   # e2e:
   #   runs-on: ubuntu-latest
