@@ -8,38 +8,6 @@ import '../interfaces/ISlidingOracle.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import './DCAPairParameters.sol';
 
-interface IDCAPairSwapHandler {
-  struct NextSwapInformation {
-    uint32 swapToPerform;
-    uint256 amountToSwapTokenA;
-    uint256 amountToSwapTokenB;
-    uint256 ratePerUnitBToA;
-    uint256 ratePerUnitAToB;
-    uint256 platformFeeTokenA;
-    uint256 platformFeeTokenB;
-    uint256 amountToBeProvidedBySwapper;
-    uint256 amountToRewardSwapperWith;
-    IERC20Detailed tokenToBeProvidedBySwapper;
-    IERC20Detailed tokenToRewardSwapperWith;
-  }
-
-  event Swapped(NextSwapInformation _nextSwapInformation);
-
-  function swapInterval() external view returns (uint32);
-
-  function lastSwapPerformed() external view returns (uint256);
-
-  function swapAmountAccumulator(address) external view returns (uint256);
-
-  function oracle() external returns (ISlidingOracle);
-
-  function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
-
-  function swap() external;
-
-  function swap(address _to, bytes calldata _data) external;
-}
-
 abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   using SafeERC20 for IERC20Detailed;
 

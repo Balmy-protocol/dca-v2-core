@@ -5,42 +5,6 @@ import './DCAPairParameters.sol';
 import './ERC721/ERC721.sol';
 import '../utils/Math.sol';
 
-interface IDCAPairPositionHandler {
-  event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
-  event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
-  event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
-  event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
-  event Modified(address indexed _user, uint256 _dcaId, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
-
-  function deposit(
-    address _tokenAddress,
-    uint192 _rate,
-    uint32 _amountOfSwaps
-  ) external returns (uint256 _dcaId);
-
-  function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
-
-  function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
-
-  function modifyRate(uint256 _dcaId, uint192 _newRate) external;
-
-  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) external;
-
-  function modifyRateAndSwaps(
-    uint256 _dcaId,
-    uint192 _newRate,
-    uint32 _newSwaps
-  ) external;
-
-  function addFundsToPosition(
-    uint256 _dcaId,
-    uint256 _amount,
-    uint32 _newSwaps
-  ) external;
-
-  function terminate(uint256 _dcaId) external;
-}
-
 abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionHandler, ERC721 {
   using SafeERC20 for IERC20Detailed;
 

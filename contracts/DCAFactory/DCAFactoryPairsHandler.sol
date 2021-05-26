@@ -2,44 +2,10 @@
 pragma solidity 0.8.4;
 
 import 'hardhat/console.sol';
-
-import '../interfaces/IERC20Detailed.sol';
-
 import '../DCAPair/DCAPair.sol';
-
 import './DCAFactoryParameters.sol';
-
-interface IDCAFactoryPairsHandler is IDCAFactoryParameters {
-  event PairCreated(address indexed _token0, address indexed _token1, uint32 _swapInterval, address _pair);
-
-  function pairByTokensAndSwapInterval(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) external view returns (address _pair);
-
-  function getPairByTokensAndSwapInterval(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) external view returns (address _pair);
-
-  function getPairsByTokens(address _tokenA, address _tokenB) external view returns (address[] memory _pairs);
-
-  function pairsByTokens(
-    address _tokenA,
-    address _tokenB,
-    uint256 _index
-  ) external view returns (address _pair);
-
-  function allPairs(uint256 _pairIndex) external view returns (address pair);
-
-  function createPair(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) external returns (address pair);
-}
+import '../interfaces/IERC20Detailed.sol';
+import '../interfaces/IDCAFactory.sol';
 
 abstract contract DCAFactoryPairsHandler is DCAFactoryParameters, IDCAFactoryPairsHandler {
   mapping(address => mapping(address => mapping(uint32 => address))) public override pairByTokensAndSwapInterval;

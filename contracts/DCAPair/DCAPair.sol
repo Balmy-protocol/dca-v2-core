@@ -6,8 +6,6 @@ import './DCAPairParameters.sol';
 import './DCAPairPositionHandler.sol';
 import './DCAPairSwapHandler.sol';
 
-interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler {}
-
 contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandler, IDCAPair {
   constructor(
     IERC20Detailed _tokenA,

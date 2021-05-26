@@ -9,41 +9,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import '../DCAFactory/DCAFactory.sol';
 import '../interfaces/IERC20Detailed.sol';
-
-interface IDCAPairParameters {
-  struct DCA {
-    uint32 lastWithdrawSwap;
-    uint32 lastSwap;
-    uint192 rate;
-    bool fromTokenA;
-    uint248 swappedBeforeModified;
-  }
-
-  /* Public getters */
-  function factory() external view returns (IDCAFactory);
-
-  // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() external view returns (uint24);
-
-  function tokenA() external view returns (IERC20Detailed);
-
-  function tokenB() external view returns (IERC20Detailed);
-
-  function swapAmountDelta(address, uint32) external view returns (int256);
-
-  // TODO: When we reduce contract's size, make this a little bit more useful
-  function userPositions(uint256)
-    external
-    returns (
-      uint32,
-      uint32,
-      uint192,
-      bool,
-      uint248
-    );
-
-  function performedSwaps() external returns (uint32);
-}
+import '../interfaces/IDCAPair.sol';
 
 abstract contract DCAPairParameters is IDCAPairParameters {
   uint24 public constant override FEE_PRECISION = 10000; // TODO: Take from factory in initiation
