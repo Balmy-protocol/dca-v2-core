@@ -21,6 +21,15 @@ contract DCAPairParametersMock is DCAPairParameters {
     return _magnitudeB;
   }
 
+  function internalBalanceOf(address _token) public view returns (uint256) {
+    return _balances[_token];
+  }
+
+  function setInternalBalances(uint256 _amountTokenA, uint256 _amountTokenB) public {
+    _balances[address(tokenA)] = _amountTokenA;
+    _balances[address(tokenB)] = _amountTokenB;
+  }
+
   function setSwapAmountDelta(
     address _tokenAddress,
     uint32 _swap,

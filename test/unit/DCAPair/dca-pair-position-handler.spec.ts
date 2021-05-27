@@ -54,6 +54,7 @@ describe('DCAPositionHandler', () => {
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));
     await tokenA.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await tokenB.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT));
+    await DCAPositionHandler.setInternalBalances(fromEther(INITIAL_TOKEN_A_BALANCE_CONTRACT), fromEther(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await tokenA.mint(approved.address, fromEther(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenA.approveInternal(approved.address, DCAPositionHandler.address, fromEther(1000));
     await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10);
@@ -140,7 +141,7 @@ describe('DCAPositionHandler', () => {
         await expectBalanceToBe(
           tokenA,
           DCAPositionHandler.address,
-          INITIAL_TOKEN_A_BALANCE_USER + POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
+          INITIAL_TOKEN_A_BALANCE_CONTRACT + POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10
         );
       });
 
@@ -169,6 +170,8 @@ describe('DCAPositionHandler', () => {
         expect(tokenOwner).to.equal(owner.address);
         expect(balance).to.equal(1);
       });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });
 
@@ -216,9 +219,11 @@ describe('DCAPositionHandler', () => {
           lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
         });
       });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
-    when(`withdrawing swapped with executed position,`, () => {
+    when(`withdrawing swapped with executed position`, () => {
       let response: TransactionResponse;
       let dcaId: BigNumber;
 
@@ -258,6 +263,8 @@ describe('DCAPositionHandler', () => {
         const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
         expect(swapped).to.equal(0);
       });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });
 
@@ -318,6 +325,8 @@ describe('DCAPositionHandler', () => {
           lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
         });
       });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
     when(`withdrawing swapped with executed positions`, () => {
@@ -406,6 +415,8 @@ describe('DCAPositionHandler', () => {
           .to.emit(DCAPositionHandler, 'WithdrewMany')
           .withArgs(owner.address, [dcaId1, dcaId2], await withFeeApplied(swappedA), await withFeeApplied(swappedB));
       });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });
 
@@ -475,6 +486,8 @@ describe('DCAPositionHandler', () => {
         const balance = await DCAPositionHandler.balanceOf(owner.address);
         expect(balance).to.equal(0);
       });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });
 
@@ -1131,6 +1144,8 @@ describe('DCAPositionHandler', () => {
         const expected = await withFeeApplied(fromEther(initialRate * RATE_PER_UNIT_5)); // Only one swap was executed
         expect(swapped).to.equal(expected);
       });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   }
 
@@ -1151,6 +1166,10 @@ describe('DCAPositionHandler', () => {
     await DCAPositionHandler.setRatePerUnit(fromTokenReal.address, swap, fromEther(ratePerUnit), 0);
     await fromTokenReal.burn(DCAPositionHandler.address, fromEther(amount));
     await toToken.mint(DCAPositionHandler.address, await withFeeApplied(fromEther(amount * ratePerUnit))); // We calculate and subtract the fee, similarly to how it would be when not unit tested
+    await DCAPositionHandler.setInternalBalances(
+      await tokenA.balanceOf(DCAPositionHandler.address),
+      await tokenB.balanceOf(DCAPositionHandler.address)
+    );
   }
 
   function modifyRate(dcaId: BigNumber, rate: number): Promise<TransactionResponse> {
@@ -1190,6 +1209,20 @@ describe('DCAPositionHandler', () => {
   async function expectBalanceToBe(token: Contract, address: string, asEther: BigNumber | string | number) {
     const balance = await token.balanceOf(address);
     expect(balance).to.be.equal(BigNumber.isBigNumber(asEther) ? asEther : fromEther(asEther));
+  }
+
+  function thenInternalBalancesAreTheSameAsTokenBalances() {
+    then('internal balance for token A is as expected', async () => {
+      const balance = await tokenA.balanceOf(DCAPositionHandler.address);
+      const internalBalance = await DCAPositionHandler.internalBalanceOf(tokenA.address);
+      expect(internalBalance).to.equal(balance);
+    });
+
+    then('internal balance for token B is as expected', async () => {
+      const balance = await tokenB.balanceOf(DCAPositionHandler.address);
+      const internalBalance = await DCAPositionHandler.internalBalanceOf(tokenB.address);
+      expect(internalBalance).to.equal(balance);
+    });
   }
 
   async function expectPositionToBe(

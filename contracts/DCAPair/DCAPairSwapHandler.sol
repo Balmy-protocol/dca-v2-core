@@ -100,7 +100,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   }
 
   function swap() public override {
-    swap(address(0), '');
+    swap(msg.sender, '');
   }
 
   function swap(address _to, bytes memory _data) public override {
@@ -122,41 +122,44 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     performedSwaps = _nextSwapInformation.swapToPerform;
     lastSwapPerformed = block.timestamp;
 
-    if (_to != address(0)) {
-      uint256 _balanceBefore = _nextSwapInformation.tokenToBeProvidedBySwapper.balanceOf(address(this));
+    if (_nextSwapInformation.amountToRewardSwapperWith > 0) {
+      uint256 _balanceBefore = _balances[address(_nextSwapInformation.tokenToBeProvidedBySwapper)];
 
       // Optimistically transfer tokens
-      if (_nextSwapInformation.amountToRewardSwapperWith > 0) {
-        _nextSwapInformation.tokenToRewardSwapperWith.safeTransfer(_to, _nextSwapInformation.amountToRewardSwapperWith);
-      }
+      _nextSwapInformation.tokenToRewardSwapperWith.safeTransfer(_to, _nextSwapInformation.amountToRewardSwapperWith);
 
-      // Make call
-      IDCAPairSwapCallee(_to).DCAPairSwapCall(
-        msg.sender,
-        _nextSwapInformation.tokenToRewardSwapperWith,
-        _nextSwapInformation.amountToRewardSwapperWith,
-        _nextSwapInformation.tokenToBeProvidedBySwapper,
-        _nextSwapInformation.amountToBeProvidedBySwapper,
-        _data
-      );
+      if (_data.length > 0) {
+        // Make call
+        IDCAPairSwapCallee(_to).DCAPairSwapCall(
+          msg.sender,
+          _nextSwapInformation.tokenToRewardSwapperWith,
+          _nextSwapInformation.amountToRewardSwapperWith,
+          _nextSwapInformation.tokenToBeProvidedBySwapper,
+          _nextSwapInformation.amountToBeProvidedBySwapper,
+          _data
+        );
+      }
 
       uint256 _balanceAfter = _nextSwapInformation.tokenToBeProvidedBySwapper.balanceOf(address(this));
 
       // Make sure that they sent the tokens back
       require(_balanceAfter >= _balanceBefore + _nextSwapInformation.amountToBeProvidedBySwapper, 'DCAPair: not enough liquidity');
-    } else if (_nextSwapInformation.amountToBeProvidedBySwapper > 0) {
-      _nextSwapInformation.tokenToBeProvidedBySwapper.safeTransferFrom(
-        msg.sender,
-        address(this),
-        _nextSwapInformation.amountToBeProvidedBySwapper
-      );
-      _nextSwapInformation.tokenToRewardSwapperWith.safeTransfer(msg.sender, _nextSwapInformation.amountToRewardSwapperWith);
+
+      // Update balances for swap
+      _balances[address(_nextSwapInformation.tokenToRewardSwapperWith)] -= _nextSwapInformation.amountToRewardSwapperWith;
+      _balances[address(_nextSwapInformation.tokenToBeProvidedBySwapper)] = _balanceAfter;
     }
+
+    // Update balances for platform fees
+    _balances[address(tokenA)] -= _nextSwapInformation.platformFeeTokenA;
+    _balances[address(tokenB)] -= _nextSwapInformation.platformFeeTokenB;
 
     // Send fees
     address _feeRecipient = globalParameters.feeRecipient();
     tokenA.safeTransfer(_feeRecipient, _nextSwapInformation.platformFeeTokenA);
     tokenB.safeTransfer(_feeRecipient, _nextSwapInformation.platformFeeTokenB);
+
+    // Emit event
     emit Swapped(_nextSwapInformation);
   }
 }

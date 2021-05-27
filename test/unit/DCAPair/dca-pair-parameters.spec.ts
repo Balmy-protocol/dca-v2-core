@@ -87,6 +87,12 @@ describe('DCAPairParameters', function () {
       then('sets magnitude B', async () => {
         expect(await deployedContract.magnitudeB()).to.equal(BigNumber.from('10').pow(await tokenB.decimals()));
       });
+      then('internal balance for token A starts as 0', async () => {
+        expect(await deployedContract.internalBalanceOf(tokenA.address)).to.equal(0);
+      });
+      then('internal balance for token B starts as 0', async () => {
+        expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
+      });
     });
   });
 
