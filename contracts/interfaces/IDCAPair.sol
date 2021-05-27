@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
-import './IDCAFactory.sol';
+import './IDCAGlobalParameters.sol';
 import './IERC20Detailed.sol';
 import './ISlidingOracle.sol';
 
@@ -15,7 +15,7 @@ interface IDCAPairParameters {
   }
 
   /* Public getters */
-  function factory() external view returns (IDCAFactory);
+  function globalParameters() external view returns (IDCAGlobalParameters);
 
   // solhint-disable-next-line func-name-mixedcase
   function FEE_PRECISION() external view returns (uint24);

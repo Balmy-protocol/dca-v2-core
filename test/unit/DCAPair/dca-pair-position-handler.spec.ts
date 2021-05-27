@@ -22,15 +22,17 @@ describe('DCAPositionHandler', () => {
   let tokenA: Contract, tokenB: Contract;
   let DCAPositionHandlerContract: ContractFactory;
   let DCAPositionHandler: Contract;
-  let DCAFactoryContract: ContractFactory;
-  let DCAFactory: Contract;
+  let DCAGlobalParametersContract: ContractFactory;
+  let DCAGlobalParameters: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner, approved, stranger, feeRecipient] = await ethers.getSigners();
     DCAPositionHandlerContract = await ethers.getContractFactory(
       'contracts/mocks/DCAPair/DCAPairPositionHandler.sol:DCAPairPositionHandlerMock'
     );
-    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
+    DCAGlobalParametersContract = await ethers.getContractFactory(
+      'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
+    );
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -46,8 +48,8 @@ describe('DCAPositionHandler', () => {
       initialAccount: owner.address,
       initialAmount: fromEther(INITIAL_TOKEN_B_BALANCE_USER),
     });
-    DCAFactory = await DCAFactoryContract.deploy(owner.address, feeRecipient.address);
-    DCAPositionHandler = await DCAPositionHandlerContract.deploy(DCAFactory.address, tokenA.address, tokenB.address);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address);
+    DCAPositionHandler = await DCAPositionHandlerContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, fromEther(1000));
     await tokenA.mint(DCAPositionHandler.address, fromEther(INITIAL_TOKEN_A_BALANCE_CONTRACT));
@@ -816,7 +818,7 @@ describe('DCAPositionHandler', () => {
         const { dcaId } = await deposit(tokenA, 1, 1);
 
         // Turn fees to zero
-        await DCAFactory.setFee(0);
+        await DCAGlobalParameters.setFee(0);
 
         // Set up max(uint256) in PERFORMED_SWAPS_10 + 1
         await setRatePerUnit({
@@ -909,7 +911,7 @@ describe('DCAPositionHandler', () => {
       when('fee would overflow', () => {
         when('fee is smaller than precision', () => {
           then('looses the least amount of information', async () => {
-            const feePrecision = await DCAFactory.FEE_PRECISION();
+            const feePrecision = await DCAGlobalParameters.FEE_PRECISION();
             const protocolFee = feePrecision - 1;
             const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
@@ -923,7 +925,7 @@ describe('DCAPositionHandler', () => {
 
         when('precision is smaller than fee', () => {
           then('looses the least amount of information', async () => {
-            const feePrecision = await DCAFactory.FEE_PRECISION();
+            const feePrecision = await DCAGlobalParameters.FEE_PRECISION();
             const protocolFee = feePrecision + 1;
             const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
@@ -947,7 +949,7 @@ describe('DCAPositionHandler', () => {
       fee?: number | BigNumber;
     }) {
       const { dcaId } = await deposit(tokenA, 1, 1);
-      if (fee !== undefined) await DCAFactory.setFee(fee);
+      if (fee !== undefined) await DCAGlobalParameters.setFee(fee);
       await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 1);
       if (accumRate < 0) {
         await setRatePerUnit({
@@ -1219,8 +1221,8 @@ describe('DCAPositionHandler', () => {
 
   async function getFeeFrom(value: BigNumberish): Promise<BigNumber> {
     value = BigNumber.from(value) as BigNumber;
-    const feePrecision = await DCAFactory.FEE_PRECISION();
-    const fee = await DCAFactory.fee();
+    const feePrecision = await DCAGlobalParameters.FEE_PRECISION();
+    const fee = await DCAGlobalParameters.fee();
     return value.mul(fee).div(feePrecision).div(100);
   }
 

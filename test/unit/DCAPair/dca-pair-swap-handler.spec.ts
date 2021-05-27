@@ -19,13 +19,15 @@ describe('DCAPairSwapHandler', () => {
   let DCAPairSwapHandler: Contract;
   let staticSlidingOracleContract: ContractFactory;
   let staticSlidingOracle: Contract;
-  let DCAFactoryContract: ContractFactory;
-  let DCAFactory: Contract;
+  let DCAGlobalParametersContract: ContractFactory;
+  let DCAGlobalParameters: Contract;
   const swapInterval = moment.duration(1, 'days').as('seconds');
 
   before('Setup accounts and contracts', async () => {
     [owner, feeRecipient] = await ethers.getSigners();
-    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
+    DCAGlobalParametersContract = await ethers.getContractFactory(
+      'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
+    );
     DCAPairSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairSwapHandler.sol:DCAPairSwapHandlerMock');
     staticSlidingOracleContract = await ethers.getContractFactory('contracts/mocks/StaticSlidingOracle.sol:StaticSlidingOracle');
   });
@@ -45,11 +47,11 @@ describe('DCAPairSwapHandler', () => {
       initialAmount: ethers.constants.MaxUint256.div(2),
     });
     staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
-    DCAFactory = await DCAFactoryContract.deploy(owner.address, feeRecipient.address);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address);
     DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
-      DCAFactory.address, // factory
+      DCAGlobalParameters.address, // global parameters
       staticSlidingOracle.address, // oracle
       swapInterval
     );
@@ -60,12 +62,12 @@ describe('DCAPairSwapHandler', () => {
       then('reverts with message', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, DCAFactory.address, staticSlidingOracle.address, MINIMUM_SWAP_INTERVAL.sub(1)],
+          args: [tokenA.address, tokenB.address, DCAGlobalParameters.address, staticSlidingOracle.address, MINIMUM_SWAP_INTERVAL.sub(1)],
           message: 'DCAPair: interval too short',
         });
       });
     });
-    when('factory is zero', () => {
+    when('global parameters is zero', () => {
       then('reverts with message', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairSwapHandlerContract,
@@ -77,7 +79,7 @@ describe('DCAPairSwapHandler', () => {
       then('reverts with message', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, DCAFactory.address, constants.ZERO_ADDRESS, MINIMUM_SWAP_INTERVAL],
+          args: [tokenA.address, tokenB.address, DCAGlobalParameters.address, constants.ZERO_ADDRESS, MINIMUM_SWAP_INTERVAL],
         });
       });
     });
@@ -88,7 +90,7 @@ describe('DCAPairSwapHandler', () => {
         DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
           tokenA.address,
           tokenB.address,
-          DCAFactory.address, // factory
+          DCAGlobalParameters.address, // global parameters
           staticSlidingOracle.address,
           MINIMUM_SWAP_INTERVAL
         );

@@ -6,10 +6,10 @@ import '../../DCAPair/DCAPairParameters.sol';
 
 contract DCAPairParametersMock is DCAPairParameters {
   constructor(
-    IDCAFactory _factory,
+    IDCAGlobalParameters _globalParameters,
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB
-  ) DCAPairParameters(_factory, _tokenA, _tokenB) {}
+  ) DCAPairParameters(_globalParameters, _tokenA, _tokenB) {}
 
   // Mocks setters
 

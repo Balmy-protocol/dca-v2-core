@@ -1,4 +1,4 @@
-import { BigNumber, Contract, ContractFactory, Signer, utils } from 'ethers';
+import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, bn, wallet, contracts } from '../../utils';
@@ -9,15 +9,16 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 describe('DCAPairParameters', function () {
   let owner: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
-  let factory: string;
   let DCAPairParametersContract: ContractFactory;
   let DCAPairParameters: Contract;
-  let DCAFactoryContract: ContractFactory;
-  let DCAFactory: Contract;
+  let DCAGlobalParametersContract: ContractFactory;
+  let DCAGlobalParameters: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
+    DCAGlobalParametersContract = await ethers.getContractFactory(
+      'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
+    );
     DCAPairParametersContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock');
   });
 
@@ -34,13 +35,12 @@ describe('DCAPairParameters', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    factory = await wallet.generateRandomAddress();
-    DCAFactory = await DCAFactoryContract.deploy(owner.address, await wallet.generateRandomAddress());
-    DCAPairParameters = await DCAPairParametersContract.deploy(DCAFactory.address, tokenA.address, tokenB.address);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, await wallet.generateRandomAddress());
+    DCAPairParameters = await DCAPairParametersContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
   });
 
   describe('constructor', () => {
-    when('factory is zero address', () => {
+    when('global parameters is zero address', () => {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairParametersContract,
@@ -52,7 +52,7 @@ describe('DCAPairParameters', function () {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairParametersContract,
-          args: [factory, constants.ZERO_ADDRESS, tokenB.address],
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, tokenB.address],
         });
       });
     });
@@ -60,7 +60,7 @@ describe('DCAPairParameters', function () {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAPairParametersContract,
-          args: [factory, tokenA.address, constants.ZERO_ADDRESS],
+          args: [constants.NOT_ZERO_ADDRESS, tokenA.address, constants.ZERO_ADDRESS],
         });
       });
     });
@@ -68,12 +68,12 @@ describe('DCAPairParameters', function () {
       let deploymentTx: TransactionResponse;
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAPairParametersContract, [factory, tokenA.address, tokenB.address]);
+        const deployment = await contracts.deploy(DCAPairParametersContract, [constants.NOT_ZERO_ADDRESS, tokenA.address, tokenB.address]);
         deploymentTx = deployment.tx;
         deployedContract = deployment.contract;
       });
-      then('sets factory', async () => {
-        expect(await deployedContract.factory()).to.equal(factory);
+      then('sets global parameters', async () => {
+        expect(await deployedContract.globalParameters()).to.equal(constants.NOT_ZERO_ADDRESS);
       });
       then('sets token A', async () => {
         expect(await deployedContract.tokenA()).to.equal(tokenA.address);
@@ -101,7 +101,7 @@ describe('DCAPairParameters', function () {
   }) => {
     when(title, () => {
       given(async () => {
-        if (!!fee) await DCAFactory.setFee(fee);
+        if (!!fee) await DCAGlobalParameters.setFee(fee);
       });
       then('fee from amount is correct', async () => {
         expect(await DCAPairParameters.getFeeFromAmount(amount)).to.equal(await getFeeFrom(amount));
@@ -130,8 +130,8 @@ describe('DCAPairParameters', function () {
 
   async function getFeeFrom(value: BigNumber | string | number): Promise<BigNumber> {
     value = bn.toBN(value) as BigNumber;
-    const feePrecision = BigNumber.from(await DCAFactory.FEE_PRECISION());
-    const fee = BigNumber.from(await DCAFactory.fee());
+    const feePrecision = BigNumber.from(await DCAGlobalParameters.FEE_PRECISION());
+    const fee = BigNumber.from(await DCAGlobalParameters.fee());
     if (value.mul(fee).lt(constants.MAX_UINT_256)) {
       return value.mul(fee).div(feePrecision).div(100);
     } else {

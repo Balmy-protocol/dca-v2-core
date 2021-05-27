@@ -7,19 +7,19 @@ import '../utils/Math.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import '../DCAFactory/DCAFactory.sol';
+import '../interfaces/IDCAGlobalParameters.sol';
 import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAPair.sol';
 
 abstract contract DCAPairParameters is IDCAPairParameters {
-  uint24 public constant override FEE_PRECISION = 10000; // TODO: Take from factory in initiation
+  uint24 public constant override FEE_PRECISION = 10000; // TODO: Take from global parameters in initiation
 
   // Internal constants
   uint256 internal _magnitudeA;
   uint256 internal _magnitudeB;
 
   // Basic setup
-  IDCAFactory public override factory;
+  IDCAGlobalParameters public override globalParameters;
   IERC20Detailed public override tokenA;
   IERC20Detailed public override tokenB;
 
@@ -30,14 +30,14 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   mapping(address => mapping(uint32 => uint256[2])) internal _accumRatesPerUnit;
 
   constructor(
-    IDCAFactory _factory,
+    IDCAGlobalParameters _globalParameters,
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB
   ) {
-    require(address(_factory) != address(0), 'DCAPair: zero address');
+    require(address(_globalParameters) != address(0), 'DCAPair: zero address');
     require(address(_tokenA) != address(0), 'DCAPair: zero address');
     require(address(_tokenB) != address(0), 'DCAPair: zero address');
-    factory = _factory;
+    globalParameters = _globalParameters;
     tokenA = _tokenA;
     tokenB = _tokenB;
     _magnitudeA = 10**_tokenA.decimals();
@@ -45,7 +45,7 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   }
 
   function _getFeeFromAmount(uint256 _amount) internal view returns (uint256) {
-    uint32 _protocolFee = factory.fee();
+    uint32 _protocolFee = globalParameters.fee();
     (bool _ok, uint256 _fee) = Math.tryMul(_amount, _protocolFee);
     if (_ok) {
       _fee = _fee / FEE_PRECISION / 100;

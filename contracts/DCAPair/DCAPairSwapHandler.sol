@@ -75,7 +75,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     uint256 _amountOfTokenAIfTokenBSwapped =
       _convertTo(_magnitudeB, _nextSwapInformation.amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
-    // TODO: We are calling _getFeeFromAmount (which makes a call to the factory) a lot. See if we can call the factory only once
+    // TODO: We are calling _getFeeFromAmount (which makes a call to the global parameters) a lot. See if we can call the global parameters only once
     if (_amountOfTokenAIfTokenBSwapped < _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
@@ -154,8 +154,9 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     }
 
     // Send fees
-    tokenA.safeTransfer(factory.feeRecipient(), _nextSwapInformation.platformFeeTokenA);
-    tokenB.safeTransfer(factory.feeRecipient(), _nextSwapInformation.platformFeeTokenB);
+    address _feeRecipient = globalParameters.feeRecipient();
+    tokenA.safeTransfer(_feeRecipient, _nextSwapInformation.platformFeeTokenA);
+    tokenB.safeTransfer(_feeRecipient, _nextSwapInformation.platformFeeTokenB);
     emit Swapped(_nextSwapInformation);
   }
 }

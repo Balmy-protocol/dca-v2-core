@@ -9,11 +9,14 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 describe('DCAFactoryPairsHandler', function () {
   let owner: SignerWithAddress, feeRecipient: Signer;
   let tokenA: Contract, tokenB: Contract;
-  let DCAFactoryPairsHandlerContract: ContractFactory;
-  let DCAFactoryPairsHandler: Contract;
+  let DCAGlobalParametersContract: ContractFactory, DCAFactoryPairsHandlerContract: ContractFactory;
+  let DCAGlobalParameters: Contract, DCAFactoryPairsHandler: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner, feeRecipient] = await ethers.getSigners();
+    DCAGlobalParametersContract = await ethers.getContractFactory(
+      'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
+    );
     DCAFactoryPairsHandlerContract = await ethers.getContractFactory(
       'contracts/mocks/DCAFactory/DCAFactoryPairsHandler.sol:DCAFactoryPairsHandlerMock'
     );
@@ -32,13 +35,30 @@ describe('DCAFactoryPairsHandler', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(owner.address, await feeRecipient.getAddress());
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, await feeRecipient.getAddress());
+    DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(DCAGlobalParameters.address);
   });
 
+  describe('constructor', () => {
+    when('globalParameters is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithZeroAddress({
+          contract: DCAFactoryPairsHandlerContract,
+          args: [constants.ZERO_ADDRESS],
+        });
+      });
+    });
+    when('all arguments are valid', () => {
+      then('globalParameters is set correctly', async () => {
+        const globalParameters = await DCAFactoryPairsHandler.globalParameters();
+        expect(globalParameters).to.equal(DCAGlobalParameters.address);
+      });
+    });
+  });
   describe('createPair', () => {
     const allowedIntervals = [1000];
     given(async () => {
-      await DCAFactoryPairsHandler.addSwapIntervalsToAllowedList(allowedIntervals);
+      await DCAGlobalParameters.addSwapIntervalsToAllowedList(allowedIntervals);
     });
     when('swap interval is not allowed', () => {
       then('tx is reverted with reason', async () => {
@@ -112,7 +132,7 @@ describe('DCAFactoryPairsHandler', function () {
       });
       then('creates pair with correct information', async () => {
         const dcaPair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', hipotheticPairAddress);
-        expect(await dcaPair.factory()).to.equal(DCAFactoryPairsHandler.address);
+        expect(await dcaPair.globalParameters()).to.equal(DCAGlobalParameters.address);
       });
       then('adds it to the registry', async () => {
         expect(await DCAFactoryPairsHandler.getPairByTokensAndSwapInterval(tokenA.address, tokenB.address, allowedIntervals[0])).to.equal(
@@ -139,7 +159,7 @@ describe('DCAFactoryPairsHandler', function () {
     when('there are pairs for tokenA<->tokenB', () => {
       let hipotheticPairAddress: string;
       given(async () => {
-        await DCAFactoryPairsHandler.addSwapIntervalsToAllowedList([1000]);
+        await DCAGlobalParameters.addSwapIntervalsToAllowedList([1000]);
         hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address, 1000);
         await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, 1000);
       });
@@ -166,7 +186,7 @@ describe('DCAFactoryPairsHandler', function () {
     when('there is a pair for tokenA<->tokenB but is another interval', () => {
       const swapInterval = 1000;
       given(async () => {
-        await DCAFactoryPairsHandler.addSwapIntervalsToAllowedList([swapInterval]);
+        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval]);
         await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, swapInterval);
       });
       then('returns empty address', async () => {
@@ -179,7 +199,7 @@ describe('DCAFactoryPairsHandler', function () {
       const swapInterval = 1000;
       let hipotheticPairAddress: string;
       given(async () => {
-        await DCAFactoryPairsHandler.addSwapIntervalsToAllowedList([swapInterval]);
+        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval]);
         hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address, swapInterval);
         await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, swapInterval);
       });
@@ -196,7 +216,7 @@ describe('DCAFactoryPairsHandler', function () {
   });
 
   function sortTokens(tokenA: string, tokenB: string): { token0: string; token1: string } {
-    if (tokenA < tokenB) {
+    if (tokenA.toLowerCase() < tokenB.toLowerCase()) {
       return {
         token0: tokenA,
         token1: tokenB,
