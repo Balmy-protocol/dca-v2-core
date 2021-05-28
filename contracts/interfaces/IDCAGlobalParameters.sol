@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 interface IDCAGlobalParameters {
   event FeeRecipientSet(address _feeRecipient);
   event FeeSet(uint32 _feeSet);
-  event SwapIntervalsAllowed(uint32[] _swapIntervals);
+  event SwapIntervalsAllowed(uint32[] _swapIntervals, string[] _descriptions);
   event SwapIntervalsForbidden(uint32[] _swapIntervals);
 
   /* Public getters */
@@ -20,6 +20,8 @@ interface IDCAGlobalParameters {
 
   function allowedSwapIntervals() external view returns (uint32[] memory __allowedSwapIntervals);
 
+  function intervalDescription(uint32 _swapInterval) external view returns (string memory);
+
   function isSwapIntervalAllowed(uint32 _swapInterval) external view returns (bool);
 
   /* Public setters */
@@ -27,7 +29,7 @@ interface IDCAGlobalParameters {
 
   function setFee(uint32 _fee) external;
 
-  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external;
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) external;
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external;
 }

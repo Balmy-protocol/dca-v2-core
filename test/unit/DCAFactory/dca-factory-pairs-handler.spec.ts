@@ -58,7 +58,7 @@ describe('DCAFactoryPairsHandler', function () {
   describe('createPair', () => {
     const allowedIntervals = [1000];
     given(async () => {
-      await DCAGlobalParameters.addSwapIntervalsToAllowedList(allowedIntervals);
+      await DCAGlobalParameters.addSwapIntervalsToAllowedList(allowedIntervals, ['description']);
     });
     when('swap interval is not allowed', () => {
       then('tx is reverted with reason', async () => {
@@ -159,7 +159,7 @@ describe('DCAFactoryPairsHandler', function () {
     when('there are pairs for tokenA<->tokenB', () => {
       let hipotheticPairAddress: string;
       given(async () => {
-        await DCAGlobalParameters.addSwapIntervalsToAllowedList([1000]);
+        await DCAGlobalParameters.addSwapIntervalsToAllowedList([1000], ['description']);
         hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address, 1000);
         await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, 1000);
       });
@@ -186,7 +186,7 @@ describe('DCAFactoryPairsHandler', function () {
     when('there is a pair for tokenA<->tokenB but is another interval', () => {
       const swapInterval = 1000;
       given(async () => {
-        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval]);
+        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['description']);
         await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, swapInterval);
       });
       then('returns empty address', async () => {
@@ -199,7 +199,7 @@ describe('DCAFactoryPairsHandler', function () {
       const swapInterval = 1000;
       let hipotheticPairAddress: string;
       given(async () => {
-        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval]);
+        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['description']);
         hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address, swapInterval);
         await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, swapInterval);
       });
