@@ -52,6 +52,8 @@
     "@types/chai-as-promised": "7.1.4",
     "@types/mocha": "8.2.2",
     "@types/node": "15.0.3",
+    "@uniswap/v3-core": "github:lbertenasco/uniswap-v3-core",
+    "@uniswap/v3-periphery": "github:lbertenasco/uniswap-v3-periphery",
     "axios": "0.21.1",
     "chai": "4.3.4",
     "chai-as-promised": "7.1.1",
