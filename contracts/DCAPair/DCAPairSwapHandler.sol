@@ -75,15 +75,15 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     uint256 _amountOfTokenAIfTokenBSwapped =
       _convertTo(_magnitudeB, _nextSwapInformation.amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
-    uint32 _protocolFee = globalParameters.swapFee();
+    uint32 _swapFee = globalParameters.swapFee();
     if (_amountOfTokenAIfTokenBSwapped < _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
       uint256 _tokenASurplus = _nextSwapInformation.amountToSwapTokenA - _amountOfTokenAIfTokenBSwapped;
       _nextSwapInformation.amountToBeProvidedBySwapper = _convertTo(_magnitudeA, _tokenASurplus, _nextSwapInformation.ratePerUnitAToB);
-      _nextSwapInformation.amountToRewardSwapperWith = _tokenASurplus + _getFeeFromAmount(_protocolFee, _tokenASurplus);
-      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_protocolFee, _amountOfTokenAIfTokenBSwapped);
-      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_protocolFee, _nextSwapInformation.amountToSwapTokenB);
+      _nextSwapInformation.amountToRewardSwapperWith = _tokenASurplus + _getFeeFromAmount(_swapFee, _tokenASurplus);
+      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _amountOfTokenAIfTokenBSwapped);
+      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_swapFee, _nextSwapInformation.amountToSwapTokenB);
     } else if (_amountOfTokenAIfTokenBSwapped > _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenA;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenB;
@@ -92,15 +92,15 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
         _convertTo(_magnitudeA, _nextSwapInformation.amountToBeProvidedBySwapper, _nextSwapInformation.ratePerUnitAToB);
       _nextSwapInformation.amountToRewardSwapperWith =
         _amountToBeProvidedConvertedToB +
-        _getFeeFromAmount(_protocolFee, _amountToBeProvidedConvertedToB);
-      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_protocolFee, _nextSwapInformation.amountToSwapTokenA);
+        _getFeeFromAmount(_swapFee, _amountToBeProvidedConvertedToB);
+      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _nextSwapInformation.amountToSwapTokenA);
       _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(
-        _protocolFee,
+        _swapFee,
         _nextSwapInformation.amountToSwapTokenB - _amountToBeProvidedConvertedToB
       );
     } else {
-      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_protocolFee, _nextSwapInformation.amountToSwapTokenA);
-      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_protocolFee, _nextSwapInformation.amountToSwapTokenB);
+      _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _nextSwapInformation.amountToSwapTokenA);
+      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_swapFee, _nextSwapInformation.amountToSwapTokenB);
     }
   }
 
