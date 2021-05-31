@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: MIT
-
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
 import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
@@ -16,10 +15,6 @@ library SafeUint128 {
 }
 
 contract Oracle {
-  constructor() {}
-
-  // function getPoolWithMostLiquidity() {}
-
   function getTwap(
     address _pool,
     address _tokenIn,
@@ -27,7 +22,6 @@ contract Oracle {
     address _tokenOut,
     uint32 _period
   ) external view returns (uint256 _amountOut) {
-    int256 twapTick = OracleLibrary.consult(_pool, _period);
-    _amountOut = OracleLibrary.getQuoteAtTick(int24(twapTick), SafeUint128.toUint128(_amountIn), _tokenIn, _tokenOut);
+    _amountOut = OracleLibrary.getQuoteAtTick(OracleLibrary.consult(_pool, _period), SafeUint128.toUint128(_amountIn), _tokenIn, _tokenOut);
   }
 }
