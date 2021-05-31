@@ -839,7 +839,7 @@ describe('DCAPositionHandler', () => {
         const { dcaId } = await deposit(tokenA, 1, 1);
 
         // Turn fees to zero
-        await DCAGlobalParameters.setFee(0);
+        await DCAGlobalParameters.setSwapFee(0);
 
         // Set up max(uint256) in PERFORMED_SWAPS_10 + 1
         await setRatePerUnit({
@@ -970,7 +970,7 @@ describe('DCAPositionHandler', () => {
       fee?: number | BigNumber;
     }) {
       const { dcaId } = await deposit(tokenA, 1, 1);
-      if (fee !== undefined) await DCAGlobalParameters.setFee(fee);
+      if (fee !== undefined) await DCAGlobalParameters.setSwapFee(fee);
       await DCAPositionHandler.setPerformedSwaps(PERFORMED_SWAPS_10 + 1);
       if (accumRate < 0) {
         await setRatePerUnit({
@@ -1266,7 +1266,7 @@ describe('DCAPositionHandler', () => {
   async function getFeeFrom(value: BigNumberish): Promise<BigNumber> {
     value = BigNumber.from(value) as BigNumber;
     const feePrecision = await DCAGlobalParameters.FEE_PRECISION();
-    const fee = await DCAGlobalParameters.fee();
+    const fee = await DCAGlobalParameters.swapFee();
     return value.mul(fee).div(feePrecision).div(100);
   }
 

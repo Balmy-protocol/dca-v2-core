@@ -121,12 +121,12 @@ describe('DCAGlobalParameters', function () {
     });
   });
 
-  describe('setFee', () => {
+  describe('setSwapFee', () => {
     when('sets fee bigger than MAX_FEE', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
-          func: 'setFee',
+          func: 'setSwapFee',
           args: [(await DCAGlobalParameters.MAX_FEE()) + 1],
           message: 'DCAGParameters: fee too high',
         });
@@ -136,10 +136,10 @@ describe('DCAGlobalParameters', function () {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DCAGlobalParameters,
-          getterFunc: 'fee',
-          setterFunc: 'setFee',
+          getterFunc: 'swapFee',
+          setterFunc: 'setSwapFee',
           variable: await DCAGlobalParameters.MAX_FEE(),
-          eventEmitted: 'FeeSet',
+          eventEmitted: 'SwapFeeSet',
         });
       });
     });
@@ -147,16 +147,57 @@ describe('DCAGlobalParameters', function () {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
           contract: DCAGlobalParameters,
-          getterFunc: 'fee',
-          setterFunc: 'setFee',
+          getterFunc: 'swapFee',
+          setterFunc: 'setSwapFee',
           variable: (await DCAGlobalParameters.MAX_FEE()) - 1,
-          eventEmitted: 'FeeSet',
+          eventEmitted: 'SwapFeeSet',
         });
       });
     });
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAGlobalParameters,
-      funcAndSignature: 'setFee(uint32)',
+      funcAndSignature: 'setSwapFee(uint32)',
+      params: [1],
+      governor: () => owner,
+    });
+  });
+
+  describe('setLoanFee', () => {
+    when('sets fee bigger than MAX_FEE', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAGlobalParameters,
+          func: 'setLoanFee',
+          args: [(await DCAGlobalParameters.MAX_FEE()) + 1],
+          message: 'DCAGParameters: fee too high',
+        });
+      });
+    });
+    when('sets fee equal to MAX_FEE', () => {
+      then('sets fee and emits event', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAGlobalParameters,
+          getterFunc: 'loanFee',
+          setterFunc: 'setLoanFee',
+          variable: await DCAGlobalParameters.MAX_FEE(),
+          eventEmitted: 'LoanFeeSet',
+        });
+      });
+    });
+    when('sets fee lower to MAX_FEE', () => {
+      then('sets fee and emits event', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAGlobalParameters,
+          getterFunc: 'loanFee',
+          setterFunc: 'setLoanFee',
+          variable: (await DCAGlobalParameters.MAX_FEE()) - 1,
+          eventEmitted: 'LoanFeeSet',
+        });
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAGlobalParameters,
+      funcAndSignature: 'setLoanFee(uint32)',
       params: [1],
       governor: () => owner,
     });

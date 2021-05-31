@@ -45,17 +45,12 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     _magnitudeB = 10**_tokenB.decimals();
   }
 
-  function _getFeeFromAmount(uint256 _amount) internal view returns (uint256) {
-    uint32 _protocolFee = globalParameters.fee();
-    return _getFeeFromAmount(_protocolFee, _amount);
-  }
-
-  function _getFeeFromAmount(uint32 _protocolFee, uint256 _amount) internal pure returns (uint256) {
-    (bool _ok, uint256 _fee) = Math.tryMul(_amount, _protocolFee);
+  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
+    (bool _ok, uint256 _fee) = Math.tryMul(_amount, _feeAmount);
     if (_ok) {
       _fee = _fee / FEE_PRECISION / 100;
     } else {
-      _fee = (_protocolFee < FEE_PRECISION) ? ((_amount / FEE_PRECISION) * _protocolFee) / 100 : (_amount / FEE_PRECISION / 100) * _protocolFee;
+      _fee = (_feeAmount < FEE_PRECISION) ? ((_amount / FEE_PRECISION) * _feeAmount) / 100 : (_amount / FEE_PRECISION / 100) * _feeAmount;
     }
     return _fee;
   }

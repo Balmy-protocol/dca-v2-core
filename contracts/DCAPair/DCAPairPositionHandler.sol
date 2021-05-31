@@ -254,7 +254,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     uint256 _actuallySwapped = _swappedInCurrentPosition + _userDCA.swappedBeforeModified;
     if (_applyFee) {
-      _swapped = _actuallySwapped - _getFeeFromAmount(_actuallySwapped);
+      _swapped = _actuallySwapped - _getFeeFromAmount(globalParameters.swapFee(), _actuallySwapped);
     } else {
       _swapped = _actuallySwapped;
     }

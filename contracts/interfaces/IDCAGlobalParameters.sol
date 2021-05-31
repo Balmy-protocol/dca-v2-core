@@ -6,16 +6,19 @@ import './IDCATokenDescriptor.sol';
 interface IDCAGlobalParameters {
   event FeeRecipientSet(address _feeRecipient);
   event NFTDescriptorSet(IDCATokenDescriptor _descriptor);
-  event FeeSet(uint32 _feeSet);
+  event SwapFeeSet(uint32 _feeSet);
+  event LoanFeeSet(uint32 _feeSet);
   event SwapIntervalsAllowed(uint32[] _swapIntervals, string[] _descriptions);
   event SwapIntervalsForbidden(uint32[] _swapIntervals);
 
   /* Public getters */
   function feeRecipient() external view returns (address);
 
-  function nftDescriptor() external view returns (IDCATokenDescriptor);
+  function swapFee() external view returns (uint32);
 
-  function fee() external view returns (uint32);
+  function loanFee() external view returns (uint32);
+
+  function nftDescriptor() external view returns (IDCATokenDescriptor);
 
   // solhint-disable-next-line func-name-mixedcase
   function FEE_PRECISION() external view returns (uint24);
@@ -32,9 +35,11 @@ interface IDCAGlobalParameters {
   /* Public setters */
   function setFeeRecipient(address _feeRecipient) external;
 
-  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external;
+  function setSwapFee(uint32 _fee) external;
 
-  function setFee(uint32 _fee) external;
+  function setLoanFee(uint32 _fee) external;
+
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external;
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) external;
 

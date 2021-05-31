@@ -75,7 +75,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     uint256 _amountOfTokenAIfTokenBSwapped =
       _convertTo(_magnitudeB, _nextSwapInformation.amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
-    uint32 _protocolFee = globalParameters.fee();
+    uint32 _protocolFee = globalParameters.swapFee();
     if (_amountOfTokenAIfTokenBSwapped < _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;

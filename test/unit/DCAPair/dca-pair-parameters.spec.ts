@@ -1,4 +1,4 @@
-import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
+import { BigNumber, BigNumberish, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, bn, wallet, contracts } from '../../utils';
@@ -96,21 +96,10 @@ describe('DCAPairParameters', function () {
     });
   });
 
-  const getFeeFromAmountTest = async ({
-    title,
-    amount,
-    fee,
-  }: {
-    title: string;
-    amount: BigNumber | number | string;
-    fee?: BigNumber | number | string;
-  }) => {
+  const getFeeFromAmountTest = async ({ title, amount, fee }: { title: string; amount: BigNumber | number | string; fee: BigNumberish }) => {
     when(title, () => {
-      given(async () => {
-        if (!!fee) await DCAGlobalParameters.setFee(fee);
-      });
       then('fee from amount is correct', async () => {
-        expect(await DCAPairParameters.getFeeFromAmount(amount)).to.equal(await getFeeFrom(amount));
+        expect(await DCAPairParameters.getFeeFromAmount(fee, amount)).to.equal(await getFeeFrom(fee, amount));
       });
     });
   };
@@ -119,6 +108,7 @@ describe('DCAPairParameters', function () {
     getFeeFromAmountTest({
       title: 'multiplying amount for protocol fee does not overflow',
       amount: utils.parseEther('9482.12343'),
+      fee: 3000,
     });
     when('multiplying overflows', async () => {
       getFeeFromAmountTest({
@@ -134,10 +124,9 @@ describe('DCAPairParameters', function () {
     });
   });
 
-  async function getFeeFrom(value: BigNumber | string | number): Promise<BigNumber> {
-    value = bn.toBN(value) as BigNumber;
+  async function getFeeFrom(fee: BigNumberish, value: BigNumber | string | number): Promise<BigNumber> {
+    value = bn.toBN(value);
     const feePrecision = BigNumber.from(await DCAGlobalParameters.FEE_PRECISION());
-    const fee = BigNumber.from(await DCAGlobalParameters.fee());
     if (value.mul(fee).lt(constants.MAX_UINT_256)) {
       return value.mul(fee).div(feePrecision).div(100);
     } else {
