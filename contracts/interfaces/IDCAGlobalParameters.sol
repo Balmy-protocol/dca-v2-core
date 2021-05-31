@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
+import './IDCATokenDescriptor.sol';
+
 interface IDCAGlobalParameters {
   event FeeRecipientSet(address _feeRecipient);
+  event NFTDescriptorSet(IDCATokenDescriptor _descriptor);
   event FeeSet(uint32 _feeSet);
   event SwapIntervalsAllowed(uint32[] _swapIntervals, string[] _descriptions);
   event SwapIntervalsForbidden(uint32[] _swapIntervals);
 
   /* Public getters */
   function feeRecipient() external view returns (address);
+
+  function nftDescriptor() external view returns (IDCATokenDescriptor);
 
   function fee() external view returns (uint32);
 
@@ -26,6 +31,8 @@ interface IDCAGlobalParameters {
 
   /* Public setters */
   function setFeeRecipient(address _feeRecipient) external;
+
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external;
 
   function setFee(uint32 _fee) external;
 

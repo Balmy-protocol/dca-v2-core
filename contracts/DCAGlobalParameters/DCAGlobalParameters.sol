@@ -9,20 +9,32 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable {
   using EnumerableSet for EnumerableSet.UintSet;
 
   address public override feeRecipient;
+  IDCATokenDescriptor public override nftDescriptor;
   uint32 public override fee = 3000; // 0.3%
   uint24 public constant override FEE_PRECISION = 10000;
   uint32 public constant override MAX_FEE = 10 * FEE_PRECISION; // 10%
   mapping(uint32 => string) public override intervalDescription;
   EnumerableSet.UintSet internal _allowedSwapIntervals;
 
-  constructor(address _governor, address _feeRecipient) Governable(_governor) {
+  constructor(
+    address _governor,
+    address _feeRecipient,
+    IDCATokenDescriptor _nftDescriptor
+  ) Governable(_governor) {
     setFeeRecipient(_feeRecipient);
+    setNFTDescriptor(_nftDescriptor);
   }
 
   function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
     require(_feeRecipient != address(0), 'DCAGParameters: zero address');
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
+  }
+
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) public override onlyGovernor {
+    require(address(_descriptor) != address(0), 'DCAGParameters: zero address');
+    nftDescriptor = _descriptor;
+    emit NFTDescriptorSet(_descriptor);
   }
 
   function setFee(uint32 _fee) public override onlyGovernor {

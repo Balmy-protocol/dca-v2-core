@@ -35,7 +35,7 @@ describe('DCAPairParameters', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, await wallet.generateRandomAddress());
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
     DCAPairParameters = await DCAPairParametersContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
   });
 

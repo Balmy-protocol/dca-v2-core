@@ -7,13 +7,13 @@ import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 describe('DCAFactoryPairsHandler', function () {
-  let owner: SignerWithAddress, feeRecipient: Signer;
+  let owner: SignerWithAddress;
   let tokenA: Contract, tokenB: Contract;
   let DCAGlobalParametersContract: ContractFactory, DCAFactoryPairsHandlerContract: ContractFactory;
   let DCAGlobalParameters: Contract, DCAFactoryPairsHandler: Contract;
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient] = await ethers.getSigners();
+    [owner] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
@@ -35,7 +35,7 @@ describe('DCAFactoryPairsHandler', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, await feeRecipient.getAddress());
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
     DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(DCAGlobalParameters.address);
   });
 

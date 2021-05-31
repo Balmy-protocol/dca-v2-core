@@ -7,19 +7,19 @@ import { constants, behaviours, bn } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 
 describe('DCAGlobalParameters', function () {
-  let owner: SignerWithAddress, feeRecipient: Signer;
+  let owner: SignerWithAddress, feeRecipient: SignerWithAddress, nftDescriptor: SignerWithAddress;
   let DCAGlobalParametersContract: ContractFactory;
   let DCAGlobalParameters: Contract;
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient] = await ethers.getSigners();
+    [owner, feeRecipient, nftDescriptor] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
   });
 
   beforeEach('Deploy and configure', async () => {
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, await feeRecipient.getAddress());
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address, nftDescriptor.address);
   });
 
   describe('constructor', () => {
@@ -27,7 +27,15 @@ describe('DCAGlobalParameters', function () {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithZeroAddress({
           contract: DCAGlobalParametersContract,
-          args: [owner.address, constants.ZERO_ADDRESS],
+          args: [owner.address, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
+        });
+      });
+    });
+    when('feeRecipient is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithZeroAddress({
+          contract: DCAGlobalParametersContract,
+          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
         });
       });
     });
@@ -35,12 +43,17 @@ describe('DCAGlobalParameters', function () {
       then('initializes correctly and emits events', async () => {
         await behaviours.deployShouldSetVariablesAndEmitEvents({
           contract: DCAGlobalParametersContract,
-          args: [owner.address, await feeRecipient.getAddress()],
+          args: [owner.address, feeRecipient.address, nftDescriptor.address],
           settersGettersVariablesAndEvents: [
             {
               getterFunc: 'feeRecipient',
-              variable: await feeRecipient.getAddress(),
+              variable: feeRecipient.address,
               eventEmitted: 'FeeRecipientSet',
+            },
+            {
+              getterFunc: 'nftDescriptor',
+              variable: nftDescriptor.address,
+              eventEmitted: 'NFTDescriptorSet',
             },
           ],
         });
@@ -73,6 +86,36 @@ describe('DCAGlobalParameters', function () {
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'setFeeRecipient(address)',
+      params: [constants.NOT_ZERO_ADDRESS],
+      governor: () => owner,
+    });
+  });
+
+  describe('setNFTDescriptor', () => {
+    when('address is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithZeroAddress({
+          contract: DCAGlobalParameters,
+          func: 'setNFTDescriptor',
+          args: [constants.ZERO_ADDRESS],
+        });
+      });
+    });
+    when('address is not zero', () => {
+      then('sets nftDescriptor and emits event with correct arguments', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAGlobalParameters,
+          getterFunc: 'nftDescriptor',
+          setterFunc: 'setNFTDescriptor',
+          variable: constants.NOT_ZERO_ADDRESS,
+          eventEmitted: 'NFTDescriptorSet',
+        });
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAGlobalParameters,
+      funcAndSignature: 'setNFTDescriptor(address)',
       params: [constants.NOT_ZERO_ADDRESS],
       governor: () => owner,
     });
