@@ -63,7 +63,11 @@ contract DCAPairParametersMock is DCAPairParameters {
     _accumRatesPerUnit[_tokenAddress][_swap] = [_rate, _rateMultiplier];
   }
 
-  function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) public pure returns (uint256) {
+  function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) public view returns (uint256) {
     return _getFeeFromAmount(_feeAmount, _amount);
+  }
+
+  function feePrecision() public view returns (uint24) {
+    return _feePrecision;
   }
 }

@@ -68,12 +68,12 @@ describe('DCAPairParameters', function () {
       let deploymentTx: TransactionResponse;
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAPairParametersContract, [constants.NOT_ZERO_ADDRESS, tokenA.address, tokenB.address]);
+        const deployment = await contracts.deploy(DCAPairParametersContract, [DCAGlobalParameters.address, tokenA.address, tokenB.address]);
         deploymentTx = deployment.tx;
         deployedContract = deployment.contract;
       });
       then('sets global parameters', async () => {
-        expect(await deployedContract.globalParameters()).to.equal(constants.NOT_ZERO_ADDRESS);
+        expect(await deployedContract.globalParameters()).to.equal(DCAGlobalParameters.address);
       });
       then('sets token A', async () => {
         expect(await deployedContract.tokenA()).to.equal(tokenA.address);
@@ -92,6 +92,9 @@ describe('DCAPairParameters', function () {
       });
       then('internal balance for token B starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
+      });
+      then('fee precision is copied from global parameters', async () => {
+        expect(await deployedContract.feePrecision()).to.equal(await DCAGlobalParameters.FEE_PRECISION());
       });
     });
   });

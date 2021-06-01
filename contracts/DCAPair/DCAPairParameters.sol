@@ -12,11 +12,10 @@ import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAPair.sol';
 
 abstract contract DCAPairParameters is IDCAPairParameters {
-  uint24 public constant override FEE_PRECISION = 10000; // TODO: Take from global parameters in initiation
-
   // Internal constants
-  uint256 internal _magnitudeA;
-  uint256 internal _magnitudeB;
+  uint256 internal immutable _magnitudeA;
+  uint256 internal immutable _magnitudeB;
+  uint24 internal immutable _feePrecision;
 
   // Basic setup
   IDCAGlobalParameters public override globalParameters;
@@ -39,18 +38,19 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     require(address(_tokenA) != address(0), 'DCAPair: zero address');
     require(address(_tokenB) != address(0), 'DCAPair: zero address');
     globalParameters = _globalParameters;
+    _feePrecision = globalParameters.FEE_PRECISION();
     tokenA = _tokenA;
     tokenB = _tokenB;
     _magnitudeA = 10**_tokenA.decimals();
     _magnitudeB = 10**_tokenB.decimals();
   }
 
-  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
+  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal view returns (uint256) {
     (bool _ok, uint256 _fee) = Math.tryMul(_amount, _feeAmount);
     if (_ok) {
-      _fee = _fee / FEE_PRECISION / 100;
+      _fee = _fee / _feePrecision / 100;
     } else {
-      _fee = (_feeAmount < FEE_PRECISION) ? ((_amount / FEE_PRECISION) * _feeAmount) / 100 : (_amount / FEE_PRECISION / 100) * _feeAmount;
+      _fee = (_feeAmount < _feePrecision) ? ((_amount / _feePrecision) * _feeAmount) / 100 : (_amount / _feePrecision / 100) * _feeAmount;
     }
     return _fee;
   }
