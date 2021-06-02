@@ -5,8 +5,9 @@ pragma abicoder v2;
 import './DCAPairParameters.sol';
 import './DCAPairPositionHandler.sol';
 import './DCAPairSwapHandler.sol';
+import './DCAPairLoanHandler.sol';
 
-contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandler, IDCAPair {
+contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandler, DCAPairLoanHandler, IDCAPair {
   constructor(
     IDCAGlobalParameters _globalParameters,
     IERC20Detailed _tokenA,

@@ -3,17 +3,16 @@ pragma solidity 0.8.4;
 
 import './IERC20Detailed.sol';
 
-interface IDCAPairSwapCallee {
+interface IDCAPairLoanCallee {
   // solhint-disable-next-line func-name-mixedcase
-  function DCAPairSwapCall(
+  function DCAPairLoanCall(
     address _sender,
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB,
     uint256 _amountBorrowedTokenA,
     uint256 _amountBorrowedTokenB,
-    bool _isRewardTokenA,
-    uint256 _rewardAmount,
-    uint256 _amountToProvide,
+    uint256 _feeTokenA,
+    uint256 _feeTokenB,
     bytes calldata _data
   ) external;
 }

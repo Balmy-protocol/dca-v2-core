@@ -15,7 +15,9 @@ contract ERC20Mock is ERC20 {
     uint256 _initialBalance
   ) payable ERC20(_name, _symbol) {
     _decimals = __decimals;
-    _mint(_initialAccount, _initialBalance);
+    if (_initialBalance > 0) {
+      _mint(_initialAccount, _initialBalance);
+    }
   }
 
   function mint(address _account, uint256 _amount) public {

@@ -78,6 +78,8 @@ interface IDCAPairSwapHandler {
     uint32 swapToPerform;
     uint256 amountToSwapTokenA;
     uint256 amountToSwapTokenB;
+    uint256 availableToBorrowTokenA;
+    uint256 availableToBorrowTokenB;
     uint256 ratePerUnitBToA;
     uint256 ratePerUnitAToB;
     uint256 platformFeeTokenA;
@@ -102,7 +104,23 @@ interface IDCAPairSwapHandler {
 
   function swap() external;
 
-  function swap(address _to, bytes calldata _data) external;
+  function swap(
+    uint256 _amountToBorrowTokenA,
+    uint256 _amountToBorrowTokenB,
+    address _to,
+    bytes calldata _data
+  ) external;
 }
 
-interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler {}
+interface IDCAPairLoanHandler {
+  event Loaned(address indexed _sender, address indexed _to, uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB, uint32 _loanFee);
+
+  function loan(
+    uint256 _amountToBorrowTokenA,
+    uint256 _amountToBorrowTokenB,
+    address _to,
+    bytes memory _data
+  ) external;
+}
+
+interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler, IDCAPairLoanHandler {}
