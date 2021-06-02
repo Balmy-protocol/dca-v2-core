@@ -112,4 +112,15 @@ interface IDCAPairSwapHandler {
   ) external;
 }
 
-interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler {}
+interface IDCAPairLoanHandler {
+  event Loaned(address indexed _sender, address indexed _to, uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB, uint32 _loanFee);
+
+  function loan(
+    uint256 _amountToBorrowTokenA,
+    uint256 _amountToBorrowTokenB,
+    address _to,
+    bytes memory _data
+  ) external;
+}
+
+interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler, IDCAPairLoanHandler {}
