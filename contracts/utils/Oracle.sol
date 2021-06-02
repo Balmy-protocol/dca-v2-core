@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
+import '../interfaces/IUniswapV3Factory.sol';
 
 /// @title Safe uint128 casting methods
 /// @notice Contains methods for safely casting between types
@@ -15,6 +16,16 @@ library SafeUint128 {
 }
 
 contract Oracle {
+  uint24[] public enabledFees = [500, 3000, 10000];
+  address public uniswapFactory = address(0xe);
+
+  function _getBestPoolForPair(address _tokenA, address _tokenB) internal view {
+    for (uint16 i = 0; i < enabledFees.length; i++) {
+      address _pool = IUniswapV3Factory(uniswapFactory).getPool(_tokenA, _tokenB, enabledFees[i]);
+      if (_pool != address(0)) {}
+    }
+  }
+
   function getTwap(
     address _pool,
     address _tokenIn,

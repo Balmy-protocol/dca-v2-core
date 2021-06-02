@@ -9,14 +9,21 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable {
   using EnumerableSet for EnumerableSet.UintSet;
 
   address public override feeRecipient;
-  uint32 public override fee = 3000; // 0.3%
+  IDCATokenDescriptor public override nftDescriptor;
+  uint32 public override swapFee = 3000; // 0.3%
+  uint32 public override loanFee = 1000; // 0.1%
   uint24 public constant override FEE_PRECISION = 10000;
   uint32 public constant override MAX_FEE = 10 * FEE_PRECISION; // 10%
   mapping(uint32 => string) public override intervalDescription;
   EnumerableSet.UintSet internal _allowedSwapIntervals;
 
-  constructor(address _governor, address _feeRecipient) Governable(_governor) {
+  constructor(
+    address _governor,
+    address _feeRecipient,
+    IDCATokenDescriptor _nftDescriptor
+  ) Governable(_governor) {
     setFeeRecipient(_feeRecipient);
+    setNFTDescriptor(_nftDescriptor);
   }
 
   function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
@@ -25,10 +32,22 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable {
     emit FeeRecipientSet(_feeRecipient);
   }
 
-  function setFee(uint32 _fee) public override onlyGovernor {
-    require(_fee <= MAX_FEE, 'DCAGParameters: fee too high');
-    fee = _fee;
-    emit FeeSet(_fee);
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) public override onlyGovernor {
+    require(address(_descriptor) != address(0), 'DCAGParameters: zero address');
+    nftDescriptor = _descriptor;
+    emit NFTDescriptorSet(_descriptor);
+  }
+
+  function setSwapFee(uint32 _swapFee) public override onlyGovernor {
+    require(_swapFee <= MAX_FEE, 'DCAGParameters: fee too high');
+    swapFee = _swapFee;
+    emit SwapFeeSet(_swapFee);
+  }
+
+  function setLoanFee(uint32 _loanFee) public override onlyGovernor {
+    require(_loanFee <= MAX_FEE, 'DCAGParameters: fee too high');
+    loanFee = _loanFee;
+    emit LoanFeeSet(_loanFee);
   }
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) public override onlyGovernor {

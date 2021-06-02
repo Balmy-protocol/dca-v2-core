@@ -3,7 +3,6 @@ pragma solidity 0.8.4;
 
 import './DCAPairParameters.sol';
 import './ERC721/ERC721.sol';
-import '../utils/Math.sol';
 
 abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionHandler, ERC721 {
   using SafeERC20 for IERC20Detailed;
@@ -254,7 +253,7 @@ abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionH
 
     uint256 _actuallySwapped = _swappedInCurrentPosition + _userDCA.swappedBeforeModified;
     if (_applyFee) {
-      _swapped = _actuallySwapped - _getFeeFromAmount(_actuallySwapped);
+      _swapped = _actuallySwapped - _getFeeFromAmount(globalParameters.swapFee(), _actuallySwapped);
     } else {
       _swapped = _actuallySwapped;
     }

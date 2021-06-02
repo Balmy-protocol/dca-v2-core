@@ -1,4 +1,4 @@
-import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
+import { BigNumber, BigNumberish, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, bn, wallet, contracts } from '../../utils';
@@ -35,7 +35,7 @@ describe('DCAPairParameters', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, await wallet.generateRandomAddress());
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
     DCAPairParameters = await DCAPairParametersContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
   });
 
@@ -68,12 +68,12 @@ describe('DCAPairParameters', function () {
       let deploymentTx: TransactionResponse;
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAPairParametersContract, [constants.NOT_ZERO_ADDRESS, tokenA.address, tokenB.address]);
+        const deployment = await contracts.deploy(DCAPairParametersContract, [DCAGlobalParameters.address, tokenA.address, tokenB.address]);
         deploymentTx = deployment.tx;
         deployedContract = deployment.contract;
       });
       then('sets global parameters', async () => {
-        expect(await deployedContract.globalParameters()).to.equal(constants.NOT_ZERO_ADDRESS);
+        expect(await deployedContract.globalParameters()).to.equal(DCAGlobalParameters.address);
       });
       then('sets token A', async () => {
         expect(await deployedContract.tokenA()).to.equal(tokenA.address);
@@ -93,24 +93,16 @@ describe('DCAPairParameters', function () {
       then('internal balance for token B starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
       });
+      then('fee precision is copied from global parameters', async () => {
+        expect(await deployedContract.feePrecision()).to.equal(await DCAGlobalParameters.FEE_PRECISION());
+      });
     });
   });
 
-  const getFeeFromAmountTest = async ({
-    title,
-    amount,
-    fee,
-  }: {
-    title: string;
-    amount: BigNumber | number | string;
-    fee?: BigNumber | number | string;
-  }) => {
+  const getFeeFromAmountTest = async ({ title, amount, fee }: { title: string; amount: BigNumber | number | string; fee: BigNumberish }) => {
     when(title, () => {
-      given(async () => {
-        if (!!fee) await DCAGlobalParameters.setFee(fee);
-      });
       then('fee from amount is correct', async () => {
-        expect(await DCAPairParameters.getFeeFromAmount(amount)).to.equal(await getFeeFrom(amount));
+        expect(await DCAPairParameters.getFeeFromAmount(fee, amount)).to.equal(await getFeeFrom(fee, amount));
       });
     });
   };
@@ -119,6 +111,7 @@ describe('DCAPairParameters', function () {
     getFeeFromAmountTest({
       title: 'multiplying amount for protocol fee does not overflow',
       amount: utils.parseEther('9482.12343'),
+      fee: 3000,
     });
     when('multiplying overflows', async () => {
       getFeeFromAmountTest({
@@ -134,10 +127,9 @@ describe('DCAPairParameters', function () {
     });
   });
 
-  async function getFeeFrom(value: BigNumber | string | number): Promise<BigNumber> {
-    value = bn.toBN(value) as BigNumber;
+  async function getFeeFrom(fee: BigNumberish, value: BigNumber | string | number): Promise<BigNumber> {
+    value = bn.toBN(value);
     const feePrecision = BigNumber.from(await DCAGlobalParameters.FEE_PRECISION());
-    const fee = BigNumber.from(await DCAGlobalParameters.fee());
     if (value.mul(fee).lt(constants.MAX_UINT_256)) {
       return value.mul(fee).div(feePrecision).div(100);
     } else {

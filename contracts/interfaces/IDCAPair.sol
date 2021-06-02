@@ -17,9 +17,6 @@ interface IDCAPairParameters {
   /* Public getters */
   function globalParameters() external view returns (IDCAGlobalParameters);
 
-  // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() external view returns (uint24);
-
   function tokenA() external view returns (IERC20Detailed);
 
   function tokenB() external view returns (IERC20Detailed);
