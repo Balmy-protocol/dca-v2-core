@@ -585,19 +585,6 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenB: utils.parseEther('5'),
       ratePerUnitBToA: utils.parseEther('0.6'),
     });
-
-    // TODO: This requires external stuff because of DUST we must set a possible slippage to avoid not executing internally
-    // because of dust ?
-
-    // getNextSwapInfoTest({
-    //   title: 'when rate per unit is 3:5 and there is no need to provide tokens externally',
-    //   nextSwapToPerform: BigNumber.from('2'),
-    //   amountToSwapOfTokenA: utils.parseEther('6'),
-    //   amountToSwapOfTokenB: utils.parseEther('10'),
-    //   ratePerUnitAToB: utils.parseEther('1.66666666667'),
-    //   amountToBeProvidedExternally: utils.parseEther('0'),
-    //   tokenToBeProvidedExternally: () => constants.ZERO_ADDRESS
-    // });
   });
 
   const swapTestFailed = ({
@@ -813,20 +800,6 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenB: utils.parseEther('5'),
       ratePerUnitBToA: utils.parseEther('0.6'),
     });
-
-    // TODO: This requires external stuff because of DUST we must set a possible slippage to avoid not executing internally
-    // because of dust ?
-
-    // swapTest({
-    //   title: 'when rate per unit is 3:5 and there is no need to provide tokens externally',
-    //   nextSwapToPerform: 2,
-    //   amountToSwapOfTokenA: utils.parseEther('6'),
-    //   amountToSwapOfTokenB: utils.parseEther('10'),
-    //   ratePerUnitBToA: utils.parseEther('0.600000000024'),
-    //   ratePerUnitAToB: utils.parseEther('1.66666666667'),
-    //   amountToBeProvidedExternally: 0,
-    //   tokenToBeProvidedExternally: () => constants.ZERO_ADDRESS,
-    // });
   });
 
   describe('flash swap', () => {
