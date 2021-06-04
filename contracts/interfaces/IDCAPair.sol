@@ -90,7 +90,13 @@ interface IDCAPairSwapHandler {
     IERC20Detailed tokenToRewardSwapperWith;
   }
 
-  event Swapped(NextSwapInformation _nextSwapInformation);
+  event Swapped(
+    address indexed _sender,
+    address indexed _to,
+    uint256 _amountBorrowedTokenA,
+    uint256 _amountBorrowedTokenB,
+    NextSwapInformation _nextSwapInformation
+  );
 
   function swapInterval() external view returns (uint32);
 
@@ -113,7 +119,7 @@ interface IDCAPairSwapHandler {
 }
 
 interface IDCAPairLoanHandler {
-  event Loaned(address indexed _sender, address indexed _to, uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB, uint32 _loanFee);
+  event Loaned(address indexed _sender, address indexed _to, uint256 _amountBorrowedTokenA, uint256 _amountBorrowedTokenB, uint32 _loanFee);
 
   function loan(
     uint256 _amountToBorrowTokenA,

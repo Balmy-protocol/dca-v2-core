@@ -893,8 +893,10 @@ describe('DCAPairSwapHandler', () => {
     });
 
     when('flash swaps are used', () => {
+      let tx: TransactionResponse;
+
       given(async () => {
-        await DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
+        tx = await DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB,
           DCAPairSwapCallee.address,
@@ -941,6 +943,17 @@ describe('DCAPairSwapHandler', () => {
 
         expect(pairTokenABalance).to.equal(pairInitialBalanceTokenA.sub(amountToRewardSwapperWith).sub(platformFeeTokenA));
         expect(pairTokenBBalance).to.equal(pairInitialBalanceTokenB.add(amountToBeProvidedBySwapper).sub(platformFeeTokenB));
+      });
+
+      then('emits event with correct information', async () => {
+        const sender = await readArgFromEvent(tx, 'Swapped', '_sender');
+        const to = await readArgFromEvent(tx, 'Swapped', '_to');
+        const amountBorrowedTokenA = await readArgFromEvent(tx, 'Swapped', '_amountBorrowedTokenA');
+        const amountBorrowedTokenB = await readArgFromEvent(tx, 'Swapped', '_amountBorrowedTokenB');
+        expect(sender).to.equal(owner.address);
+        expect(to).to.equal(DCAPairSwapCallee.address);
+        expect(amountBorrowedTokenA).to.equal(availableToBorrowTokenA);
+        expect(amountBorrowedTokenB).to.equal(availableToBorrowTokenB);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1274,6 +1287,14 @@ describe('DCAPairSwapHandler', () => {
           expect(nextSwapInformation.tokenToBeProvidedBySwapper).to.equal(tokenToBeProvidedBySwapper());
           expect(nextSwapInformation.tokenToRewardSwapperWith).to.equal(tokenToRewardSwapperWith!());
         }
+        const sender = await readArgFromEvent(swapTx, 'Swapped', '_sender');
+        const to = await readArgFromEvent(swapTx, 'Swapped', '_to');
+        const amountBorrowedTokenA = await readArgFromEvent(swapTx, 'Swapped', '_amountBorrowedTokenA');
+        const amountBorrowedTokenB = await readArgFromEvent(swapTx, 'Swapped', '_amountBorrowedTokenB');
+        expect(sender).to.equal(owner.address);
+        expect(to).to.equal(owner.address);
+        expect(amountBorrowedTokenA).to.equal(constants.ZERO);
+        expect(amountBorrowedTokenB).to.equal(constants.ZERO);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances(threshold as BigNumber);
