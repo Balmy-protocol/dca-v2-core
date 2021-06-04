@@ -17,16 +17,19 @@ library SafeUint128 {
 
 contract Oracle {
   uint24[] public enabledFees = [500, 3000, 10000];
-  address public uniswapFactory = address(0xe);
+  IUniswapV3Factory public uniswapFactory = IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
 
-  function _getBestPoolForPair(address _tokenA, address _tokenB) internal view {
+  function _getBestPoolForPair(address _tokenA, address _tokenB) internal view returns (address _bestPool) {
     for (uint16 i = 0; i < enabledFees.length; i++) {
       address _pool = IUniswapV3Factory(uniswapFactory).getPool(_tokenA, _tokenB, enabledFees[i]);
-      if (_pool != address(0)) {}
+      if (_pool != address(0)) {
+        // TODO: Understand how to get the best one
+      }
+      _bestPool = IUniswapV3Factory(uniswapFactory).getPool(_tokenA, _tokenB, 3000);
     }
   }
 
-  function getTwap(
+  function getQuote(
     address _pool,
     address _tokenIn,
     uint256 _amountIn,

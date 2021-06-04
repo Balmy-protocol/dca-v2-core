@@ -6,6 +6,7 @@ import { bn, constants, erc20, evm, wallet } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import axios from 'axios';
 import { expect } from 'chai';
+import { TokenContract } from '../../utils/erc20';
 
 let forkBlockNumber: number;
 const uniswapFactoryAddress = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
@@ -17,7 +18,7 @@ describe('Oracle', () => {
   let cmcETHPrice: BigNumber;
 
   before(async () => {
-    oracleFactory = await ethers.getContractFactory('contracts/utils/Oracle.sol:Oracle');
+    oracleFactory = await ethers.getContractFactory('contracts/mocks/utils/Oracle.sol:OracleMock');
     uniswapFactory = await ethers.getContractAt('contracts/interfaces/IUniswapV3Factory.sol:IUniswapV3Factory', uniswapFactoryAddress);
   });
 
@@ -41,11 +42,39 @@ describe('Oracle', () => {
     oracle = await oracleFactory.deploy();
   });
 
-  describe('getTwap', () => {
+  describe('getBestPoolForPair', () => {
+    when('there is only one pool of the enabled fees', () => {
+      let tokenA: TokenContract;
+      let tokenB: TokenContract;
+      let poolAddress: string;
+      let bestPool: string;
+      given(async () => {
+        tokenA = await erc20.deploy({
+          name: 'Token A',
+          symbol: 'TA',
+        });
+        tokenB = await erc20.deploy({
+          name: 'Token B',
+          symbol: 'TB',
+        });
+        poolAddress = await uniswapFactory.callStatic.createPool(tokenA.address, tokenB.address, 3000);
+        await uniswapFactory.createPool(tokenA.address, tokenB.address, 3000);
+        bestPool = await oracle.getBestPoolForPair(tokenA.address, tokenB.address);
+      });
+      then('returns that pool', () => {
+        expect(bestPool).to.be.equal(poolAddress);
+      });
+    });
+    when('there are multiple pools to chose from', () => {
+      then('chooses the best');
+    });
+  });
+
+  describe('getQuote', () => {
     when('pool is not a uniswap pool', () => {
       let getTWAPTx: Promise<TransactionResponse>;
       given(async () => {
-        getTWAPTx = oracle.getTwap(await wallet.generateRandomAddress(), constants.NOT_ZERO_ADDRESS, 0, constants.NOT_ZERO_ADDRESS, 1);
+        getTWAPTx = oracle.getQuote(await wallet.generateRandomAddress(), constants.NOT_ZERO_ADDRESS, 0, constants.NOT_ZERO_ADDRESS, 1);
       });
       then('call is reverted', async () => {
         await expect(getTWAPTx).to.be.revertedWith('Transaction reverted: function call to a non-contract account');
@@ -54,24 +83,22 @@ describe('Oracle', () => {
     when('asking for ticks that pool does not have', () => {
       let getTWAPTx: Promise<TransactionResponse>;
       let poolAddress: string;
-      let tokenA: Contract;
-      let tokenB: Contract;
+      let tokenA: TokenContract;
+      let tokenB: TokenContract;
       given(async () => {
         tokenA = await erc20.deploy({
           name: 'Token A',
           symbol: 'TA',
-          initialAccount: await wallet.generateRandomAddress(),
-          initialAmount: utils.parseEther('1000'),
         });
+        await tokenA.mint(tokenA.address, utils.parseEther('1000'));
         tokenB = await erc20.deploy({
           name: 'Token B',
           symbol: 'TB',
-          initialAccount: await wallet.generateRandomAddress(),
-          initialAmount: utils.parseEther('1000'),
         });
+        await tokenB.mint(tokenB.address, utils.parseEther('1000'));
         poolAddress = await uniswapFactory.callStatic.createPool(tokenA.address, tokenB.address, 3000);
         await uniswapFactory.createPool(tokenA.address, tokenB.address, 3000);
-        getTWAPTx = oracle.getTwap(poolAddress, tokenA.address, utils.parseEther('1'), tokenB.address, 60);
+        getTWAPTx = oracle.getQuote(poolAddress, tokenA.address, utils.parseEther('1'), tokenB.address, 60);
       });
       then('tx is reverted with reason', async () => {
         // Reference: https://github.com/Uniswap/uniswap-v3-core/blob/main/contracts/libraries/Oracle.sol#L309
@@ -83,7 +110,7 @@ describe('Oracle', () => {
       const priceThreshold = utils.parseEther('15');
       const period = 30;
       given(async () => {
-        twapETHPrice = await oracle.getTwap(
+        twapETHPrice = await oracle.getQuote(
           '0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8', // dai-weth 0.3
           '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // weth
           utils.parseEther('1'),
