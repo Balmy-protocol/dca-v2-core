@@ -192,6 +192,6 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     tokenB.safeTransfer(_feeRecipient, _nextSwapInformation.platformFeeTokenB);
 
     // Emit event
-    emit Swapped(_nextSwapInformation);
+    emit Swapped(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _nextSwapInformation);
   }
 }

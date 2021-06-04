@@ -19,11 +19,17 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
   }
 
   // solhint-disable-next-line var-name-mixedcase
-  uint256 private _INITIAL_BALANCE = 2 * 10**18;
+  uint256 private _initialBalanceA;
+  uint256 private _initialBalanceB;
   SwapCall private _lastCall;
   bool private _returnAsExpected = true;
   uint256 private _amountToReturnTokenA;
   uint256 private _amountToReturnTokenB;
+
+  constructor(uint256 __initialBalanceA, uint256 __initialBalanceB) {
+    _initialBalanceA = __initialBalanceA;
+    _initialBalanceB = __initialBalanceB;
+  }
 
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairSwapCall(
@@ -38,11 +44,11 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
     bytes calldata _data
   ) public override {
     require(
-      _tokenA.balanceOf(address(this)) == _INITIAL_BALANCE + _amountBorrowedTokenA + (_isRewardTokenA ? _rewardAmount : 0),
+      _tokenA.balanceOf(address(this)) == _initialBalanceA + _amountBorrowedTokenA + (_isRewardTokenA ? _rewardAmount : 0),
       'DCAPairSwapCallee: token A not sent optimistically'
     );
     require(
-      _tokenB.balanceOf(address(this)) == _INITIAL_BALANCE + _amountBorrowedTokenB + (_isRewardTokenA ? 0 : _rewardAmount),
+      _tokenB.balanceOf(address(this)) == _initialBalanceB + _amountBorrowedTokenB + (_isRewardTokenA ? 0 : _rewardAmount),
       'DCAPairSwapCallee: token B not sent optimistically'
     );
 
