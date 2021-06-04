@@ -70,11 +70,17 @@ describe('Oracle', () => {
     });
   });
 
-  describe('getQuote', () => {
+  describe('getQuote with pool', () => {
     when('pool is not a uniswap pool', () => {
       let getTWAPTx: Promise<TransactionResponse>;
       given(async () => {
-        getTWAPTx = oracle.getQuote(await wallet.generateRandomAddress(), constants.NOT_ZERO_ADDRESS, 0, constants.NOT_ZERO_ADDRESS, 1);
+        getTWAPTx = oracle['getQuote(address,address,uint256,address,uint32)'](
+          await wallet.generateRandomAddress(),
+          constants.NOT_ZERO_ADDRESS,
+          0,
+          constants.NOT_ZERO_ADDRESS,
+          1
+        );
       });
       then('call is reverted', async () => {
         await expect(getTWAPTx).to.be.revertedWith('Transaction reverted: function call to a non-contract account');
@@ -98,7 +104,13 @@ describe('Oracle', () => {
         await tokenB.mint(tokenB.address, utils.parseEther('1000'));
         poolAddress = await uniswapFactory.callStatic.createPool(tokenA.address, tokenB.address, 3000);
         await uniswapFactory.createPool(tokenA.address, tokenB.address, 3000);
-        getTWAPTx = oracle.getQuote(poolAddress, tokenA.address, utils.parseEther('1'), tokenB.address, 60);
+        getTWAPTx = oracle['getQuote(address,address,uint256,address,uint32)'](
+          poolAddress,
+          tokenA.address,
+          utils.parseEther('1'),
+          tokenB.address,
+          60
+        );
       });
       then('tx is reverted with reason', async () => {
         // Reference: https://github.com/Uniswap/uniswap-v3-core/blob/main/contracts/libraries/Oracle.sol#L309
@@ -110,7 +122,7 @@ describe('Oracle', () => {
       const priceThreshold = utils.parseEther('15');
       const period = 30;
       given(async () => {
-        twapETHPrice = await oracle.getQuote(
+        twapETHPrice = await oracle['getQuote(address,address,uint256,address,uint32)'](
           '0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8', // dai-weth 0.3
           '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // weth
           utils.parseEther('1'),
@@ -124,6 +136,42 @@ describe('Oracle', () => {
           to: cmcETHPrice,
           threshold: priceThreshold,
         });
+      });
+    });
+  });
+
+  describe('getQuote without pool', () => {
+    when('there is no best pool', () => {
+      let getTWAPTx: Promise<TransactionResponse>;
+      given(async () => {
+        getTWAPTx = oracle['getQuote(address,uint256,address,uint32)'](constants.NOT_ZERO_ADDRESS, 0, constants.NOT_ZERO_ADDRESS, 1);
+      });
+      then('call is reverted', async () => {
+        await expect(getTWAPTx).to.be.revertedWith('Transaction reverted: function call to a non-contract account');
+      });
+    });
+    when('there is a best pool', () => {
+      const bestPool = '0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8'; // dai-weth 0.3
+      const period = 30;
+      let bestPoolPrice: BigNumber;
+      let twapETHPrice: BigNumber;
+      given(async () => {
+        bestPoolPrice = await oracle['getQuote(address,address,uint256,address,uint32)'](
+          bestPool,
+          '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // weth
+          utils.parseEther('1'),
+          '0x6b175474e89094c44da98b954eedeac495271d0f', // dai
+          period
+        );
+        twapETHPrice = await oracle['getQuote(address,uint256,address,uint32)'](
+          '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // weth
+          utils.parseEther('1'),
+          '0x6b175474e89094c44da98b954eedeac495271d0f', // dai
+          period
+        );
+      });
+      then('selects the best pool to get twap from', () => {
+        expect(bestPoolPrice).to.be.equal(twapETHPrice);
       });
     });
   });

@@ -38,4 +38,14 @@ contract Oracle {
   ) external view returns (uint256 _amountOut) {
     _amountOut = OracleLibrary.getQuoteAtTick(OracleLibrary.consult(_pool, _period), SafeUint128.toUint128(_amountIn), _tokenIn, _tokenOut);
   }
+
+  function getQuote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut,
+    uint32 _period
+  ) external view returns (uint256 _amountOut) {
+    address _pool = _getBestPoolForPair(_tokenIn, _tokenOut);
+    _amountOut = OracleLibrary.getQuoteAtTick(OracleLibrary.consult(_pool, _period), SafeUint128.toUint128(_amountIn), _tokenIn, _tokenOut);
+  }
 }
