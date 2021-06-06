@@ -599,6 +599,7 @@ describe('DCAPairSwapHandler', () => {
 
   const swapTestFailed = ({
     title,
+    context,
     nextSwapToPerform,
     lastSwapPerformed,
     initialSwapperBalanceTokenA,
@@ -611,6 +612,7 @@ describe('DCAPairSwapHandler', () => {
     reason,
   }: {
     title: string;
+    context?: () => Promise<void>;
     nextSwapToPerform: BigNumber | number | string;
     lastSwapPerformed: () => BigNumber | number | string;
     initialSwapperBalanceTokenA: BigNumber | number | string | (() => BigNumber | number | string);
@@ -628,6 +630,9 @@ describe('DCAPairSwapHandler', () => {
       let swapTx: Promise<TransactionResponse>;
       let staticLastSwapPerformed = lastSwapPerformed();
       given(async () => {
+        if (context) {
+          await context();
+        }
         initialSwapperBalanceTokenA =
           typeof initialSwapperBalanceTokenA === 'function' ? initialSwapperBalanceTokenA() : initialSwapperBalanceTokenA;
         initialSwapperBalanceTokenB =
@@ -736,6 +741,19 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenB: 1,
       ratePerUnitBToA: 1,
       reason: `Transaction reverted and Hardhat couldn't infer the reason.`, // TODO: change when Hardhat detects underflows correctly
+    });
+
+    swapTestFailed({
+      title: 'swapping is paused',
+      context: () => DCAGlobalParameters.pause(),
+      lastSwapPerformed: () => moment().unix() - swapInterval,
+      nextSwapToPerform: 2,
+      initialSwapperBalanceTokenA: 0,
+      initialSwapperBalanceTokenB: 1,
+      amountToSwapOfTokenA: 2,
+      amountToSwapOfTokenB: 1,
+      ratePerUnitBToA: 1,
+      reason: `DCAPair: swaps are paused`,
     });
 
     swapTest({

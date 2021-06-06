@@ -14,6 +14,7 @@ abstract contract DCAPairLoanHandler is DCAPairParameters, IDCAPairLoanHandler {
     bytes memory _data
   ) public override {
     require(_amountToBorrowTokenA > 0 || _amountToBorrowTokenB > 0, 'DCAPair: need to borrow smth');
+    require(!globalParameters.paused(), 'DCAPair: flash loans are paused');
 
     uint256 _beforeBalanceTokenA = _balances[address(tokenA)];
     uint256 _beforeBalanceTokenB = _balances[address(tokenB)];

@@ -120,6 +120,7 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     address _to,
     bytes memory _data
   ) public override {
+    require(!globalParameters.paused(), 'DCAPair: swaps are paused');
     require(lastSwapPerformed <= block.timestamp - swapInterval, 'DCAPair: within swap interval');
     NextSwapInformation memory _nextSwapInformation = getNextSwapInfo();
 

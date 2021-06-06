@@ -65,6 +65,14 @@ describe('DCAPairLoanHandler', () => {
     });
 
     flashLoanFailedTest({
+      title: 'flash loans are paused',
+      context: () => DCAGlobalParameters.pause(),
+      amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
+      amountToBorrowTokenB: () => constants.ZERO,
+      errorMessage: 'DCAPair: flash loans are paused',
+    });
+
+    flashLoanFailedTest({
       title: 'caller intends to borrow more than available in a',
       amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE.add(1),
       amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE,
@@ -172,8 +180,10 @@ describe('DCAPairLoanHandler', () => {
       amountToReturnTokenA,
       amountToReturnTokenB,
       errorMessage,
+      context,
     }: {
       title: string;
+      context?: () => Promise<void>;
       amountToBorrowTokenA: () => BigNumber;
       amountToBorrowTokenB: () => BigNumber;
       amountToReturnTokenA?: () => BigNumber;
@@ -184,6 +194,9 @@ describe('DCAPairLoanHandler', () => {
         let tx: Promise<TransactionResponse>;
 
         given(async () => {
+          if (context) {
+            await context();
+          }
           if (amountToReturnTokenA && amountToReturnTokenB) {
             await DCAPairLoanCallee.returnSpecificAmounts(amountToReturnTokenA(), amountToReturnTokenB());
           }
