@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
-import 'hardhat/console.sol';
+import '../interfaces/IDCAPair.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 
 contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
@@ -86,5 +86,36 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
 
   function getLastCall() public view returns (SwapCall memory __lastCall) {
     __lastCall = _lastCall;
+  }
+}
+
+contract ReentrantDCAPairSwapCalleeMock is IDCAPairSwapCallee {
+  bool public flashSwap;
+
+  constructor(bool _flashSwap) {
+    flashSwap = _flashSwap;
+  }
+
+  function callFlashSwap(bool _flashSwap) external {
+    flashSwap = _flashSwap;
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function DCAPairSwapCall(
+    address,
+    IERC20Detailed,
+    IERC20Detailed,
+    uint256,
+    uint256,
+    bool,
+    uint256,
+    uint256,
+    bytes calldata
+  ) public override {
+    if (!flashSwap) {
+      IDCAPair(msg.sender).swap();
+    } else {
+      IDCAPair(msg.sender).swap(0, 0, msg.sender, '');
+    }
   }
 }

@@ -895,6 +895,44 @@ describe('DCAPairSwapHandler', () => {
       } = await DCAPairSwapHandler.getNextSwapInfo());
     });
 
+    when('doing a reentrancy attack via swap', () => {
+      let tx: Promise<TransactionResponse>;
+      given(async () => {
+        const reentrantDCAPairSwapCalleFactory = await ethers.getContractFactory(
+          'contracts/mocks/DCAPairSwapCallee.sol:ReentrantDCAPairSwapCalleeMock'
+        );
+        const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy(false);
+        tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
+          availableToBorrowTokenA,
+          availableToBorrowTokenB,
+          reentrantDCAPairSwapCallee.address,
+          BYTES
+        );
+      });
+      then('tx is reverted', async () => {
+        await expect(tx).to.be.revertedWith('ReentrancyGuard: reentrant call');
+      });
+    });
+
+    when('doing a reentrancy attack via flash swap', () => {
+      let tx: Promise<TransactionResponse>;
+      given(async () => {
+        const reentrantDCAPairSwapCalleFactory = await ethers.getContractFactory(
+          'contracts/mocks/DCAPairSwapCallee.sol:ReentrantDCAPairSwapCalleeMock'
+        );
+        const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy(true);
+        tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
+          availableToBorrowTokenA,
+          availableToBorrowTokenB,
+          reentrantDCAPairSwapCallee.address,
+          BYTES
+        );
+      });
+      then('tx is reverted', async () => {
+        await expect(tx).to.be.revertedWith('ReentrancyGuard: reentrant call');
+      });
+    });
+
     when('swapper intends to borrow more than available in a', () => {
       let tx: Promise<TransactionResponse>;
       given(async () => {
