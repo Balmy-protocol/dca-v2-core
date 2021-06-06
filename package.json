@@ -14,7 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/alejoamiras/dca-ts.git"
   },
-  "license": "",
+  "license": "BUSL-1.1",
   "scripts": {
     "commit": "git-cz",
     "compile": "npx hardhat compile",

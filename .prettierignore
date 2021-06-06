@@ -9,6 +9,7 @@ workspace.code-workspace
 .versionrc
 .env
 .env.example
+**/LICENSE
 
 # Hardhat
 artifacts
