@@ -816,7 +816,7 @@ describe('DCAPositionHandler', () => {
       });
 
       then('position is modified correctly', async () => {
-        const { swappedBeforeModified } = await DCAPositionHandler.userPositions(dcaId);
+        const { swappedBeforeModified } = await DCAPositionHandler.userPosition(dcaId);
         expect(swappedBeforeModified).to.equal(MAX);
       });
     });
@@ -1255,7 +1255,7 @@ describe('DCAPositionHandler', () => {
       rate: positionRate,
       lastWithdrawSwap: positionLastWithdrawSwap,
       lastSwap: positionLastSwap,
-    } = await DCAPositionHandler.userPositions(dcaId);
+    } = await DCAPositionHandler.userPosition(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;
     expect(fromTokenA, 'Wrong from address in position').to.equal(tokenA.address === fromAddress);
     expect(positionRate, 'Wrong rate').to.equal(fromTokenA ? tokenA.asUnits(rate) : tokenB.asUnits(rate));

@@ -24,7 +24,6 @@ abstract contract DCAPairParameters is IDCAPairParameters {
 
   // Tracking
   mapping(address => mapping(uint32 => int256)) public override swapAmountDelta;
-  mapping(uint256 => DCA) public override userPositions;
   uint32 public override performedSwaps; // Note: If we had swaps every minute, for 100 years, uint32 would still cover it
   mapping(address => mapping(uint32 => uint256[2])) internal _accumRatesPerUnit;
   mapping(address => uint256) internal _balances;

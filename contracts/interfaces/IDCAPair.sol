@@ -6,14 +6,6 @@ import './IERC20Detailed.sol';
 import './ISlidingOracle.sol';
 
 interface IDCAPairParameters {
-  struct DCA {
-    uint32 lastWithdrawSwap;
-    uint32 lastSwap;
-    uint192 rate;
-    bool fromTokenA;
-    uint248 swappedBeforeModified;
-  }
-
   /* Public getters */
   function globalParameters() external view returns (IDCAGlobalParameters);
 
@@ -23,26 +15,25 @@ interface IDCAPairParameters {
 
   function swapAmountDelta(address, uint32) external view returns (int256);
 
-  // TODO: When we reduce contract's size, make this a little bit more useful
-  function userPositions(uint256)
-    external
-    returns (
-      uint32,
-      uint32,
-      uint192,
-      bool,
-      uint248
-    );
-
-  function performedSwaps() external returns (uint32);
+  function performedSwaps() external view returns (uint32);
 }
 
 interface IDCAPairPositionHandler {
+  struct DCA {
+    uint32 lastWithdrawSwap;
+    uint32 lastSwap;
+    uint192 rate;
+    bool fromTokenA;
+    uint248 swappedBeforeModified;
+  }
+
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
   event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
   event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
   event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
   event Modified(address indexed _user, uint256 _dcaId, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
+
+  function userPosition(uint256) external view returns (DCA memory);
 
   function deposit(
     address _tokenAddress,
