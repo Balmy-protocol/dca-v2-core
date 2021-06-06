@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
+import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+
 import '../interfaces/IDCAPairLoanCallee.sol';
 import './DCAPairParameters.sol';
 
-abstract contract DCAPairLoanHandler is DCAPairParameters, IDCAPairLoanHandler {
+abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCAPairLoanHandler {
   using SafeERC20 for IERC20Detailed;
 
   function loan(
@@ -12,7 +14,7 @@ abstract contract DCAPairLoanHandler is DCAPairParameters, IDCAPairLoanHandler {
     uint256 _amountToBorrowTokenB,
     address _to,
     bytes memory _data
-  ) public override {
+  ) public override nonReentrant {
     require(_amountToBorrowTokenA > 0 || _amountToBorrowTokenB > 0, 'DCAPair: need to borrow smth');
     require(!globalParameters.paused(), 'DCAPair: flash loans are paused');
 

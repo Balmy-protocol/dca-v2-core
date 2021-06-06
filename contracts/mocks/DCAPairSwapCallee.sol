@@ -113,9 +113,9 @@ contract ReentrantDCAPairSwapCalleeMock is IDCAPairSwapCallee {
     bytes calldata
   ) public override {
     if (!flashSwap) {
-      IDCAPair(msg.sender).swap();
+      IDCAPairSwapHandler(msg.sender).swap();
     } else {
-      IDCAPair(msg.sender).swap(0, 0, msg.sender, '');
+      IDCAPairSwapHandler(msg.sender).swap(0, 0, msg.sender, '');
     }
   }
 }

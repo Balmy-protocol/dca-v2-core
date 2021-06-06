@@ -102,6 +102,25 @@ describe('DCAPairLoanHandler', () => {
       amountToReturnTokenB: () => WITH_FEE(PAIR_TOKEN_B_INITIAL_BALANCE).sub(1),
     });
 
+    when('doing a reentrant attack with loan', () => {
+      let tx: Promise<TransactionResponse>;
+      given(async () => {
+        const reentrantDCAPairLoanCalleFactory = await ethers.getContractFactory(
+          'contracts/mocks/DCAPairLoanCallee.sol:ReentrantDCAPairLoanCalleeMock'
+        );
+        const reentrantDCAPairSwapCallee = await reentrantDCAPairLoanCalleFactory.deploy();
+        tx = DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
+          PAIR_TOKEN_A_INITIAL_BALANCE,
+          PAIR_TOKEN_B_INITIAL_BALANCE,
+          reentrantDCAPairSwapCallee.address,
+          BYTES
+        );
+      });
+      then('tx is reverted', async () => {
+        await expect(tx).to.be.revertedWith('ReentrancyGuard: reentrant call');
+      });
+    });
+
     when('flash loans are used', () => {
       const tokenAFee = CALCULATE_FEE(PAIR_TOKEN_A_INITIAL_BALANCE);
       const tokenBFee = CALCULATE_FEE(PAIR_TOKEN_B_INITIAL_BALANCE);

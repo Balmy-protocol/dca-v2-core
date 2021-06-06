@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
-import 'hardhat/console.sol';
+import '../interfaces/IDCAPair.sol';
 import '../interfaces/IDCAPairLoanCallee.sol';
 
 contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
@@ -66,5 +66,21 @@ contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
 
   function getLastCall() public view returns (LoanCall memory __lastCall) {
     __lastCall = _lastCall;
+  }
+}
+
+contract ReentrantDCAPairLoanCalleeMock is IDCAPairLoanCallee {
+  // solhint-disable-next-line func-name-mixedcase
+  function DCAPairLoanCall(
+    address,
+    IERC20Detailed,
+    IERC20Detailed,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    bytes calldata
+  ) public override {
+    IDCAPairLoanHandler(msg.sender).loan(0, 0, msg.sender, '');
   }
 }
