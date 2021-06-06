@@ -2,7 +2,7 @@
 pragma solidity 0.8.4;
 
 import './DCAPairParameters.sol';
-import './ERC721/ERC721.sol';
+import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 
 abstract contract DCAPairPositionHandler is DCAPairParameters, IDCAPairPositionHandler, ERC721 {
   using SafeERC20 for IERC20Detailed;
