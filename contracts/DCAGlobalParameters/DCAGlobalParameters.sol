@@ -95,4 +95,16 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   function unpause() public override onlyGovernor {
     _unpause();
   }
+
+  function loanParameters() public view override returns (LoanParameters memory _loanParameters) {
+    _loanParameters.feeRecipient = feeRecipient;
+    _loanParameters.isPaused = paused();
+    _loanParameters.loanFee = loanFee;
+  }
+
+  function swapParameters() public view override returns (SwapParameters memory _swapParameters) {
+    _swapParameters.feeRecipient = feeRecipient;
+    _swapParameters.isPaused = paused();
+    _swapParameters.swapFee = swapFee;
+  }
 }

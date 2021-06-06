@@ -65,6 +65,11 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
   }
 
   function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
+    uint32 _swapFee = globalParameters.swapFee();
+    _nextSwapInformation = _getNextSwapInfo(_swapFee);
+  }
+
+  function _getNextSwapInfo(uint32 _swapFee) internal view returns (NextSwapInformation memory _nextSwapInformation) {
     _nextSwapInformation.swapToPerform = performedSwaps + 1;
     _nextSwapInformation.amountToSwapTokenA = _getAmountToSwap(address(tokenA), _nextSwapInformation.swapToPerform);
     _nextSwapInformation.amountToSwapTokenB = _getAmountToSwap(address(tokenB), _nextSwapInformation.swapToPerform);
@@ -75,7 +80,6 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     uint256 _amountOfTokenAIfTokenBSwapped =
       _convertTo(_magnitudeB, _nextSwapInformation.amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
-    uint32 _swapFee = globalParameters.swapFee();
     if (_amountOfTokenAIfTokenBSwapped < _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
@@ -120,9 +124,10 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     address _to,
     bytes memory _data
   ) public override {
-    require(!globalParameters.paused(), 'DCAPair: swaps are paused');
+    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
+    require(!_swapParameters.isPaused, 'DCAPair: swaps are paused');
     require(lastSwapPerformed <= block.timestamp - swapInterval, 'DCAPair: within swap interval');
-    NextSwapInformation memory _nextSwapInformation = getNextSwapInfo();
+    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
 
     _registerSwap(
       address(tokenA),
@@ -145,22 +150,26 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
       'DCAPair: insufficient liquidity'
     );
 
-    uint256 _amountToSendTokenA = _amountToBorrowTokenA;
-    uint256 _amountToSendTokenB = _amountToBorrowTokenB;
     uint256 _amountToHaveTokenA = _nextSwapInformation.availableToBorrowTokenA;
     uint256 _amountToHaveTokenB = _nextSwapInformation.availableToBorrowTokenB;
 
-    if (_nextSwapInformation.tokenToRewardSwapperWith == tokenA) {
-      _amountToSendTokenA += _nextSwapInformation.amountToRewardSwapperWith;
-      _amountToHaveTokenB += _nextSwapInformation.amountToBeProvidedBySwapper;
-    } else {
-      _amountToSendTokenB += _nextSwapInformation.amountToRewardSwapperWith;
-      _amountToHaveTokenA += _nextSwapInformation.amountToBeProvidedBySwapper;
-    }
+    {
+      // scope for _amountToSendToken{A,B}, avoids stack too deep errors
+      uint256 _amountToSendTokenA = _amountToBorrowTokenA;
+      uint256 _amountToSendTokenB = _amountToBorrowTokenB;
 
-    // Optimistically transfer tokens
-    if (_amountToSendTokenA > 0) tokenA.safeTransfer(_to, _amountToSendTokenA);
-    if (_amountToSendTokenB > 0) tokenB.safeTransfer(_to, _amountToSendTokenB);
+      if (_nextSwapInformation.tokenToRewardSwapperWith == tokenA) {
+        _amountToSendTokenA += _nextSwapInformation.amountToRewardSwapperWith;
+        _amountToHaveTokenB += _nextSwapInformation.amountToBeProvidedBySwapper;
+      } else {
+        _amountToSendTokenB += _nextSwapInformation.amountToRewardSwapperWith;
+        _amountToHaveTokenA += _nextSwapInformation.amountToBeProvidedBySwapper;
+      }
+
+      // Optimistically transfer tokens
+      if (_amountToSendTokenA > 0) tokenA.safeTransfer(_to, _amountToSendTokenA);
+      if (_amountToSendTokenB > 0) tokenB.safeTransfer(_to, _amountToSendTokenB);
+    }
 
     if (_data.length > 0) {
       // Make call
@@ -188,9 +197,8 @@ abstract contract DCAPairSwapHandler is DCAPairParameters, IDCAPairSwapHandler {
     _balances[address(tokenB)] = _balanceTokenB - _nextSwapInformation.platformFeeTokenB;
 
     // Send fees
-    address _feeRecipient = globalParameters.feeRecipient();
-    tokenA.safeTransfer(_feeRecipient, _nextSwapInformation.platformFeeTokenA);
-    tokenB.safeTransfer(_feeRecipient, _nextSwapInformation.platformFeeTokenB);
+    tokenA.safeTransfer(_swapParameters.feeRecipient, _nextSwapInformation.platformFeeTokenA);
+    tokenB.safeTransfer(_swapParameters.feeRecipient, _nextSwapInformation.platformFeeTokenB);
 
     // Emit event
     emit Swapped(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _nextSwapInformation);
