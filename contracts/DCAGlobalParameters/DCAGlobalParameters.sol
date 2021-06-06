@@ -2,10 +2,11 @@
 pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts/security/Pausable.sol';
 import '../utils/Governable.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
 
-contract DCAGlobalParameters is IDCAGlobalParameters, Governable {
+contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   using EnumerableSet for EnumerableSet.UintSet;
 
   address public override feeRecipient;
@@ -81,5 +82,17 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable {
 
   function isSwapIntervalAllowed(uint32 _swapInterval) public view override returns (bool) {
     return _allowedSwapIntervals.contains(_swapInterval);
+  }
+
+  function paused() public view override(IDCAGlobalParameters, Pausable) returns (bool) {
+    return super.paused();
+  }
+
+  function pause() public override onlyGovernor {
+    _pause();
+  }
+
+  function unpause() public override onlyGovernor {
+    _unpause();
   }
 }

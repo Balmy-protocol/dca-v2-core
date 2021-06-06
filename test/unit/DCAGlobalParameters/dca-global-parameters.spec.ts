@@ -6,7 +6,7 @@ import { ethers } from 'hardhat';
 import { constants, behaviours, bn } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 
-describe('DCAGlobalParameters', function () {
+describe('DCAGlobalParameters', () => {
   let owner: SignerWithAddress, feeRecipient: SignerWithAddress, nftDescriptor: SignerWithAddress;
   let DCAGlobalParametersContract: ContractFactory;
   let DCAGlobalParameters: Contract;
@@ -57,6 +57,9 @@ describe('DCAGlobalParameters', function () {
             },
           ],
         });
+      });
+      then('contract starts as unpaused', async () => {
+        expect(await DCAGlobalParameters.paused()).to.be.false;
       });
     });
   });
@@ -406,6 +409,78 @@ describe('DCAGlobalParameters', function () {
       then('returns true', async () => {
         expect(await DCAGlobalParameters.isSwapIntervalAllowed(allowedInterval)).to.be.true;
       });
+    });
+  });
+
+  describe('pause', () => {
+    when('contract is paused', () => {
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await DCAGlobalParameters.pause();
+      });
+
+      then('getter says so', async () => {
+        expect(await DCAGlobalParameters.paused()).to.be.true;
+      });
+
+      then('attempts to pause it again will revert', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAGlobalParameters,
+          func: 'pause',
+          args: [],
+          message: 'Pausable: paused',
+        });
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCAGlobalParameters, 'Paused');
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAGlobalParameters,
+      funcAndSignature: 'pause()',
+      params: [],
+      governor: () => owner,
+    });
+  });
+
+  describe('unpause', () => {
+    given(async () => {
+      await DCAGlobalParameters.pause();
+    });
+
+    when('contract is unpaused', () => {
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await DCAGlobalParameters.unpause();
+      });
+
+      then('getter says so', async () => {
+        expect(await DCAGlobalParameters.paused()).to.be.false;
+      });
+
+      then('attempts to unpause it again will revert', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAGlobalParameters,
+          func: 'unpause',
+          args: [],
+          message: 'Pausable: not paused',
+        });
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCAGlobalParameters, 'Unpaused');
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAGlobalParameters,
+      funcAndSignature: 'unpause()',
+      params: [],
+      governor: () => owner,
     });
   });
 });
