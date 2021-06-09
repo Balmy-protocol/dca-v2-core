@@ -901,7 +901,8 @@ describe('DCAPairSwapHandler', () => {
         const reentrantDCAPairSwapCalleFactory = await ethers.getContractFactory(
           'contracts/mocks/DCAPairSwapCallee.sol:ReentrantDCAPairSwapCalleeMock'
         );
-        const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy(false);
+        const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy();
+        await reentrantDCAPairSwapCallee.setAttack((await DCAPairSwapHandler.populateTransaction['swap()']()).data);
         tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB,
@@ -920,7 +921,17 @@ describe('DCAPairSwapHandler', () => {
         const reentrantDCAPairSwapCalleFactory = await ethers.getContractFactory(
           'contracts/mocks/DCAPairSwapCallee.sol:ReentrantDCAPairSwapCalleeMock'
         );
-        const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy(true);
+        const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy();
+        await reentrantDCAPairSwapCallee.setAttack(
+          (
+            await DCAPairSwapHandler.populateTransaction['swap(uint256,uint256,address,bytes)'](
+              availableToBorrowTokenA,
+              availableToBorrowTokenB,
+              reentrantDCAPairSwapCallee.address,
+              BYTES
+            )
+          ).data
+        );
         tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB,

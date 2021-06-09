@@ -109,6 +109,16 @@ describe('DCAPairLoanHandler', () => {
           'contracts/mocks/DCAPairLoanCallee.sol:ReentrantDCAPairLoanCalleeMock'
         );
         const reentrantDCAPairSwapCallee = await reentrantDCAPairLoanCalleFactory.deploy();
+        await reentrantDCAPairSwapCallee.setAttack(
+          (
+            await DCAPairLoanHandler.populateTransaction.loan(
+              PAIR_TOKEN_A_INITIAL_BALANCE,
+              PAIR_TOKEN_B_INITIAL_BALANCE,
+              reentrantDCAPairSwapCallee.address,
+              BYTES
+            )
+          ).data
+        );
         tx = DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
           PAIR_TOKEN_A_INITIAL_BALANCE,
           PAIR_TOKEN_B_INITIAL_BALANCE,

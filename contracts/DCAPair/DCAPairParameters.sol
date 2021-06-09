@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
-import 'hardhat/console.sol';
-
-import './utils/Math.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import '../interfaces/IDCAGlobalParameters.sol';
 import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAPair.sol';
+import './utils/Math.sol';
 
 abstract contract DCAPairParameters is IDCAPairParameters {
   // Internal constants

@@ -128,7 +128,6 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     require(!_swapParameters.isPaused, 'DCAPair: swaps are paused');
     require(lastSwapPerformed / swapInterval < _getTimestamp() / swapInterval, 'DCAPair: within interval slot');
     NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
-
     _registerSwap(
       address(tokenA),
       _nextSwapInformation.amountToSwapTokenA,
@@ -143,7 +142,6 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     );
     performedSwaps = _nextSwapInformation.swapToPerform;
     lastSwapPerformed = block.timestamp;
-
     require(
       _amountToBorrowTokenA <= _nextSwapInformation.availableToBorrowTokenA &&
         _amountToBorrowTokenB <= _nextSwapInformation.availableToBorrowTokenB,

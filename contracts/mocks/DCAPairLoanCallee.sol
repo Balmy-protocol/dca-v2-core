@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
-import '../interfaces/IDCAPair.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
+
 import '../interfaces/IDCAPairLoanCallee.sol';
+import '../interfaces/IDCAPair.sol';
 
 contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
   struct LoanCall {
@@ -70,6 +72,14 @@ contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
 }
 
 contract ReentrantDCAPairLoanCalleeMock is IDCAPairLoanCallee {
+  using Address for address;
+
+  bytes internal _attack;
+
+  function setAttack(bytes memory __attack) external {
+    _attack = __attack;
+  }
+
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairLoanCall(
     address,
@@ -81,6 +91,6 @@ contract ReentrantDCAPairLoanCalleeMock is IDCAPairLoanCallee {
     uint256,
     bytes calldata
   ) public override {
-    IDCAPairLoanHandler(msg.sender).loan(0, 0, msg.sender, '');
+    (msg.sender).functionCall(_attack);
   }
 }

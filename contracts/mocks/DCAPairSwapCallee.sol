@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
-import '../interfaces/IDCAPair.sol';
+import '@openzeppelin/contracts/utils/Address.sol';
+
 import '../interfaces/IDCAPairSwapCallee.sol';
+import '../interfaces/IDCAPair.sol';
 
 contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
   struct SwapCall {
@@ -90,14 +92,12 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
 }
 
 contract ReentrantDCAPairSwapCalleeMock is IDCAPairSwapCallee {
-  bool public flashSwap;
+  using Address for address;
 
-  constructor(bool _flashSwap) {
-    flashSwap = _flashSwap;
-  }
+  bytes internal _attack;
 
-  function callFlashSwap(bool _flashSwap) external {
-    flashSwap = _flashSwap;
+  function setAttack(bytes memory __attack) external {
+    _attack = __attack;
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -112,10 +112,6 @@ contract ReentrantDCAPairSwapCalleeMock is IDCAPairSwapCallee {
     uint256,
     bytes calldata
   ) public override {
-    if (!flashSwap) {
-      IDCAPairSwapHandler(msg.sender).swap();
-    } else {
-      IDCAPairSwapHandler(msg.sender).swap(0, 0, msg.sender, '');
-    }
+    (msg.sender).functionCall(_attack);
   }
 }
