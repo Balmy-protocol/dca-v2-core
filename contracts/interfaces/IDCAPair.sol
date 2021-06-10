@@ -91,7 +91,7 @@ interface IDCAPairSwapHandler {
 
   function swapInterval() external view returns (uint32);
 
-  function lastSwapPerformed() external view returns (uint256);
+  function lastSwapPerformed() external view returns (uint32);
 
   function swapAmountAccumulator(address) external view returns (uint256);
 

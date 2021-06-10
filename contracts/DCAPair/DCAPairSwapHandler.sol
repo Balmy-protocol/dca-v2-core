@@ -15,7 +15,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
 
   mapping(address => uint256) public override swapAmountAccumulator;
   uint32 public override swapInterval;
-  uint256 public override lastSwapPerformed;
+  uint32 public override lastSwapPerformed;
   ISlidingOracle public override oracle;
 
   constructor(ISlidingOracle _oracle, uint32 _swapInterval) {
@@ -141,7 +141,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _nextSwapInformation.swapToPerform
     );
     performedSwaps = _nextSwapInformation.swapToPerform;
-    lastSwapPerformed = block.timestamp;
+    lastSwapPerformed = _getTimestamp();
     require(
       _amountToBorrowTokenA <= _nextSwapInformation.availableToBorrowTokenA &&
         _amountToBorrowTokenB <= _nextSwapInformation.availableToBorrowTokenB,
@@ -202,7 +202,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     emit Swapped(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _nextSwapInformation);
   }
 
-  function _getTimestamp() internal view virtual returns (uint256 _blockTimestamp) {
-    _blockTimestamp = block.timestamp;
+  function _getTimestamp() internal view virtual returns (uint32 _blockTimestamp) {
+    _blockTimestamp = uint32(block.timestamp);
   }
 }
