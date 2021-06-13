@@ -52,13 +52,8 @@ contract('DCAPair', () => {
       });
       staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
       DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(governor.address, feeRecipient.address, constants.NOT_ZERO_ADDRESS);
-      DCAPair = await DCAPairFactory.deploy(
-        DCAGlobalParameters.address,
-        staticSlidingOracle.address,
-        tokenA.address,
-        tokenB.address,
-        swapInterval
-      );
+      DCAPair = await DCAPairFactory.deploy(DCAGlobalParameters.address, staticSlidingOracle.address, tokenA.address, tokenB.address);
+      await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
     });
 
     describe('loan', () => {
@@ -102,8 +97,8 @@ contract('DCAPair', () => {
       });
 
       testReentrantForFunction({
-        funcAndSignature: 'swap(uint256,uint256,address,bytes)',
-        args: () => [0, 0, reentrantDCAPairSwapCallee.address, utils.formatBytes32String('')],
+        funcAndSignature: 'swap(uint32,uint256,uint256,address,bytes)',
+        args: () => [swapInterval, 0, 0, reentrantDCAPairSwapCallee.address, utils.formatBytes32String('')],
         attackerContract: () => reentrantDCAPairSwapCallee,
       });
     });
@@ -147,7 +142,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0)).data!,
+        attack: async () => (await DCAPair.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0, 0)).data!,
       });
 
       testReentrantAttack({
@@ -211,7 +206,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction['swap()']()).data!,
+        attack: async () => (await DCAPair.populateTransaction['swap(uint32)'](0)).data!,
       });
 
       testReentrantAttack({
@@ -220,7 +215,7 @@ contract('DCAPair', () => {
         args,
         attackerContract,
         attack: async () =>
-          (await DCAPair.populateTransaction['swap(uint256,uint256,address,bytes)'](0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
+          (await DCAPair.populateTransaction['swap(uint32,uint256,uint256,address,bytes)'](0, 0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
       });
 
       testReentrantAttack({
@@ -245,7 +240,12 @@ contract('DCAPair', () => {
     }) {
       await token().mint(depositor.address, token().asUnits(rate).mul(swaps));
       await token().connect(depositor).approve(DCAPair.address, token().asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAPair.connect(depositor).deposit(token().address, token().asUnits(rate), swaps);
+      const response: TransactionResponse = await DCAPair.connect(depositor).deposit(
+        token().address,
+        token().asUnits(rate),
+        swaps,
+        swapInterval
+      );
       const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
       return { response, dcaId };
     }

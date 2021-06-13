@@ -56,26 +56,12 @@ describe('DCAFactoryPairsHandler', function () {
     });
   });
   describe('createPair', () => {
-    const allowedIntervals = [1000];
-    given(async () => {
-      await DCAGlobalParameters.addSwapIntervalsToAllowedList(allowedIntervals, ['description']);
-    });
-    when('swap interval is not allowed', () => {
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAFactoryPairsHandler,
-          func: 'createPair',
-          args: [tokenA.address, tokenB.address, 1],
-          message: 'DCAFactory: interval not allowed',
-        });
-      });
-    });
     when('token A is zero address', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithZeroAddress({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [constants.ZERO_ADDRESS, tokenB.address, allowedIntervals[0]],
+          args: [constants.ZERO_ADDRESS, tokenB.address],
         });
       });
     });
@@ -84,7 +70,7 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithZeroAddress({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [tokenA.address, constants.ZERO_ADDRESS, allowedIntervals[0]],
+          args: [tokenA.address, constants.ZERO_ADDRESS],
         });
       });
     });
@@ -93,21 +79,21 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [tokenA.address, tokenA.address, allowedIntervals[0]],
+          args: [tokenA.address, tokenA.address],
           message: 'DCAFactory: identical addresses',
         });
       });
     });
     when('pair already exists', () => {
       given(async () => {
-        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, allowedIntervals[0]);
+        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address);
       });
       when('sending tokenA first', () => {
         then('tx is reverted with reason', async () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
-            args: [tokenA.address, tokenB.address, allowedIntervals[0]],
+            args: [tokenA.address, tokenB.address],
             message: 'DCAFactory: pair exists',
           });
         });
@@ -117,7 +103,7 @@ describe('DCAFactoryPairsHandler', function () {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
-            args: [tokenB.address, tokenA.address, allowedIntervals[0]],
+            args: [tokenB.address, tokenA.address],
             message: 'DCAFactory: pair exists',
           });
         });
@@ -127,90 +113,74 @@ describe('DCAFactoryPairsHandler', function () {
       let hipotheticPairAddress: string;
       let createPairTx: TransactionResponse;
       given(async () => {
-        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address, allowedIntervals[0]);
-        createPairTx = await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, allowedIntervals[0]);
+        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address);
+        createPairTx = await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address);
       });
       then('creates pair with correct information', async () => {
         const dcaPair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', hipotheticPairAddress);
         expect(await dcaPair.globalParameters()).to.equal(DCAGlobalParameters.address);
       });
       then('adds it to the registry', async () => {
-        expect(await DCAFactoryPairsHandler.getPairByTokensAndSwapInterval(tokenA.address, tokenB.address, allowedIntervals[0])).to.equal(
-          hipotheticPairAddress
-        );
-        expect(await DCAFactoryPairsHandler.getPairsByTokens(tokenA.address, tokenB.address)).to.eql([hipotheticPairAddress]);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(hipotheticPairAddress);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(hipotheticPairAddress);
         expect(await DCAFactoryPairsHandler.allPairs(0)).to.equal(hipotheticPairAddress);
       });
       then('emits event', async () => {
         const { token0, token1 } = sortTokens(tokenA.address, tokenB.address);
-        await expect(createPairTx)
-          .to.emit(DCAFactoryPairsHandler, 'PairCreated')
-          .withArgs(token0, token1, allowedIntervals[0], hipotheticPairAddress);
+        await expect(createPairTx).to.emit(DCAFactoryPairsHandler, 'PairCreated').withArgs(token0, token1, hipotheticPairAddress);
       });
     });
   });
 
-  describe('getPairsByTokens', () => {
-    when('there are no pairs for tokenA<->tokenB', () => {
-      then('returns empty array', async () => {
-        expect(await DCAFactoryPairsHandler.getPairsByTokens(tokenA.address, tokenB.address)).to.be.empty;
+  describe('pairByTokens', () => {
+    when('pair for tokenA<->tokenB doesnt exist', () => {
+      then('zero address', async () => {
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(constants.ZERO_ADDRESS);
       });
     });
-    when('there are pairs for tokenA<->tokenB', () => {
+    when('pair for tokenA<->tokenB exists', () => {
       let hipotheticPairAddress: string;
       given(async () => {
-        await DCAGlobalParameters.addSwapIntervalsToAllowedList([1000], ['description']);
-        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address, 1000);
-        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, 1000);
+        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address);
+        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address);
       });
-      then('returns correct array of addresses', async () => {
+      then('returns correct pair address', async () => {
         const { token0, token1 } = sortTokens(tokenA.address, tokenB.address);
-        expect(await DCAFactoryPairsHandler.getPairsByTokens(token0, token1)).to.eql([hipotheticPairAddress]);
+        expect(await DCAFactoryPairsHandler.pairByTokens(token0, token1)).to.equal(hipotheticPairAddress);
       });
-      then('returns same array of addresses if asking for tokenB<->tokenA pairs', async () => {
-        expect(await DCAFactoryPairsHandler.getPairsByTokens(tokenA.address, tokenB.address)).to.eql(
-          await DCAFactoryPairsHandler.getPairsByTokens(tokenB.address, tokenA.address)
+      then('returns the same address if asking for tokenB<->tokenA pair', async () => {
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(
+          await DCAFactoryPairsHandler.pairByTokens(tokenB.address, tokenA.address)
         );
       });
     });
   });
 
-  describe('getPairByTokensAndSwapInterval', () => {
-    when('there is no pair for tokenA<->tokenB and swap interval', () => {
-      then('returns empty address', async () => {
-        expect(await DCAFactoryPairsHandler.getPairByTokensAndSwapInterval(tokenA.address, tokenB.address, 100)).to.be.equal(
-          constants.ZERO_ADDRESS
-        );
+  describe.skip('sortTokens', () => {
+    when('sorting token addresses', () => {
+      let token0: string;
+      let token1: string;
+      given(async () => {
+        [token0, token1] = await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address);
+      });
+      then('token0 is correct', () => {
+        expect(sortTokens(tokenA.address, tokenB.address).token0).to.equal(token0);
+      });
+      then('token1 is correct', () => {
+        expect(sortTokens(tokenA.address, tokenB.address).token1).to.equal(token1);
       });
     });
-    when('there is a pair for tokenA<->tokenB but is another interval', () => {
-      const swapInterval = 1000;
+    when('calling with inverted order', () => {
+      let token0: string;
+      let token1: string;
       given(async () => {
-        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['description']);
-        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, swapInterval);
+        [token0, token1] = await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address);
       });
-      then('returns empty address', async () => {
-        expect(await DCAFactoryPairsHandler.getPairByTokensAndSwapInterval(tokenA.address, tokenB.address, swapInterval + 1)).to.be.equal(
-          constants.ZERO_ADDRESS
-        );
+      then('token0 is the same', async () => {
+        await expect((await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address))[0]).to.equal(token0);
       });
-    });
-    when('there is a pair for tokenA<->tokenB and swap interval', () => {
-      const swapInterval = 1000;
-      let hipotheticPairAddress: string;
-      given(async () => {
-        await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['description']);
-        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address, swapInterval);
-        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address, swapInterval);
-      });
-      then('returns correct address', async () => {
-        const { token0, token1 } = sortTokens(tokenA.address, tokenB.address);
-        expect(await DCAFactoryPairsHandler.getPairByTokensAndSwapInterval(token0, token1, swapInterval)).to.be.equal(hipotheticPairAddress);
-      });
-      then('returns same address if asking for tokenB<->tokenA and same swap interval', async () => {
-        expect(await DCAFactoryPairsHandler.getPairByTokensAndSwapInterval(tokenA.address, tokenB.address, swapInterval)).to.be.equal(
-          await DCAFactoryPairsHandler.getPairByTokensAndSwapInterval(tokenB.address, tokenA.address, swapInterval)
-        );
+      then('token1 is the same', async () => {
+        await expect((await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address))[1]).to.equal(token1);
       });
     });
   });

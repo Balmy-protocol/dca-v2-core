@@ -13,22 +13,35 @@ interface IDCAPairParameters {
 
   function tokenB() external view returns (IERC20Detailed);
 
-  function swapAmountDelta(address, uint32) external view returns (int256);
+  function swapAmountDelta(
+    uint32,
+    address,
+    uint32
+  ) external view returns (int256);
 
-  function performedSwaps() external view returns (uint32);
+  function performedSwaps(uint32) external view returns (uint32);
 }
 
 interface IDCAPairPositionHandler {
   struct DCA {
     uint32 lastWithdrawSwap;
     uint32 lastSwap;
+    uint32 swapInterval; // TODO: remove 32 bits from somewhere else
     uint192 rate;
     bool fromTokenA;
     uint248 swappedBeforeModified;
   }
 
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
-  event Deposited(address indexed _user, uint256 _dcaId, address _fromToken, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
+  event Deposited(
+    address indexed _user,
+    uint256 _dcaId,
+    address _fromToken,
+    uint192 _rate,
+    uint32 _startingSwap,
+    uint32 _swapInterval,
+    uint32 _lastSwap
+  );
   event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
   event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
   event Modified(address indexed _user, uint256 _dcaId, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
@@ -38,7 +51,8 @@ interface IDCAPairPositionHandler {
   function deposit(
     address _tokenAddress,
     uint192 _rate,
-    uint32 _amountOfSwaps
+    uint32 _amountOfSwaps,
+    uint32 _swapInterval
   ) external returns (uint256 _dcaId);
 
   function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
@@ -89,19 +103,18 @@ interface IDCAPairSwapHandler {
     NextSwapInformation _nextSwapInformation
   );
 
-  function swapInterval() external view returns (uint32);
+  function lastSwapPerformed(uint32) external view returns (uint32);
 
-  function lastSwapPerformed() external view returns (uint32);
-
-  function swapAmountAccumulator(address) external view returns (uint256);
+  function swapAmountAccumulator(uint32, address) external view returns (uint256);
 
   function oracle() external returns (ISlidingOracle);
 
-  function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
+  function getNextSwapInfo(uint32 _swapInterval) external view returns (NextSwapInformation memory _nextSwapInformation);
 
-  function swap() external;
+  function swap(uint32 _swapInterval) external;
 
   function swap(
+    uint32 _swapInterval,
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
     address _to,

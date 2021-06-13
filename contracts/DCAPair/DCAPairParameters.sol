@@ -21,9 +21,9 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   IERC20Detailed public override tokenB;
 
   // Tracking
-  mapping(address => mapping(uint32 => int256)) public override swapAmountDelta;
-  uint32 public override performedSwaps; // Note: If we had swaps every minute, for 100 years, uint32 would still cover it
-  mapping(address => mapping(uint32 => uint256[2])) internal _accumRatesPerUnit;
+  mapping(uint32 => mapping(address => mapping(uint32 => int256))) public override swapAmountDelta; // swap interval => from token => swap number => delta
+  mapping(uint32 => uint32) public override performedSwaps; // swap interval => performed swaps
+  mapping(uint32 => mapping(address => mapping(uint32 => uint256[2]))) internal _accumRatesPerUnit; // swap interval => from token => swap number => accum
   mapping(address => uint256) internal _balances;
 
   constructor(
