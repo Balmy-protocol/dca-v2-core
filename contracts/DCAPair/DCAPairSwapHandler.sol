@@ -76,13 +76,15 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   }
 
   function _getNextSwapsToPerform() internal view returns (Swap[] memory _swapsToPerform) {
-    // TODO: Make choice of swap intervals to execute in a clever way
+    // TODO: Make choice of what swap intervals to execute in a clever way
     uint32[] memory _allowedSwapIntervals = globalParameters.allowedSwapIntervals();
     _swapsToPerform = new Swap[](_allowedSwapIntervals.length);
+    uint16 _swapsToPerformIndex = 0;
     for (uint16 i; i < _allowedSwapIntervals.length; i++) {
       uint32 _swapInterval = _allowedSwapIntervals[i];
       if (lastSwapPerformed[_swapInterval] / _swapInterval < _getTimestamp() / _swapInterval) {
-        _swapsToPerform[i] = Swap({interval: _swapInterval, swapToPerform: performedSwaps[_swapInterval] + 1});
+        _swapsToPerform[_swapsToPerformIndex] = Swap({interval: _swapInterval, swapToPerform: performedSwaps[_swapInterval] + 1});
+        _swapsToPerformIndex++;
       }
     }
   }
@@ -97,16 +99,18 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       Swap[] memory _swapsToPerform = _getNextSwapsToPerform();
       for (uint16 i; i < _swapsToPerform.length; i++) {
         // TODO: If zero amount ?
-        _nextSwapInformation.amountToSwapTokenA += _getAmountToSwap(
-          _swapsToPerform[i].interval,
-          address(tokenA),
-          _swapsToPerform[i].swapToPerform
-        );
-        _nextSwapInformation.amountToSwapTokenB += _getAmountToSwap(
-          _swapsToPerform[i].interval,
-          address(tokenB),
-          _swapsToPerform[i].swapToPerform
-        );
+        if (_swapsToPerform[i].interval != 0) {
+          _nextSwapInformation.amountToSwapTokenA += _getAmountToSwap(
+            _swapsToPerform[i].interval,
+            address(tokenA),
+            _swapsToPerform[i].swapToPerform
+          );
+          _nextSwapInformation.amountToSwapTokenB += _getAmountToSwap(
+            _swapsToPerform[i].interval,
+            address(tokenB),
+            _swapsToPerform[i].swapToPerform
+          );
+        }
       }
       _nextSwapInformation.swapsToPerform = _swapsToPerform;
     }
@@ -164,23 +168,31 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
     require(!_swapParameters.isPaused, 'DCAPair: swaps are paused');
     NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
-    uint32 _swapInterval = _nextSwapInformation.swapsToPerform[0].interval;
-    _registerSwap(
-      _swapInterval,
-      address(tokenA),
-      _nextSwapInformation.amountToSwapTokenA,
-      _nextSwapInformation.ratePerUnitAToB,
-      _nextSwapInformation.swapsToPerform[0].swapToPerform
-    );
-    _registerSwap(
-      _swapInterval,
-      address(tokenB),
-      _nextSwapInformation.amountToSwapTokenB,
-      _nextSwapInformation.ratePerUnitBToA,
-      _nextSwapInformation.swapsToPerform[0].swapToPerform
-    );
-    performedSwaps[_swapInterval] = _nextSwapInformation.swapsToPerform[0].swapToPerform;
-    lastSwapPerformed[_swapInterval] = _getTimestamp();
+
+    uint32 _timestamp = _getTimestamp();
+    for (uint16 i; i < _nextSwapInformation.swapsToPerform.length; i++) {
+      if (_nextSwapInformation.swapsToPerform[i].interval != 0) {
+        uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
+        uint32 _swapToPerform = _nextSwapInformation.swapsToPerform[i].swapToPerform;
+        _registerSwap(
+          _swapInterval,
+          address(tokenA),
+          _nextSwapInformation.amountToSwapTokenA,
+          _nextSwapInformation.ratePerUnitAToB,
+          _swapToPerform
+        );
+        _registerSwap(
+          _swapInterval,
+          address(tokenB),
+          _nextSwapInformation.amountToSwapTokenB,
+          _nextSwapInformation.ratePerUnitBToA,
+          _swapToPerform
+        );
+        performedSwaps[_swapInterval] = _swapToPerform;
+        lastSwapPerformed[_swapInterval] = _timestamp;
+      }
+    }
+
     require(
       _amountToBorrowTokenA <= _nextSwapInformation.availableToBorrowTokenA &&
         _amountToBorrowTokenB <= _nextSwapInformation.availableToBorrowTokenB,
