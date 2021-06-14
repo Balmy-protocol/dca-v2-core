@@ -2,6 +2,8 @@
 pragma solidity 0.8.4;
 pragma abicoder v2;
 
+import 'hardhat/console.sol';
+
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/ISlidingOracle.sol';
@@ -75,15 +77,41 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
   }
 
-  function getNextSwapInfo(uint32 _swapInterval) public view override returns (NextSwapInformation memory _nextSwapInformation) {
-    uint32 _swapFee = globalParameters.swapFee();
-    _nextSwapInformation = _getNextSwapInfo(_swapInterval, _swapFee);
+  function _getNextSwapsToPerform() internal view returns (Swap[] memory _swapsToPerform) {
+    // TODO: Make choice of swap intervals to execute in a clever way
+    uint32[] memory _allowedSwapIntervals = globalParameters.allowedSwapIntervals();
+    _swapsToPerform = new Swap[](_allowedSwapIntervals.length);
+    for (uint16 i; i < _allowedSwapIntervals.length; i++) {
+      uint32 _swapInterval = _allowedSwapIntervals[i];
+      if (lastSwapPerformed[_swapInterval] / _swapInterval < _getTimestamp() / _swapInterval) {
+        _swapsToPerform[i] = Swap({interval: _swapInterval, swapToPerform: performedSwaps[_swapInterval] + 1});
+      }
+    }
   }
 
-  function _getNextSwapInfo(uint32 _swapInterval, uint32 _swapFee) internal view returns (NextSwapInformation memory _nextSwapInformation) {
-    _nextSwapInformation.swapToPerform = performedSwaps[_swapInterval] + 1;
-    _nextSwapInformation.amountToSwapTokenA = _getAmountToSwap(_swapInterval, address(tokenA), _nextSwapInformation.swapToPerform);
-    _nextSwapInformation.amountToSwapTokenB = _getAmountToSwap(_swapInterval, address(tokenB), _nextSwapInformation.swapToPerform);
+  function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
+    uint32 _swapFee = globalParameters.swapFee();
+    _nextSwapInformation = _getNextSwapInfo(_swapFee);
+  }
+
+  function _getNextSwapInfo(uint32 _swapFee) internal view returns (NextSwapInformation memory _nextSwapInformation) {
+    {
+      Swap[] memory _swapsToPerform = _getNextSwapsToPerform();
+      for (uint16 i; i < _swapsToPerform.length; i++) {
+        // TODO: If zero amount ?
+        _nextSwapInformation.amountToSwapTokenA += _getAmountToSwap(
+          _swapsToPerform[i].interval,
+          address(tokenA),
+          _swapsToPerform[i].swapToPerform
+        );
+        _nextSwapInformation.amountToSwapTokenB += _getAmountToSwap(
+          _swapsToPerform[i].interval,
+          address(tokenB),
+          _swapsToPerform[i].swapToPerform
+        );
+      }
+      _nextSwapInformation.swapsToPerform = _swapsToPerform;
+    }
     // TODO: Instead of using current, it should use quote to get a moving average and not current?
     _nextSwapInformation.ratePerUnitBToA = oracle.current(address(tokenB), _magnitudeB, address(tokenA));
     _nextSwapInformation.ratePerUnitAToB = (_magnitudeB * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
@@ -138,23 +166,23 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   ) public override nonReentrant {
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
     require(!_swapParameters.isPaused, 'DCAPair: swaps are paused');
-    require(lastSwapPerformed[_swapInterval] / _swapInterval < _getTimestamp() / _swapInterval, 'DCAPair: within interval slot');
-    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapInterval, _swapParameters.swapFee);
+    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
+    _swapInterval = _nextSwapInformation.swapsToPerform[0].interval;
     _registerSwap(
       _swapInterval,
       address(tokenA),
       _nextSwapInformation.amountToSwapTokenA,
       _nextSwapInformation.ratePerUnitAToB,
-      _nextSwapInformation.swapToPerform
+      _nextSwapInformation.swapsToPerform[0].swapToPerform
     );
     _registerSwap(
       _swapInterval,
       address(tokenB),
       _nextSwapInformation.amountToSwapTokenB,
       _nextSwapInformation.ratePerUnitBToA,
-      _nextSwapInformation.swapToPerform
+      _nextSwapInformation.swapsToPerform[0].swapToPerform
     );
-    performedSwaps[_swapInterval] = _nextSwapInformation.swapToPerform;
+    performedSwaps[_swapInterval] = _nextSwapInformation.swapsToPerform[0].swapToPerform;
     lastSwapPerformed[_swapInterval] = _getTimestamp();
     require(
       _amountToBorrowTokenA <= _nextSwapInformation.availableToBorrowTokenA &&

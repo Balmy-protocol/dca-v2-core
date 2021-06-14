@@ -19,6 +19,10 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
 
   // SwapHandler
 
+  function getNextSwapsToPerform() public view returns (Swap[] memory _swapsToPerform) {
+    return _getNextSwapsToPerform();
+  }
+
   function registerSwap(
     uint32 _swapInterval,
     address _token,
