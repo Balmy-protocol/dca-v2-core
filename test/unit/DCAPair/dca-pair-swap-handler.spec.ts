@@ -784,7 +784,7 @@ describe('DCAPairSwapHandler', () => {
         await tokenA.mint(DCAPairSwapHandler.address, initialPairBalanceTokenA);
         await tokenB.mint(DCAPairSwapHandler.address, initialPairBalanceTokenB);
         await DCAPairSwapHandler.setInternalBalances(initialPairBalanceTokenA, initialPairBalanceTokenB);
-        swapTx = DCAPairSwapHandler.connect(swapper)['swap(uint32)'](SWAP_INTERVAL, { gasPrice: 0 });
+        swapTx = DCAPairSwapHandler.connect(swapper)['swap()']({ gasPrice: 0 });
         await behaviours.waitForTxAndNotThrow(swapTx);
       });
 
@@ -1010,9 +1010,8 @@ describe('DCAPairSwapHandler', () => {
           'contracts/mocks/DCAPairSwapCallee.sol:ReentrantDCAPairSwapCalleeMock'
         );
         const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy();
-        await reentrantDCAPairSwapCallee.setAttack((await DCAPairSwapHandler.populateTransaction['swap(uint32)'](SWAP_INTERVAL)).data);
-        tx = DCAPairSwapHandler['swap(uint32,uint256,uint256,address,bytes)'](
-          SWAP_INTERVAL,
+        await reentrantDCAPairSwapCallee.setAttack((await DCAPairSwapHandler.populateTransaction['swap()']()).data);
+        tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB,
           reentrantDCAPairSwapCallee.address,
@@ -1033,8 +1032,7 @@ describe('DCAPairSwapHandler', () => {
         const reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleFactory.deploy();
         await reentrantDCAPairSwapCallee.setAttack(
           (
-            await DCAPairSwapHandler.populateTransaction['swap(uint32,uint256,uint256,address,bytes)'](
-              SWAP_INTERVAL,
+            await DCAPairSwapHandler.populateTransaction['swap(uint256,uint256,address,bytes)'](
               availableToBorrowTokenA,
               availableToBorrowTokenB,
               reentrantDCAPairSwapCallee.address,
@@ -1042,8 +1040,7 @@ describe('DCAPairSwapHandler', () => {
             )
           ).data
         );
-        tx = DCAPairSwapHandler['swap(uint32,uint256,uint256,address,bytes)'](
-          SWAP_INTERVAL,
+        tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB,
           reentrantDCAPairSwapCallee.address,
@@ -1058,8 +1055,7 @@ describe('DCAPairSwapHandler', () => {
     when('swapper intends to borrow more than available in a', () => {
       let tx: Promise<TransactionResponse>;
       given(async () => {
-        tx = DCAPairSwapHandler['swap(uint32,uint256,uint256,address,bytes)'](
-          SWAP_INTERVAL,
+        tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA.add(1),
           availableToBorrowTokenB,
           DCAPairSwapCallee.address,
@@ -1074,8 +1070,7 @@ describe('DCAPairSwapHandler', () => {
     when('swapper intends to borrow more than available in b', () => {
       let tx: Promise<TransactionResponse>;
       given(async () => {
-        tx = DCAPairSwapHandler['swap(uint32,uint256,uint256,address,bytes)'](
-          SWAP_INTERVAL,
+        tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB.add(1),
           DCAPairSwapCallee.address,
@@ -1091,8 +1086,7 @@ describe('DCAPairSwapHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await DCAPairSwapHandler['swap(uint32,uint256,uint256,address,bytes)'](
-          SWAP_INTERVAL,
+        tx = await DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB,
           DCAPairSwapCallee.address,
@@ -1197,8 +1191,7 @@ describe('DCAPairSwapHandler', () => {
 
         given(async () => {
           await DCAPairSwapCallee.returnSpecificAmounts(amountToReturnTokenA(), amountToReturnTokenB());
-          tx = DCAPairSwapHandler['swap(uint32,uint256,uint256,address,bytes)'](
-            SWAP_INTERVAL,
+          tx = DCAPairSwapHandler['swap(uint256,uint256,address,bytes)'](
             amountToBorrowTokenA(),
             amountToBorrowTokenB(),
             DCAPairSwapCallee.address,
@@ -1313,7 +1306,7 @@ describe('DCAPairSwapHandler', () => {
           await tokenB.transfer(DCAPairSwapHandler.address, (amountToBeProvidedBySwapper as BigNumber).add(threshold!));
         }
 
-        swapTx = await DCAPairSwapHandler['swap(uint32)'](SWAP_INTERVAL);
+        swapTx = await DCAPairSwapHandler['swap()']();
       });
       then('token to be provided by swapper needed is provided', async () => {
         if (!tokenToBeProvidedBySwapper) {

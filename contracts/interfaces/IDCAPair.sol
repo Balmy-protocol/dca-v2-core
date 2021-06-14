@@ -115,10 +115,9 @@ interface IDCAPairSwapHandler {
 
   function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 
-  function swap(uint32 _swapInterval) external;
+  function swap() external;
 
   function swap(
-    uint32 _swapInterval,
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
     address _to,
