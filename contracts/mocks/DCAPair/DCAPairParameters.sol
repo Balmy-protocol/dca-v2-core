@@ -43,7 +43,7 @@ contract DCAPairParametersMock is DCAPairParameters {
     uint32 _swapInterval,
     address _tokenAddress,
     uint32 _swap,
-    uint256[2] memory _accumRatePerUnit
+    uint256 _accumRatePerUnit
   ) public {
     _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap] = _accumRatePerUnit;
   }
@@ -52,7 +52,7 @@ contract DCAPairParametersMock is DCAPairParameters {
     uint32 _swapInterval,
     address _tokenAddress,
     uint32 _swap
-  ) public view returns (uint256[2] memory) {
+  ) public view returns (uint256) {
     return _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap];
   }
 
@@ -64,10 +64,9 @@ contract DCAPairParametersMock is DCAPairParameters {
     uint32 _swapInterval,
     address _tokenAddress,
     uint32 _swap,
-    uint256 _rate,
-    uint256 _rateMultiplier
+    uint256 _rate
   ) public {
-    _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap] = [_rate, _rateMultiplier];
+    _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap] = _rate;
   }
 
   function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) public view returns (uint256) {

@@ -234,38 +234,13 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function _calculateSwapped(uint256 _dcaId, bool _applyFee) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = _userPositions[_dcaId];
     address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
-    uint256[2] memory _accumRatesLastWidthraw = _accumRatesPerUnit[_userDCA.swapInterval][_from][_userDCA.lastWithdrawSwap];
-    uint256[2] memory _accumRatesLastSwap =
+    uint256 _accumRatesLastWidthraw = _accumRatesPerUnit[_userDCA.swapInterval][_from][_userDCA.lastWithdrawSwap];
+    uint256 _accumRatesLastSwap =
       _accumRatesPerUnit[_userDCA.swapInterval][_from][
         performedSwaps[_userDCA.swapInterval] < _userDCA.lastSwap ? performedSwaps[_userDCA.swapInterval] : _userDCA.lastSwap
       ];
 
-    /*
-      LS = last swap = min(performed swaps, position.finalSwap)
-      LW = last widthraw
-      RATE_PER_UNIT(swap) = TO tokens for one unit of FROM = amount TO tokens * magnitude(TO)
-      RATE(position) = amount FROM tokens * magnitude(FROM)
-      accumPerUnit(swap) = RATE_PER_UNIT(swap) + RATE_PER_UNIT(swap - 1) + ... + RATE_PER_UNIT(1)
-
-      swapped = (accumPerUnit(LS) - accumPerUnit(LW)) * RATE / magnitude(FROM)
-      swapped = ((multiplier(LS) - multiplier(LW)) * MAX_UINT + accum(LS) - accum(LW)) * RATE / magnitude(FROM)
-    */
-
-    uint256 _multiplierDifference = _accumRatesLastSwap[1] - _accumRatesLastWidthraw[1];
-    uint256 _accumPerUnit;
-    if (_multiplierDifference == 2) {
-      // If multiplier difference is 2, then the only way it won't overflow is if accum(LS) - accum(LW) == -max(uint256).
-      // This line will revert for all other scenarios
-      _accumPerUnit = type(uint256).max - (_accumRatesLastWidthraw[0] - _accumRatesLastSwap[0]) + type(uint256).max;
-    } else {
-      uint256 _multiplierTerm = _multiplierDifference * type(uint256).max;
-      if (_accumRatesLastSwap[0] >= _accumRatesLastWidthraw[0]) {
-        _accumPerUnit = _multiplierTerm + (_accumRatesLastSwap[0] - _accumRatesLastWidthraw[0]);
-      } else {
-        _accumPerUnit = _multiplierTerm - (_accumRatesLastWidthraw[0] - _accumRatesLastSwap[0]);
-      }
-    }
-
+    uint256 _accumPerUnit = _accumRatesLastSwap - _accumRatesLastWidthraw;
     uint256 _magnitude = _userDCA.fromTokenA ? _magnitudeA : _magnitudeB;
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
     uint256 _swappedInCurrentPosition;

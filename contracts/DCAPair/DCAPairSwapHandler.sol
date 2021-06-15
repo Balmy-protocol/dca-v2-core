@@ -29,18 +29,8 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     uint32 _performedSwap,
     uint256 _ratePerUnit
   ) internal {
-    uint32 _previousSwap = _performedSwap - 1;
-    uint256[2] memory _accumRatesPerUnitPreviousSwap = _accumRatesPerUnit[_swapInterval][_address][_previousSwap];
-    (bool _ok, uint256 _result) = Math.tryAdd(_accumRatesPerUnitPreviousSwap[0], _ratePerUnit);
-    if (_ok) {
-      _accumRatesPerUnit[_swapInterval][_address][_performedSwap] = [_result, _accumRatesPerUnitPreviousSwap[1]];
-    } else {
-      uint256 _missingUntilOverflow = type(uint256).max - _accumRatesPerUnitPreviousSwap[0];
-      _accumRatesPerUnit[_swapInterval][_address][_performedSwap] = [
-        _ratePerUnit - _missingUntilOverflow,
-        _accumRatesPerUnitPreviousSwap[1] + 1
-      ];
-    }
+    uint256 _accumRatesPerUnitPreviousSwap = _accumRatesPerUnit[_swapInterval][_address][_performedSwap - 1];
+    _accumRatesPerUnit[_swapInterval][_address][_performedSwap] = _accumRatesPerUnitPreviousSwap + _ratePerUnit;
   }
 
   function _registerSwap(

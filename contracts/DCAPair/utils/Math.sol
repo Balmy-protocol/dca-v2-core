@@ -13,17 +13,4 @@ library Math {
       return (true, c);
     }
   }
-
-  /**
-   * @dev Returns the addition of two unsigned integers, with an overflow flag.
-   *
-   * _Available since v3.4._
-   */
-  function tryAdd(uint256 a, uint256 b) internal pure returns (bool, uint256) {
-    unchecked {
-      uint256 c = a + b;
-      if (c < a) return (false, 0);
-      return (true, c);
-    }
-  }
 }

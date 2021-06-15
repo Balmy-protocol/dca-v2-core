@@ -807,7 +807,6 @@ describe('DCAPositionHandler', () => {
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         await setRatePerUnit({
           accumRate: MAX.add(1),
-          rateMultiplier: 0,
           onSwap: PERFORMED_SWAPS_10 + 1,
         });
 
@@ -830,7 +829,6 @@ describe('DCAPositionHandler', () => {
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         await setRatePerUnit({
           accumRate: MAX,
-          rateMultiplier: 0,
           onSwap: PERFORMED_SWAPS_10 + 1,
         });
 
@@ -845,17 +843,6 @@ describe('DCAPositionHandler', () => {
   });
 
   describe('calculateSwapped', () => {
-    when('multiplier is 1 and accum is negative', () => {
-      then('swapped is calculated correctly', async () => {
-        const swapped = await calculateSwappedWith({
-          accumRate: -10,
-          rateMultiplier: 1,
-          fee: 0,
-        });
-        expect(swapped).to.equal(constants.MAX_UINT_256.sub(tokenB.asUnits(10)));
-      });
-    });
-
     when('last swap ended before calculation', () => {
       then('swapped is calculated correctly', async () => {
         const { dcaId } = await deposit(tokenA, 1, 1);
@@ -863,17 +850,15 @@ describe('DCAPositionHandler', () => {
         // Turn fees to zero
         await DCAGlobalParameters.setSwapFee(0);
 
-        // Set up max(uint256) in PERFORMED_SWAPS_10 + 1
+        // Set a value in PERFORMED_SWAPS_10 + 1
         await setRatePerUnit({
-          accumRate: 0,
-          rateMultiplier: 1,
+          accumRate: 1000000,
           onSwap: PERFORMED_SWAPS_10 + 1,
         });
 
-        // Set up overflow in PERFORMED_SWAPS_10 + 2
+        // Set another value in PERFORMED_SWAPS_10 + 2
         await setRatePerUnit({
-          accumRate: 1,
-          rateMultiplier: 1,
+          accumRate: 1000001,
           onSwap: PERFORMED_SWAPS_10 + 2,
         });
 
@@ -881,36 +866,16 @@ describe('DCAPositionHandler', () => {
 
         // It shouldn't revert, since the position ended before the overflow
         const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
-        expect(swapped).to.equal(constants.MAX_UINT_256);
+        expect(swapped).to.equal(tokenB.asUnits(1000000));
       });
     });
 
     describe('verify overflow errors', () => {
-      when('multiplier is 1 and accum is positive', () => {
+      when('accum is MAX(uint256) and position rate is more than 1', () => {
         then('there is an overflow', async () => {
           await expectCalculationToFailWithOverflow({
-            accumRate: 1,
-            rateMultiplier: 1,
-            fee: 0,
-          });
-        });
-      });
-
-      when('multiplier is 2 and accum is not -MAX(uint256)', () => {
-        then('there is an overflow', async () => {
-          await expectCalculationToFailWithOverflow({
-            accumRate: constants.MAX_UINT_256.mul(-1).add(1),
-            rateMultiplier: 2,
-            fee: 0,
-          });
-        });
-      });
-
-      when('multiplier is 3', () => {
-        then('there is an overflow', async () => {
-          await expectCalculationToFailWithOverflow({
-            accumRate: constants.MAX_UINT_256.mul(-1),
-            rateMultiplier: 3,
+            accumRate: constants.MAX_UINT_256,
+            positionRate: 2,
             fee: 0,
           });
         });
@@ -918,33 +883,11 @@ describe('DCAPositionHandler', () => {
     });
 
     describe('verify overflow limits', () => {
-      when('multiplier is 1 and accum is 0', () => {
-        then('swapped should be max uint', async () => {
-          const _swapped = await calculateSwappedWith({
-            accumRate: 0,
-            rateMultiplier: 1,
-            fee: 0,
-          });
-          expect(_swapped).to.equal(constants.MAX_UINT_256);
-        });
-      });
-
-      when('multiplier is 0 and accum is MAX(uint256)', () => {
+      when('accum is MAX(uint256) and position rate is 1', () => {
         then('swapped should be max uint', async () => {
           const swapped = await calculateSwappedWith({
             accumRate: constants.MAX_UINT_256,
-            rateMultiplier: 0,
-            fee: 0,
-          });
-          expect(swapped).to.equal(constants.MAX_UINT_256);
-        });
-      });
-
-      when('multiplier is 2 and accum is -MAX(uint256)', () => {
-        then('swapped should be max uint', async () => {
-          const swapped = await calculateSwappedWith({
-            accumRate: constants.MAX_UINT_256.mul(-1),
-            rateMultiplier: 2,
+            positionRate: 1,
             fee: 0,
           });
           expect(swapped).to.equal(constants.MAX_UINT_256);
@@ -958,7 +901,6 @@ describe('DCAPositionHandler', () => {
             const protocolFee = feePrecision - 1;
             const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
-              rateMultiplier: 0,
               fee: protocolFee,
             });
             const fee = constants.MAX_UINT_256.div(feePrecision).mul(protocolFee).div(100);
@@ -972,7 +914,6 @@ describe('DCAPositionHandler', () => {
             const protocolFee = feePrecision + 1;
             const swapped = await calculateSwappedWith({
               accumRate: constants.MAX_UINT_256,
-              rateMultiplier: 0,
               fee: protocolFee,
             });
             const fee = constants.MAX_UINT_256.div(feePrecision).div(100).mul(protocolFee);
@@ -984,50 +925,36 @@ describe('DCAPositionHandler', () => {
 
     async function calculateSwappedWith({
       accumRate,
-      rateMultiplier,
+      positionRate,
       fee,
     }: {
       accumRate: number | BigNumber;
-      rateMultiplier: number;
+      positionRate?: number;
       fee?: number | BigNumber;
     }) {
-      const { dcaId } = await deposit(tokenA, 1, 1);
+      const { dcaId } = await deposit(tokenA, positionRate ?? 1, 1);
       if (fee !== undefined) await DCAGlobalParameters.setSwapFee(fee);
       await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
-      if (accumRate < 0) {
-        await setRatePerUnit({
-          accumRate: BigNumber.isBigNumber(accumRate) ? accumRate.abs() : tokenB.asUnits(Math.abs(accumRate)),
-          rateMultiplier: 0,
-          onSwap: PERFORMED_SWAPS_10,
-        });
-        await setRatePerUnit({
-          accumRate: 0,
-          rateMultiplier,
-          onSwap: PERFORMED_SWAPS_10 + 1,
-        });
-      } else {
-        await setRatePerUnit({
-          accumRate,
-          rateMultiplier,
-          onSwap: PERFORMED_SWAPS_10 + 1,
-        });
-      }
+      await setRatePerUnit({
+        accumRate,
+        onSwap: PERFORMED_SWAPS_10 + 1,
+      });
 
       return DCAPositionHandler.calculateSwapped(dcaId);
     }
 
     function expectCalculationToFailWithOverflow({
       accumRate,
-      rateMultiplier,
+      positionRate,
       fee,
     }: {
       accumRate: number | BigNumber;
-      rateMultiplier: number;
+      positionRate: number;
       fee?: number | BigNumber;
     }) {
       const tx = calculateSwappedWith({
         accumRate,
-        rateMultiplier,
+        positionRate,
         fee,
       });
 
@@ -1039,21 +966,12 @@ describe('DCAPositionHandler', () => {
     }
   });
 
-  async function setRatePerUnit({
-    accumRate,
-    rateMultiplier,
-    onSwap,
-  }: {
-    accumRate: number | BigNumber;
-    rateMultiplier: number;
-    onSwap: number;
-  }) {
+  async function setRatePerUnit({ accumRate, onSwap }: { accumRate: number | BigNumber; onSwap: number }) {
     await DCAPositionHandler.setRatePerUnit(
       SWAP_INTERVAL,
       tokenA.address,
       onSwap,
-      BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate),
-      rateMultiplier
+      BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate)
     );
   }
 
@@ -1197,7 +1115,7 @@ describe('DCAPositionHandler', () => {
     const fromTokenReal = fromToken ?? tokenA;
     const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
     await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, swap);
-    await DCAPositionHandler.setRatePerUnit(SWAP_INTERVAL, fromTokenReal.address, swap, toToken.asUnits(ratePerUnit), 0);
+    await DCAPositionHandler.setRatePerUnit(SWAP_INTERVAL, fromTokenReal.address, swap, toToken.asUnits(ratePerUnit));
     await fromTokenReal.burn(DCAPositionHandler.address, fromTokenReal.asUnits(amount));
     await toToken.mint(DCAPositionHandler.address, await withFeeApplied(toToken.asUnits(amount * ratePerUnit))); // We calculate and subtract the fee, similarly to how it would be when not unit tested
     await DCAPositionHandler.setInternalBalances(

@@ -98,39 +98,27 @@ describe('DCAPairSwapHandler', () => {
     title,
     token,
     previousAccumRatesPerUnit,
-    previousAccumRatesPerUnitMultiplier,
     performedSwap,
     ratePerUnit,
   }: {
     title: string;
     token: () => string;
     previousAccumRatesPerUnit: BigNumber | number | string;
-    previousAccumRatesPerUnitMultiplier: BigNumber | number | string;
     performedSwap: BigNumber | number | string;
     ratePerUnit: BigNumber | number | string;
   }) {
     const previousAccumRatesPerUnitBN = bn.toBN(previousAccumRatesPerUnit);
-    const previousAccumRatesPerUnitMultiplierBN = bn.toBN(previousAccumRatesPerUnitMultiplier);
     const performedSwapBN = bn.toBN(performedSwap);
     const ratePerUnitBN = bn.toBN(ratePerUnit);
 
     when(title, () => {
       given(async () => {
-        await DCAPairSwapHandler.setAcummRatesPerUnit(swapInterval, token(), performedSwapBN.sub(1), [
-          previousAccumRatesPerUnitBN,
-          previousAccumRatesPerUnitMultiplierBN,
-        ]);
+        await DCAPairSwapHandler.setAcummRatesPerUnit(swapInterval, token(), performedSwapBN.sub(1), previousAccumRatesPerUnitBN);
         await DCAPairSwapHandler.addNewRatePerUnit(swapInterval, token(), performedSwapBN, ratePerUnit);
       });
-      then('increments the rates per unit accumulator base and overflow if needed', async () => {
+      then('increments the rates per unit accumulator', async () => {
         const accumRatesPerUnit = await DCAPairSwapHandler.accumRatesPerUnit(swapInterval, token(), performedSwapBN);
-        if (previousAccumRatesPerUnitBN.add(ratePerUnitBN).gt(ethers.constants.MaxUint256)) {
-          expect(accumRatesPerUnit[0]).to.equal(ratePerUnitBN.sub(ethers.constants.MaxUint256.sub(previousAccumRatesPerUnitBN)));
-          expect(accumRatesPerUnit[1]).to.equal(previousAccumRatesPerUnitMultiplierBN.add(1));
-        } else {
-          expect(accumRatesPerUnit[0]).to.equal(previousAccumRatesPerUnitBN.add(ratePerUnitBN));
-          expect(accumRatesPerUnit[1]).to.equal(previousAccumRatesPerUnitMultiplierBN);
-        }
+        expect(accumRatesPerUnit).to.equal(previousAccumRatesPerUnitBN.add(ratePerUnitBN));
       });
     });
   }
@@ -140,7 +128,6 @@ describe('DCAPairSwapHandler', () => {
       title: 'is the first swap of token A',
       token: () => tokenA.address,
       previousAccumRatesPerUnit: 0,
-      previousAccumRatesPerUnitMultiplier: 0,
       performedSwap: 1,
       ratePerUnit: 123456789,
     });
@@ -149,34 +136,14 @@ describe('DCAPairSwapHandler', () => {
       title: 'the addition does not overflow the accumulated rates per unit of token A',
       token: () => tokenA.address,
       previousAccumRatesPerUnit: 123456789,
-      previousAccumRatesPerUnitMultiplier: 0,
       performedSwap: 2,
       ratePerUnit: 9991230,
-    });
-
-    addNewRatePerUnitTest({
-      title: 'previous rate per unit accumulator was too big and overflows token A',
-      token: () => tokenA.address,
-      previousAccumRatesPerUnit: ethers.constants.MaxUint256.sub('10000'),
-      previousAccumRatesPerUnitMultiplier: 0,
-      performedSwap: 3,
-      ratePerUnit: 9991230,
-    });
-
-    addNewRatePerUnitTest({
-      title: 'new rate per unit is too big and overflows accumulator of token A',
-      token: () => tokenA.address,
-      previousAccumRatesPerUnit: 123456789,
-      previousAccumRatesPerUnitMultiplier: 0,
-      performedSwap: 3,
-      ratePerUnit: ethers.constants.MaxUint256.sub('123456'),
     });
 
     addNewRatePerUnitTest({
       title: 'is the first swap of token B',
       token: () => tokenB.address,
       previousAccumRatesPerUnit: 0,
-      previousAccumRatesPerUnitMultiplier: 0,
       performedSwap: 1,
       ratePerUnit: 123456789,
     });
@@ -184,26 +151,8 @@ describe('DCAPairSwapHandler', () => {
       title: 'the addition does not overflow the accumulated rates per unit of token B',
       token: () => tokenB.address,
       previousAccumRatesPerUnit: 123456789,
-      previousAccumRatesPerUnitMultiplier: 0,
       performedSwap: 2,
       ratePerUnit: 9991230,
-    });
-    addNewRatePerUnitTest({
-      title: 'previous rate per unit accumulator was too big and overflows token B',
-      token: () => tokenB.address,
-      previousAccumRatesPerUnit: ethers.constants.MaxUint256.sub('10000'),
-      previousAccumRatesPerUnitMultiplier: 0,
-      performedSwap: 3,
-      ratePerUnit: 9991230,
-    });
-
-    addNewRatePerUnitTest({
-      title: 'new rate per unit is too big and overflows accumulator of token B',
-      token: () => tokenB.address,
-      previousAccumRatesPerUnit: 123456789,
-      previousAccumRatesPerUnitMultiplier: 0,
-      performedSwap: 3,
-      ratePerUnit: ethers.constants.MaxUint256.sub('123456'),
     });
   });
 
@@ -1299,13 +1248,12 @@ describe('DCAPairSwapHandler', () => {
       then('register swaps from tokenA to tokenB with correct information', async () => {
         const accumRatesPerUnit = await DCAPairSwapHandler.accumRatesPerUnit(swapInterval, tokenA.address, nextSwapToPerform);
         expect(await DCAPairSwapHandler.swapAmountAccumulator(swapInterval, tokenA.address)).to.equal(amountToSwapOfTokenA);
-        expect(accumRatesPerUnit[0]).to.not.equal(0);
-        expect(accumRatesPerUnit[0]).to.equal(ratePerUnitAToB);
+        expect(accumRatesPerUnit).to.equal(ratePerUnitAToB);
       });
       then('register swaps from tokenB to tokenA with correct information', async () => {
         const accumRatesPerUnit = await DCAPairSwapHandler.accumRatesPerUnit(swapInterval, tokenB.address, nextSwapToPerform);
         expect(await DCAPairSwapHandler.swapAmountAccumulator(swapInterval, tokenB.address)).to.equal(amountToSwapOfTokenB);
-        expect(accumRatesPerUnit[0]).to.equal(ratePerUnitBToA);
+        expect(accumRatesPerUnit).to.equal(ratePerUnitBToA);
       });
       then('sends token a fee correctly to fee recipient', async () => {
         expect(await tokenA.balanceOf(feeRecipient.address)).to.equal(platformFeeTokenA);
