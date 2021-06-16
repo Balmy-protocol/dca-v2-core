@@ -1160,16 +1160,28 @@ describe('DCAPairSwapHandler', () => {
       });
       then('swap was not registered on token a', async () => {
         for (let i = 0; i < nextSwapContext.length; i++) {
-          expect(
-            await DCAPairSwapHandler.swapAmountDelta(nextSwapContext[i].interval, tokenA.address, nextSwapContext[i].nextSwapToPerform)
-          ).to.not.be.equal(0);
+          if (nextSwapContext[i].amountToSwapOfTokenA !== 0) {
+            expect(
+              await DCAPairSwapHandler.swapAmountDelta(nextSwapContext[i].interval, tokenA.address, nextSwapContext[i].nextSwapToPerform)
+            ).to.not.be.equal(0);
+          } else {
+            expect(
+              await DCAPairSwapHandler.swapAmountDelta(nextSwapContext[i].interval, tokenA.address, nextSwapContext[i].nextSwapToPerform)
+            ).to.be.equal(0);
+          }
         }
       });
       then('swap was not registered on token b', async () => {
         for (let i = 0; i < nextSwapContext.length; i++) {
-          expect(
-            await DCAPairSwapHandler.swapAmountDelta(nextSwapContext[i].interval, tokenB.address, nextSwapContext[i].nextSwapToPerform)
-          ).to.not.be.equal(0);
+          if (nextSwapContext[i].amountToSwapOfTokenB !== 0) {
+            expect(
+              await DCAPairSwapHandler.swapAmountDelta(nextSwapContext[i].interval, tokenB.address, nextSwapContext[i].nextSwapToPerform)
+            ).to.not.be.equal(0);
+          } else {
+            expect(
+              await DCAPairSwapHandler.swapAmountDelta(nextSwapContext[i].interval, tokenB.address, nextSwapContext[i].nextSwapToPerform)
+            ).to.be.equal(0);
+          }
         }
       });
       then('last swap performed did not increase', async () => {
@@ -1188,7 +1200,7 @@ describe('DCAPairSwapHandler', () => {
 
   describe('swap', () => {
     swapTestFailed({
-      title: 'external amount of token a to be provided is not sent',
+      title: 'the only interval is being executed and external amount of token a to be provided is not sent',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
@@ -1204,13 +1216,107 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTestFailed({
-      title: 'external amount of token b to be provided is not sent',
+      title: 'both intervals are being executed and external amount of token a to be provided is not sent',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 0.5,
+          amountToSwapOfTokenB: 2,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          nextSwapToPerform: 5,
+          amountToSwapOfTokenA: 0.5,
+          amountToSwapOfTokenB: 0,
+        },
+      ],
+      initialSwapperBalanceTokenA: () => tokenA.asUnits(1).sub(1),
+      initialSwapperBalanceTokenB: 0,
+      ratePerUnitBToA: 1,
+      reason: 'DCAPair: liquidity not returned',
+    });
+
+    swapTestFailed({
+      title: 'only one of both intervals is executable and external amount of token a to be provided is not sent',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 0.5,
+          amountToSwapOfTokenB: 2,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          nextSwapToPerform: 5,
+          amountToSwapOfTokenA: 0.5,
+          amountToSwapOfTokenB: 1,
+        },
+      ],
+      initialSwapperBalanceTokenA: () => tokenA.asUnits(1).sub(1),
+      initialSwapperBalanceTokenB: 0,
+      ratePerUnitBToA: 1,
+      reason: 'DCAPair: liquidity not returned',
+    });
+
+    swapTestFailed({
+      title: 'the only interval is being executed and external amount of token b to be provided is not sent',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
           nextSwapToPerform: 2,
           amountToSwapOfTokenA: 2,
           amountToSwapOfTokenB: 1,
+        },
+      ],
+      initialSwapperBalanceTokenA: 0,
+      initialSwapperBalanceTokenB: () => tokenB.asUnits(1).sub(1),
+      ratePerUnitBToA: 1,
+      reason: 'DCAPair: liquidity not returned',
+    });
+
+    swapTestFailed({
+      title: 'both intervals are being executed and external amount of token b to be provided is not sent',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 0,
+          amountToSwapOfTokenB: 1,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          nextSwapToPerform: 12,
+          amountToSwapOfTokenA: 1.1,
+          amountToSwapOfTokenB: 0,
+        },
+      ],
+      initialSwapperBalanceTokenA: 0,
+      initialSwapperBalanceTokenB: () => tokenB.asUnits(1).sub(1),
+      ratePerUnitBToA: 1,
+      reason: 'DCAPair: liquidity not returned',
+    });
+
+    swapTestFailed({
+      title: 'only one of both intervals is executable and external amount of token b to be provided is not sent',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 0.99,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 12,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 0,
         },
       ],
       initialSwapperBalanceTokenA: 0,
@@ -1272,10 +1378,11 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
-      title: 'rate per unit is 1:1 and needing token b to be provided externally',
+      title: 'the only interval is being executed, rate per unit is 1:1 and needing token b to be provided externally',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
           amountToSwapOfTokenA: 1.4,
           amountToSwapOfTokenB: 1.3,
@@ -1287,10 +1394,11 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
-      title: 'rate per unit is 1:1 and needing token a to be provided externally',
+      title: 'the only interval is being executed, rate per unit is 1:1 and needing token a to be provided externally',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
           amountToSwapOfTokenA: 1,
           amountToSwapOfTokenB: 1.3,
@@ -1302,10 +1410,11 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
-      title: 'rate per unit is 1:1 and there is no need to provide tokens externally',
+      title: 'the only interval is being executed, rate per unit is 1:1 and there is no need to provide tokens externally',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
           amountToSwapOfTokenA: 1,
           amountToSwapOfTokenB: 1,
@@ -1317,10 +1426,11 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
-      title: 'rate per unit is 1:2 and needing token b to be provided externally',
+      title: 'the only interval is being executed, rate per unit is 1:2 and needing token b to be provided externally',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
           amountToSwapOfTokenA: 1.4,
           amountToSwapOfTokenB: 2.6,
@@ -1332,10 +1442,11 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
-      title: 'rate per unit is 1:2 and needing token a to be provided externally',
+      title: 'the only interval is being executed, rate per unit is 1:2 and needing token a to be provided externally',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
           amountToSwapOfTokenA: 1,
           amountToSwapOfTokenB: 2.6,
@@ -1347,10 +1458,11 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
-      title: 'rate per unit is 1:2 and there is no need to provide tokens externally',
+      title: 'the only interval is being executed, rate per unit is 1:2 and there is no need to provide tokens externally',
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
           amountToSwapOfTokenA: 1,
           amountToSwapOfTokenB: 2,
@@ -1362,34 +1474,290 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
-      title: 'rate per unit is 3:5 and needing token b to be provided externally',
+      title: 'both intervals are being executed, rate per unit is 1:1 and needing token b to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1.4,
-          amountToSwapOfTokenB: 2,
+          amountToSwapOfTokenA: 1.3,
+          amountToSwapOfTokenB: 1.3,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 5,
+          amountToSwapOfTokenA: 0.4,
+          amountToSwapOfTokenB: 0,
         },
       ],
       initialContractTokenABalance: 100,
       initialContractTokenBBalance: 100,
-      ratePerUnitBToA: 0.6,
-      threshold: 2,
+      ratePerUnitBToA: 1,
     });
 
     swapTest({
-      title: 'rate per unit is 3:5 and needing token a to be provided externally',
+      title: 'both intervals are being executed, rate per unit is 1:1 and needing token a to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
           nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1.2,
+          amountToSwapOfTokenB: 1.3,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 5,
           amountToSwapOfTokenA: 1,
-          amountToSwapOfTokenB: 5,
+          amountToSwapOfTokenB: 1,
         },
       ],
       initialContractTokenABalance: 100,
       initialContractTokenBBalance: 100,
-      ratePerUnitBToA: 0.6,
+      ratePerUnitBToA: 1,
+    });
+
+    swapTest({
+      title: 'both intervals are being executed, rate per unit is 1:1 and there is no need to provide tokens externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 1,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 5,
+          amountToSwapOfTokenA: 3,
+          amountToSwapOfTokenB: 3,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 1,
+    });
+
+    swapTest({
+      title: 'both intervals are being executed, rate per unit is 1:2 and needing token b to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1.4,
+          amountToSwapOfTokenB: 2.6,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 8,
+          amountToSwapOfTokenA: 1.4,
+          amountToSwapOfTokenB: 2.8,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 0.5,
+    });
+
+    swapTest({
+      title: 'both intervals are being executed, rate per unit is 1:2 and needing token a to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
+          nextSwapToPerform: 3,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 2.6,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 7,
+          amountToSwapOfTokenA: 0.3,
+          amountToSwapOfTokenB: 1,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 0.5,
+    });
+
+    swapTest({
+      title: 'both intervals are being executed, rate per unit is 1:2 and there is no need to provide tokens externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 2,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 15,
+          amountToSwapOfTokenA: 0.5,
+          amountToSwapOfTokenB: 1,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 0.5,
+    });
+    swapTest({
+      title: 'only one of both intervals is being executed, rate per unit is 1:1 and needing token b to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1.4,
+          amountToSwapOfTokenB: 1.3,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 5,
+          amountToSwapOfTokenA: 0.4,
+          amountToSwapOfTokenB: 10,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 1,
+    });
+
+    swapTest({
+      title: 'only one of both intervals is being executed, rate per unit is 1:1 and needing token a to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1.2,
+          amountToSwapOfTokenB: 1.3,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 5,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 3,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 1,
+    });
+
+    swapTest({
+      title: 'only one of both intervals is being executed, rate per unit is 1:1 and there is no need to provide tokens externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 1,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 5,
+          amountToSwapOfTokenA: 3,
+          amountToSwapOfTokenB: 3,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 1,
+    });
+
+    swapTest({
+      title: 'only one of both intervals is being executed, rate per unit is 1:2 and needing token b to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1.4,
+          amountToSwapOfTokenB: 2.6,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 8,
+          amountToSwapOfTokenA: 1.4,
+          amountToSwapOfTokenB: 2.6,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 0.5,
+    });
+
+    swapTest({
+      title: 'only one of both intervals is being executed, rate per unit is 1:2 and needing token a to be provided externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL,
+          nextSwapToPerform: 3,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 2.6,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 7,
+          amountToSwapOfTokenA: 0.3,
+          amountToSwapOfTokenB: 1,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 0.5,
+    });
+
+    swapTest({
+      title: 'only one of both intervals is being executed, rate per unit is 1:2 and there is no need to provide tokens externally',
+      context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          lastSwapPerformedAt: moment().unix(),
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 2,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          lastSwapPerformedAt: moment().unix() - SWAP_INTERVAL_2,
+          nextSwapToPerform: 15,
+          amountToSwapOfTokenA: 0.5,
+          amountToSwapOfTokenB: 1,
+        },
+      ],
+      initialContractTokenABalance: 100,
+      initialContractTokenBBalance: 100,
+      ratePerUnitBToA: 0.5,
     });
   });
 
@@ -1430,12 +1798,6 @@ describe('DCAPairSwapHandler', () => {
         ],
         ratePerUnitBToA: 1,
       });
-      // await setNextSwapInfo({
-      //   nextSwapToPerform: 2,
-      //   amountToSwapOfTokenA: 2,
-      //   amountToSwapOfTokenB: 1,
-      //   ratePerUnitBToA: 1,
-      // });
       ({
         amountToBeProvidedBySwapper,
         amountToRewardSwapperWith,
@@ -1675,6 +2037,7 @@ describe('DCAPairSwapHandler', () => {
 
   function swapTest({
     title,
+    context,
     nextSwapContext,
     blockTimestamp,
     initialContractTokenABalance,
@@ -1683,6 +2046,7 @@ describe('DCAPairSwapHandler', () => {
     threshold,
   }: {
     title: string;
+    context?: () => Promise<void>;
     nextSwapContext: NextSwapInformationContext[];
     blockTimestamp?: number;
     initialContractTokenABalance: BigNumber | number | string;
@@ -1706,6 +2070,9 @@ describe('DCAPairSwapHandler', () => {
 
     when(title, () => {
       given(async () => {
+        if (context) {
+          await context();
+        }
         initialContractTokenABalance = toBN(initialContractTokenABalance, tokenA);
         initialContractTokenBBalance = toBN(initialContractTokenBBalance, tokenB);
         totalAmountToSwapOfTokenA = toBN(
