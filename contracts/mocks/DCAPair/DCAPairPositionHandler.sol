@@ -15,8 +15,8 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairParameters
   }
 
   // PositionHandler
-  function calculateSwapped(uint256 _dcaId) external view returns (uint256 _swapped) {
-    _swapped = _calculateSwapped(_dcaId);
+  function internalPosition(uint256 _dcaId) external view returns (DCA memory _dca) {
+    _dca = _userPositions[_dcaId];
   }
 
   function modifyPosition(

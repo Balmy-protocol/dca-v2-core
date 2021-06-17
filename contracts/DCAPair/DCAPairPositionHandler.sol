@@ -16,8 +16,30 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA')
   {}
 
-  function userPosition(uint256 _dcaId) public view override returns (DCA memory _dca) {
-    _dca = _userPositions[_dcaId];
+  function userPosition(uint256 _dcaId)
+    public
+    view
+    override
+    returns (
+      IERC20Detailed _from,
+      IERC20Detailed _to,
+      uint32 _swapInterval,
+      uint32 _swapsExecuted,
+      uint256 _swapped,
+      uint32 _swapsLeft,
+      uint256 _remaining,
+      uint192 _rate
+    )
+  {
+    DCA memory position = _userPositions[_dcaId];
+    _from = position.fromTokenA ? tokenA : tokenB;
+    _to = position.fromTokenA ? tokenB : tokenA;
+    _swapInterval = position.swapInterval;
+    _swapsExecuted = position.lastWithdrawSwap > 0 ? performedSwaps[_swapInterval] - position.lastWithdrawSwap : 0;
+    _swapped = _calculateSwapped(_dcaId);
+    _swapsLeft = position.lastSwap > performedSwaps[_swapInterval] ? position.lastSwap - performedSwaps[_swapInterval] : 0;
+    _remaining = _calculateUnswapped(_dcaId);
+    _rate = position.rate;
   }
 
   function deposit(

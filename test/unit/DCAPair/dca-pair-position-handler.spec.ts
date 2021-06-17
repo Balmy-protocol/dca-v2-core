@@ -173,8 +173,10 @@ describe('DCAPositionHandler', () => {
         await expectPositionToBe(dcaId, {
           from: tokenA,
           rate: POSITION_RATE_5,
-          lastWithdrawSwap: PERFORMED_SWAPS_10,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+          swapsExecuted: 0,
+          swapsLeft: POSITION_SWAPS_TO_PERFORM_10,
+          swapped: 0,
+          remaining: POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10,
         });
       });
 
@@ -243,8 +245,10 @@ describe('DCAPositionHandler', () => {
         await expectPositionToBe(dcaId, {
           from: tokenA,
           rate: POSITION_RATE_5,
-          lastWithdrawSwap: PERFORMED_SWAPS_10,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+          swapsExecuted: 0,
+          swapsLeft: POSITION_SWAPS_TO_PERFORM_10,
+          swapped: 0,
+          remaining: POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10,
         });
       });
 
@@ -276,8 +280,10 @@ describe('DCAPositionHandler', () => {
         await expectPositionToBe(dcaId, {
           from: tokenA,
           rate: POSITION_RATE_5,
-          lastWithdrawSwap: PERFORMED_SWAPS_10 + 1,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+          swapsExecuted: 0,
+          swapsLeft: POSITION_SWAPS_TO_PERFORM_10 - 1,
+          swapped: 0,
+          remaining: POSITION_RATE_5 * (POSITION_SWAPS_TO_PERFORM_10 - 1),
         });
       });
 
@@ -285,11 +291,6 @@ describe('DCAPositionHandler', () => {
         const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
         const swappedWithFeeApplied = await withFeeApplied(swapped);
         await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, dcaId, tokenB.address, swappedWithFeeApplied);
-      });
-
-      then('calculateSwapped returns 0', async () => {
-        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
-        expect(swapped).to.equal(0);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -343,14 +344,18 @@ describe('DCAPositionHandler', () => {
         await expectPositionToBe(dcaId1, {
           from: tokenA,
           rate: POSITION_RATE_5,
-          lastWithdrawSwap: PERFORMED_SWAPS_10,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+          swapsExecuted: 0,
+          swapsLeft: POSITION_SWAPS_TO_PERFORM_10,
+          swapped: 0,
+          remaining: POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10,
         });
         await expectPositionToBe(dcaId2, {
           from: tokenB,
           rate: POSITION_RATE_5,
-          lastWithdrawSwap: PERFORMED_SWAPS_10,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+          swapsExecuted: 0,
+          swapsLeft: POSITION_SWAPS_TO_PERFORM_10,
+          swapped: 0,
+          remaining: POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10,
         });
       });
 
@@ -420,22 +425,19 @@ describe('DCAPositionHandler', () => {
         await expectPositionToBe(dcaId1, {
           from: tokenA,
           rate: POSITION_RATE_5,
-          lastWithdrawSwap: PERFORMED_SWAPS_10 + 1,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+          swapsExecuted: 0,
+          swapsLeft: POSITION_SWAPS_TO_PERFORM_10 - 1,
+          swapped: 0,
+          remaining: POSITION_RATE_5 * (POSITION_SWAPS_TO_PERFORM_10 - 1),
         });
         await expectPositionToBe(dcaId2, {
           from: tokenB,
           rate: POSITION_RATE_3,
-          lastWithdrawSwap: PERFORMED_SWAPS_10 + 1,
-          lastSwap: PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10,
+          swapsExecuted: 0,
+          swapsLeft: POSITION_SWAPS_TO_PERFORM_10 - 1,
+          swapped: 0,
+          remaining: POSITION_RATE_3 * (POSITION_SWAPS_TO_PERFORM_10 - 1),
         });
-      });
-
-      then('calculateSwapped returns 0', async () => {
-        const swapped1 = await DCAPositionHandler.calculateSwapped(dcaId1);
-        const swapped2 = await DCAPositionHandler.calculateSwapped(dcaId2);
-        expect(swapped1).to.equal(0);
-        expect(swapped2).to.equal(0);
       });
 
       then('event is emitted', async () => {
@@ -507,8 +509,11 @@ describe('DCAPositionHandler', () => {
         await expectPositionToBe(dcaId, {
           from: constants.ZERO_ADDRESS,
           rate: 0,
-          lastWithdrawSwap: 0,
-          lastSwap: 0,
+          swapsExecuted: 0,
+          swapsLeft: 0,
+          swapped: 0,
+          remaining: 0,
+          swapInterval: 0,
         });
       });
 
@@ -593,7 +598,7 @@ describe('DCAPositionHandler', () => {
           amount: POSITION_RATE_7,
         });
 
-        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
+        const swapped = await calculateSwapped(dcaId);
         const amountSwapped = RATE_PER_UNIT_5 * (POSITION_RATE_5 + POSITION_RATE_6 + POSITION_RATE_7);
         const expected = await withFeeApplied(tokenB.asUnits(amountSwapped));
         expect(swapped).to.equal(expected);
@@ -836,7 +841,7 @@ describe('DCAPositionHandler', () => {
       });
 
       then('position is modified correctly', async () => {
-        const { swappedBeforeModified } = await DCAPositionHandler.userPosition(dcaId);
+        const { swappedBeforeModified } = await DCAPositionHandler.internalPosition(dcaId);
         expect(swappedBeforeModified).to.equal(MAX);
       });
     });
@@ -865,7 +870,7 @@ describe('DCAPositionHandler', () => {
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 3);
 
         // It shouldn't revert, since the position ended before the overflow
-        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
+        const swapped = await calculateSwapped(dcaId);
         expect(swapped).to.equal(tokenB.asUnits(1000000));
       });
     });
@@ -876,7 +881,6 @@ describe('DCAPositionHandler', () => {
           await expectCalculationToFailWithOverflow({
             accumRate: constants.MAX_UINT_256,
             positionRate: 2,
-            fee: 0,
           });
         });
       });
@@ -940,23 +944,17 @@ describe('DCAPositionHandler', () => {
         onSwap: PERFORMED_SWAPS_10 + 1,
       });
 
-      return DCAPositionHandler.calculateSwapped(dcaId);
+      return calculateSwapped(dcaId);
     }
 
-    function expectCalculationToFailWithOverflow({
-      accumRate,
-      positionRate,
-      fee,
-    }: {
-      accumRate: number | BigNumber;
-      positionRate: number;
-      fee?: number | BigNumber;
-    }) {
-      const tx = calculateSwappedWith({
+    async function expectCalculationToFailWithOverflow({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate: number }) {
+      const { dcaId } = await deposit(tokenA, positionRate ?? 1, 1);
+      await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
+      await setRatePerUnit({
         accumRate,
-        positionRate,
-        fee,
+        onSwap: PERFORMED_SWAPS_10 + 1,
       });
+      const tx = DCAPositionHandler.userPosition(dcaId);
 
       return behaviours.checkTxRevertedWithMessage({
         tx,
@@ -1086,15 +1084,11 @@ describe('DCAPositionHandler', () => {
         await expectPositionToBe(dcaId, {
           from: tokenA,
           rate: newRate!,
-          lastWithdrawSwap: PERFORMED_SWAPS_10 + 1,
-          lastSwap: PERFORMED_SWAPS_10 + newSwaps! + 1,
+          swapsExecuted: 0,
+          swapsLeft: newSwaps!,
+          swapped: initialRate * RATE_PER_UNIT_5,
+          remaining: newRate! * newSwaps!,
         });
-      });
-
-      then(`swapped amount isn't modified`, async () => {
-        const swapped = await DCAPositionHandler.calculateSwapped(dcaId);
-        const expected = await withFeeApplied(tokenB.asUnits(initialRate * RATE_PER_UNIT_5)); // Only one swap was executed
-        expect(swapped).to.equal(expected);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1152,6 +1146,11 @@ describe('DCAPositionHandler', () => {
     return DCAPositionHandler.terminate(dcaId);
   }
 
+  async function calculateSwapped(dcaId: BigNumber): Promise<BigNumber> {
+    const { _swapped } = await DCAPositionHandler.userPosition(dcaId);
+    return _swapped;
+  }
+
   async function deposit(token: TokenContract, rate: number, swaps: number) {
     const response: TransactionResponse = await DCAPositionHandler.deposit(token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
     const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
@@ -1182,26 +1181,52 @@ describe('DCAPositionHandler', () => {
     {
       from,
       rate,
-      lastSwap,
-      lastWithdrawSwap,
+      swapped,
+      swapsLeft,
+      remaining,
+      swapsExecuted,
+      swapInterval,
     }: {
       from: Contract | string;
       rate: number;
-      lastSwap: number;
-      lastWithdrawSwap: number;
+      swapsLeft: number;
+      swapped: number;
+      swapsExecuted: number;
+      remaining: number;
+      swapInterval?: number;
     }
   ) {
     const {
-      fromTokenA,
-      rate: positionRate,
-      lastWithdrawSwap: positionLastWithdrawSwap,
-      lastSwap: positionLastSwap,
+      _from,
+      _to,
+      _swapInterval,
+      _swapsExecuted,
+      _swapped,
+      _swapsLeft,
+      _remaining,
+      _rate,
+    }: {
+      _from: string;
+      _to: string;
+      _swapInterval: number;
+      _swapsExecuted: number;
+      _swapped: BigNumber;
+      _swapsLeft: number;
+      _remaining: number;
+      _rate: BigNumber;
     } = await DCAPositionHandler.userPosition(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;
-    expect(fromTokenA, 'Wrong from address in position').to.equal(tokenA.address === fromAddress);
-    expect(positionRate, 'Wrong rate').to.equal(fromTokenA ? tokenA.asUnits(rate) : tokenB.asUnits(rate));
-    expect(positionLastWithdrawSwap, 'Wrong last withdraw swap').to.equal(lastWithdrawSwap);
-    expect(positionLastSwap, 'Wrong last swap').to.equal(lastSwap);
+    const fromToken = fromAddress === tokenA.address ? tokenA : tokenB;
+    const toToken = fromAddress === tokenA.address ? tokenB : tokenA;
+
+    expect(_from, 'Wrong from address in position').to.equal(fromToken.address);
+    expect(_to, 'Wrong to address in position').to.equal(toToken.address);
+    expect(_swapInterval, 'Wrong swap interval in position').to.equal(swapInterval ?? SWAP_INTERVAL);
+    expect(_swapsExecuted, 'Wrong swaps executed in position').to.equal(swapsExecuted);
+    expect(_swapped, 'Wrong swapped amount in position').to.equal(await withFeeApplied(toToken.asUnits(swapped)));
+    expect(_swapsLeft, 'Wrong swaps left in position').to.equal(swapsLeft);
+    expect(_remaining, 'Wrong remaining amount in position').to.equal(fromToken.asUnits(remaining));
+    expect(_rate, 'Wrong rate in position').to.equal(fromAddress === tokenA.address ? tokenA.asUnits(rate) : tokenB.asUnits(rate));
   }
 
   async function getFeeFrom(value: BigNumberish): Promise<BigNumber> {

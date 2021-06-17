@@ -46,7 +46,19 @@ interface IDCAPairPositionHandler {
   event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
   event Modified(address indexed _user, uint256 _dcaId, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
 
-  function userPosition(uint256) external view returns (DCA memory);
+  function userPosition(uint256)
+    external
+    view
+    returns (
+      IERC20Detailed _from,
+      IERC20Detailed _to,
+      uint32 _swapInterval,
+      uint32 _swapsExecuted, // Since deposit or last withdraw
+      uint256 _swapped, // Since deposit or last withdraw
+      uint32 _swapsLeft,
+      uint256 _remaining,
+      uint192 _rate
+    );
 
   function deposit(
     address _tokenAddress,

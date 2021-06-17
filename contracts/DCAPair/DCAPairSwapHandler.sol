@@ -11,8 +11,6 @@ import './DCAPairParameters.sol';
 abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCAPairSwapHandler {
   using SafeERC20 for IERC20Detailed;
 
-  uint32 internal constant _MINIMUM_SWAP_INTERVAL = 1 minutes;
-
   mapping(uint32 => mapping(address => uint256)) public override swapAmountAccumulator; // swap interval => from token => swap amount accum
 
   mapping(uint32 => uint32) public override lastSwapPerformed;
