@@ -76,8 +76,11 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _nextSwapInformation.ratePerUnitBToA = oracle.current(address(tokenB), _magnitudeB, address(tokenA));
     _nextSwapInformation.ratePerUnitAToB = (_magnitudeB * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
 
-    uint256 _amountOfTokenAIfTokenBSwapped =
-      _convertTo(_magnitudeB, _nextSwapInformation.amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
+    uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(
+      _magnitudeB,
+      _nextSwapInformation.amountToSwapTokenB,
+      _nextSwapInformation.ratePerUnitBToA
+    );
 
     if (_amountOfTokenAIfTokenBSwapped < _nextSwapInformation.amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
@@ -93,8 +96,11 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenA;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenB;
       _nextSwapInformation.amountToBeProvidedBySwapper = _amountOfTokenAIfTokenBSwapped - _nextSwapInformation.amountToSwapTokenA;
-      uint256 _amountToBeProvidedConvertedToB =
-        _convertTo(_magnitudeA, _nextSwapInformation.amountToBeProvidedBySwapper, _nextSwapInformation.ratePerUnitAToB);
+      uint256 _amountToBeProvidedConvertedToB = _convertTo(
+        _magnitudeA,
+        _nextSwapInformation.amountToBeProvidedBySwapper,
+        _nextSwapInformation.ratePerUnitAToB
+      );
       _nextSwapInformation.amountToRewardSwapperWith =
         _amountToBeProvidedConvertedToB +
         _getFeeFromAmount(_swapFee, _amountToBeProvidedConvertedToB);
