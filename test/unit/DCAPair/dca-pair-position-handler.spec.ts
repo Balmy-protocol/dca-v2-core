@@ -95,7 +95,7 @@ describe('DCAPositionHandler', () => {
           address: constants.NOT_ZERO_ADDRESS,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'DCAPair: invalid deposit address',
+          error: 'InvalidToken',
         });
       });
     });
@@ -109,7 +109,7 @@ describe('DCAPositionHandler', () => {
           address: tokenA.address,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'DCAPair: interval not allowed',
+          error: 'InvalidInterval',
         });
       });
     });
@@ -120,7 +120,7 @@ describe('DCAPositionHandler', () => {
           address: tokenA.address,
           rate: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'DCAPair: non-positive rate',
+          error: 'ZeroRate',
         });
       });
     });
@@ -131,7 +131,7 @@ describe('DCAPositionHandler', () => {
           address: tokenA.address,
           rate: POSITION_RATE_5,
           swaps: 0,
-          error: 'DCAPair: non-positive amount',
+          error: 'ZeroSwaps',
         });
       });
     });
@@ -212,7 +212,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'withdrawSwapped',
           args: [100],
-          message: 'DCAPair: invalid position id',
+          message: 'InvalidPosition',
         });
       });
     });
@@ -304,7 +304,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'withdrawSwappedMany',
           args: [[100]],
-          message: 'DCAPair: invalid position id',
+          message: 'InvalidPosition',
         });
       });
     });
@@ -459,7 +459,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'terminate',
           args: [100],
-          message: 'DCAPair: invalid position id',
+          message: 'InvalidPosition',
         });
       });
     });
@@ -533,7 +533,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [100, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: invalid position id',
+          message: 'InvalidPosition',
         });
       });
     });
@@ -546,7 +546,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: non-positive rate',
+          message: 'ZeroRate',
         });
       });
     });
@@ -559,7 +559,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRateAndSwaps',
           args: [dcaId, POSITION_RATE_5, 0],
-          message: 'DCAPair: non-positive amount',
+          message: 'ZeroSwaps',
         });
       });
     });
@@ -642,7 +642,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifySwaps',
           args: [100, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: invalid position id',
+          message: 'InvalidPosition',
         });
       });
     });
@@ -655,7 +655,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifySwaps',
           args: [dcaId, 0],
-          message: 'DCAPair: non-positive amount',
+          message: 'ZeroSwaps',
         });
       });
     });
@@ -697,7 +697,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'addFundsToPosition',
           args: [100, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: invalid position id',
+          message: 'InvalidPosition',
         });
       });
     });
@@ -710,7 +710,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'addFundsToPosition',
           args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'DCAPair: non-positive amount',
+          message: 'ZeroAmount',
         });
       });
     });
@@ -734,7 +734,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [100, POSITION_RATE_5],
-          message: 'DCAPair: invalid position id',
+          message: 'InvalidPosition',
         });
       });
     });
@@ -747,7 +747,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [dcaId, 0],
-          message: 'DCAPair: non-positive rate',
+          message: 'ZeroRate',
         });
       });
     });
@@ -795,7 +795,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'modifyRate',
           args: [dcaId, POSITION_RATE_5 + 1],
-          message: 'DCAPair: position completed',
+          message: 'PositionCompleted',
         });
       });
     });
@@ -821,7 +821,7 @@ describe('DCAPositionHandler', () => {
       then('tx is reverted', async () => {
         await behaviours.checkTxRevertedWithMessage({
           tx,
-          message: 'DCAPair: must withdraw before',
+          message: 'MandatoryWithdraw',
         });
       });
     });
@@ -1015,7 +1015,7 @@ describe('DCAPositionHandler', () => {
 
       then('operation is reverted', async () => {
         const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(stranger), dcaId });
-        await expect(result).to.be.revertedWith('DCAPair: caller not allowed');
+        await expect(result).to.be.revertedWith('UnauthorizedCaller');
       });
     });
   }

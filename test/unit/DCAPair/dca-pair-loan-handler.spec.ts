@@ -61,7 +61,7 @@ describe('DCAPairLoanHandler', () => {
       title: 'no amount is borrowed',
       amountToBorrowTokenA: () => constants.ZERO,
       amountToBorrowTokenB: () => constants.ZERO,
-      errorMessage: 'DCAPair: need to borrow smth',
+      errorMessage: 'ZeroLoan',
     });
 
     flashLoanFailedTest({
@@ -69,21 +69,21 @@ describe('DCAPairLoanHandler', () => {
       context: () => DCAGlobalParameters.pause(),
       amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
       amountToBorrowTokenB: () => constants.ZERO,
-      errorMessage: 'DCAPair: flash loans are paused',
+      errorMessage: 'Paused',
     });
 
     flashLoanFailedTest({
       title: 'caller intends to borrow more than available in a',
       amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE.add(1),
       amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE,
-      errorMessage: 'DCAPair: insufficient liquidity',
+      errorMessage: 'InsufficientLiquidity',
     });
 
     flashLoanFailedTest({
       title: 'caller intends to borrow more than available in b',
       amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
       amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE.add(1),
-      errorMessage: 'DCAPair: insufficient liquidity',
+      errorMessage: 'InsufficientLiquidity',
     });
 
     flashLoanNotReturnedTest({
@@ -276,7 +276,7 @@ describe('DCAPairLoanHandler', () => {
     }) {
       flashLoanFailedTest({
         ...params,
-        errorMessage: 'DCAPair: liquidity not returned',
+        errorMessage: 'LiquidityNotReturned',
       });
     }
   });

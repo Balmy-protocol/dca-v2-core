@@ -4,10 +4,13 @@ pragma solidity 0.8.4;
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/IDCAPairLoanCallee.sol';
+import './utils/CommonErrors.sol';
 import './DCAPairParameters.sol';
 
 abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCAPairLoanHandler {
   using SafeERC20 for IERC20Detailed;
+
+  error ZeroLoan();
 
   function loan(
     uint256 _amountToBorrowTokenA,
@@ -15,17 +18,17 @@ abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCA
     address _to,
     bytes memory _data
   ) public override nonReentrant {
-    require(_amountToBorrowTokenA > 0 || _amountToBorrowTokenB > 0, 'DCAPair: need to borrow smth');
-    require(!globalParameters.paused(), 'DCAPair: flash loans are paused');
+    if (_amountToBorrowTokenA == 0 && _amountToBorrowTokenB == 0) revert ZeroLoan();
 
     IDCAGlobalParameters.LoanParameters memory _loanParameters = globalParameters.loanParameters();
 
-    require(!_loanParameters.isPaused, 'DCAPair: flash loans are paused');
+    if (_loanParameters.isPaused) revert CommonErrors.Paused();
 
     uint256 _beforeBalanceTokenA = _balances[address(tokenA)];
     uint256 _beforeBalanceTokenB = _balances[address(tokenB)];
 
-    require(_amountToBorrowTokenA <= _beforeBalanceTokenA && _amountToBorrowTokenB <= _beforeBalanceTokenB, 'DCAPair: insufficient liquidity');
+    if (_amountToBorrowTokenA > _beforeBalanceTokenA || _amountToBorrowTokenB > _beforeBalanceTokenB)
+      revert CommonErrors.InsufficientLiquidity();
 
     // Calculate fees
     uint256 _feeTokenA = _amountToBorrowTokenA > 0 ? _getFeeFromAmount(_loanParameters.loanFee, _amountToBorrowTokenA) : 0;
@@ -50,10 +53,8 @@ abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCA
     uint256 _afterBalanceTokenB = tokenB.balanceOf(address(this));
 
     // Make sure that they sent the tokens back
-    require(
-      _afterBalanceTokenA >= _beforeBalanceTokenA + _feeTokenA && _afterBalanceTokenB >= _beforeBalanceTokenB + _feeTokenB,
-      'DCAPair: liquidity not returned'
-    );
+    if (_afterBalanceTokenA < (_beforeBalanceTokenA + _feeTokenA) || _afterBalanceTokenB < (_beforeBalanceTokenB + _feeTokenB))
+      revert CommonErrors.LiquidityNotReturned();
 
     // Update balances
     _balances[address(tokenA)] = _afterBalanceTokenA - _feeTokenA;
