@@ -958,9 +958,8 @@ describe('DCAPositionHandler', () => {
 
       return behaviours.checkTxRevertedWithMessage({
         tx,
-        message: new RegExp("\\b(overflow|Transaction reverted and Hardhat couldn't infer the reason)\\b"),
+        message: 'reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)',
       });
-      // TODO: Remove hack above when Hardhat detects native overflows correctly
     }
   });
 
