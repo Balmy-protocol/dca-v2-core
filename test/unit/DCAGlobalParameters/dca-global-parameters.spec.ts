@@ -25,17 +25,19 @@ describe('DCAGlobalParameters', () => {
   describe('constructor', () => {
     when('feeRecipient is zero address', () => {
       then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
+        await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
           args: [owner.address, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
+          message: 'ZeroAddress',
         });
       });
     });
     when('feeRecipient is zero address', () => {
       then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
+        await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
           args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
         });
       });
     });
@@ -67,10 +69,11 @@ describe('DCAGlobalParameters', () => {
   describe('setFeeRecipient', () => {
     when('address is zero', () => {
       then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
           func: 'setFeeRecipient',
           args: [constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
         });
       });
     });
@@ -97,10 +100,11 @@ describe('DCAGlobalParameters', () => {
   describe('setNFTDescriptor', () => {
     when('address is zero', () => {
       then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
           func: 'setNFTDescriptor',
           args: [constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
         });
       });
     });
@@ -131,7 +135,7 @@ describe('DCAGlobalParameters', () => {
           contract: DCAGlobalParameters,
           func: 'setSwapFee',
           args: [(await DCAGlobalParameters.MAX_FEE()) + 1],
-          message: 'DCAGParameters: fee too high',
+          message: 'HighFee',
         });
       });
     });
@@ -172,7 +176,7 @@ describe('DCAGlobalParameters', () => {
           contract: DCAGlobalParameters,
           func: 'setLoanFee',
           args: [(await DCAGlobalParameters.MAX_FEE()) + 1],
-          message: 'DCAGParameters: fee too high',
+          message: 'HighFee',
         });
       });
     });
@@ -216,7 +220,7 @@ describe('DCAGlobalParameters', () => {
             [0, 1],
             ['d1', 'd2'],
           ],
-          message: 'DCAGParameters: zero interval',
+          message: 'ZeroInterval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
@@ -225,7 +229,7 @@ describe('DCAGlobalParameters', () => {
             [1, 0],
             ['d1', 'd2'],
           ],
-          message: 'DCAGParameters: zero interval',
+          message: 'ZeroInterval',
         });
       });
     });
@@ -238,7 +242,7 @@ describe('DCAGlobalParameters', () => {
             [1, 10],
             ['', 'd2'],
           ],
-          message: 'DCAGParameters: empty text',
+          message: 'EmptyDescription',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
@@ -247,7 +251,7 @@ describe('DCAGlobalParameters', () => {
             [1, 10],
             ['d1', ''],
           ],
-          message: 'DCAGParameters: empty text',
+          message: 'EmptyDescription',
         });
       });
     });
@@ -257,13 +261,13 @@ describe('DCAGlobalParameters', () => {
           contract: DCAGlobalParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[1], ['d1', 'd2']],
-          message: 'DCAGParameters: invalid params',
+          message: 'InvalidParams',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
           func: 'addSwapIntervalsToAllowedList',
           args: [[1, 10], ['d1']],
-          message: 'DCAGParameters: invalid params',
+          message: 'InvalidParams',
         });
       });
     });
@@ -279,7 +283,7 @@ describe('DCAGlobalParameters', () => {
             [1, 10],
             ['d1', 'd2'],
           ],
-          message: 'DCAGParameters: already allowed',
+          message: 'AllowedInterval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
@@ -288,7 +292,7 @@ describe('DCAGlobalParameters', () => {
             [1, 11],
             ['d1', 'd2'],
           ],
-          message: 'DCAGParameters: already allowed',
+          message: 'AllowedInterval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
@@ -297,7 +301,7 @@ describe('DCAGlobalParameters', () => {
             [10, 1],
             ['d1', 'd2'],
           ],
-          message: 'DCAGParameters: already allowed',
+          message: 'AllowedInterval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
@@ -306,7 +310,7 @@ describe('DCAGlobalParameters', () => {
             [11, 1],
             ['d1', 'd2'],
           ],
-          message: 'DCAGParameters: already allowed',
+          message: 'AllowedInterval',
         });
       });
     });
@@ -342,13 +346,13 @@ describe('DCAGlobalParameters', () => {
           contract: DCAGlobalParameters,
           func: 'removeSwapIntervalsFromAllowedList',
           args: [[1, 2]],
-          message: 'DCAGParameters: invalid interval',
+          message: 'InvalidInterval',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAGlobalParameters,
           func: 'removeSwapIntervalsFromAllowedList',
           args: [[2, 3]],
-          message: 'DCAGParameters: invalid interval',
+          message: 'InvalidInterval',
         });
       });
     });

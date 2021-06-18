@@ -18,6 +18,14 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   mapping(uint32 => string) public override intervalDescription;
   EnumerableSet.UintSet internal _allowedSwapIntervals;
 
+  error ZeroAddress();
+  error HighFee();
+  error InvalidParams();
+  error ZeroInterval();
+  error EmptyDescription();
+  error AllowedInterval();
+  error InvalidInterval();
+
   constructor(
     address _governor,
     address _feeRecipient,
@@ -28,35 +36,35 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   }
 
   function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
-    require(_feeRecipient != address(0), 'DCAGParameters: zero address');
+    if (_feeRecipient == address(0)) revert ZeroAddress();
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
   }
 
   function setNFTDescriptor(IDCATokenDescriptor _descriptor) public override onlyGovernor {
-    require(address(_descriptor) != address(0), 'DCAGParameters: zero address');
+    if (address(_descriptor) == address(0)) revert ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);
   }
 
   function setSwapFee(uint32 _swapFee) public override onlyGovernor {
-    require(_swapFee <= MAX_FEE, 'DCAGParameters: fee too high');
+    if (_swapFee > MAX_FEE) revert HighFee();
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
   }
 
   function setLoanFee(uint32 _loanFee) public override onlyGovernor {
-    require(_loanFee <= MAX_FEE, 'DCAGParameters: fee too high');
+    if (_loanFee > MAX_FEE) revert HighFee();
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
   }
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) public override onlyGovernor {
-    require(_swapIntervals.length == _descriptions.length, 'DCAGParameters: invalid params');
+    if (_swapIntervals.length != _descriptions.length) revert InvalidParams();
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
-      require(_swapIntervals[i] > 0, 'DCAGParameters: zero interval');
-      require(bytes(_descriptions[i]).length > 0, 'DCAGParameters: empty text');
-      require(!isSwapIntervalAllowed(_swapIntervals[i]), 'DCAGParameters: already allowed');
+      if (_swapIntervals[i] == 0) revert ZeroInterval();
+      if (bytes(_descriptions[i]).length == 0) revert EmptyDescription();
+      if (isSwapIntervalAllowed(_swapIntervals[i])) revert AllowedInterval();
       _allowedSwapIntervals.add(_swapIntervals[i]);
       intervalDescription[_swapIntervals[i]] = _descriptions[i];
     }
@@ -65,7 +73,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     for (uint256 i = 0; i < _swapIntervals.length; i++) {
-      require(isSwapIntervalAllowed(_swapIntervals[i]), 'DCAGParameters: invalid interval');
+      if (!isSwapIntervalAllowed(_swapIntervals[i])) revert InvalidInterval();
       _allowedSwapIntervals.remove(_swapIntervals[i]);
       delete intervalDescription[_swapIntervals[i]];
     }
