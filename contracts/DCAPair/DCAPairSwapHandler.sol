@@ -75,15 +75,21 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
   }
 
-  function _getNextSwapsToPerform() internal view returns (Swap[] memory _swapsToPerform) {
+  function _getNextSwapsToPerform() internal view returns (SwapInformation[] memory _swapsToPerform) {
     // TODO: Make choice of what swap intervals to execute in a clever way
     uint32[] memory _allowedSwapIntervals = globalParameters.allowedSwapIntervals();
-    _swapsToPerform = new Swap[](_allowedSwapIntervals.length);
+    _swapsToPerform = new SwapInformation[](_allowedSwapIntervals.length);
     uint16 _swapsToPerformIndex = 0;
     for (uint16 i; i < _allowedSwapIntervals.length; i++) {
       uint32 _swapInterval = _allowedSwapIntervals[i];
       if (lastSwapPerformed[_swapInterval] / _swapInterval < _getTimestamp() / _swapInterval) {
-        _swapsToPerform[_swapsToPerformIndex] = Swap({interval: _swapInterval, swapToPerform: performedSwaps[_swapInterval] + 1});
+        uint32 _swapToPerform = performedSwaps[_swapInterval] + 1;
+        _swapsToPerform[_swapsToPerformIndex] = SwapInformation({
+          interval: _swapInterval,
+          swapToPerform: _swapToPerform,
+          amountToSwapTokenA: _getAmountToSwap(_swapInterval, address(tokenA), _swapToPerform),
+          amountToSwapTokenB: _getAmountToSwap(_swapInterval, address(tokenB), _swapToPerform)
+        });
         _swapsToPerformIndex++;
       }
     }
@@ -96,20 +102,12 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
 
   function _getNextSwapInfo(uint32 _swapFee) internal view returns (NextSwapInformation memory _nextSwapInformation) {
     {
-      Swap[] memory _swapsToPerform = _getNextSwapsToPerform();
+      SwapInformation[] memory _swapsToPerform = _getNextSwapsToPerform();
       for (uint16 i; i < _swapsToPerform.length; i++) {
         // TODO: If zero amount ?
         if (_swapsToPerform[i].interval != 0) {
-          _nextSwapInformation.amountToSwapTokenA += _getAmountToSwap(
-            _swapsToPerform[i].interval,
-            address(tokenA),
-            _swapsToPerform[i].swapToPerform
-          );
-          _nextSwapInformation.amountToSwapTokenB += _getAmountToSwap(
-            _swapsToPerform[i].interval,
-            address(tokenB),
-            _swapsToPerform[i].swapToPerform
-          );
+          _nextSwapInformation.amountToSwapTokenA += _swapsToPerform[i].amountToSwapTokenA;
+          _nextSwapInformation.amountToSwapTokenB += _swapsToPerform[i].amountToSwapTokenB;
         }
       }
       _nextSwapInformation.swapsToPerform = _swapsToPerform;
@@ -177,14 +175,14 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
         _registerSwap(
           _swapInterval,
           address(tokenA),
-          _nextSwapInformation.amountToSwapTokenA,
+          _nextSwapInformation.swapsToPerform[i].amountToSwapTokenA,
           _nextSwapInformation.ratePerUnitAToB,
           _swapToPerform
         );
         _registerSwap(
           _swapInterval,
           address(tokenB),
-          _nextSwapInformation.amountToSwapTokenB,
+          _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB,
           _nextSwapInformation.ratePerUnitBToA,
           _swapToPerform
         );

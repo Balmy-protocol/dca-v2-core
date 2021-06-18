@@ -79,12 +79,14 @@ interface IDCAPairPositionHandler {
 }
 
 interface IDCAPairSwapHandler {
-  struct Swap {
+  struct SwapInformation {
     uint32 interval;
     uint32 swapToPerform;
+    uint256 amountToSwapTokenA;
+    uint256 amountToSwapTokenB;
   }
   struct NextSwapInformation {
-    Swap[] swapsToPerform;
+    SwapInformation[] swapsToPerform;
     uint256 amountToSwapTokenA;
     uint256 amountToSwapTokenB;
     uint256 availableToBorrowTokenA;
