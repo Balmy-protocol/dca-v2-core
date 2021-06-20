@@ -11,10 +11,6 @@ abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
   address[] public override allPairs;
   IDCAGlobalParameters public override globalParameters;
 
-  error ZeroAddress();
-  error IdenticalTokens();
-  error PairAlreadyExists();
-
   constructor(IDCAGlobalParameters _globalParameters) {
     if (address(_globalParameters) == address(0)) revert ZeroAddress();
     globalParameters = _globalParameters;

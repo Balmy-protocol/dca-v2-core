@@ -18,14 +18,6 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   mapping(uint32 => string) public override intervalDescription;
   EnumerableSet.UintSet internal _allowedSwapIntervals;
 
-  error ZeroAddress();
-  error HighFee();
-  error InvalidParams();
-  error ZeroInterval();
-  error EmptyDescription();
-  error AllowedInterval();
-  error InvalidInterval();
-
   constructor(
     address _governor,
     address _feeRecipient,
