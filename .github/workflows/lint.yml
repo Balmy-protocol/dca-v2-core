@@ -30,10 +30,10 @@ jobs:
           node-version: "12.x"
 
       - name: Install dependencies
-        run: npm install
+        run: yarn --frozen-lockfile
 
       - name: Run linter
-        run: npm run lint:check
+        run: yarn lint:check
 
   commits:
     runs-on: ubuntu-latest

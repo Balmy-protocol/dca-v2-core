@@ -678,7 +678,7 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenA: 2,
       amountToSwapOfTokenB: 1,
       ratePerUnitBToA: 1,
-      reason: `Transaction reverted and Hardhat couldn't infer the reason.`, // TODO: change when Hardhat detects underflows correctly
+      reason: `reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)`,
     });
 
     swapTestFailed({
