@@ -10,7 +10,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   using SafeERC20 for IERC20Detailed;
 
   mapping(uint256 => DCA) internal _userPositions;
-  uint256 internal _idCounter = 0;
+  uint256 internal _idCounter;
 
   constructor(IERC20Detailed _tokenA, IERC20Detailed _tokenB)
     ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA')
@@ -82,7 +82,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     nonReentrant
     returns (uint256 _swappedTokenA, uint256 _swappedTokenB)
   {
-    for (uint256 i = 0; i < _dcaIds.length; i++) {
+    for (uint256 i; i < _dcaIds.length; i++) {
       uint256 _dcaId = _dcaIds[i];
       _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
       uint256 _swappedDCA = _calculateSwapped(_dcaId);
