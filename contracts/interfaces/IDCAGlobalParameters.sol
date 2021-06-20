@@ -23,7 +23,6 @@ interface IDCAGlobalParameters {
   event SwapIntervalsAllowed(uint32[] _swapIntervals, string[] _descriptions);
   event SwapIntervalsForbidden(uint32[] _swapIntervals);
 
-  error ZeroAddress();
   error HighFee();
   error InvalidParams();
   error ZeroInterval();

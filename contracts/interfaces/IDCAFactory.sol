@@ -4,8 +4,6 @@ pragma solidity 0.8.4;
 import './IDCAGlobalParameters.sol';
 
 interface IDCAFactoryPairsHandler {
-  error ZeroAddress();
-
   error IdenticalTokens();
 
   error PairAlreadyExists();

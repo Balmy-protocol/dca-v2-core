@@ -3,8 +3,10 @@ pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
+
 import '../utils/Governable.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
+import '../libraries/CommonErrors.sol';
 
 contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   using EnumerableSet for EnumerableSet.UintSet;
@@ -28,13 +30,13 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   }
 
   function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
-    if (_feeRecipient == address(0)) revert ZeroAddress();
+    if (_feeRecipient == address(0)) revert CommonErrors.ZeroAddress();
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
   }
 
   function setNFTDescriptor(IDCATokenDescriptor _descriptor) public override onlyGovernor {
-    if (address(_descriptor) == address(0)) revert ZeroAddress();
+    if (address(_descriptor) == address(0)) revert CommonErrors.ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);
   }
