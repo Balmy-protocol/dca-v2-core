@@ -17,8 +17,6 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   mapping(uint32 => uint32) public override lastSwapPerformed;
   ISlidingOracle public override oracle;
 
-  error WithinInterval();
-
   constructor(ISlidingOracle _oracle) {
     if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
     oracle = _oracle;

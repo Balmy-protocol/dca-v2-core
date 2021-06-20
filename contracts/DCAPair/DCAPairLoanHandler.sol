@@ -10,8 +10,6 @@ import './DCAPairParameters.sol';
 abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCAPairLoanHandler {
   using SafeERC20 for IERC20Detailed;
 
-  error ZeroLoan();
-
   function loan(
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,

@@ -12,16 +12,6 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   mapping(uint256 => DCA) internal _userPositions;
   uint256 internal _idCounter = 0;
 
-  error InvalidToken();
-  error InvalidInterval();
-  error InvalidPosition();
-  error UnauthorizedCaller();
-  error ZeroRate();
-  error ZeroSwaps();
-  error ZeroAmount();
-  error PositionCompleted();
-  error MandatoryWithdraw();
-
   constructor(IERC20Detailed _tokenA, IERC20Detailed _tokenB)
     ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA')
   {}
