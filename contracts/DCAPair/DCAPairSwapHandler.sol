@@ -6,7 +6,8 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/ISlidingOracle.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
-import './utils/CommonErrors.sol';
+import '../libraries/CommonErrors.sol';
+
 import './DCAPairParameters.sol';
 
 abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCAPairSwapHandler {

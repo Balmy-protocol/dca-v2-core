@@ -4,7 +4,8 @@ pragma solidity 0.8.4;
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/IDCAPairLoanCallee.sol';
-import './utils/CommonErrors.sol';
+import '../libraries/CommonErrors.sol';
+
 import './DCAPairParameters.sol';
 
 abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCAPairLoanHandler {

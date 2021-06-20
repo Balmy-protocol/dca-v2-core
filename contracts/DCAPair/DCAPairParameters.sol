@@ -7,7 +7,8 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
 import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAPair.sol';
-import './utils/CommonErrors.sol';
+import '../libraries/CommonErrors.sol';
+
 import './utils/Math.sol';
 
 abstract contract DCAPairParameters is IDCAPairParameters {
