@@ -53,7 +53,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) public override onlyGovernor {
     require(_swapIntervals.length == _descriptions.length, 'DCAGParameters: invalid params');
-    for (uint256 i = 0; i < _swapIntervals.length; i++) {
+    for (uint256 i; i < _swapIntervals.length; i++) {
       require(_swapIntervals[i] > 0, 'DCAGParameters: zero interval');
       require(bytes(_descriptions[i]).length > 0, 'DCAGParameters: empty text');
       require(!isSwapIntervalAllowed(_swapIntervals[i]), 'DCAGParameters: already allowed');
@@ -64,7 +64,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   }
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
-    for (uint256 i = 0; i < _swapIntervals.length; i++) {
+    for (uint256 i; i < _swapIntervals.length; i++) {
       require(isSwapIntervalAllowed(_swapIntervals[i]), 'DCAGParameters: invalid interval');
       _allowedSwapIntervals.remove(_swapIntervals[i]);
       delete intervalDescription[_swapIntervals[i]];
@@ -75,7 +75,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   function allowedSwapIntervals() external view override returns (uint32[] memory __allowedSwapIntervals) {
     uint256 _allowedSwapIntervalsLength = _allowedSwapIntervals.length();
     __allowedSwapIntervals = new uint32[](_allowedSwapIntervalsLength);
-    for (uint256 i = 0; i < _allowedSwapIntervalsLength; i++) {
+    for (uint256 i; i < _allowedSwapIntervalsLength; i++) {
       __allowedSwapIntervals[i] = uint32(_allowedSwapIntervals.at(i));
     }
   }
