@@ -7,6 +7,15 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import './DCAPairParameters.sol';
 
 abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, IDCAPairPositionHandler, ERC721 {
+  struct DCA {
+    uint32 lastWithdrawSwap;
+    uint32 lastSwap;
+    uint32 swapInterval; // TODO: remove 32 bits from somewhere else
+    uint192 rate;
+    bool fromTokenA;
+    uint248 swappedBeforeModified;
+  }
+
   using SafeERC20 for IERC20Detailed;
 
   mapping(uint256 => DCA) internal _userPositions;
@@ -16,30 +25,18 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA')
   {}
 
-  function userPosition(uint256 _dcaId)
-    public
-    view
-    override
-    returns (
-      IERC20Detailed _from,
-      IERC20Detailed _to,
-      uint32 _swapInterval,
-      uint32 _swapsExecuted,
-      uint256 _swapped,
-      uint32 _swapsLeft,
-      uint256 _remaining,
-      uint192 _rate
-    )
-  {
+  function userPosition(uint256 _dcaId) public view override returns (UserPosition memory _userPosition) {
     DCA memory position = _userPositions[_dcaId];
-    _from = position.fromTokenA ? tokenA : tokenB;
-    _to = position.fromTokenA ? tokenB : tokenA;
-    _swapInterval = position.swapInterval;
-    _swapsExecuted = position.lastWithdrawSwap > 0 ? performedSwaps[_swapInterval] - position.lastWithdrawSwap : 0;
-    _swapped = _calculateSwapped(_dcaId);
-    _swapsLeft = position.lastSwap > performedSwaps[_swapInterval] ? position.lastSwap - performedSwaps[_swapInterval] : 0;
-    _remaining = _calculateUnswapped(_dcaId);
-    _rate = position.rate;
+    _userPosition.from = position.fromTokenA ? tokenA : tokenB;
+    _userPosition.to = position.fromTokenA ? tokenB : tokenA;
+    _userPosition.swapInterval = position.swapInterval;
+    _userPosition.swapsExecuted = position.lastWithdrawSwap > 0 ? performedSwaps[position.swapInterval] - position.lastWithdrawSwap : 0;
+    _userPosition.swapped = _calculateSwapped(_dcaId);
+    _userPosition.swapsLeft = position.lastSwap > performedSwaps[position.swapInterval]
+      ? position.lastSwap - performedSwaps[position.swapInterval]
+      : 0;
+    _userPosition.remaining = _calculateUnswapped(_dcaId);
+    _userPosition.rate = position.rate;
   }
 
   function deposit(

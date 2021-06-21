@@ -1146,8 +1146,8 @@ describe('DCAPositionHandler', () => {
   }
 
   async function calculateSwapped(dcaId: BigNumber): Promise<BigNumber> {
-    const { _swapped } = await DCAPositionHandler.userPosition(dcaId);
-    return _swapped;
+    const { swapped } = await DCAPositionHandler.userPosition(dcaId);
+    return swapped;
   }
 
   async function deposit(token: TokenContract, rate: number, swaps: number) {
@@ -1196,36 +1196,36 @@ describe('DCAPositionHandler', () => {
     }
   ) {
     const {
-      _from,
-      _to,
-      _swapInterval,
-      _swapsExecuted,
-      _swapped,
-      _swapsLeft,
-      _remaining,
-      _rate,
+      from: positionFrom,
+      to: positionTo,
+      swapInterval: positionSwapInterval,
+      swapsExecuted: positionSwapsExecuted,
+      swapped: positionSwapped,
+      swapsLeft: positionSwapsLeft,
+      remaining: positionRemaining,
+      rate: positionRate,
     }: {
-      _from: string;
-      _to: string;
-      _swapInterval: number;
-      _swapsExecuted: number;
-      _swapped: BigNumber;
-      _swapsLeft: number;
-      _remaining: number;
-      _rate: BigNumber;
+      from: string;
+      to: string;
+      swapInterval: number;
+      swapsExecuted: number;
+      swapped: BigNumber;
+      swapsLeft: number;
+      remaining: number;
+      rate: BigNumber;
     } = await DCAPositionHandler.userPosition(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;
     const fromToken = fromAddress === tokenA.address ? tokenA : tokenB;
     const toToken = fromAddress === tokenA.address ? tokenB : tokenA;
 
-    expect(_from, 'Wrong from address in position').to.equal(fromToken.address);
-    expect(_to, 'Wrong to address in position').to.equal(toToken.address);
-    expect(_swapInterval, 'Wrong swap interval in position').to.equal(swapInterval ?? SWAP_INTERVAL);
-    expect(_swapsExecuted, 'Wrong swaps executed in position').to.equal(swapsExecuted);
-    expect(_swapped, 'Wrong swapped amount in position').to.equal(await withFeeApplied(toToken.asUnits(swapped)));
-    expect(_swapsLeft, 'Wrong swaps left in position').to.equal(swapsLeft);
-    expect(_remaining, 'Wrong remaining amount in position').to.equal(fromToken.asUnits(remaining));
-    expect(_rate, 'Wrong rate in position').to.equal(fromAddress === tokenA.address ? tokenA.asUnits(rate) : tokenB.asUnits(rate));
+    expect(positionFrom, 'Wrong from address in position').to.equal(fromToken.address);
+    expect(positionTo, 'Wrong to address in position').to.equal(toToken.address);
+    expect(positionSwapInterval, 'Wrong swap interval in position').to.equal(swapInterval ?? SWAP_INTERVAL);
+    expect(positionSwapsExecuted, 'Wrong swaps executed in position').to.equal(swapsExecuted);
+    expect(positionSwapped, 'Wrong swapped amount in position').to.equal(await withFeeApplied(toToken.asUnits(swapped)));
+    expect(positionSwapsLeft, 'Wrong swaps left in position').to.equal(swapsLeft);
+    expect(positionRemaining, 'Wrong remaining amount in position').to.equal(fromToken.asUnits(remaining));
+    expect(positionRate, 'Wrong rate in position').to.equal(fromAddress === tokenA.address ? tokenA.asUnits(rate) : tokenB.asUnits(rate));
   }
 
   async function getFeeFrom(value: BigNumberish): Promise<BigNumber> {

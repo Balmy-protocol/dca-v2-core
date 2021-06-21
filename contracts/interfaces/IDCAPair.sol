@@ -23,13 +23,15 @@ interface IDCAPairParameters {
 }
 
 interface IDCAPairPositionHandler {
-  struct DCA {
-    uint32 lastWithdrawSwap;
-    uint32 lastSwap;
-    uint32 swapInterval; // TODO: remove 32 bits from somewhere else
+  struct UserPosition {
+    IERC20Detailed from;
+    IERC20Detailed to;
+    uint32 swapInterval;
+    uint32 swapsExecuted; // Since deposit or last withdraw
+    uint256 swapped; // Since deposit or last withdraw
+    uint32 swapsLeft;
+    uint256 remaining;
     uint192 rate;
-    bool fromTokenA;
-    uint248 swappedBeforeModified;
   }
 
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
@@ -56,19 +58,7 @@ interface IDCAPairPositionHandler {
   error PositionCompleted();
   error MandatoryWithdraw();
 
-  function userPosition(uint256)
-    external
-    view
-    returns (
-      IERC20Detailed _from,
-      IERC20Detailed _to,
-      uint32 _swapInterval,
-      uint32 _swapsExecuted, // Since deposit or last withdraw
-      uint256 _swapped, // Since deposit or last withdraw
-      uint32 _swapsLeft,
-      uint256 _remaining,
-      uint192 _rate
-    );
+  function userPosition(uint256) external view returns (UserPosition memory _position);
 
   function deposit(
     address _tokenAddress,
