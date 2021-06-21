@@ -5,6 +5,7 @@ import '../DCAPair/DCAPair.sol';
 import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAFactory.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
+import '../libraries/CommonErrors.sol';
 
 abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
   mapping(address => mapping(address => address)) internal _pairByTokens; // token0 => token1 => pair
@@ -12,7 +13,7 @@ abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
   IDCAGlobalParameters public override globalParameters;
 
   constructor(IDCAGlobalParameters _globalParameters) {
-    require(address(_globalParameters) != address(0), 'DCAFactory: zero address');
+    if (address(_globalParameters) == address(0)) revert CommonErrors.ZeroAddress();
     globalParameters = _globalParameters;
   }
 
@@ -26,10 +27,10 @@ abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
   }
 
   function createPair(address _tokenA, address _tokenB) public override returns (address _pair) {
-    require(_tokenA != address(0) && _tokenB != address(0), 'DCAFactory: zero address');
-    require(_tokenA != _tokenB, 'DCAFactory: identical addresses');
+    if (_tokenA == address(0) || _tokenB == address(0)) revert CommonErrors.ZeroAddress();
+    if (_tokenA == _tokenB) revert IdenticalTokens();
     (address _token0, address _token1) = _sortTokens(_tokenA, _tokenB);
-    require(_pairByTokens[_token0][_token1] == address(0), 'DCAFactory: pair exists');
+    if (_pairByTokens[_token0][_token1] != address(0)) revert PairAlreadyExists();
     _pair = address(new DCAPair(globalParameters, ISlidingOracle(address(0xe)), IERC20Detailed(_token0), IERC20Detailed(_token1)));
     _pairByTokens[_token0][_token1] = _pair;
     allPairs.push(_pair);

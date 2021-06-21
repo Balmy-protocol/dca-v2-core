@@ -7,6 +7,8 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
 import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAPair.sol';
+import '../libraries/CommonErrors.sol';
+
 import './utils/Math.sol';
 
 abstract contract DCAPairParameters is IDCAPairParameters {
@@ -31,9 +33,9 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB
   ) {
-    require(address(_globalParameters) != address(0), 'DCAPair: zero address');
-    require(address(_tokenA) != address(0), 'DCAPair: zero address');
-    require(address(_tokenB) != address(0), 'DCAPair: zero address');
+    if (address(_globalParameters) == address(0)) revert CommonErrors.ZeroAddress();
+    if (address(_tokenA) == address(0)) revert CommonErrors.ZeroAddress();
+    if (address(_tokenB) == address(0)) revert CommonErrors.ZeroAddress();
     globalParameters = _globalParameters;
     _feePrecision = globalParameters.FEE_PRECISION();
     tokenA = _tokenA;

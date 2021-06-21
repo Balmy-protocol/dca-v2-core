@@ -42,9 +42,10 @@ describe('DCAFactoryPairsHandler', function () {
   describe('constructor', () => {
     when('globalParameters is zero address', () => {
       then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
+        await behaviours.deployShouldRevertWithMessage({
           contract: DCAFactoryPairsHandlerContract,
           args: [constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
         });
       });
     });
@@ -58,19 +59,21 @@ describe('DCAFactoryPairsHandler', function () {
   describe('createPair', () => {
     when('token A is zero address', () => {
       then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
           args: [constants.ZERO_ADDRESS, tokenB.address],
+          message: 'ZeroAddress',
         });
       });
     });
     when('token B is zero address', () => {
       then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithZeroAddress({
+        await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
           args: [tokenA.address, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
         });
       });
     });
@@ -80,7 +83,7 @@ describe('DCAFactoryPairsHandler', function () {
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
           args: [tokenA.address, tokenA.address],
-          message: 'DCAFactory: identical addresses',
+          message: 'IdenticalTokens',
         });
       });
     });
@@ -94,7 +97,7 @@ describe('DCAFactoryPairsHandler', function () {
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
             args: [tokenA.address, tokenB.address],
-            message: 'DCAFactory: pair exists',
+            message: 'PairAlreadyExists',
           });
         });
       });
@@ -104,7 +107,7 @@ describe('DCAFactoryPairsHandler', function () {
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
             args: [tokenB.address, tokenA.address],
-            message: 'DCAFactory: pair exists',
+            message: 'PairAlreadyExists',
           });
         });
       });
