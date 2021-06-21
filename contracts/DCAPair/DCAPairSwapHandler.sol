@@ -6,6 +6,8 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/ISlidingOracle.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
+import '../libraries/CommonErrors.sol';
+
 import './DCAPairParameters.sol';
 
 abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCAPairSwapHandler {
@@ -17,7 +19,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   ISlidingOracle public override oracle;
 
   constructor(ISlidingOracle _oracle) {
-    require(address(_oracle) != address(0), 'DCAPair: zero address');
+    if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
     oracle = _oracle;
   }
 
@@ -131,8 +133,8 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     bytes memory _data
   ) public override nonReentrant {
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    require(!_swapParameters.isPaused, 'DCAPair: swaps are paused');
-    require(lastSwapPerformed[_swapInterval] / _swapInterval < _getTimestamp() / _swapInterval, 'DCAPair: within interval slot');
+    if (_swapParameters.isPaused) revert CommonErrors.Paused();
+    if (lastSwapPerformed[_swapInterval] / _swapInterval >= _getTimestamp() / _swapInterval) revert WithinInterval();
     NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapInterval, _swapParameters.swapFee);
     _registerSwap(
       _swapInterval,
@@ -150,11 +152,11 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     );
     performedSwaps[_swapInterval] = _nextSwapInformation.swapToPerform;
     lastSwapPerformed[_swapInterval] = _getTimestamp();
-    require(
-      _amountToBorrowTokenA <= _nextSwapInformation.availableToBorrowTokenA &&
-        _amountToBorrowTokenB <= _nextSwapInformation.availableToBorrowTokenB,
-      'DCAPair: insufficient liquidity'
-    );
+
+    if (
+      _amountToBorrowTokenA > _nextSwapInformation.availableToBorrowTokenA ||
+      _amountToBorrowTokenB > _nextSwapInformation.availableToBorrowTokenB
+    ) revert CommonErrors.InsufficientLiquidity();
 
     uint256 _amountToHaveTokenA = _nextSwapInformation.availableToBorrowTokenA;
     uint256 _amountToHaveTokenB = _nextSwapInformation.availableToBorrowTokenB;
@@ -196,7 +198,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     uint256 _balanceTokenB = tokenB.balanceOf(address(this));
 
     // Make sure that they sent the tokens back
-    require(_balanceTokenA >= _amountToHaveTokenA && _balanceTokenB >= _amountToHaveTokenB, 'DCAPair: liquidity not returned');
+    if (_balanceTokenA < _amountToHaveTokenA || _balanceTokenB < _amountToHaveTokenB) revert CommonErrors.LiquidityNotReturned();
 
     // Update balances
     _balances[address(tokenA)] = _balanceTokenA - _nextSwapInformation.platformFeeTokenA;

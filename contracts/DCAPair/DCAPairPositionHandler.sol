@@ -48,8 +48,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _amountOfSwaps,
     uint32 _swapInterval
   ) public override nonReentrant returns (uint256) {
-    require(_tokenAddress == address(tokenA) || _tokenAddress == address(tokenB), 'DCAPair: invalid deposit address');
-    require(globalParameters.isSwapIntervalAllowed(_swapInterval), 'DCAPair: interval not allowed');
+    if (_tokenAddress != address(tokenA) && _tokenAddress != address(tokenB)) revert InvalidToken();
+    if (!globalParameters.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
     IERC20Detailed _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
     uint256 _amount = _rate * _amountOfSwaps;
     _from.safeTransferFrom(msg.sender, address(this), _amount);
@@ -137,7 +137,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     DCA memory _userDCA = _userPositions[_dcaId];
 
     uint32 _swapsLeft = _userDCA.lastSwap - performedSwaps[_userDCA.swapInterval];
-    require(_swapsLeft > 0, 'DCAPair: position completed');
+    if (_swapsLeft == 0) revert PositionCompleted();
 
     _modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
   }
@@ -164,7 +164,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _newSwaps
   ) public override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-    require(_amount > 0, 'DCAPair: non-positive amount');
+    if (_amount == 0) revert ZeroAmount();
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _total = _unswapped + _amount;
@@ -195,7 +195,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
     // We will store the swapped amount without the fee. The fee will be applied during withdraw/terminate
     uint256 _swapped = _calculateSwapped(_dcaId, false);
-    require(_swapped <= type(uint248).max, 'DCAPair: must withdraw before'); // You should withdraw before modifying, to avoid loosing funds
+    if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid loosing funds
 
     uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
     _removePosition(_dcaId);
@@ -222,8 +222,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   function _assertPositionExistsAndCanBeOperatedByCaller(uint256 _dcaId) internal view {
-    require(_userPositions[_dcaId].rate > 0, 'DCAPair: invalid position id');
-    require(_isApprovedOrOwner(msg.sender, _dcaId), 'DCAPair: caller not allowed');
+    if (_userPositions[_dcaId].rate == 0) revert InvalidPosition();
+    if (!_isApprovedOrOwner(msg.sender, _dcaId)) revert UnauthorizedCaller();
   }
 
   function _addPosition(
@@ -234,8 +234,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint248 _swappedBeforeModified,
     uint32 _swapInterval
   ) internal returns (uint32 _startingSwap, uint32 _finalSwap) {
-    require(_rate > 0, 'DCAPair: non-positive rate');
-    require(_amountOfSwaps > 0, 'DCAPair: non-positive amount');
+    if (_rate == 0) revert ZeroRate();
+    if (_amountOfSwaps == 0) revert ZeroSwaps();
     uint32 _performedSwaps = performedSwaps[_swapInterval];
     _startingSwap = _performedSwaps + 1;
     _finalSwap = _performedSwaps + _amountOfSwaps;

@@ -62,17 +62,19 @@ describe('DCAPairSwapHandler', () => {
   describe('constructor', () => {
     when('global parameters is zero', () => {
       then('reverts with message', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
+        await behaviours.deployShouldRevertWithMessage({
           contract: DCAPairSwapHandlerContract,
           args: [tokenA.address, tokenB.address, constants.ZERO_ADDRESS, staticSlidingOracle.address],
+          message: 'ZeroAddress',
         });
       });
     });
     when('oracle is zero', () => {
       then('reverts with message', async () => {
-        await behaviours.deployShouldRevertWithZeroAddress({
+        await behaviours.deployShouldRevertWithMessage({
           contract: DCAPairSwapHandlerContract,
           args: [tokenA.address, tokenB.address, DCAGlobalParameters.address, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
         });
       });
     });
@@ -643,7 +645,7 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenA: 1,
       amountToSwapOfTokenB: 1,
       ratePerUnitBToA: 1,
-      reason: 'DCAPair: within interval slot',
+      reason: 'WithinInterval',
     });
 
     swapTestFailed({
@@ -654,7 +656,7 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenA: 1,
       amountToSwapOfTokenB: 2,
       ratePerUnitBToA: 1,
-      reason: 'DCAPair: liquidity not returned',
+      reason: 'LiquidityNotReturned',
     });
 
     swapTestFailed({
@@ -665,7 +667,7 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenA: 2,
       amountToSwapOfTokenB: 1,
       ratePerUnitBToA: 1,
-      reason: 'DCAPair: liquidity not returned',
+      reason: 'LiquidityNotReturned',
     });
 
     swapTestFailed({
@@ -690,7 +692,7 @@ describe('DCAPairSwapHandler', () => {
       amountToSwapOfTokenA: 2,
       amountToSwapOfTokenB: 1,
       ratePerUnitBToA: 1,
-      reason: `DCAPair: swaps are paused`,
+      reason: `Paused`,
     });
 
     swapTest({
@@ -893,7 +895,7 @@ describe('DCAPairSwapHandler', () => {
         );
       });
       then('tx is reverted', async () => {
-        await expect(tx).to.be.revertedWith('DCAPair: insufficient liquidity');
+        await expect(tx).to.be.revertedWith('InsufficientLiquidity');
       });
     });
 
@@ -909,7 +911,7 @@ describe('DCAPairSwapHandler', () => {
         );
       });
       then('tx is reverted', async () => {
-        await expect(tx).to.be.revertedWith('DCAPair: insufficient liquidity');
+        await expect(tx).to.be.revertedWith('InsufficientLiquidity');
       });
     });
 
@@ -1034,7 +1036,7 @@ describe('DCAPairSwapHandler', () => {
         });
 
         then('tx is reverted', async () => {
-          await expect(tx).to.be.revertedWith('DCAPair: liquidity not returned');
+          await expect(tx).to.be.revertedWith('LiquidityNotReturned');
         });
 
         then('callee state is not modified', async () => {
