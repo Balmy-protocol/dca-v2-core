@@ -5,8 +5,8 @@ import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '../../utils/event-utils';
 import { when, then, given } from '../../utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { TokenContract } from '../../utils/erc20';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 // TODO: Test swap interval does not modify other intervals state
 describe('DCAPositionHandler', () => {

@@ -4,7 +4,7 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, wallet } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { expect } from 'chai';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('CollectableDust', function () {
   let owner: SignerWithAddress;
