@@ -30,7 +30,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _userPosition.from = position.fromTokenA ? tokenA : tokenB;
     _userPosition.to = position.fromTokenA ? tokenB : tokenA;
     _userPosition.swapInterval = position.swapInterval;
-    _userPosition.swapsExecuted = position.lastWithdrawSwap > 0 ? performedSwaps[position.swapInterval] - position.lastWithdrawSwap : 0;
+    _userPosition.swapsExecuted = position.swapInterval > 0 ? performedSwaps[position.swapInterval] - position.lastWithdrawSwap : 0;
     _userPosition.swapped = _calculateSwapped(_dcaId);
     _userPosition.swapsLeft = position.lastSwap > performedSwaps[position.swapInterval]
       ? position.lastSwap - performedSwaps[position.swapInterval]
@@ -167,6 +167,10 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _total = _unswapped + _amount;
 
     _modifyPosition(_dcaId, _total, _unswapped, uint192(_total / _newSwaps), _newSwaps);
+  }
+
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    return globalParameters.nftDescriptor().tokenURI(this, tokenId);
   }
 
   /** Helper function to modify a position */
