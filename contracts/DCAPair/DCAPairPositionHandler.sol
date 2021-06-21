@@ -177,8 +177,14 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
     uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
     _removePosition(_dcaId);
-    (uint32 _startingSwap, uint32 _finalSwap) =
-      _addPosition(_dcaId, address(_from), _newRate, _newAmountOfSwaps, uint248(_swapped), _swapInterval);
+    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(
+      _dcaId,
+      address(_from),
+      _newRate,
+      _newAmountOfSwaps,
+      uint248(_swapped),
+      _swapInterval
+    );
 
     if (_totalNecessary > _unswapped) {
       // We need to ask for more funds
@@ -235,10 +241,9 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     DCA memory _userDCA = _userPositions[_dcaId];
     address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
     uint256[2] memory _accumRatesLastWidthraw = _accumRatesPerUnit[_userDCA.swapInterval][_from][_userDCA.lastWithdrawSwap];
-    uint256[2] memory _accumRatesLastSwap =
-      _accumRatesPerUnit[_userDCA.swapInterval][_from][
-        performedSwaps[_userDCA.swapInterval] < _userDCA.lastSwap ? performedSwaps[_userDCA.swapInterval] : _userDCA.lastSwap
-      ];
+    uint256[2] memory _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.swapInterval][_from][
+      performedSwaps[_userDCA.swapInterval] < _userDCA.lastSwap ? performedSwaps[_userDCA.swapInterval] : _userDCA.lastSwap
+    ];
 
     /*
       LS = last swap = min(performed swaps, position.finalSwap)
@@ -275,8 +280,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
       // Since we can't multiply accum and rate because of overflows, we need to figure out which to divide
       // We don't want to divide a term that is smaller than magnitude, because it would go to 0.
       // And if neither are smaller than magnitude, then we will choose the one that loses less information, and that would be the one with smallest reminder
-      bool _divideAccumFirst =
-        _userDCA.rate < _magnitude || (_accumPerUnit > _magnitude && _accumPerUnit % _magnitude < _userDCA.rate % _magnitude);
+      bool _divideAccumFirst = _userDCA.rate < _magnitude ||
+        (_accumPerUnit > _magnitude && _accumPerUnit % _magnitude < _userDCA.rate % _magnitude);
       _swappedInCurrentPosition = _divideAccumFirst
         ? (_accumPerUnit / _magnitude) * _userDCA.rate
         : (_userDCA.rate / _magnitude) * _accumPerUnit;
