@@ -40,7 +40,8 @@
     "postpublish": "pinst --enable"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.1.0"
+    "@openzeppelin/contracts": "4.1.0",
+    "base64-sol": "1.0.1"
   },
   "devDependencies": {
     "@commitlint/cli": "12.1.4",
@@ -64,6 +65,7 @@
     "hardhat-gas-reporter": "1.0.4",
     "hardhat-preprocessor": "0.1.4",
     "husky": "6.0.0",
+    "is-svg": "4.3.1",
     "mocha": "9.0.0",
     "moment": "2.29.1",
     "pinst": "2.1.6",

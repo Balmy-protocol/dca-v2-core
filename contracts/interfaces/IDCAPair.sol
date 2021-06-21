@@ -22,7 +22,7 @@ interface IDCAPairParameters {
   function performedSwaps(uint32) external view returns (uint32);
 }
 
-interface IDCAPairPositionHandler {
+interface IDCAPairPositionHandler is IDCAPairParameters {
   struct UserPosition {
     IERC20Detailed from;
     IERC20Detailed to;
