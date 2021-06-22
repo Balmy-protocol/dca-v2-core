@@ -25,8 +25,10 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     address _feeRecipient,
     IDCATokenDescriptor _nftDescriptor
   ) Governable(_governor) {
-    setFeeRecipient(_feeRecipient);
-    setNFTDescriptor(_nftDescriptor);
+    if (_feeRecipient == address(0)) revert CommonErrors.ZeroAddress();
+    if (address(_nftDescriptor) == address(0)) revert CommonErrors.ZeroAddress();
+    feeRecipient = _feeRecipient;
+    nftDescriptor = _nftDescriptor;
   }
 
   function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
