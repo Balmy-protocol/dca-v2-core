@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { Contract, ContractFactory, Signer } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { constants, behaviours, bn } from '../../utils';
+import { constants, behaviours, bn, contracts } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 
 describe('DCAGlobalParameters', () => {
@@ -42,26 +42,22 @@ describe('DCAGlobalParameters', () => {
       });
     });
     when('all arguments are valid', () => {
-      then('initializes correctly and emits events', async () => {
-        await behaviours.deployShouldSetVariablesAndEmitEvents({
-          contract: DCAGlobalParametersContract,
-          args: [owner.address, feeRecipient.address, nftDescriptor.address],
-          settersGettersVariablesAndEvents: [
-            {
-              getterFunc: 'feeRecipient',
-              variable: feeRecipient.address,
-              eventEmitted: 'FeeRecipientSet',
-            },
-            {
-              getterFunc: 'nftDescriptor',
-              variable: nftDescriptor.address,
-              eventEmitted: 'NFTDescriptorSet',
-            },
-          ],
-        });
+      let deployedContract: Contract;
+      given(async () => {
+        const deployment = await contracts.deploy(DCAGlobalParametersContract, [owner.address, feeRecipient.address, nftDescriptor.address]);
+        deployedContract = deployment.contract;
+      });
+      then('sets governor correctly', async () => {
+        expect(await deployedContract.governor()).to.equal(owner.address);
+      });
+      then('sets fee recipient correctly', async () => {
+        expect(await deployedContract.feeRecipient()).to.equal(feeRecipient.address);
+      });
+      then('sets nft descriptor correctly', async () => {
+        expect(await deployedContract.nftDescriptor()).to.equal(nftDescriptor.address);
       });
       then('contract starts as unpaused', async () => {
-        expect(await DCAGlobalParameters.paused()).to.be.false;
+        expect(await deployedContract.paused()).to.be.false;
       });
     });
   });
