@@ -4,7 +4,7 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, behaviours, wallet, contracts } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { expect } from 'chai';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('Governable', function () {
   let governor: SignerWithAddress;

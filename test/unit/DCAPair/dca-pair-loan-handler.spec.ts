@@ -4,7 +4,7 @@ import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, evm, bn } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '../../utils/erc20';
 
 const WITH_FEE = (bn: BigNumber) => bn.add(CALCULATE_FEE(bn));

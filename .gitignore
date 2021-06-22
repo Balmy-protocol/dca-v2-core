@@ -9,6 +9,8 @@ coverage
 # Hardhat files
 cache
 artifacts
+deployments/hardhat
+deployments/localhost
 
 # Config files
 .env

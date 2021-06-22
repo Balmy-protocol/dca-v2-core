@@ -1,40 +1,53 @@
 import 'dotenv/config';
 import '@nomiclabs/hardhat-waffle';
+import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
 import { removeConsoleLog } from 'hardhat-preprocessor';
 import 'hardhat-gas-reporter';
 import 'hardhat-contract-sizer';
+import 'hardhat-deploy';
 import 'solidity-coverage';
+import { HardhatUserConfig, NetworksUserConfig } from 'hardhat/types';
+import { getNodeUrl, accounts } from './utils/network';
 
-module.exports = {
-  defaultNetwork: 'hardhat',
-  networks: process.env.TEST
-    ? {}
-    : {
-        hardhat: {
+const networks: NetworksUserConfig = process.env.TEST
+  ? {}
+  : {
+      hardhat: {
+        forking: {
           enabled: process.env.FORK ? true : false,
-          forking: {
-            url: process.env.MAINNET_HTTPS_URL,
-          },
+          url: getNodeUrl('mainnet'),
         },
-        localMainnet: {
-          url: process.env.LOCAL_MAINNET_HTTP_URL,
-          accounts: [process.env.LOCAL_MAINNET_PRIVATE_KEY],
-          gasMultiplier: 1.1,
-        },
-        ropsten: {
-          url: process.env.ROPSTEN_HTTPS_URL,
-          accounts: [process.env.ROPSTEN_PRIVATE_KEY],
-          gasMultiplier: 1.1,
-          gasPrice: 'auto',
-        },
-        mainnet: {
-          url: process.env.MAINNET_HTTPS_URL,
-          accounts: [process.env.MAINNET_PRIVATE_KEY],
-          gasMultiplier: 1.1,
-          gasPrice: 'auto',
-        },
+        tags: ['test', 'local'],
       },
+      localhost: {
+        url: getNodeUrl('localhost'),
+        live: false,
+        accounts: accounts('localhost'),
+        tags: ['local'],
+      },
+      kovan: {
+        url: getNodeUrl('kovan'),
+        accounts: accounts('kovan'),
+        gasPrice: 'auto',
+        tags: ['staging'],
+      },
+      mainnet: {
+        url: getNodeUrl('mainnet'),
+        accounts: accounts('mainnet'),
+        gasPrice: 'auto',
+        tags: ['production'],
+      },
+    };
+
+const config: HardhatUserConfig = {
+  defaultNetwork: 'hardhat',
+  namedAccounts: {
+    deployer: 0,
+    governor: 1,
+    feeRecipient: 2,
+  },
+  networks,
   solidity: {
     compilers: [
       {
@@ -60,3 +73,5 @@ module.exports = {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
 };
+
+export default config;
