@@ -4,12 +4,15 @@ import { DeployFunction } from 'hardhat-deploy/types';
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
-  await hre.deployments.deploy('TokenDescriptor', {
-    contract: 'contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor',
+  const globalParameters = await hre.deployments.get('GlobalParameters');
+
+  await hre.deployments.deploy('Factory', {
+    contract: 'contracts/DCAFactory/DCAFactory.sol:DCAFactory',
     from: deployer,
-    args: [],
+    args: [globalParameters.address],
     log: true,
   });
 };
 export default deployFunction;
-deployFunction.tags = ['TokenDescriptor'];
+deployFunction.tags = ['Factory'];
+deployFunction.dependencies = ['GlobalParameters'];

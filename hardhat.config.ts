@@ -13,6 +13,8 @@ const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
   namedAccounts: {
     deployer: 0,
+    governor: 1,
+    feeRecipient: 2,
   },
   networks: {
     hardhat: {
@@ -22,24 +24,21 @@ const config: HardhatUserConfig = {
       },
       tags: ['test', 'local'],
     },
-    localMainnet: {
-      url: process.env.LOCAL_MAINNET_HTTP_URL,
+    localhost: {
+      url: process.env.LOCAL_HTTP_URL,
       live: false,
-      accounts: [process.env.LOCAL_MAINNET_PRIVATE_KEY as string],
-      gasMultiplier: 1.1,
+      accounts: [process.env.LOCAL_PRIVATE_KEY as string],
       tags: ['local'],
     },
     kovan: {
       url: process.env.KOVAN_HTTPS_URL,
       accounts: [process.env.KOVAN_PRIVATE_KEY as string],
-      gasMultiplier: 1.1,
       gasPrice: 'auto',
       tags: ['staging'],
     },
     mainnet: {
       url: process.env.MAINNET_HTTPS_URL,
       accounts: [process.env.MAINNET_PRIVATE_KEY as string],
-      gasMultiplier: 1.1,
       gasPrice: 'auto',
       tags: ['production'],
     },
