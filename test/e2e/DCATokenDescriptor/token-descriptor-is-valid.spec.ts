@@ -3,7 +3,7 @@ import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
 import { erc20, evm } from '../../utils';
 import { contract } from '../../utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '../../utils/erc20';
 import { readArgFromEventOrFail } from '../../utils/event-utils';
 import isSvg from 'is-svg';
