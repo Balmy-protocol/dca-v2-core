@@ -7,7 +7,37 @@ import 'hardhat-gas-reporter';
 import 'hardhat-contract-sizer';
 import 'hardhat-deploy';
 import 'solidity-coverage';
-import { HardhatUserConfig } from 'hardhat/types';
+import { HardhatUserConfig, NetworksUserConfig } from 'hardhat/types';
+
+const networks: NetworksUserConfig = process.env.TEST
+  ? {}
+  : {
+      hardhat: {
+        forking: {
+          enabled: process.env.FORK ? true : false,
+          url: process.env.MAINNET_HTTPS_URL as string,
+        },
+        tags: ['test', 'local'],
+      },
+      localhost: {
+        url: process.env.LOCAL_HTTP_URL,
+        live: false,
+        accounts: [process.env.LOCAL_PRIVATE_KEY as string],
+        tags: ['local'],
+      },
+      kovan: {
+        url: process.env.KOVAN_HTTPS_URL,
+        accounts: [process.env.KOVAN_PRIVATE_KEY as string],
+        gasPrice: 'auto',
+        tags: ['staging'],
+      },
+      mainnet: {
+        url: process.env.MAINNET_HTTPS_URL,
+        accounts: [process.env.MAINNET_PRIVATE_KEY as string],
+        gasPrice: 'auto',
+        tags: ['production'],
+      },
+    };
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
@@ -16,33 +46,7 @@ const config: HardhatUserConfig = {
     governor: 1,
     feeRecipient: 2,
   },
-  networks: {
-    hardhat: {
-      forking: {
-        enabled: process.env.FORK ? true : false,
-        url: process.env.MAINNET_HTTPS_URL as string,
-      },
-      tags: ['test', 'local'],
-    },
-    localhost: {
-      url: process.env.LOCAL_HTTP_URL,
-      live: false,
-      accounts: [process.env.LOCAL_PRIVATE_KEY as string],
-      tags: ['local'],
-    },
-    kovan: {
-      url: process.env.KOVAN_HTTPS_URL,
-      accounts: [process.env.KOVAN_PRIVATE_KEY as string],
-      gasPrice: 'auto',
-      tags: ['staging'],
-    },
-    mainnet: {
-      url: process.env.MAINNET_HTTPS_URL,
-      accounts: [process.env.MAINNET_PRIVATE_KEY as string],
-      gasPrice: 'auto',
-      tags: ['production'],
-    },
-  },
+  networks,
   solidity: {
     compilers: [
       {
