@@ -9,7 +9,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await hre.deployments.deploy('GlobalParameters', {
     contract: 'contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters',
     from: deployer,
-    args: [deployer, feeRecipient, nftDescriptor.address], // TODO: Once fix is done, change first argument to governor
+    args: [governor, feeRecipient, nftDescriptor.address],
     log: true,
   });
 };
