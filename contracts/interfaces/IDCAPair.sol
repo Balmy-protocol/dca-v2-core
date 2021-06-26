@@ -91,10 +91,19 @@ interface IDCAPairPositionHandler is IDCAPairParameters {
 }
 
 interface IDCAPairSwapHandler {
-  struct NextSwapInformation {
+  struct SwapInformation {
+    uint32 interval;
     uint32 swapToPerform;
     uint256 amountToSwapTokenA;
     uint256 amountToSwapTokenB;
+  }
+
+  // TODO: see if we can optimize this in terms of space
+  struct NextSwapInformation {
+    SwapInformation[] swapsToPerform;
+    uint8 amountOfSwaps;
+    uint256 amountToSwapTokenA; // TODO: Do we need to expose this?
+    uint256 amountToSwapTokenB; // TODO: Do we need to expose this?
     uint256 availableToBorrowTokenA;
     uint256 availableToBorrowTokenB;
     uint256 ratePerUnitBToA;
@@ -123,12 +132,11 @@ interface IDCAPairSwapHandler {
 
   function oracle() external returns (ISlidingOracle);
 
-  function getNextSwapInfo(uint32 _swapInterval) external view returns (NextSwapInformation memory _nextSwapInformation);
+  function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 
-  function swap(uint32 _swapInterval) external;
+  function swap() external;
 
   function swap(
-    uint32 _swapInterval,
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
     address _to,

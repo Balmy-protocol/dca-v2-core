@@ -60,7 +60,7 @@ contract('DCATokenDescriptor', () => {
 
     // Execute one swap
     await tokenB.transfer(DCAPair.address, tokenB.asUnits(20));
-    await DCAPair['swap(uint32)'](swapInterval);
+    await DCAPair['swap()']();
 
     // Get token uri
     const result = await DCAPair.tokenURI(tokenId);

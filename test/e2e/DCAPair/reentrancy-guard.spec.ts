@@ -97,8 +97,8 @@ contract('DCAPair', () => {
       });
 
       testReentrantForFunction({
-        funcAndSignature: 'swap(uint32,uint256,uint256,address,bytes)',
-        args: () => [swapInterval, 0, 0, reentrantDCAPairSwapCallee.address, utils.formatBytes32String('')],
+        funcAndSignature: 'swap(uint256,uint256,address,bytes)',
+        args: () => [0, 0, reentrantDCAPairSwapCallee.address, utils.formatBytes32String('')],
         attackerContract: () => reentrantDCAPairSwapCallee,
       });
     });
@@ -206,7 +206,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction['swap(uint32)'](0)).data!,
+        attack: async () => (await DCAPair.populateTransaction['swap()']()).data!,
       });
 
       testReentrantAttack({
@@ -215,7 +215,7 @@ contract('DCAPair', () => {
         args,
         attackerContract,
         attack: async () =>
-          (await DCAPair.populateTransaction['swap(uint32,uint256,uint256,address,bytes)'](0, 0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
+          (await DCAPair.populateTransaction['swap(uint256,uint256,address,bytes)'](0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
       });
 
       testReentrantAttack({

@@ -65,15 +65,40 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
   }
 
-  function getNextSwapInfo(uint32 _swapInterval) public view override returns (NextSwapInformation memory _nextSwapInformation) {
-    uint32 _swapFee = globalParameters.swapFee();
-    _nextSwapInformation = _getNextSwapInfo(_swapInterval, _swapFee);
+  function _getNextSwapsToPerform() internal view virtual returns (SwapInformation[] memory _swapsToPerform, uint8 _amountOfSwapsToPerform) {
+    // TODO: Make choice of what swap intervals to execute in a clever way
+    uint32[] memory _allowedSwapIntervals = globalParameters.allowedSwapIntervals();
+    _swapsToPerform = new SwapInformation[](_allowedSwapIntervals.length);
+    for (uint256 i; i < _allowedSwapIntervals.length; i++) {
+      uint32 _swapInterval = _allowedSwapIntervals[i];
+      if (lastSwapPerformed[_swapInterval] / _swapInterval < _getTimestamp() / _swapInterval) {
+        uint32 _swapToPerform = performedSwaps[_swapInterval] + 1;
+        _swapsToPerform[_amountOfSwapsToPerform] = SwapInformation({
+          interval: _swapInterval,
+          swapToPerform: _swapToPerform,
+          amountToSwapTokenA: _getAmountToSwap(_swapInterval, address(tokenA), _swapToPerform),
+          amountToSwapTokenB: _getAmountToSwap(_swapInterval, address(tokenB), _swapToPerform)
+        });
+        _amountOfSwapsToPerform++;
+      }
+    }
   }
 
-  function _getNextSwapInfo(uint32 _swapInterval, uint32 _swapFee) internal view returns (NextSwapInformation memory _nextSwapInformation) {
-    _nextSwapInformation.swapToPerform = performedSwaps[_swapInterval] + 1;
-    _nextSwapInformation.amountToSwapTokenA = _getAmountToSwap(_swapInterval, address(tokenA), _nextSwapInformation.swapToPerform);
-    _nextSwapInformation.amountToSwapTokenB = _getAmountToSwap(_swapInterval, address(tokenB), _nextSwapInformation.swapToPerform);
+  function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
+    uint32 _swapFee = globalParameters.swapFee();
+    _nextSwapInformation = _getNextSwapInfo(_swapFee);
+  }
+
+  function _getNextSwapInfo(uint32 _swapFee) internal view virtual returns (NextSwapInformation memory _nextSwapInformation) {
+    {
+      (SwapInformation[] memory _swapsToPerform, uint8 _amountOfSwaps) = _getNextSwapsToPerform();
+      for (uint256 i; i < _amountOfSwaps; i++) {
+        _nextSwapInformation.amountToSwapTokenA += _swapsToPerform[i].amountToSwapTokenA;
+        _nextSwapInformation.amountToSwapTokenB += _swapsToPerform[i].amountToSwapTokenB;
+      }
+      _nextSwapInformation.swapsToPerform = _swapsToPerform;
+      _nextSwapInformation.amountOfSwaps = _amountOfSwaps;
+    }
     // TODO: Instead of using current, it should use quote to get a moving average and not current?
     _nextSwapInformation.ratePerUnitBToA = oracle.current(address(tokenB), _magnitudeB, address(tokenA));
     _nextSwapInformation.ratePerUnitAToB = (_magnitudeB * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
@@ -121,12 +146,11 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     }
   }
 
-  function swap(uint32 _swapInterval) public override {
-    swap(_swapInterval, 0, 0, msg.sender, '');
+  function swap() public override {
+    swap(0, 0, msg.sender, '');
   }
 
   function swap(
-    uint32 _swapInterval,
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
     address _to,
@@ -134,24 +158,29 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   ) public override nonReentrant {
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
     if (_swapParameters.isPaused) revert CommonErrors.Paused();
-    if (lastSwapPerformed[_swapInterval] / _swapInterval >= _getTimestamp() / _swapInterval) revert WithinInterval();
-    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapInterval, _swapParameters.swapFee);
-    _registerSwap(
-      _swapInterval,
-      address(tokenA),
-      _nextSwapInformation.amountToSwapTokenA,
-      _nextSwapInformation.ratePerUnitAToB,
-      _nextSwapInformation.swapToPerform
-    );
-    _registerSwap(
-      _swapInterval,
-      address(tokenB),
-      _nextSwapInformation.amountToSwapTokenB,
-      _nextSwapInformation.ratePerUnitBToA,
-      _nextSwapInformation.swapToPerform
-    );
-    performedSwaps[_swapInterval] = _nextSwapInformation.swapToPerform;
-    lastSwapPerformed[_swapInterval] = _getTimestamp();
+    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
+
+    uint32 _timestamp = _getTimestamp();
+    for (uint256 i; i < _nextSwapInformation.amountOfSwaps; i++) {
+      uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
+      uint32 _swapToPerform = _nextSwapInformation.swapsToPerform[i].swapToPerform;
+      _registerSwap(
+        _swapInterval,
+        address(tokenA),
+        _nextSwapInformation.swapsToPerform[i].amountToSwapTokenA,
+        _nextSwapInformation.ratePerUnitAToB,
+        _swapToPerform
+      );
+      _registerSwap(
+        _swapInterval,
+        address(tokenB),
+        _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB,
+        _nextSwapInformation.ratePerUnitBToA,
+        _swapToPerform
+      );
+      performedSwaps[_swapInterval] = _swapToPerform;
+      lastSwapPerformed[_swapInterval] = _timestamp;
+    }
 
     if (
       _amountToBorrowTokenA > _nextSwapInformation.availableToBorrowTokenA ||
