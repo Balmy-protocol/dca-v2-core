@@ -7,14 +7,15 @@ import { readArgFromEventOrFail } from '../../utils/event-utils';
 import { when, then, given } from '../../utils/bdd';
 import { TokenContract } from '../../utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import moment from 'moment';
 
-// TODO: Test swap interval does not modify other intervals state
 describe('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
   const POSITION_RATE_5 = 5;
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
   const RATE_PER_UNIT_5 = 5;
-  const SWAP_INTERVAL = 10;
+  const SWAP_INTERVAL = moment.duration(1, 'days').as('seconds');
+  const SWAP_INTERVAL_2 = moment.duration(2, 'days').as('seconds');
 
   const INITIAL_TOKEN_A_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_A_BALANCE_USER = 100;
@@ -66,7 +67,7 @@ describe('DCAPositionHandler', () => {
     await tokenA.mint(approved.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenA.approveInternal(approved.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10);
-    await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL], ['NULL']);
+    await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
   });
 
   describe('constructor', () => {
@@ -141,7 +142,7 @@ describe('DCAPositionHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        const depositTx = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+        const depositTx = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
         tx = depositTx.response;
         dcaId = depositTx.dcaId;
       });
@@ -194,6 +195,20 @@ describe('DCAPositionHandler', () => {
         expect(deltaLastDay).to.equal(tokenA.asUnits(POSITION_RATE_5).mul(-1));
       });
 
+      then('other swap intervals remain unaffected', async () => {
+        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL_2, tokenA.address, PERFORMED_SWAPS_10);
+        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL_2, tokenA.address, PERFORMED_SWAPS_10 + 1);
+        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
+          SWAP_INTERVAL_2,
+          tokenA.address,
+          PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10
+        );
+
+        expect(deltaPerformedSwaps).to.equal(0);
+        expect(deltaFirstDay).to.equal(0);
+        expect(deltaLastDay).to.equal(0);
+      });
+
       then('nft is created', async () => {
         const tokenOwner = await DCAPositionHandler.ownerOf(dcaId);
         const balance = await DCAPositionHandler.balanceOf(owner.address);
@@ -224,7 +239,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         response = await withdrawSwapped(dcaId);
       });
 
@@ -260,7 +275,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
           ratePerUnit: RATE_PER_UNIT_5,
@@ -316,8 +331,8 @@ describe('DCAPositionHandler', () => {
       let dcaId1: BigNumber, dcaId2: BigNumber;
 
       given(async () => {
-        ({ dcaId: dcaId1 } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
-        ({ dcaId: dcaId2 } = await deposit(tokenB, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId: dcaId1 } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId: dcaId2 } = await deposit({ token: tokenB, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         response = await withdrawSwappedMany(dcaId1, dcaId2);
       });
 
@@ -368,8 +383,8 @@ describe('DCAPositionHandler', () => {
       let dcaId1: BigNumber, dcaId2: BigNumber;
 
       given(async () => {
-        ({ dcaId: dcaId1 } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
-        ({ dcaId: dcaId2 } = await deposit(tokenB, POSITION_RATE_3, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId: dcaId1 } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId: dcaId2 } = await deposit({ token: tokenB, rate: POSITION_RATE_3, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
           ratePerUnit: RATE_PER_UNIT_5,
@@ -474,7 +489,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
@@ -540,7 +555,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 rate', async () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -553,7 +568,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 swaps', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -569,7 +584,7 @@ describe('DCAPositionHandler', () => {
       const POSITION_RATE_7 = 7;
 
       then('the amount of swapped tokens is correct', async () => {
-        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         // Execute first swap
         await performTrade({
@@ -649,7 +664,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 swaps', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -704,7 +719,7 @@ describe('DCAPositionHandler', () => {
 
     when('adding 0 funds to a position', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -741,7 +756,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 rate', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10);
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -783,7 +798,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying the rate of a completed position', () => {
       then('then tx is reverted with message', async () => {
-        const { dcaId } = await deposit(tokenA, POSITION_RATE_5, 1);
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: 1 });
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
@@ -808,7 +823,7 @@ describe('DCAPositionHandler', () => {
       let tx: Promise<TransactionResponse>;
 
       given(async () => {
-        const { dcaId } = await deposit(tokenA, 1, 1);
+        const { dcaId } = await deposit({ token: tokenA, rate: 1, swaps: 1 });
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         await setRatePerUnit({
           accumRate: MAX.add(1),
@@ -830,7 +845,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, 1, 1));
+        ({ dcaId } = await deposit({ token: tokenA, rate: 1, swaps: 1 }));
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         await setRatePerUnit({
           accumRate: MAX,
@@ -847,10 +862,10 @@ describe('DCAPositionHandler', () => {
     });
   });
 
-  describe('calculateSwapped', () => {
+  describe('_calculateSwapped', () => {
     when('last swap ended before calculation', () => {
       then('swapped is calculated correctly', async () => {
-        const { dcaId } = await deposit(tokenA, 1, 1);
+        const { dcaId } = await deposit({ token: tokenA, rate: 1, swaps: 1 });
 
         // Turn fees to zero
         await DCAGlobalParameters.setSwapFee(0);
@@ -936,7 +951,7 @@ describe('DCAPositionHandler', () => {
       positionRate?: number;
       fee?: number | BigNumber;
     }) {
-      const { dcaId } = await deposit(tokenA, positionRate ?? 1, 1);
+      const { dcaId } = await deposit({ token: tokenA, rate: positionRate ?? 1, swaps: 1 });
       if (fee !== undefined) await DCAGlobalParameters.setSwapFee(fee);
       await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
       await setRatePerUnit({
@@ -948,7 +963,7 @@ describe('DCAPositionHandler', () => {
     }
 
     async function expectCalculationToFailWithOverflow({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate: number }) {
-      const { dcaId } = await deposit(tokenA, positionRate ?? 1, 1);
+      const { dcaId } = await deposit({ token: tokenA, rate: positionRate ?? 1, swaps: 1 });
       await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
       await setRatePerUnit({
         accumRate,
@@ -982,7 +997,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await DCAPositionHandler.approve(approved.address, dcaId);
       });
 
@@ -996,7 +1011,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await DCAPositionHandler.setApprovalForAll(approved.address, true);
       });
 
@@ -1010,7 +1025,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, POSITION_RATE_5, POSITION_SWAPS_TO_PERFORM_10));
+        ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
       });
 
       then('operation is reverted', async () => {
@@ -1043,7 +1058,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit(tokenA, initialRate, initialSwaps));
+        ({ dcaId } = await deposit({ token: tokenA, rate: initialRate, swaps: initialSwaps }));
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
@@ -1150,7 +1165,7 @@ describe('DCAPositionHandler', () => {
     return swapped;
   }
 
-  async function deposit(token: TokenContract, rate: number, swaps: number) {
+  async function deposit({ token, rate, swaps }: { token: TokenContract; rate: number; swaps: number }) {
     const response: TransactionResponse = await DCAPositionHandler.deposit(token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
     const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
     return { response, dcaId };
