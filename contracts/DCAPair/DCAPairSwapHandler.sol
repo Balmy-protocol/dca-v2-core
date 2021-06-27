@@ -15,7 +15,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
 
   mapping(uint32 => mapping(address => uint256)) public override swapAmountAccumulator; // swap interval => from token => swap amount accum
 
-  mapping(uint32 => uint32) public override lastSwapPerformed;
+  mapping(uint32 => uint32) public override nextSwapAvailable; // swap interval => timestamp
   ISlidingOracle public override oracle;
 
   constructor(ISlidingOracle _oracle) {
@@ -71,7 +71,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _swapsToPerform = new SwapInformation[](_allowedSwapIntervals.length);
     for (uint256 i; i < _allowedSwapIntervals.length; i++) {
       uint32 _swapInterval = _allowedSwapIntervals[i];
-      if (lastSwapPerformed[_swapInterval] / _swapInterval < _getTimestamp() / _swapInterval) {
+      if (nextSwapAvailable[_swapInterval] <= _getTimestamp()) {
         uint32 _swapToPerform = performedSwaps[_swapInterval] + 1;
         _swapsToPerform[_amountOfSwapsToPerform] = SwapInformation({
           interval: _swapInterval,
@@ -155,6 +155,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     if (_swapParameters.isPaused) revert CommonErrors.Paused();
     NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
 
+    // TODO: revert if _nextSwapInformation.amountOfSwaps is 0
     uint32 _timestamp = _getTimestamp();
     for (uint256 i; i < _nextSwapInformation.amountOfSwaps; i++) {
       uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
@@ -174,7 +175,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
         _swapToPerform
       );
       performedSwaps[_swapInterval] = _swapToPerform;
-      lastSwapPerformed[_swapInterval] = _timestamp;
+      nextSwapAvailable[_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
     }
 
     if (

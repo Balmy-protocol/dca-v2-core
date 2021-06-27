@@ -123,7 +123,7 @@ interface IDCAPairSwapHandler {
 
   error WithinInterval();
 
-  function lastSwapPerformed(uint32) external view returns (uint32);
+  function nextSwapAvailable(uint32) external view returns (uint32);
 
   function swapAmountAccumulator(uint32, address) external view returns (uint256);
 
