@@ -17,6 +17,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   using SafeERC20 for IERC20Detailed;
+  using EnumerableSet for EnumerableSet.UintSet;
 
   mapping(uint256 => DCA) internal _userPositions;
   uint256 internal _idCounter;
@@ -53,6 +54,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _balances[_tokenAddress] += _amount;
     _idCounter += 1;
     _safeMint(msg.sender, _idCounter);
+    _activeSwapIntervals.add(_swapInterval);
     (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_idCounter, _tokenAddress, _rate, _amountOfSwaps, 0, _swapInterval);
     emit Deposited(msg.sender, _idCounter, _tokenAddress, _rate, _startingSwap, _swapInterval, _finalSwap);
     return _idCounter;

@@ -12,6 +12,7 @@ import './DCAPairParameters.sol';
 
 abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCAPairSwapHandler {
   using SafeERC20 for IERC20Detailed;
+  using EnumerableSet for EnumerableSet.UintSet;
 
   mapping(uint32 => mapping(address => uint256)) public override swapAmountAccumulator; // swap interval => from token => swap amount accum
 
@@ -66,11 +67,10 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   }
 
   function _getNextSwapsToPerform() internal view virtual returns (SwapInformation[] memory _swapsToPerform, uint8 _amountOfSwapsToPerform) {
-    // TODO: Make choice of what swap intervals to execute in a clever way
-    uint32[] memory _allowedSwapIntervals = globalParameters.allowedSwapIntervals();
-    _swapsToPerform = new SwapInformation[](_allowedSwapIntervals.length);
-    for (uint256 i; i < _allowedSwapIntervals.length; i++) {
-      uint32 _swapInterval = _allowedSwapIntervals[i];
+    uint256 _activeSwapIntervalsLength = _activeSwapIntervals.length();
+    _swapsToPerform = new SwapInformation[](_activeSwapIntervalsLength);
+    for (uint256 i; i < _activeSwapIntervalsLength; i++) {
+      uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
       if (nextSwapAvailable[_swapInterval] <= _getTimestamp()) {
         uint32 _swapToPerform = performedSwaps[_swapInterval] + 1;
         _swapsToPerform[_amountOfSwapsToPerform] = SwapInformation({
@@ -156,27 +156,30 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
     if (_nextSwapInformation.amountOfSwaps == 0) revert NoSwapsToExecute();
 
-    // TODO: revert if _nextSwapInformation.amountOfSwaps is 0
     uint32 _timestamp = _getTimestamp();
     for (uint256 i; i < _nextSwapInformation.amountOfSwaps; i++) {
       uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
       uint32 _swapToPerform = _nextSwapInformation.swapsToPerform[i].swapToPerform;
-      _registerSwap(
-        _swapInterval,
-        address(tokenA),
-        _nextSwapInformation.swapsToPerform[i].amountToSwapTokenA,
-        _nextSwapInformation.ratePerUnitAToB,
-        _swapToPerform
-      );
-      _registerSwap(
-        _swapInterval,
-        address(tokenB),
-        _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB,
-        _nextSwapInformation.ratePerUnitBToA,
-        _swapToPerform
-      );
-      performedSwaps[_swapInterval] = _swapToPerform;
-      nextSwapAvailable[_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
+      if (_nextSwapInformation.swapsToPerform[i].amountToSwapTokenA > 0 || _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB > 0) {
+        _registerSwap(
+          _swapInterval,
+          address(tokenA),
+          _nextSwapInformation.swapsToPerform[i].amountToSwapTokenA,
+          _nextSwapInformation.ratePerUnitAToB,
+          _swapToPerform
+        );
+        _registerSwap(
+          _swapInterval,
+          address(tokenB),
+          _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB,
+          _nextSwapInformation.ratePerUnitBToA,
+          _swapToPerform
+        );
+        performedSwaps[_swapInterval] = _swapToPerform;
+        nextSwapAvailable[_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
+      } else {
+        _activeSwapIntervals.remove(_swapInterval);
+      }
     }
 
     if (

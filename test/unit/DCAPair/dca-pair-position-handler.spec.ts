@@ -216,6 +216,10 @@ describe('DCAPositionHandler', () => {
         expect(balance).to.equal(1);
       });
 
+      then('interval is added to active list', async () => {
+        expect(await DCAPositionHandler.activeSwapIntervals()).to.eql([SWAP_INTERVAL]);
+      });
+
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });

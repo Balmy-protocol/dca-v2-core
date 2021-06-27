@@ -5,6 +5,8 @@ pragma solidity 0.8.4;
 import '../../DCAPair/DCAPairParameters.sol';
 
 contract DCAPairParametersMock is DCAPairParameters {
+  using EnumerableSet for EnumerableSet.UintSet;
+
   constructor(
     IDCAGlobalParameters _globalParameters,
     IERC20Detailed _tokenA,
@@ -28,6 +30,22 @@ contract DCAPairParametersMock is DCAPairParameters {
   function setInternalBalances(uint256 _amountTokenA, uint256 _amountTokenB) public {
     _balances[address(tokenA)] = _amountTokenA;
     _balances[address(tokenB)] = _amountTokenB;
+  }
+
+  function addActiveSwapInterval(uint32 _activeInterval) public {
+    _activeSwapIntervals.add(_activeInterval);
+  }
+
+  function removeActiveSwapInterval(uint32 _activeInterval) public {
+    _activeSwapIntervals.remove(_activeInterval);
+  }
+
+  function activeSwapIntervals() external view returns (uint32[] memory __activeSwapIntervals) {
+    uint256 _activeSwapIntervalsLength = _activeSwapIntervals.length();
+    __activeSwapIntervals = new uint32[](_activeSwapIntervalsLength);
+    for (uint256 i; i < _activeSwapIntervalsLength; i++) {
+      __activeSwapIntervals[i] = uint32(_activeSwapIntervals.at(i));
+    }
   }
 
   function setSwapAmountDelta(

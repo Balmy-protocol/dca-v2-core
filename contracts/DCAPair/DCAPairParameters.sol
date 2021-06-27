@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
 import '../interfaces/IDCAGlobalParameters.sol';
 import '../interfaces/IERC20Detailed.sol';
@@ -27,6 +28,7 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   mapping(uint32 => uint32) public override performedSwaps; // swap interval => performed swaps
   mapping(uint32 => mapping(address => mapping(uint32 => uint256))) internal _accumRatesPerUnit; // swap interval => from token => swap number => accum
   mapping(address => uint256) internal _balances;
+  EnumerableSet.UintSet internal _activeSwapIntervals;
 
   constructor(
     IDCAGlobalParameters _globalParameters,
