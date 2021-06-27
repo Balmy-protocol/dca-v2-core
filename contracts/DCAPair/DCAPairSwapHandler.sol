@@ -154,6 +154,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
     if (_swapParameters.isPaused) revert CommonErrors.Paused();
     NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
+    if (_nextSwapInformation.amountOfSwaps == 0) revert NoSwapsToExecute();
 
     // TODO: revert if _nextSwapInformation.amountOfSwaps is 0
     uint32 _timestamp = _getTimestamp();

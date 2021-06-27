@@ -121,7 +121,7 @@ interface IDCAPairSwapHandler {
     NextSwapInformation _nextSwapInformation
   );
 
-  error WithinInterval();
+  error NoSwapsToExecute();
 
   function nextSwapAvailable(uint32) external view returns (uint32);
 

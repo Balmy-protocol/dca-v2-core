@@ -9,6 +9,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   uint32 private _customTimestamp;
 
   // Used to mock _getNextSwapsToPerform
+  bool private _shouldMockGetNextSwapsToPerform = false;
   mapping(uint8 => SwapInformation) private _swapsToPerform;
   uint8 private _swapsToPerformLength;
 
@@ -28,7 +29,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   }
 
   function _getNextSwapsToPerform() internal view override returns (SwapInformation[] memory _swapInformation, uint8 _amountOfSwaps) {
-    if (_swapsToPerformLength > 0) {
+    if (_shouldMockGetNextSwapsToPerform) {
       _swapInformation = new SwapInformation[](_swapsToPerformLength);
       _amountOfSwaps = _swapsToPerformLength;
       for (uint8 i; i < _amountOfSwaps; i++) {
@@ -44,6 +45,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
       _swapsToPerform[i] = __swapsToPerform[i];
     }
     _swapsToPerformLength = uint8(__swapsToPerform.length);
+    _shouldMockGetNextSwapsToPerform = true;
   }
 
   function registerSwap(

@@ -902,6 +902,15 @@ describe('DCAPairSwapHandler', () => {
 
   describe('swap', () => {
     swapTestFailed({
+      title: 'there are no swaps to execute',
+      nextSwapContext: [],
+      initialSwapperBalanceTokenA: 0,
+      initialSwapperBalanceTokenB: 0,
+      ratePerUnitBToA: 1,
+      reason: 'NoSwapsToExecute',
+    });
+
+    swapTestFailed({
       title: 'external amount of token a to be provided is not sent',
       context: () => DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_2], ['Every 2 days']),
       nextSwapContext: [
