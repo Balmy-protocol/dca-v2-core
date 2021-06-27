@@ -23,7 +23,7 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairParameters
     uint256 _dcaId,
     uint256 _totalNecessary,
     uint256 _unswapped,
-    uint192 _newRate,
+    uint160 _newRate,
     uint32 _newAmountOfSwaps
   ) external {
     _modifyPosition(_dcaId, _totalNecessary, _unswapped, _newRate, _newAmountOfSwaps);

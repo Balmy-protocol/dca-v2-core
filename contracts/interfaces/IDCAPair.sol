@@ -31,7 +31,7 @@ interface IDCAPairPositionHandler is IDCAPairParameters {
     uint256 swapped; // Since deposit or last withdraw
     uint32 swapsLeft;
     uint256 remaining;
-    uint192 rate;
+    uint160 rate;
   }
 
   event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
@@ -39,14 +39,14 @@ interface IDCAPairPositionHandler is IDCAPairParameters {
     address indexed _user,
     uint256 _dcaId,
     address _fromToken,
-    uint192 _rate,
+    uint160 _rate,
     uint32 _startingSwap,
     uint32 _swapInterval,
     uint32 _lastSwap
   );
   event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
   event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
-  event Modified(address indexed _user, uint256 _dcaId, uint192 _rate, uint32 _startingSwap, uint32 _lastSwap);
+  event Modified(address indexed _user, uint256 _dcaId, uint160 _rate, uint32 _startingSwap, uint32 _lastSwap);
 
   error InvalidToken();
   error InvalidInterval();
@@ -62,7 +62,7 @@ interface IDCAPairPositionHandler is IDCAPairParameters {
 
   function deposit(
     address _tokenAddress,
-    uint192 _rate,
+    uint160 _rate,
     uint32 _amountOfSwaps,
     uint32 _swapInterval
   ) external returns (uint256 _dcaId);
@@ -71,13 +71,13 @@ interface IDCAPairPositionHandler is IDCAPairParameters {
 
   function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
 
-  function modifyRate(uint256 _dcaId, uint192 _newRate) external;
+  function modifyRate(uint256 _dcaId, uint160 _newRate) external;
 
   function modifySwaps(uint256 _dcaId, uint32 _newSwaps) external;
 
   function modifyRateAndSwaps(
     uint256 _dcaId,
-    uint192 _newRate,
+    uint160 _newRate,
     uint32 _newSwaps
   ) external;
 

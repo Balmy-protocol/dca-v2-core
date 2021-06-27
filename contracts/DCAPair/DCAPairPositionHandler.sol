@@ -10,8 +10,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   struct DCA {
     uint32 lastWithdrawSwap;
     uint32 lastSwap;
-    uint32 swapInterval; // TODO: remove 32 bits from somewhere else
-    uint192 rate;
+    uint32 swapInterval;
+    uint160 rate;
     bool fromTokenA;
     uint248 swappedBeforeModified;
   }
@@ -41,7 +41,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
   function deposit(
     address _tokenAddress,
-    uint192 _rate,
+    uint160 _rate,
     uint32 _amountOfSwaps,
     uint32 _swapInterval
   ) public override nonReentrant returns (uint256) {
@@ -128,7 +128,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     emit Terminated(msg.sender, _dcaId, _unswapped, _swapped);
   }
 
-  function modifyRate(uint256 _dcaId, uint192 _newRate) public override nonReentrant {
+  function modifyRate(uint256 _dcaId, uint160 _newRate) public override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     DCA memory _userDCA = _userPositions[_dcaId];
@@ -147,7 +147,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
   function modifyRateAndSwaps(
     uint256 _dcaId,
-    uint192 _newRate,
+    uint160 _newRate,
     uint32 _newAmountOfSwaps
   ) public override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
@@ -166,7 +166,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _total = _unswapped + _amount;
 
-    _modifyPosition(_dcaId, _total, _unswapped, uint192(_total / _newSwaps), _newSwaps);
+    _modifyPosition(_dcaId, _total, _unswapped, uint160(_total / _newSwaps), _newSwaps);
   }
 
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
@@ -176,7 +176,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   /** Helper function to modify a position */
   function _modifyRateAndSwaps(
     uint256 _dcaId,
-    uint192 _newRate,
+    uint160 _newRate,
     uint32 _newAmountOfSwaps
   ) internal {
     uint256 _unswapped = _calculateUnswapped(_dcaId);
@@ -189,7 +189,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _dcaId,
     uint256 _totalNecessary,
     uint256 _unswapped,
-    uint192 _newRate,
+    uint160 _newRate,
     uint32 _newAmountOfSwaps
   ) internal {
     IERC20Detailed _from = _getFrom(_dcaId);
@@ -230,7 +230,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function _addPosition(
     uint256 _dcaId,
     address _from,
-    uint192 _rate,
+    uint160 _rate,
     uint32 _amountOfSwaps,
     uint248 _swappedBeforeModified,
     uint32 _swapInterval
@@ -240,8 +240,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _performedSwaps = performedSwaps[_swapInterval];
     _startingSwap = _performedSwaps + 1;
     _finalSwap = _performedSwaps + _amountOfSwaps;
-    swapAmountDelta[_swapInterval][_from][_startingSwap] += int192(_rate);
-    swapAmountDelta[_swapInterval][_from][_finalSwap] -= int192(_rate);
+    swapAmountDelta[_swapInterval][_from][_startingSwap] += int160(_rate);
+    swapAmountDelta[_swapInterval][_from][_finalSwap] -= int160(_rate);
     _userPositions[_dcaId] = DCA(_performedSwaps, _finalSwap, _swapInterval, _rate, _from == address(tokenA), _swappedBeforeModified);
   }
 
@@ -249,8 +249,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     DCA memory _userDCA = _userPositions[_dcaId];
     if (_userDCA.lastSwap > performedSwaps[_userDCA.swapInterval]) {
       address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
-      swapAmountDelta[_userDCA.swapInterval][_from][performedSwaps[_userDCA.swapInterval] + 1] -= int192(_userDCA.rate);
-      swapAmountDelta[_userDCA.swapInterval][_from][_userDCA.lastSwap] += int192(_userDCA.rate);
+      swapAmountDelta[_userDCA.swapInterval][_from][performedSwaps[_userDCA.swapInterval] + 1] -= int160(_userDCA.rate);
+      swapAmountDelta[_userDCA.swapInterval][_from][_userDCA.lastSwap] += int160(_userDCA.rate);
     }
     delete _userPositions[_dcaId];
   }

@@ -25,7 +25,7 @@ library NFTDescriptor {
     uint256 tokenId;
     uint256 swapped;
     uint256 remaining;
-    uint192 rate;
+    uint160 rate;
     bool fromA;
   }
 
