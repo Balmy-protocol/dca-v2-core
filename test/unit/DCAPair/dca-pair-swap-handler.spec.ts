@@ -580,12 +580,6 @@ describe('DCAPairSwapHandler', () => {
         expect(nextSwapInfo.swapsToPerform).to.eql(parsedNextSwaps.nextSwaps);
         expect(nextSwapInfo.amountOfSwaps).to.eql(parsedNextSwaps.amount);
       });
-      then('amount to swap of token A is correct', () => {
-        expect(nextSwapInfo.amountToSwapTokenA).to.equal(totalAmountToSwapOfTokenA);
-      });
-      then('amount to swap of token B is correct', () => {
-        expect(nextSwapInfo.amountToSwapTokenB).to.equal(totalAmountToSwapOfTokenB);
-      });
       then('rate of unit b to a is correct', async () => {
         bn.expectToEqualWithThreshold({
           value: nextSwapInfo.ratePerUnitBToA,
@@ -1621,16 +1615,6 @@ describe('DCAPairSwapHandler', () => {
         const parsedNextSwaps = parseNextSwaps(nextSwapContext);
         expect(nextSwapInformation.swapsToPerform).to.deep.equal(parsedNextSwaps.nextSwaps);
         expect(nextSwapInformation.amountOfSwaps).to.equal(parsedNextSwaps.amount);
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInformation.amountToSwapTokenA,
-          to: totalAmountToSwapOfTokenA,
-          threshold: threshold!,
-        });
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInformation.amountToSwapTokenB,
-          to: totalAmountToSwapOfTokenB,
-          threshold: threshold!,
-        });
         bn.expectToEqualWithThreshold({
           value: nextSwapInformation.ratePerUnitBToA,
           to: ratePerUnitBToA,
