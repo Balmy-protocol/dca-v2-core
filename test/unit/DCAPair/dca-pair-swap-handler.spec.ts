@@ -1449,6 +1449,77 @@ describe('DCAPairSwapHandler', () => {
     }
   });
 
+  describe('secondsUntilNextSwap', () => {
+    secondsUntilNextSwapTest({
+      title: 'there are not active intervals',
+      intervals: [],
+      blockTimestamp: 1000,
+      expected: 2 ** 32 - 1,
+    });
+
+    secondsUntilNextSwapTest({
+      title: 'one of the intervals can be swapped already',
+      intervals: [
+        {
+          interval: SWAP_INTERVAL,
+          nextAvailable: 1000,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          nextAvailable: 1001,
+        },
+      ],
+      blockTimestamp: 1000,
+      expected: 0,
+    });
+
+    secondsUntilNextSwapTest({
+      title: 'none of the intervals can be swapped right now',
+      intervals: [
+        {
+          interval: SWAP_INTERVAL,
+          nextAvailable: 1500,
+        },
+        {
+          interval: SWAP_INTERVAL_2,
+          nextAvailable: 1200,
+        },
+      ],
+      blockTimestamp: 1000,
+      expected: 200,
+    });
+
+    async function secondsUntilNextSwapTest({
+      title,
+      intervals,
+      blockTimestamp,
+      expected,
+    }: {
+      title: string;
+      intervals: { interval: number; nextAvailable: number }[];
+      blockTimestamp: number;
+      expected: number;
+    }) {
+      when(title, () => {
+        given(async () => {
+          // This is added automatically. Will remove it and re-add it if test needs it
+          await DCAPairSwapHandler.removeActiveSwapInterval(SWAP_INTERVAL);
+
+          for (const { interval, nextAvailable } of intervals) {
+            await DCAPairSwapHandler.addActiveSwapInterval(interval);
+            await DCAPairSwapHandler.setNextSwapAvailable(interval, nextAvailable);
+          }
+          await DCAPairSwapHandler.setBlockTimestamp(blockTimestamp);
+        });
+
+        then('result is as expected', async () => {
+          const result = await DCAPairSwapHandler.secondsUntilNextSwap();
+          expect(result).to.equal(expected);
+        });
+      });
+    }
+  });
+
   function swapTest({
     title,
     context,

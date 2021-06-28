@@ -141,6 +141,8 @@ interface IDCAPairSwapHandler {
     address _to,
     bytes calldata _data
   ) external;
+
+  function secondsUntilNextSwap() external view returns (uint32);
 }
 
 interface IDCAPairLoanHandler {

@@ -84,6 +84,23 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     }
   }
 
+  function secondsUntilNextSwap() public view override returns (uint32 _secondsUntil) {
+    _secondsUntil = type(uint32).max;
+    uint32 _timestamp = _getTimestamp();
+    for (uint256 i; i < _activeSwapIntervals.length(); i++) {
+      uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
+      if (nextSwapAvailable[_swapInterval] <= _timestamp) {
+        _secondsUntil = 0;
+        break;
+      } else {
+        uint32 _diff = nextSwapAvailable[_swapInterval] - _timestamp;
+        if (_diff < _secondsUntil) {
+          _secondsUntil = _diff;
+        }
+      }
+    }
+  }
+
   function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
     uint32 _swapFee = globalParameters.swapFee();
     _nextSwapInformation = _getNextSwapInfo(_swapFee);
