@@ -40,14 +40,6 @@ contract DCAPairParametersMock is DCAPairParameters {
     _activeSwapIntervals.remove(_activeInterval);
   }
 
-  function activeSwapIntervals() external view returns (uint32[] memory __activeSwapIntervals) {
-    uint256 _activeSwapIntervalsLength = _activeSwapIntervals.length();
-    __activeSwapIntervals = new uint32[](_activeSwapIntervalsLength);
-    for (uint256 i; i < _activeSwapIntervalsLength; i++) {
-      __activeSwapIntervals[i] = uint32(_activeSwapIntervals.at(i));
-    }
-  }
-
   function setSwapAmountDelta(
     uint32 _swapInterval,
     address _tokenAddress,

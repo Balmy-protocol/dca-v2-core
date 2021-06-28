@@ -99,6 +99,9 @@ describe('DCAPairParameters', function () {
       then('fee precision is copied from global parameters', async () => {
         expect(await deployedContract.feePrecision()).to.equal(await DCAGlobalParameters.FEE_PRECISION());
       });
+      then('active swap intervals starts empty', async () => {
+        expect(await deployedContract.activeSwapIntervals()).to.be.empty;
+      });
     });
   });
 

@@ -19,6 +19,8 @@ interface IDCAPairParameters {
     uint32
   ) external view returns (int256);
 
+  function activeSwapIntervals() external view returns (uint32[] memory);
+
   function performedSwaps(uint32) external view returns (uint32);
 }
 

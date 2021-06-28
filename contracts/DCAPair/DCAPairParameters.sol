@@ -13,6 +13,8 @@ import '../libraries/CommonErrors.sol';
 import './utils/Math.sol';
 
 abstract contract DCAPairParameters is IDCAPairParameters {
+  using EnumerableSet for EnumerableSet.UintSet;
+
   // Internal constants
   uint256 internal immutable _magnitudeA;
   uint256 internal immutable _magnitudeB;
@@ -44,6 +46,14 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     tokenB = _tokenB;
     _magnitudeA = 10**_tokenA.decimals();
     _magnitudeB = 10**_tokenB.decimals();
+  }
+
+  function activeSwapIntervals() public view override returns (uint32[] memory __activeSwapIntervals) {
+    uint256 _activeSwapIntervalsLength = _activeSwapIntervals.length();
+    __activeSwapIntervals = new uint32[](_activeSwapIntervalsLength);
+    for (uint256 i; i < _activeSwapIntervalsLength; i++) {
+      __activeSwapIntervals[i] = uint32(_activeSwapIntervals.at(i));
+    }
   }
 
   function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal view returns (uint256) {
