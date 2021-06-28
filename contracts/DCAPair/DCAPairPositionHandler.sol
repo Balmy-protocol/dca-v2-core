@@ -288,11 +288,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     }
 
     uint256 _actuallySwapped = _swappedInCurrentPosition + _userDCA.swappedBeforeModified;
-    if (_applyFee) {
-      _swapped = _actuallySwapped - _getFeeFromAmount(globalParameters.swapFee(), _actuallySwapped);
-    } else {
-      _swapped = _actuallySwapped;
-    }
+    _swapped = _applyFee ? _actuallySwapped - _getFeeFromAmount(globalParameters.swapFee(), _actuallySwapped) : _actuallySwapped;
   }
 
   /** Returns how many FROM remains unswapped  */
