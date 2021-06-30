@@ -9,6 +9,7 @@ import 'hardhat-deploy';
 import 'solidity-coverage';
 import { HardhatUserConfig, NetworksUserConfig } from 'hardhat/types';
 import { getNodeUrl, accounts } from './utils/network';
+import { utils } from 'ethers';
 
 const networks: NetworksUserConfig = process.env.TEST
   ? {}
@@ -16,7 +17,7 @@ const networks: NetworksUserConfig = process.env.TEST
       hardhat: {
         forking: {
           enabled: process.env.FORK ? true : false,
-          url: getNodeUrl('mainnet'),
+          url: getNodeUrl('ropsten'),
         },
         tags: ['test', 'local'],
       },
@@ -29,6 +30,18 @@ const networks: NetworksUserConfig = process.env.TEST
       kovan: {
         url: getNodeUrl('kovan'),
         accounts: accounts('kovan'),
+        gasPrice: utils.parseUnits('5', 'gwei').toNumber(),
+        tags: ['staging'],
+      },
+      rinkeby: {
+        url: getNodeUrl('rinkeby'),
+        accounts: accounts('rinkeby'),
+        gasPrice: 'auto',
+        tags: ['staging'],
+      },
+      ropsten: {
+        url: getNodeUrl('ropsten'),
+        accounts: accounts('ropsten'),
         gasPrice: 'auto',
         tags: ['staging'],
       },
@@ -46,6 +59,7 @@ const config: HardhatUserConfig = {
     deployer: 0,
     governor: 1,
     feeRecipient: 2,
+    marketMaker: 3,
   },
   networks,
   solidity: {

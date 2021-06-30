@@ -1,10 +1,17 @@
-import { run, ethers } from 'hardhat';
+import { BigNumber } from '@ethersproject/bignumber';
+import { ethers } from 'hardhat';
+import moment from 'moment';
 
 async function main() {
-  run('compile');
-  const Greeter = await ethers.getContractFactory('Greeter');
-  const greeter = await Greeter.deploy('Hello, Hardhat!');
-  console.log('Greeter deployed to:', greeter.address);
+  const globalParameters = await ethers.getContract('GlobalParameters');
+  const factory = await ethers.getContract('Factory');
+  const allowedSwapIntervals = await globalParameters.allowedSwapIntervals();
+  console.log(
+    'Current swap intervals',
+    allowedSwapIntervals.map((si: number) => moment.duration(si, 'seconds').humanize())
+  );
+  // await factory.createPair('0xc778417e063141139fce010982780140aa0cd5ab', '0xad6d458402f60fd3bd25163575031acdce07538d', { gasLimit: 5000000 });
+  console.log('Pairs', await factory.allPairs(0));
 }
 
 // We recommend this pattern to be able to use async/await everywhere
