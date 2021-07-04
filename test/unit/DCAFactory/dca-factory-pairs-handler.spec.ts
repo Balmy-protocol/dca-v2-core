@@ -8,7 +8,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAFactoryPairsHandler', function () {
   let owner: SignerWithAddress;
-  let tokenA: Contract, tokenB: Contract;
+  let tokenAContract: Contract, tokenBContract: Contract;
   let DCAGlobalParametersContract: ContractFactory, DCAFactoryPairsHandlerContract: ContractFactory;
   let DCAGlobalParameters: Contract, DCAFactoryPairsHandler: Contract;
 
@@ -23,13 +23,13 @@ describe('DCAFactoryPairsHandler', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    tokenA = await erc20.deploy({
+    tokenAContract = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    tokenB = await erc20.deploy({
+    tokenBContract = await erc20.deploy({
       name: 'DAI2',
       symbol: 'DAI2',
       initialAccount: await owner.getAddress(),
@@ -62,7 +62,7 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [constants.ZERO_ADDRESS, tokenB.address],
+          args: [constants.ZERO_ADDRESS, tokenBContract.address],
           message: 'ZeroAddress',
         });
       });
@@ -72,7 +72,7 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [tokenA.address, constants.ZERO_ADDRESS],
+          args: [tokenAContract.address, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -82,21 +82,21 @@ describe('DCAFactoryPairsHandler', function () {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAFactoryPairsHandler,
           func: 'createPair',
-          args: [tokenA.address, tokenA.address],
+          args: [tokenAContract.address, tokenAContract.address],
           message: 'IdenticalTokens',
         });
       });
     });
     when('pair already exists', () => {
       given(async () => {
-        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address);
+        await DCAFactoryPairsHandler.createPair(tokenAContract.address, tokenBContract.address);
       });
       when('sending tokenA first', () => {
         then('tx is reverted with reason', async () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
-            args: [tokenA.address, tokenB.address],
+            args: [tokenAContract.address, tokenBContract.address],
             message: 'PairAlreadyExists',
           });
         });
@@ -106,7 +106,7 @@ describe('DCAFactoryPairsHandler', function () {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
-            args: [tokenB.address, tokenA.address],
+            args: [tokenAContract.address, tokenBContract.address],
             message: 'PairAlreadyExists',
           });
         });
@@ -116,21 +116,21 @@ describe('DCAFactoryPairsHandler', function () {
       let hipotheticPairAddress: string;
       let createPairTx: TransactionResponse;
       given(async () => {
-        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address);
-        createPairTx = await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address);
+        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenAContract.address, tokenBContract.address);
+        createPairTx = await DCAFactoryPairsHandler.createPair(tokenAContract.address, tokenBContract.address);
       });
       then('creates pair with correct information', async () => {
         const dcaPair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', hipotheticPairAddress);
         expect(await dcaPair.globalParameters()).to.equal(DCAGlobalParameters.address);
       });
       then('adds it to the registry', async () => {
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(hipotheticPairAddress);
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(hipotheticPairAddress);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(hipotheticPairAddress);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(hipotheticPairAddress);
         expect(await DCAFactoryPairsHandler.allPairs(0)).to.equal(hipotheticPairAddress);
       });
       then('emits event', async () => {
-        const { token0, token1 } = sortTokens(tokenA.address, tokenB.address);
-        await expect(createPairTx).to.emit(DCAFactoryPairsHandler, 'PairCreated').withArgs(token0, token1, hipotheticPairAddress);
+        const { tokenA, tokenB } = sortTokens(tokenAContract.address, tokenBContract.address);
+        await expect(createPairTx).to.emit(DCAFactoryPairsHandler, 'PairCreated').withArgs(tokenA, tokenB, hipotheticPairAddress);
       });
     });
   });
@@ -138,22 +138,22 @@ describe('DCAFactoryPairsHandler', function () {
   describe('pairByTokens', () => {
     when('pair for tokenA<->tokenB doesnt exist', () => {
       then('zero address', async () => {
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(constants.ZERO_ADDRESS);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(constants.ZERO_ADDRESS);
       });
     });
     when('pair for tokenA<->tokenB exists', () => {
       let hipotheticPairAddress: string;
       given(async () => {
-        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenA.address, tokenB.address);
-        await DCAFactoryPairsHandler.createPair(tokenA.address, tokenB.address);
+        hipotheticPairAddress = await DCAFactoryPairsHandler.callStatic.createPair(tokenAContract.address, tokenBContract.address);
+        await DCAFactoryPairsHandler.createPair(tokenAContract.address, tokenBContract.address);
       });
       then('returns correct pair address', async () => {
-        const { token0, token1 } = sortTokens(tokenA.address, tokenB.address);
-        expect(await DCAFactoryPairsHandler.pairByTokens(token0, token1)).to.equal(hipotheticPairAddress);
+        const { tokenA, tokenB } = sortTokens(tokenAContract.address, tokenBContract.address);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA, tokenB)).to.equal(hipotheticPairAddress);
       });
       then('returns the same address if asking for tokenB<->tokenA pair', async () => {
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA.address, tokenB.address)).to.equal(
-          await DCAFactoryPairsHandler.pairByTokens(tokenB.address, tokenA.address)
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(
+          await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)
         );
       });
     });
@@ -161,43 +161,43 @@ describe('DCAFactoryPairsHandler', function () {
 
   describe('sortTokens', () => {
     when('sorting token addresses', () => {
-      let token0: string;
-      let token1: string;
+      let tokenA: string;
+      let tokenB: string;
       given(async () => {
-        [token0, token1] = await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address);
+        [tokenA, tokenB] = await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address);
       });
-      then('token0 is correct', () => {
-        expect(sortTokens(tokenA.address, tokenB.address).token0).to.equal(token0);
+      then('tokenA is correct', () => {
+        expect(sortTokens(tokenAContract.address, tokenBContract.address).tokenA).to.equal(tokenA);
       });
-      then('token1 is correct', () => {
-        expect(sortTokens(tokenA.address, tokenB.address).token1).to.equal(token1);
+      then('tokenB is correct', () => {
+        expect(sortTokens(tokenAContract.address, tokenBContract.address).tokenB).to.equal(tokenB);
       });
     });
     when('calling with inverted order', () => {
-      let token0: string;
-      let token1: string;
+      let tokenA: string;
+      let tokenB: string;
       given(async () => {
-        [token0, token1] = await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address);
+        [tokenA, tokenB] = await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address);
       });
-      then('token0 is the same', async () => {
-        await expect((await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address))[0]).to.equal(token0);
+      then('tokenA is the same', async () => {
+        await expect((await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address))[0]).to.equal(tokenA);
       });
-      then('token1 is the same', async () => {
-        await expect((await DCAFactoryPairsHandler.sortTokens(tokenA.address, tokenB.address))[1]).to.equal(token1);
+      then('tokenB is the same', async () => {
+        await expect((await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address))[1]).to.equal(tokenB);
       });
     });
   });
 
-  function sortTokens(tokenA: string, tokenB: string): { token0: string; token1: string } {
+  function sortTokens(tokenA: string, tokenB: string): { tokenA: string; tokenB: string } {
     if (tokenA.toLowerCase() < tokenB.toLowerCase()) {
       return {
-        token0: tokenA,
-        token1: tokenB,
+        tokenA: tokenA,
+        tokenB: tokenB,
       };
     } else {
       return {
-        token0: tokenB,
-        token1: tokenA,
+        tokenA: tokenB,
+        tokenB: tokenA,
       };
     }
   }

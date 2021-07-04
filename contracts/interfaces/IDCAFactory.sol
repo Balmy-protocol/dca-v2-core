@@ -8,7 +8,7 @@ interface IDCAFactoryPairsHandler {
 
   error PairAlreadyExists();
 
-  event PairCreated(address indexed _token0, address indexed _token1, address _pair);
+  event PairCreated(address indexed _tokenA, address indexed _tokenB, address _pair);
 
   function globalParameters() external view returns (IDCAGlobalParameters);
 

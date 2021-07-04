@@ -6,8 +6,8 @@ import './DCAPairParameters.sol';
 
 contract DCAPairLoanHandlerMock is DCAPairLoanHandler, DCAPairParametersMock {
   constructor(
-    IERC20Detailed _token0,
-    IERC20Detailed _token1,
+    IERC20Detailed _tokenA,
+    IERC20Detailed _tokenB,
     IDCAGlobalParameters _globalParameters
-  ) DCAPairParametersMock(_globalParameters, _token0, _token1) {}
+  ) DCAPairParametersMock(_globalParameters, _tokenA, _tokenB) {}
 }
