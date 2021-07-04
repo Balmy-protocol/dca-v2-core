@@ -17,6 +17,8 @@ abstract contract MAPPositionHandler is MAPParameters, IMAPPositionHandler {
   struct PairData {
     address tokenA;
     address tokenB;
+    uint256 magnitudeTokenA;
+    uint256 magnitudeTokenB;
   }
 
   uint104 internal constant _POSITION_RATIO_PRECISION = 1e30;
@@ -35,10 +37,11 @@ abstract contract MAPPositionHandler is MAPParameters, IMAPPositionHandler {
     IERC20Detailed(_pairData.tokenB).safeTransferFrom(msg.sender, address(this), _amountTokenB);
 
     uint256 _ratioFromAToB = _fetchRatio();
-    uint256 _liquidity = _amountTokenA * _ratioFromAToB + _amountTokenB;
+    uint256 _liquidity = _convertTo(_pairData.magnitudeTokenA, _amountTokenA, _ratioFromAToB) + _amountTokenB;
     require(_liquidity > 0, 'MAP: Deposited liquidity must be positive'); // TODO: Change to Error
 
-    uint256 _totalLiquidity = liquidity[_pair].amountTokenA * _ratioFromAToB + liquidity[_pair].amountTokenB;
+    uint256 _totalLiquidity = _convertTo(_pairData.magnitudeTokenA, liquidity[_pair].amountTokenA, _ratioFromAToB) +
+      liquidity[_pair].amountTokenB;
     uint256 _shares = _totalShares[_pair] == 0 ? _liquidity : (_liquidity * _totalShares[_pair]) / _totalLiquidity; // TODO: Analyze overflow or round to zero
     uint104 _ratioB = uint104((_amountTokenB * _POSITION_RATIO_PRECISION) / _liquidity); // TODO: Analyze overflow or round to zero
 
@@ -61,27 +64,42 @@ abstract contract MAPPositionHandler is MAPParameters, IMAPPositionHandler {
   function calculateOwned(address _pair, address _owner) public view override returns (uint256 _ownedTokenA, uint256 _ownedTokenB) {
     PairPosition memory _position = _positions[_pair][_owner];
 
-    require(_position.shares > 0, 'MAP: Invalid position id'); // TODO: Change to error
+    if (_position.shares == 0) {
+      return (0, 0);
+    }
 
     uint256 _amountTokenA = liquidity[_pair].amountTokenA;
     uint256 _amountTokenB = liquidity[_pair].amountTokenB;
 
+    PairData memory _pairData = _getPairData(_pair);
+
     uint256 _ratioFromAToB = _fetchRatio();
-    uint256 _totalLiquidity = _amountTokenA * _ratioFromAToB + _amountTokenB; // TODO: evaluate how to choose if base token should be A or B. Now it's always B
+    uint256 _ratioFromBToA = (_pairData.magnitudeTokenB * _pairData.magnitudeTokenA) / _ratioFromAToB;
+    uint256 _totalLiquidity = _convertTo(_pairData.magnitudeTokenA, _amountTokenA, _ratioFromAToB) + _amountTokenB;
     uint256 _ownedLiquidity = (_totalLiquidity * _position.shares) / _totalShares[_pair]; // TODO: Analyze overflow or round to zero
 
-    _ownedTokenA = (_ownedLiquidity * (_POSITION_RATIO_PRECISION - _position.ratioB)) / _POSITION_RATIO_PRECISION / _ratioFromAToB; // TODO: this workes only when decimals(tokenA) = decimals(tokenB). When we integrate with oracle, we will need to change this. // TODO: Analyze overflow or round to zero
+    _ownedTokenA =
+      (_ownedLiquidity * _convertTo(_pairData.magnitudeTokenB, _POSITION_RATIO_PRECISION - _position.ratioB, _ratioFromBToA)) /
+      _POSITION_RATIO_PRECISION; // TODO: Analyze overflow or round to zero
     _ownedTokenB = (_ownedLiquidity * _position.ratioB) / _POSITION_RATIO_PRECISION; // TODO: Analyze overflow or round to zero
 
     if (_ownedTokenA > _amountTokenA) {
       uint256 _diff = _ownedTokenA - _amountTokenA;
       _ownedTokenA = _amountTokenA;
-      _ownedTokenB += _diff * _ratioFromAToB;
+      _ownedTokenB += _convertTo(_pairData.magnitudeTokenA, _diff, _ratioFromAToB);
     } else if (_ownedTokenB > _amountTokenB) {
       uint256 _diff = _ownedTokenB - _amountTokenB;
-      _ownedTokenA += _diff / _ratioFromAToB;
+      _ownedTokenA += _convertTo(_pairData.magnitudeTokenB, _diff, _ratioFromBToA);
       _ownedTokenB = _amountTokenB;
     }
+  }
+
+  function _convertTo(
+    uint256 _fromTokenMagnitude,
+    uint256 _amountFrom,
+    uint256 _rateFromTo
+  ) internal pure returns (uint256 _amountTo) {
+    _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
   }
 
   /** Returns the ratio from tokenA to tokenB */

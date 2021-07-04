@@ -1,6 +1,6 @@
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
-import { erc20, behaviours, constants } from '../../../utils';
+import { erc20, behaviours, constants, bn } from '../../../utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { when, then, given } from '../../../utils/bdd';
@@ -20,6 +20,7 @@ describe('MAPPositionHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract;
   let MAPPositionHandlerContract: ContractFactory;
   let MAPPositionHandler: Contract;
+  let tokenRatio: BigNumber;
   let positionRatioPrecision: BigNumber;
   let initialAmountOfShares: BigNumber;
 
@@ -34,12 +35,12 @@ describe('MAPPositionHandler', () => {
     tokenA = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
-      decimals: 18,
+      decimals: 16,
     });
     tokenB = await erc20.deploy({
       name: 'WBTC',
       symbol: 'WBTC',
-      decimals: 18,
+      decimals: 12,
     });
     MAPPositionHandler = await MAPPositionHandlerContract.deploy();
     await tokenA.approveInternal(owner.address, MAPPositionHandler.address, constants.MAX_UINT_256);
@@ -47,12 +48,14 @@ describe('MAPPositionHandler', () => {
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
 
+    tokenRatio = tokenB.asUnits(TOKEN_RATIO);
+
     positionRatioPrecision = await MAPPositionHandler.POSITION_RATIO_PRECISION();
     await MAPPositionHandler.setPairData(PAIR_ADDRESS, tokenA.address, tokenB.address);
-    await MAPPositionHandler.setRatio(TOKEN_RATIO);
+    await MAPPositionHandler.setRatio(tokenRatio);
     await MAPPositionHandler.setLiquidity(PAIR_ADDRESS, tokenA.asUnits(INITIAL_PAIR_LIQUIDITY_A), tokenB.asUnits(INITIAL_PAIR_LIQUIDITY_B));
 
-    const initialLiquidity = tokenA.asUnits(INITIAL_PAIR_LIQUIDITY_A).mul(TOKEN_RATIO).add(tokenB.asUnits(INITIAL_PAIR_LIQUIDITY_B));
+    const initialLiquidity = tokenA.asUnits(INITIAL_PAIR_LIQUIDITY_A).mul(tokenRatio).add(tokenB.asUnits(INITIAL_PAIR_LIQUIDITY_B));
     initialAmountOfShares = initialLiquidity.div(INITIAL_SHARES_VALUE);
     await MAPPositionHandler.setTotalShares(PAIR_ADDRESS, initialAmountOfShares);
   });
@@ -102,12 +105,12 @@ describe('MAPPositionHandler', () => {
         depositedLiquidity = getLiquidityWithRatio({
           amountTokenA: INITIAL_TOKEN_A_BALANCE_USER,
           amountTokenB: INITIAL_TOKEN_B_BALANCE_USER,
-          ratio: TOKEN_RATIO,
+          ratio: tokenRatio,
         });
         const existingLiquidity = getLiquidityWithRatio({
           amountTokenA: INITIAL_PAIR_LIQUIDITY_A,
           amountTokenB: INITIAL_PAIR_LIQUIDITY_B,
-          ratio: TOKEN_RATIO,
+          ratio: tokenRatio,
         });
 
         shares = depositedLiquidity.mul(initialAmountOfShares).div(existingLiquidity);
@@ -152,13 +155,10 @@ describe('MAPPositionHandler', () => {
 
   describe('calculateOwned', () => {
     when(`when position doesn't exist`, async () => {
-      then('tx is reverted with message', async () => {
-        behaviours.txShouldRevertWithMessage({
-          contract: MAPPositionHandler,
-          func: 'calculateOwned',
-          args: [1],
-          message: 'MAP: Invalid position id',
-        });
+      then('owned is zero', async () => {
+        const [ownedTokenA, ownedTokenB] = await MAPPositionHandler.calculateOwned(PAIR_ADDRESS, owner.address);
+        expect(ownedTokenA).to.equal(0);
+        expect(ownedTokenB).to.equal(0);
       });
     });
 
@@ -175,8 +175,16 @@ describe('MAPPositionHandler', () => {
 
       then('owned is exactly as deposited', async () => {
         const [ownedTokenA, ownedTokenB] = await MAPPositionHandler.calculateOwned(PAIR_ADDRESS, owner.address);
-        expect(ownedTokenA).to.equal(depositedTokenA);
-        expect(ownedTokenB).to.equal(depositedTokenB);
+        bn.expectToEqualWithThreshold({
+          value: ownedTokenA,
+          to: depositedTokenA,
+          threshold: 1,
+        });
+        bn.expectToEqualWithThreshold({
+          value: ownedTokenB,
+          to: depositedTokenB,
+          threshold: 1,
+        });
       });
     });
 
@@ -187,8 +195,8 @@ describe('MAPPositionHandler', () => {
     return MAPPositionHandler.deposit(pairAddress, tokenA.asUnits(amountTokenA), tokenB.asUnits(amountTokenB));
   }
 
-  function getLiquidityWithRatio({ amountTokenA, amountTokenB, ratio }: { amountTokenA: number; amountTokenB: number; ratio: number }) {
-    return tokenA.asUnits(amountTokenA).mul(ratio).add(tokenB.asUnits(amountTokenB));
+  function getLiquidityWithRatio({ amountTokenA, amountTokenB, ratio }: { amountTokenA: number; amountTokenB: number; ratio: BigNumber }) {
+    return tokenA.asUnits(amountTokenA).mul(ratio).div(tokenA.magnitude).add(tokenB.asUnits(amountTokenB));
   }
 
   async function expectBalanceToBe(token: TokenContract, address: string, amount: string | number) {

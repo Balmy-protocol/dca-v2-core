@@ -3,6 +3,7 @@
 pragma solidity 0.8.4;
 
 import '../../../DCASubsidyPool/MultiAsymmetricPool/MAPPositionHandler.sol';
+import '../../../interfaces/IERC20Detailed.sol';
 import './MAPParameters.sol';
 
 contract MAPPositionHandlerMock is MAPPositionHandler, MAPParametersMock {
@@ -11,10 +12,10 @@ contract MAPPositionHandlerMock is MAPPositionHandler, MAPParametersMock {
 
   function setPairData(
     address _pair,
-    address _tokenA,
-    address _tokenB
+    IERC20Detailed _tokenA,
+    IERC20Detailed _tokenB
   ) public {
-    _overridePairData[_pair] = PairData(_tokenA, _tokenB);
+    _overridePairData[_pair] = PairData(address(_tokenA), address(_tokenB), 10**_tokenA.decimals(), 10**_tokenB.decimals());
   }
 
   function setRatio(uint256 _ratio) public {
