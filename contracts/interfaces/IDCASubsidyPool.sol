@@ -29,8 +29,14 @@ interface IMAPPositionHandler {
 }
 
 interface IMAParameters {
+  struct PairLiquidity {
+    address pair;
+    uint256 amountTokenA;
+    uint256 amountTokenB;
+  }
+
   /** Returns a list of all pairs that have liquidity on the pool */
-  function activePairs() external view returns (address[] memory _activePairs);
+  function activePairs() external view returns (PairLiquidity[] memory _activePairs);
 
   function liquidity(address _pair) external view returns (uint256 _amountTokenA, uint256 _amountTokenB);
 }

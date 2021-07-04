@@ -142,6 +142,11 @@ describe('MAPPositionHandler', () => {
           ratioTokenB: depositedTokenB.mul(positionRatioPrecision).div(depositedLiquidity),
         });
       });
+
+      then('pair is marked as having liquidity', async () => {
+        const markedAsWithLiquidity = await MAPPositionHandler.doesPairHaveLiquidity(PAIR_ADDRESS);
+        expect(markedAsWithLiquidity).to.be.true;
+      });
     });
   });
 

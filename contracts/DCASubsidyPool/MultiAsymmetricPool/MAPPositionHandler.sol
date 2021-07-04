@@ -7,6 +7,7 @@ import './MAPParameters.sol';
 
 abstract contract MAPPositionHandler is MAPParameters, IMAPPositionHandler {
   using SafeERC20 for IERC20Detailed;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   struct PairPosition {
     uint256 shares;
@@ -51,7 +52,8 @@ abstract contract MAPPositionHandler is MAPParameters, IMAPPositionHandler {
     // Update shares
     _totalShares[_pair] += _shares;
 
-    // TODO: Add to active pairs
+    // Add to active pairs
+    _pairsWithLiquidity.add(_pair);
 
     emit Deposited(msg.sender, _pair, _amountTokenA, _amountTokenB);
   }
