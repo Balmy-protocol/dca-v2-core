@@ -1,59 +1,33 @@
-//SPDX-License-Identifier: UNLICENSED
+//SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import '../../interfaces/IERC20Detailed.sol';
 import './MAPParameters.sol';
 
-interface IMAPPositionHandler {
-  struct PoolPosition {
-    address pair;
+abstract contract MAPPositionHandler is MAPParameters, IMAPPositionHandler {
+  using SafeERC20 for IERC20Detailed;
+
+  struct PairPosition {
     uint256 shares;
     uint104 ratioB; // Determines how much of the liquidity added was in token B
   }
 
-  event Deposited(address indexed _user, address _pair, uint256 _amountTokenA, uint256 _amountTokenB, uint256 _positionId, uint256 _shares);
+  struct PairData {
+    address tokenA;
+    address tokenB;
+  }
 
-  // solhint-disable-next-line func-name-mixedcase
-  function POSITION_RATIO_PRECISION() external view returns (uint104);
+  uint104 internal constant _POSITION_RATIO_PRECISION = 1e30;
+
+  mapping(address => uint256) internal _totalShares; // pair => total shares
+  mapping(address => mapping(address => PairPosition)) internal _positions; // pair => owner => position
 
   function deposit(
     address _pair,
     uint256 _amountTokenA,
     uint256 _amountTokenB
-  ) external returns (uint256 _positionId);
-
-  function calculateOwned(uint256 _positionId) external view returns (uint256 _amountTokenA, uint256 _amountTokenB);
-
-  function totalShares(address _pair) external view returns (uint256 _totalShares);
-
-  function positions(uint256 _positionId)
-    external
-    view
-    returns (
-      address _pair,
-      uint256 _shares,
-      uint104 _ratioFromAToBB
-    );
-}
-
-abstract contract MAPPositionHandler is IMAPPositionHandler, MAPParameters {
-  using SafeERC20 for IERC20Detailed;
-
-  // solhint-disable-next-line var-name-mixedcase
-  uint104 public override POSITION_RATIO_PRECISION = 10**30;
-
-  mapping(address => uint256) public override totalShares;
-  mapping(uint256 => PoolPosition) public override positions;
-
-  uint256 private _counter;
-
-  // TODO: remove and actually call oracle
-  uint256 internal _oracleRatioFromAToB;
-
-  function _deposit(
-    address _pair,
-    uint256 _amountTokenA,
-    uint256 _amountTokenB
-  ) internal returns (uint256 _positionId) {
+  ) public override {
     PairData memory _pairData = _getPairData(_pair);
 
     IERC20Detailed(_pairData.tokenA).safeTransferFrom(msg.sender, address(this), _amountTokenA);
@@ -61,51 +35,59 @@ abstract contract MAPPositionHandler is IMAPPositionHandler, MAPParameters {
 
     uint256 _ratioFromAToB = _fetchRatio();
     uint256 _liquidity = _amountTokenA * _ratioFromAToB + _amountTokenB;
-    require(_liquidity > 0, 'MAP: Deposited liquidity must be positive');
+    require(_liquidity > 0, 'MAP: Deposited liquidity must be positive'); // TODO: Change to Error
 
-    uint256 _totalLiquidity = liquidity[_pair].tokenA * _ratioFromAToB + liquidity[_pair].tokenB;
-    uint256 _shares = totalShares[_pair] == 0 ? _liquidity : (_liquidity * totalShares[_pair]) / _totalLiquidity;
-    uint104 _ratioB = uint104((_amountTokenB * POSITION_RATIO_PRECISION) / _liquidity); // TODO: Check for overflow or reduced to zero
+    uint256 _totalLiquidity = liquidity[_pair].amountTokenA * _ratioFromAToB + liquidity[_pair].amountTokenB;
+    uint256 _shares = _totalShares[_pair] == 0 ? _liquidity : (_liquidity * _totalShares[_pair]) / _totalLiquidity; // TODO: Analyze overflow or round to zero
+    uint104 _ratioB = uint104((_amountTokenB * _POSITION_RATIO_PRECISION) / _liquidity); // TODO: Analyze overflow or round to zero
 
     // Create position
-    _positionId = ++_counter;
-    positions[_positionId] = PoolPosition({pair: _pair, ratioB: _ratioB, shares: _shares});
+    _positions[_pair][msg.sender] = PairPosition({ratioB: _ratioB, shares: _shares});
 
     // Update liquidity
-    liquidity[_pair].tokenA += _amountTokenA;
-    liquidity[_pair].tokenB += _amountTokenB;
+    liquidity[_pair].amountTokenA += _amountTokenA;
+    liquidity[_pair].amountTokenB += _amountTokenB;
 
     // Update shares
-    totalShares[_pair] += _shares;
+    _totalShares[_pair] += _shares;
 
-    emit Deposited(msg.sender, _pair, _amountTokenA, _amountTokenB, _positionId, _shares);
+    // TODO: Add to active pairs
+
+    emit Deposited(msg.sender, _pair, _amountTokenA, _amountTokenB);
   }
 
-  function _calculateOwned(uint256 _positionId) internal view returns (uint256 _amountTokenA, uint256 _amountTokenB) {
-    PoolPosition memory _position = positions[_positionId];
+  function calculateOwned(address _pair, address _owner) public view override returns (uint256 _ownedTokenA, uint256 _ownedTokenB) {
+    PairPosition memory _position = _positions[_pair][_owner];
 
-    require(_position.shares > 0, 'MAP: Invalid position id');
+    require(_position.shares > 0, 'MAP: Invalid position id'); // TODO: Change to error
+
+    uint256 _amountTokenA = liquidity[_pair].amountTokenA;
+    uint256 _amountTokenB = liquidity[_pair].amountTokenB;
 
     uint256 _ratioFromAToB = _fetchRatio();
-    uint256 _totalLiquidity = liquidity[_position.pair].tokenA * _ratioFromAToB + liquidity[_position.pair].tokenB; // TODO: evaluate how to choose if base token should be A or B. Now it's always B
-    uint256 _ownedLiquidity = (_totalLiquidity * _position.shares) / totalShares[_position.pair];
+    uint256 _totalLiquidity = _amountTokenA * _ratioFromAToB + _amountTokenB; // TODO: evaluate how to choose if base token should be A or B. Now it's always B
+    uint256 _ownedLiquidity = (_totalLiquidity * _position.shares) / _totalShares[_pair]; // TODO: Analyze overflow or round to zero
 
-    _amountTokenA = (_ownedLiquidity * (POSITION_RATIO_PRECISION - _position.ratioB)) / POSITION_RATIO_PRECISION / _ratioFromAToB; // TODO: this workes only when decimals(tokenA) = decimals(tokenB). When we integrate with oracle, we will need to change this
-    _amountTokenB = (_ownedLiquidity * _position.ratioB) / POSITION_RATIO_PRECISION;
+    _ownedTokenA = (_ownedLiquidity * (_POSITION_RATIO_PRECISION - _position.ratioB)) / _POSITION_RATIO_PRECISION / _ratioFromAToB; // TODO: this workes only when decimals(tokenA) = decimals(tokenB). When we integrate with oracle, we will need to change this. // TODO: Analyze overflow or round to zero
+    _ownedTokenB = (_ownedLiquidity * _position.ratioB) / _POSITION_RATIO_PRECISION; // TODO: Analyze overflow or round to zero
 
-    if (_amountTokenA > liquidity[_position.pair].tokenA) {
-      uint256 _diff = _amountTokenA - liquidity[_position.pair].tokenA;
-      _amountTokenA = liquidity[_position.pair].tokenA;
-      _amountTokenB += _diff * _ratioFromAToB;
-    } else if (_amountTokenB > liquidity[_position.pair].tokenB) {
-      uint256 _diff = _amountTokenB - liquidity[_position.pair].tokenB;
-      _amountTokenA += _diff / _ratioFromAToB;
-      _amountTokenB = liquidity[_position.pair].tokenB;
+    if (_ownedTokenA > _amountTokenA) {
+      uint256 _diff = _ownedTokenA - _amountTokenA;
+      _ownedTokenA = _amountTokenA;
+      _ownedTokenB += _diff * _ratioFromAToB;
+    } else if (_ownedTokenB > _amountTokenB) {
+      uint256 _diff = _ownedTokenB - _amountTokenB;
+      _ownedTokenA += _diff / _ratioFromAToB;
+      _ownedTokenB = _amountTokenB;
     }
   }
 
   /** Returns the ratio from tokenA to tokenB */
-  function _fetchRatio() private view returns (uint256 _ratioFromAToB) {
-    _ratioFromAToB = _oracleRatioFromAToB;
+  function _fetchRatio() internal view virtual returns (uint256 _ratioFromAToB) {
+    // TODO
+  }
+
+  function _getPairData(address _pair) internal view virtual returns (PairData memory _pairData) {
+    // TODO
   }
 }

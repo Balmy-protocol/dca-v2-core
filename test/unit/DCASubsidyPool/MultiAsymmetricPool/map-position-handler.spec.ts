@@ -3,7 +3,6 @@ import { ethers } from 'hardhat';
 import { erc20, behaviours, constants } from '../../../utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { readArgFromEventOrFail } from '../../../utils/event-utils';
 import { when, then, given } from '../../../utils/bdd';
 import { TokenContract } from '../../../utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -77,17 +76,6 @@ describe('MAPPositionHandler', () => {
         message: error,
       });
 
-    when('making a deposit with an unknown pair', () => {
-      then('tx is reverted with message', async () => {
-        await depositShouldRevert({
-          pair: constants.NOT_ZERO_ADDRESS,
-          tokenA: INITIAL_TOKEN_A_BALANCE_USER,
-          tokenB: INITIAL_TOKEN_B_BALANCE_USER,
-          error: 'MAP: Seems like the given pair does not exist',
-        });
-      });
-    });
-
     when('making a deposit with no value', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
@@ -100,7 +88,6 @@ describe('MAPPositionHandler', () => {
     });
 
     when('making a valid deposit', async () => {
-      let positionId: BigNumber;
       let tx: TransactionResponse;
       let depositedTokenA: BigNumber;
       let depositedTokenB: BigNumber;
@@ -108,7 +95,7 @@ describe('MAPPositionHandler', () => {
       let shares: BigNumber;
 
       given(async () => {
-        ({ tx, positionId } = await deposit(PAIR_ADDRESS, INITIAL_TOKEN_A_BALANCE_USER, INITIAL_TOKEN_B_BALANCE_USER));
+        tx = await deposit(PAIR_ADDRESS, INITIAL_TOKEN_A_BALANCE_USER, INITIAL_TOKEN_B_BALANCE_USER);
 
         depositedTokenA = tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER);
         depositedTokenB = tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER);
@@ -127,9 +114,7 @@ describe('MAPPositionHandler', () => {
       });
 
       then('event is emitted correctly', async () => {
-        await expect(tx)
-          .to.emit(MAPPositionHandler, 'Deposited')
-          .withArgs(owner.address, PAIR_ADDRESS, depositedTokenA, depositedTokenB, 1, shares);
+        await expect(tx).to.emit(MAPPositionHandler, 'Deposited').withArgs(owner.address, PAIR_ADDRESS, depositedTokenA, depositedTokenB);
       });
 
       then('total shares are increased for pair', async () => {
@@ -152,7 +137,7 @@ describe('MAPPositionHandler', () => {
       });
 
       then('position is created', async () => {
-        await expectPositionToBe(positionId, {
+        await expectPositionToBe(owner, {
           shares: shares,
           ratioTokenB: depositedTokenB.mul(positionRatioPrecision).div(depositedLiquidity),
         });
@@ -173,19 +158,18 @@ describe('MAPPositionHandler', () => {
     });
 
     when(`ratio doesn't change and no swaps were executed`, async () => {
-      let positionId: BigNumber;
       let depositedTokenA: BigNumber;
       let depositedTokenB: BigNumber;
 
       given(async () => {
-        ({ positionId } = await deposit(PAIR_ADDRESS, INITIAL_TOKEN_A_BALANCE_USER, INITIAL_TOKEN_B_BALANCE_USER));
+        await deposit(PAIR_ADDRESS, INITIAL_TOKEN_A_BALANCE_USER, INITIAL_TOKEN_B_BALANCE_USER);
 
         depositedTokenA = tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER);
         depositedTokenB = tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER);
       });
 
       then('owned is exactly as deposited', async () => {
-        const [ownedTokenA, ownedTokenB] = await MAPPositionHandler.calculateOwned(positionId);
+        const [ownedTokenA, ownedTokenB] = await MAPPositionHandler.calculateOwned(PAIR_ADDRESS, owner.address);
         expect(ownedTokenA).to.equal(depositedTokenA);
         expect(ownedTokenB).to.equal(depositedTokenB);
       });
@@ -194,11 +178,8 @@ describe('MAPPositionHandler', () => {
     // TODO: add some more tests for when the ratio changes. But first, we need to re-think the whole ratio deal when we understand better how to integrate with oracles
   });
 
-  async function deposit(pairAddress: string, amountTokenA: number, amountTokenB: number) {
-    const tx: TransactionResponse = await MAPPositionHandler.deposit(pairAddress, tokenA.asUnits(amountTokenA), tokenB.asUnits(amountTokenB));
-    const positionId = await readArgFromEventOrFail<BigNumber>(tx, 'Deposited', '_positionId');
-    const shares = await readArgFromEventOrFail<BigNumber>(tx, 'Deposited', '_shares');
-    return { tx, positionId, shares };
+  function deposit(pairAddress: string, amountTokenA: number, amountTokenB: number): Promise<TransactionResponse> {
+    return MAPPositionHandler.deposit(pairAddress, tokenA.asUnits(amountTokenA), tokenB.asUnits(amountTokenB));
   }
 
   function getLiquidityWithRatio({ amountTokenA, amountTokenB, ratio }: { amountTokenA: number; amountTokenB: number; ratio: number }) {
@@ -211,7 +192,7 @@ describe('MAPPositionHandler', () => {
   }
 
   async function expectPositionToBe(
-    positionId: BigNumber,
+    owner: SignerWithAddress,
     {
       shares: expectedShares,
       ratioTokenB: expectedRatioTokenB,
@@ -220,8 +201,7 @@ describe('MAPPositionHandler', () => {
       ratioTokenB: BigNumber;
     }
   ) {
-    const { pair, ratioB, shares } = await MAPPositionHandler.positions(positionId);
-    expect(pair, 'Wrong pair').to.equal(PAIR_ADDRESS);
+    const { ratioB, shares } = await MAPPositionHandler.position(PAIR_ADDRESS, owner.address);
     expect(shares, 'Wrong position shares').to.equal(expectedShares);
     expect(ratioB, 'Wrong token B ratio').to.equal(expectedRatioTokenB);
   }

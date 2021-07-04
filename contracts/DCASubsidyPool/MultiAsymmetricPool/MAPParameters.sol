@@ -1,38 +1,26 @@
-//SPDX-License-Identifier: UNLICENSED
+//SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
-import 'hardhat/console.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '../../interfaces/IERC20Detailed.sol';
-
-interface IMAParameters {
-  struct Liquidity {
-    uint256 tokenA;
-    uint256 tokenB;
-  }
-
-  struct PairData {
-    address tokenA;
-    address tokenB;
-  }
-
-  function liquidity(address _pair) external view returns (uint256 _tokenA, uint256 _tokenB);
-}
+import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '../../interfaces/IDCASubsidyPool.sol';
 
 abstract contract MAPParameters is IMAParameters {
+  struct Liquidity {
+    uint256 amountTokenA;
+    uint256 amountTokenB;
+  }
+
+  using EnumerableSet for EnumerableSet.AddressSet;
+
   // Tracking
   mapping(address => Liquidity) public override liquidity;
-  mapping(address => PairData) internal _pairs;
+  EnumerableSet.AddressSet internal _pairsWithLiquidity;
 
-  function _getPairData(address _pair) internal view returns (PairData memory _pairData) {
-    PairData memory _cachedData = _pairs[_pair];
-
-    if (_cachedData.tokenA == address(0)) {
-      // TODO: If not cached, then fetch info and cache it
-
-      revert('MAP: Seems like the given pair does not exist');
+  function activePairs() public view override returns (address[] memory _activePairs) {
+    uint256 _length = _pairsWithLiquidity.length();
+    _activePairs = new address[](_length);
+    for (uint256 i; i < _length; i++) {
+      _activePairs[i] = _pairsWithLiquidity.at(i);
     }
-
-    _pairData = _pairs[_pair];
   }
 }
