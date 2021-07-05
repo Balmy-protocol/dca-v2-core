@@ -5,7 +5,6 @@ import './IDCAGlobalParameters.sol';
 
 interface IDCAFactoryPairsHandler {
   error IdenticalTokens();
-
   error PairAlreadyExists();
 
   event PairCreated(address indexed _tokenA, address indexed _tokenB, address _pair);
@@ -14,7 +13,9 @@ interface IDCAFactoryPairsHandler {
 
   function pairByTokens(address _tokenA, address _tokenB) external view returns (address _pair);
 
-  function allPairs(uint256 _pairIndex) external view returns (address pair);
+  function allPairs() external view returns (address[] memory _pairs);
+
+  function isPair(address _address) external view returns (bool _isPair);
 
   function createPair(address _tokenA, address _tokenB) external returns (address pair);
 }
