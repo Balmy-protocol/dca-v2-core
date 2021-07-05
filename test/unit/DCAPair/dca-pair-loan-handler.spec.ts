@@ -202,6 +202,43 @@ describe('DCAPairLoanHandler', () => {
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
+    when('more tokens than expected are returned', () => {
+      const tokenAFee = CALCULATE_FEE(PAIR_TOKEN_A_INITIAL_BALANCE);
+      const tokenBFee = CALCULATE_FEE(PAIR_TOKEN_B_INITIAL_BALANCE);
+      let tx: TransactionResponse;
+
+      given(async () => {
+        await DCAPairLoanCallee.returnSpecificAmounts(
+          PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee).add(1),
+          PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee).add(1)
+        );
+        tx = await DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
+          PAIR_TOKEN_A_INITIAL_BALANCE,
+          PAIR_TOKEN_B_INITIAL_BALANCE,
+          DCAPairLoanCallee.address,
+          BYTES
+        );
+      });
+
+      then('pair balance stays the same', async () => {
+        const pairTokenABalance = await tokenA.balanceOf(DCAPairLoanHandler.address);
+        const pairTokenBBalance = await tokenB.balanceOf(DCAPairLoanHandler.address);
+
+        expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
+        expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
+      });
+
+      then('extra tokens are sent to fee recipient', async () => {
+        const feeRecipientTokenABalance = await tokenA.balanceOf(feeRecipient.address);
+        const feeRecipientTokenBBalance = await tokenB.balanceOf(feeRecipient.address);
+
+        expect(feeRecipientTokenABalance).to.equal(tokenAFee.add(1));
+        expect(feeRecipientTokenBBalance).to.equal(tokenBFee.add(1));
+      });
+
+      thenInternalBalancesAreTheSameAsTokenBalances();
+    });
+
     function flashLoanFailedTest({
       title,
       amountToBorrowTokenA,

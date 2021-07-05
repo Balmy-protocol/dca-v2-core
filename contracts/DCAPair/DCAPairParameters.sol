@@ -37,9 +37,8 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB
   ) {
-    if (address(_globalParameters) == address(0)) revert CommonErrors.ZeroAddress();
-    if (address(_tokenA) == address(0)) revert CommonErrors.ZeroAddress();
-    if (address(_tokenB) == address(0)) revert CommonErrors.ZeroAddress();
+    if (address(_globalParameters) == address(0) || address(_tokenA) == address(0) || address(_tokenB) == address(0))
+      revert CommonErrors.ZeroAddress();
     globalParameters = _globalParameters;
     _feePrecision = globalParameters.FEE_PRECISION();
     tokenA = _tokenA;
