@@ -271,43 +271,8 @@ describe('DCAGlobalParameters', () => {
       beforeEach(async () => {
         await DCAGlobalParameters.addSwapIntervalsToAllowedList([10, 11], ['something', 'something']);
       });
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [1, 10],
-            ['d1', 'd2'],
-          ],
-          message: 'AllowedInterval',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [1, 11],
-            ['d1', 'd2'],
-          ],
-          message: 'AllowedInterval',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [10, 1],
-            ['d1', 'd2'],
-          ],
-          message: 'AllowedInterval',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [11, 1],
-            ['d1', 'd2'],
-          ],
-          message: 'AllowedInterval',
-        });
+      then('tx is no op', async () => {
+        await DCAGlobalParameters.addSwapIntervalsToAllowedList([10, 11], ['something', 'something']);
       });
     });
     when('swap intervals are not zero and were not previously allowed', () => {
@@ -337,19 +302,8 @@ describe('DCAGlobalParameters', () => {
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([1], ['description']);
     });
     when('swap interval was not previously allowed', () => {
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
-          func: 'removeSwapIntervalsFromAllowedList',
-          args: [[1, 2]],
-          message: 'InvalidInterval',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
-          func: 'removeSwapIntervalsFromAllowedList',
-          args: [[2, 3]],
-          message: 'InvalidInterval',
-        });
+      then('tx is no op', async () => {
+        await DCAGlobalParameters.removeSwapIntervalsFromAllowedList([2]);
       });
     });
     when('swap interval was previously allowed and is removed', () => {

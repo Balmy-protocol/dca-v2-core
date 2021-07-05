@@ -198,7 +198,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
     // We will store the swapped amount without the fee. The fee will be applied during withdraw/terminate
     uint256 _swapped = _calculateSwapped(_dcaId, false);
-    if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid loosing funds
+    if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
 
     uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
     _removePosition(_dcaId);
@@ -273,20 +273,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _accumPerUnit = _accumRatesLastSwap - _accumRatesLastWidthraw;
     uint256 _magnitude = _userDCA.fromTokenA ? _magnitudeA : _magnitudeB;
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
-    uint256 _swappedInCurrentPosition;
-    if (_ok) {
-      _swappedInCurrentPosition = _mult / _magnitude;
-    } else {
-      // Since we can't multiply accum and rate because of overflows, we need to figure out which to divide
-      // We don't want to divide a term that is smaller than magnitude, because it would go to 0.
-      // And if neither are smaller than magnitude, then we will choose the one that loses less information, and that would be the one with smallest reminder
-      bool _divideAccumFirst = _userDCA.rate < _magnitude ||
-        (_accumPerUnit > _magnitude && _accumPerUnit % _magnitude < _userDCA.rate % _magnitude);
-      _swappedInCurrentPosition = _divideAccumFirst
-        ? (_accumPerUnit / _magnitude) * _userDCA.rate
-        : (_userDCA.rate / _magnitude) * _accumPerUnit;
-    }
-
+    uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumPerUnit / _magnitude) * _userDCA.rate;
     uint256 _actuallySwapped = _swappedInCurrentPosition + _userDCA.swappedBeforeModified;
     _swapped = _applyFee ? _actuallySwapped - _getFeeFromAmount(globalParameters.swapFee(), _actuallySwapped) : _actuallySwapped;
   }
@@ -302,12 +289,10 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   function _getFrom(uint256 _dcaId) internal view returns (IERC20Detailed _from) {
-    DCA memory _userDCA = _userPositions[_dcaId];
-    _from = _userDCA.fromTokenA ? tokenA : tokenB;
+    _from = _userPositions[_dcaId].fromTokenA ? tokenA : tokenB;
   }
 
   function _getTo(uint256 _dcaId) internal view returns (IERC20Detailed _to) {
-    DCA memory _userDCA = _userPositions[_dcaId];
-    _to = _userDCA.fromTokenA ? tokenB : tokenA;
+    _to = _userPositions[_dcaId].fromTokenA ? tokenB : tokenA;
   }
 }

@@ -27,8 +27,6 @@ interface IDCAGlobalParameters {
   error InvalidParams();
   error ZeroInterval();
   error EmptyDescription();
-  error AllowedInterval();
-  error InvalidInterval();
 
   /* Public getters */
   function feeRecipient() external view returns (address);

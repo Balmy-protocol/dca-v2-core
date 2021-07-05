@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
@@ -56,12 +55,6 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   }
 
   function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal view returns (uint256) {
-    (bool _ok, uint256 _fee) = Math.tryMul(_amount, _feeAmount);
-    if (_ok) {
-      _fee = _fee / _feePrecision / 100;
-    } else {
-      _fee = (_feeAmount < _feePrecision) ? ((_amount / _feePrecision) * _feeAmount) / 100 : (_amount / _feePrecision / 100) * _feeAmount;
-    }
-    return _fee;
+    return (_amount * _feeAmount) / _feePrecision / 100;
   }
 }
