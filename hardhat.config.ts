@@ -17,7 +17,7 @@ const networks: NetworksUserConfig = process.env.TEST
       hardhat: {
         forking: {
           enabled: process.env.FORK ? true : false,
-          url: getNodeUrl('ropsten'),
+          url: getNodeUrl('fork'),
         },
         tags: ['test', 'local'],
       },
@@ -30,7 +30,7 @@ const networks: NetworksUserConfig = process.env.TEST
       kovan: {
         url: getNodeUrl('kovan'),
         accounts: accounts('kovan'),
-        gasPrice: utils.parseUnits('5', 'gwei').toNumber(),
+        gasPrice: 'auto',
         tags: ['staging'],
       },
       rinkeby: {

@@ -37,9 +37,6 @@ async function main() {
   console.log('deployer', deployer.address);
   console.log('governor', governor.address);
   console.log('random user', randomUser.address);
-  // await network.provider.send("hardhat_setBalance", [deployer.address, '0xffffffffffffffff']);
-  // await network.provider.send("hardhat_setBalance", [governor.address, '0xffffffffffffffff']);
-  // await network.provider.send("hardhat_setBalance", [randomUser.address, '0xffffffffffffffff']);
 
   for (let i = 0; i < AMOUNT_OF_PAIRS; i++) {
     const token0 = await erc20.deploy({
@@ -65,24 +62,25 @@ async function main() {
 
     const poolAddress = await uniswapFactory.callStatic.createPool(token0.address, token1.address, FeeAmount.MEDIUM);
     await uniswapFactory.createPool(token0.address, token1.address, FeeAmount.MEDIUM);
+
     console.log('Created pool on uniswap', poolAddress);
 
     const pairAddress = await dcaFactory.callStatic.createPair(token0.address, token1.address);
     await dcaFactory.createPair(token0.address, token1.address);
     console.log('Created DCAPair', pairAddress);
 
-    // const poolAddress = '0xA1262bf570FCa63B559d1081f3d21FC4Bcef0691';
-    // const token0 = await ethers.getContractAt('contracts/mocks/ERC20Mock.sol:ERC20Mock', '0xc11A92b333c9536675ED2bECD96893bf354AF7ce')
-    // const token1 = await ethers.getContractAt('contracts/mocks/ERC20Mock.sol:ERC20Mock', '0xE811EaBe476f85DcaB585FB5E51d6405Bb33eE5d')
-    // const pairAddress = '0x5D7711793E9B40CE25801ac90EB5ec2999bf5712';
     const pair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', pairAddress);
 
     console.log('Got pair contract');
 
     const dailyPositionId = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
+    const dailyPositionId2 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
+    const dailyPositionId3 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
     console.log('Daily position generated');
 
     const fiveMinutesPositionId = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
+    const fiveMinutesPositionId2 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
+    const fiveMinutesPositionId3 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
     console.log('Ten minutes position generated');
 
     // logging
@@ -92,17 +90,22 @@ async function main() {
     console.log(`DCA Pair (T0-${i} <-> T1-${i})`, pairAddress);
 
     console.log('Daily position ID', dailyPositionId);
+    console.log('Daily position ID 2', dailyPositionId2);
+    console.log('Daily position ID 3', dailyPositionId3);
     console.log('Five minutes position ID', fiveMinutesPositionId);
+    console.log('Five minutes position ID 2', fiveMinutesPositionId2);
+    console.log('Five minutes position ID 3', fiveMinutesPositionId3);
   }
 }
 
 const generatePosition = async (pair: Contract, from: Contract, interval: number): Promise<BigNumber> => {
   const rate = utils.parseEther(`${randomFloat(0, 2).toFixed(5)}`);
-  const amountOfSwaps = randomNumber(20, 1000);
-  await from.connect(randomUser).approve(pair.address, constants.MAX_UINT_256, { gasLimit: 1000000 });
-  const id = await pair.connect(randomUser).callStatic.deposit(from.address, rate, amountOfSwaps, interval, { gasLimit: 2000000 });
-  await pair.connect(randomUser).deposit(from.address, rate, amountOfSwaps, interval, { gasLimit: 2000000 });
-  return id;
+  const amountOfSwaps = BigNumber.from(`${randomNumber(20, 1000)}`);
+  await from.connect(randomUser).approve(pair.address, constants.MAX_UINT_256, { gasLimit: 1500000 });
+  // const id = await pair.connect(randomUser).callStatic.deposit(from.address, rate, amountOfSwaps, interval, { gasLimit: 2500000 });
+  await pair.connect(randomUser).deposit(from.address, rate, amountOfSwaps, interval, { gasLimit: 2500000 });
+  // return id;
+  return BigNumber.from('0');
 };
 
 // We recommend this pattern to be able to use async/await everywhere
