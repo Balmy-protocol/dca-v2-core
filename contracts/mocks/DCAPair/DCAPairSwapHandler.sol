@@ -14,11 +14,11 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   uint8 private _swapsToPerformLength;
 
   constructor(
-    IERC20Detailed _token0,
-    IERC20Detailed _token1,
+    IERC20Detailed _tokenA,
+    IERC20Detailed _tokenB,
     IDCAGlobalParameters _globalParameters,
     ISlidingOracle _oracle
-  ) DCAPairParametersMock(_globalParameters, _token0, _token1) DCAPairSwapHandler(_oracle) {
+  ) DCAPairParametersMock(_globalParameters, _tokenA, _tokenB) DCAPairSwapHandler(_oracle) {
     /* */
   }
 

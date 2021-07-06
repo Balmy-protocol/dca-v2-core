@@ -60,7 +60,6 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     for (uint256 i; i < _swapIntervals.length; i++) {
       if (_swapIntervals[i] == 0) revert ZeroInterval();
       if (bytes(_descriptions[i]).length == 0) revert EmptyDescription();
-      if (isSwapIntervalAllowed(_swapIntervals[i])) revert AllowedInterval();
       _allowedSwapIntervals.add(_swapIntervals[i]);
       intervalDescription[_swapIntervals[i]] = _descriptions[i];
     }
@@ -69,7 +68,6 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      if (!isSwapIntervalAllowed(_swapIntervals[i])) revert InvalidInterval();
       _allowedSwapIntervals.remove(_swapIntervals[i]);
       delete intervalDescription[_swapIntervals[i]];
     }

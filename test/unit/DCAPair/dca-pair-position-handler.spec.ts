@@ -821,8 +821,6 @@ describe('DCAPositionHandler', () => {
   });
 
   describe('_modifyPosition', () => {
-    const MAX = BigNumber.from(2).pow(248).sub(1);
-
     when('the swapped amount is too high', () => {
       let tx: Promise<TransactionResponse>;
 
@@ -830,7 +828,7 @@ describe('DCAPositionHandler', () => {
         const { dcaId } = await deposit({ token: tokenA, rate: 1, swaps: 1 });
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         await setRatePerUnit({
-          accumRate: MAX.add(1),
+          accumRate: constants.MAX_UINT_256,
           onSwap: PERFORMED_SWAPS_10 + 1,
         });
 
@@ -842,26 +840,6 @@ describe('DCAPositionHandler', () => {
           tx,
           message: 'MandatoryWithdraw',
         });
-      });
-    });
-
-    when('the swapped amount just at the limit', () => {
-      let dcaId: BigNumber;
-
-      given(async () => {
-        ({ dcaId } = await deposit({ token: tokenA, rate: 1, swaps: 1 }));
-        await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
-        await setRatePerUnit({
-          accumRate: MAX,
-          onSwap: PERFORMED_SWAPS_10 + 1,
-        });
-
-        await DCAPositionHandler.modifyPosition(dcaId, 1, 1, 1, 1);
-      });
-
-      then('position is modified correctly', async () => {
-        const { swappedBeforeModified } = await DCAPositionHandler.internalPosition(dcaId);
-        expect(swappedBeforeModified).to.equal(MAX);
       });
     });
   });
@@ -913,35 +891,8 @@ describe('DCAPositionHandler', () => {
             positionRate: 1,
             fee: 0,
           });
-          expect(swapped).to.equal(constants.MAX_UINT_256);
-        });
-      });
-
-      when('fee would overflow', () => {
-        when('fee is smaller than precision', () => {
-          then('looses the least amount of information', async () => {
-            const feePrecision = await DCAGlobalParameters.FEE_PRECISION();
-            const protocolFee = feePrecision - 1;
-            const swapped = await calculateSwappedWith({
-              accumRate: constants.MAX_UINT_256,
-              fee: protocolFee,
-            });
-            const fee = constants.MAX_UINT_256.div(feePrecision).mul(protocolFee).div(100);
-            expect(swapped.add(fee)).to.equal(constants.MAX_UINT_256);
-          });
-        });
-
-        when('precision is smaller than fee', () => {
-          then('looses the least amount of information', async () => {
-            const feePrecision = await DCAGlobalParameters.FEE_PRECISION();
-            const protocolFee = feePrecision + 1;
-            const swapped = await calculateSwappedWith({
-              accumRate: constants.MAX_UINT_256,
-              fee: protocolFee,
-            });
-            const fee = constants.MAX_UINT_256.div(feePrecision).div(100).mul(protocolFee);
-            expect(swapped.add(fee)).to.equal(constants.MAX_UINT_256);
-          });
+          // We are losing precision when accumRate is MAX(uint256), but we accept that
+          expect(swapped.gte('0xffffffffffffffffffffffffffffffffffffffffffffffffffffff2b653b7000')).to.true;
         });
       });
     });

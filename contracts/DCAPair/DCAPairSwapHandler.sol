@@ -204,8 +204,8 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _amountToBorrowTokenB > _nextSwapInformation.availableToBorrowTokenB
     ) revert CommonErrors.InsufficientLiquidity();
 
-    uint256 _amountToHaveTokenA = _nextSwapInformation.availableToBorrowTokenA;
-    uint256 _amountToHaveTokenB = _nextSwapInformation.availableToBorrowTokenB;
+    uint256 _finalAmountToHaveTokenA = _nextSwapInformation.availableToBorrowTokenA - _nextSwapInformation.platformFeeTokenA;
+    uint256 _finalAmountToHaveTokenB = _nextSwapInformation.availableToBorrowTokenB - _nextSwapInformation.platformFeeTokenB;
 
     {
       // scope for _amountToSendToken{A,B}, avoids stack too deep errors
@@ -214,10 +214,10 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
 
       if (_nextSwapInformation.tokenToRewardSwapperWith == tokenA) {
         _amountToSendTokenA += _nextSwapInformation.amountToRewardSwapperWith;
-        _amountToHaveTokenB += _nextSwapInformation.amountToBeProvidedBySwapper;
+        _finalAmountToHaveTokenB += _nextSwapInformation.amountToBeProvidedBySwapper;
       } else {
         _amountToSendTokenB += _nextSwapInformation.amountToRewardSwapperWith;
-        _amountToHaveTokenA += _nextSwapInformation.amountToBeProvidedBySwapper;
+        _finalAmountToHaveTokenA += _nextSwapInformation.amountToBeProvidedBySwapper;
       }
 
       // Optimistically transfer tokens
@@ -244,15 +244,18 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     uint256 _balanceTokenB = tokenB.balanceOf(address(this));
 
     // Make sure that they sent the tokens back
-    if (_balanceTokenA < _amountToHaveTokenA || _balanceTokenB < _amountToHaveTokenB) revert CommonErrors.LiquidityNotReturned();
+    if (
+      _balanceTokenA < (_finalAmountToHaveTokenA + _nextSwapInformation.platformFeeTokenA) ||
+      _balanceTokenB < (_finalAmountToHaveTokenB + _nextSwapInformation.platformFeeTokenB)
+    ) revert CommonErrors.LiquidityNotReturned();
 
     // Update balances
-    _balances[address(tokenA)] = _balanceTokenA - _nextSwapInformation.platformFeeTokenA;
-    _balances[address(tokenB)] = _balanceTokenB - _nextSwapInformation.platformFeeTokenB;
+    _balances[address(tokenA)] = _finalAmountToHaveTokenA;
+    _balances[address(tokenB)] = _finalAmountToHaveTokenB;
 
-    // Send fees
-    tokenA.safeTransfer(_swapParameters.feeRecipient, _nextSwapInformation.platformFeeTokenA);
-    tokenB.safeTransfer(_swapParameters.feeRecipient, _nextSwapInformation.platformFeeTokenB);
+    // Send fees and extra
+    tokenA.safeTransfer(_swapParameters.feeRecipient, _balanceTokenA - _finalAmountToHaveTokenA);
+    tokenB.safeTransfer(_swapParameters.feeRecipient, _balanceTokenB - _finalAmountToHaveTokenB);
 
     // Emit event
     emit Swapped(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _nextSwapInformation);

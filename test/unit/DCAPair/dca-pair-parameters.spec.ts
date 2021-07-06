@@ -119,18 +119,6 @@ describe('DCAPairParameters', function () {
       amount: utils.parseEther('9482.12343'),
       fee: 3000,
     });
-    when('multiplying overflows', async () => {
-      getFeeFromAmountTest({
-        title: 'FEE_PRECISION is less than protocol fee',
-        amount: constants.MAX_UINT_256,
-        fee: 10000 + 1,
-      });
-      getFeeFromAmountTest({
-        title: 'protocol fee is less than FEE_PRECISION',
-        amount: constants.MAX_UINT_256,
-        fee: 10000 - 1,
-      });
-    });
   });
 
   async function getFeeFrom(fee: BigNumberish, value: BigNumber | string | number): Promise<BigNumber> {
