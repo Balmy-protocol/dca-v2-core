@@ -20,6 +20,12 @@ interface IDCASwapper {
 
   function quoter() external view returns (IQuoterV2);
 
+  /**
+   * This method isn't a view and it is extremelly expensive and inefficient.
+   * DO NOT call this method on-chain, it is for off-chain purposes only.
+   */
+  function getPairsToSwap() external returns (IDCAPair[] memory);
+
   /* Public setters */
   function startWatchingPairs(address[] calldata) external;
 

@@ -53,10 +53,37 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
   }
 
   /**
+   * This method isn't a view and it is extremelly expensive and inefficient.
+   * DO NOT call this method on-chain, it is for off-chain purposes only.
+   */
+  function getPairsToSwap() external override returns (IDCAPair[] memory _pairs) {
+    uint256 _count;
+
+    // Count how many pairs can be swapped
+    uint256 _length = _watchedPairs.length();
+    for (uint256 i; i < _length; i++) {
+      if (_shouldSwapPair(IDCAPair(_watchedPairs.at(i)))) {
+        _count++;
+      }
+    }
+
+    // Create result array with correct size
+    _pairs = new IDCAPair[](_count);
+
+    // Fill result array
+    for (uint256 i; i < _length; i++) {
+      IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
+      if (_shouldSwapPair(_pair)) {
+        _pairs[--_count] = _pair;
+      }
+    }
+  }
+
+  /**
    * This method isn't a view because the Uniswap quoter doesn't support view quotes.
    * Therefore, we highly recommend that this method is not called on-chain.
    */
-  function _shouldSwapPair(IDCAPair _pair) internal returns (bool _shouldSwap) {
+  function _shouldSwapPair(IDCAPair _pair) internal virtual returns (bool _shouldSwap) {
     IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
     if (_nextSwapInformation.amountOfSwaps == 0) {
       return false;
