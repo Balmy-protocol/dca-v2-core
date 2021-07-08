@@ -1,30 +1,66 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory } from 'ethers';
+import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours } from '../../utils';
+import { behaviours, constants } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import erc20, { TokenContract } from '../../utils/erc20';
 
 describe('DCASwapper', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
 
-  let owner: SignerWithAddress;
+  let owner: SignerWithAddress, swapperCaller: SignerWithAddress;
   let DCASwapperContract: ContractFactory;
   let DCAFactoryContract: ContractFactory;
+  let UniswapRouterContract: ContractFactory;
   let DCASwapper: Contract;
   let DCAFactory: Contract;
+  let UniswapRouter: Contract;
 
   before('Setup accounts and contracts', async () => {
-    [owner] = await ethers.getSigners();
+    [owner, swapperCaller] = await ethers.getSigners();
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCASwapper.sol:DCASwapperMock');
     DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAFactoryMock.sol:DCAFactoryMock');
+    UniswapRouterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/SwapRouterMock.sol:SwapRouterMock');
   });
 
   beforeEach('Deploy and configure', async () => {
     DCAFactory = await DCAFactoryContract.deploy();
-    DCASwapper = await DCASwapperContract.deploy(owner.address, DCAFactory.address);
+    UniswapRouter = await UniswapRouterContract.deploy();
+    DCASwapper = await DCASwapperContract.deploy(owner.address, DCAFactory.address, UniswapRouter.address);
+  });
+
+  describe('constructor', () => {
+    when('factory is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCASwapperContract,
+          args: [owner.address, constants.ZERO_ADDRESS, UniswapRouter.address],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('router is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCASwapperContract,
+          args: [owner.address, DCAFactory.address, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('all arguments are valid', () => {
+      then('factory is set correctly', async () => {
+        const factory = await DCASwapper.factory();
+        expect(factory).to.equal(DCAFactory.address);
+      });
+      then('router is set correctly', async () => {
+        const router = await DCASwapper.swapRouter();
+        expect(router).to.equal(UniswapRouter.address);
+      });
+    });
   });
 
   describe('startWatchingPairs', () => {
@@ -95,6 +131,109 @@ describe('DCASwapper', () => {
       funcAndSignature: 'stopWatchingPairs(address[])',
       params: [[ADDRESS_1]],
       governor: () => owner,
+    });
+  });
+  describe('DCAPairSwapCall', () => {
+    let tokenA: TokenContract, tokenB: TokenContract;
+    let rewardAmount: BigNumber;
+    let amountToProvide: BigNumber;
+
+    given(async () => {
+      tokenA = await erc20.deploy({
+        name: 'tokenA',
+        symbol: 'TKNA',
+      });
+      tokenB = await erc20.deploy({
+        name: 'tokenB',
+        symbol: 'TKNB',
+      });
+      rewardAmount = tokenA.asUnits(100);
+      amountToProvide = tokenB.asUnits(100);
+
+      // Send reward to swapper
+      await tokenA.mint(DCASwapper.address, rewardAmount);
+    });
+
+    when('callback is called and all reward is used', () => {
+      given(async () => {
+        // Prepare swapper to that it says it used the whole reward
+        await UniswapRouter.setAmountIn(rewardAmount);
+
+        await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
+          constants.ZERO_ADDRESS, // Not used
+          tokenA.address,
+          tokenB.address,
+          0, // Not used
+          0, // Not used
+          true,
+          rewardAmount,
+          amountToProvide,
+          ethers.utils.randomBytes(5)
+        );
+      });
+
+      then('the router is called', async () => {
+        const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
+        expect(tokenIn).to.equal(tokenA.address);
+        expect(tokenOut).to.equal(tokenB.address);
+        expect(fee).to.equal(3000);
+        expect(recipient).to.equal(swapperCaller.address);
+        expect(deadline.gt(0)).to.be.true;
+        expect(amountOut).to.equal(amountToProvide);
+        expect(amountInMaximum).to.equal(rewardAmount);
+        expect(sqrtPriceLimitX96).to.equal(constants.ZERO);
+      });
+
+      then('allowance is not modified', async () => {
+        const allowance = await tokenA.allowance(DCASwapper.address, UniswapRouter.address);
+        expect(allowance).to.equal(rewardAmount);
+      });
+
+      then('nothing is sent back to the caller', async () => {
+        const balance = await tokenA.balanceOf(swapperCaller.address);
+        expect(balance).to.equal(constants.ZERO);
+      });
+    });
+
+    when(`callback is called and router doesn't use all reward`, () => {
+      given(async () => {
+        // Prepare swapper to that it says it didn't use the whole reward
+        await UniswapRouter.setAmountIn(rewardAmount.sub(1));
+
+        await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
+          constants.ZERO_ADDRESS, // Not used
+          tokenA.address,
+          tokenB.address,
+          0, // Not used
+          0, // Not used
+          true,
+          rewardAmount,
+          amountToProvide,
+          ethers.utils.randomBytes(5)
+        );
+      });
+
+      then('the router is called', async () => {
+        const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
+        expect(tokenIn).to.equal(tokenA.address);
+        expect(tokenOut).to.equal(tokenB.address);
+        expect(fee).to.equal(3000);
+        expect(recipient).to.equal(swapperCaller.address);
+        expect(deadline.gt(0)).to.be.true;
+        expect(amountOut).to.equal(amountToProvide);
+        expect(amountInMaximum).to.equal(rewardAmount);
+        expect(sqrtPriceLimitX96).to.equal(constants.ZERO);
+      });
+
+      then('allowance is set to zero', async () => {
+        const allowance = await tokenA.allowance(DCASwapper.address, UniswapRouter.address);
+        expect(allowance).to.equal(constants.ZERO);
+      });
+
+      then('difference is sent back to the caller', async () => {
+        const balance = await tokenA.balanceOf(swapperCaller.address);
+        expect(balance).to.equal(BigNumber.from(1));
+      });
     });
   });
 });
