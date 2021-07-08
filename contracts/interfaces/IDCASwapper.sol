@@ -8,8 +8,10 @@ import '../interfaces/IDCAFactory.sol';
 interface IDCASwapper {
   event WatchingNewPairs(address[] _pairs);
   event StoppedWatchingPairs(address[] _pairs);
+  event Swapped(IDCAPair[] _pairsToSwap, uint256 _amountSwapped);
 
   error InvalidPairAddress();
+  error ZeroPairsToSwap();
 
   /* Public getters */
   function watchedPairs() external view returns (address[] memory);
@@ -30,4 +32,9 @@ interface IDCASwapper {
   function startWatchingPairs(address[] calldata) external;
 
   function stopWatchingPairs(address[] calldata) external;
+
+  /**
+   * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
+   */
+  function swapPairs(IDCAPair[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
 }

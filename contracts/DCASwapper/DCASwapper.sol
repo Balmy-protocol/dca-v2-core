@@ -79,6 +79,27 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     }
   }
 
+  function swapPairs(IDCAPair[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
+    if (_pairsToSwap.length == 0) revert ZeroPairsToSwap();
+
+    uint256 _maxGasSpent;
+
+    do {
+      uint256 _gasLeftStart = gasleft();
+      _swap(_pairsToSwap[_amountSwapped++]);
+      uint256 _gasSpent = _gasLeftStart - gasleft();
+
+      // Update max gas spent if necessary
+      if (_gasSpent > _maxGasSpent) {
+        _maxGasSpent = _gasSpent;
+      }
+
+      // We will continue to execute swaps if there are more swaps to execute, and (gas left) >= 1.5 * (max gas spent on a swap)
+    } while (_amountSwapped < _pairsToSwap.length && gasleft() >= (_maxGasSpent * 3) / 2);
+
+    emit Swapped(_pairsToSwap, _amountSwapped);
+  }
+
   /**
    * This method isn't a view because the Uniswap quoter doesn't support view quotes.
    * Therefore, we highly recommend that this method is not called on-chain.

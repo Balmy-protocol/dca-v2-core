@@ -399,4 +399,68 @@ describe('DCASwapper', () => {
       });
     });
   });
+
+  describe('swapPairs', () => {
+    when('empty list of swaps is passed', () => {
+      then('tx is reverted', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCASwapper,
+          func: 'swapPairs',
+          args: [[]],
+          message: 'ZeroPairsToSwap',
+        });
+      });
+    });
+
+    when('gas limit is enough', () => {
+      let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
+      let tx: TransactionResponse;
+
+      given(async () => {
+        const DCAPairMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAPairMock.sol:DCAPairMock');
+        DCAPair1 = await DCAPairMockContract.deploy();
+        DCAPair2 = await DCAPairMockContract.deploy();
+        DCAPair3 = await DCAPairMockContract.deploy();
+
+        tx = await DCASwapper.swapPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address]);
+      });
+
+      then('all pairs are swapped', async () => {
+        expect(await DCAPair1.swapped()).to.be.true;
+        expect(await DCAPair2.swapped()).to.be.true;
+        expect(await DCAPair3.swapped()).to.be.true;
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCASwapper, 'Swapped').withArgs([DCAPair1.address, DCAPair2.address, DCAPair3.address], 3);
+      });
+    });
+
+    when('gas limit is not enough', () => {
+      let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
+      let tx: TransactionResponse;
+
+      given(async () => {
+        const DCAPairMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAPairMock.sol:DCAPairMock');
+        DCAPair1 = await DCAPairMockContract.deploy();
+        DCAPair2 = await DCAPairMockContract.deploy();
+        DCAPair3 = await DCAPairMockContract.deploy();
+
+        await DCAPair1.setGasToConsumeInSwap(100000);
+        await DCAPair2.setGasToConsumeInSwap(200000);
+
+        tx = await DCASwapper.swapPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address], { gasLimit: 500000 });
+      });
+
+      then('some pairs are not swapped', async () => {
+        expect(await DCAPair1.swapped()).to.be.true;
+        expect(await DCAPair2.swapped()).to.be.true;
+        expect(await DCAPair3.swapped()).to.be.false;
+      });
+
+      then('event is still emitted', async () => {
+        await expect(tx).to.emit(DCASwapper, 'Swapped').withArgs([DCAPair1.address, DCAPair2.address, DCAPair3.address], 2);
+      });
+    });
+  });
 });
