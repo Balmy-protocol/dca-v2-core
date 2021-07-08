@@ -167,6 +167,32 @@ describe('DCASwapper', () => {
       await tokenA.mint(DCASwapper.address, rewardAmount);
     });
 
+    when('callback is called but there is no need to provide tokens', () => {
+      given(async () => {
+        await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
+          constants.ZERO_ADDRESS, // Not used
+          tokenA.address,
+          tokenB.address,
+          0, // Not used
+          0, // Not used
+          true,
+          0,
+          0,
+          ethers.utils.randomBytes(5)
+        );
+      });
+
+      then('the router is not called', async () => {
+        const { fee } = await UniswapRouter.lastCall();
+        expect(fee).to.equal(0);
+      });
+
+      then('nothing is sent back to the caller', async () => {
+        const balance = await tokenA.balanceOf(swapperCaller.address);
+        expect(balance).to.equal(constants.ZERO);
+      });
+    });
+
     when('callback is called and all reward is used', () => {
       given(async () => {
         // Prepare swapper to that it says it used the whole reward

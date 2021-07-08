@@ -120,31 +120,33 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     uint256 _amountToProvide,
     bytes calldata
   ) external override {
-    address _tokenIn = _isRewardTokenA ? address(_tokenA) : address(_tokenB);
-    address _tokenOut = _isRewardTokenA ? address(_tokenB) : address(_tokenA);
+    if (_amountToProvide > 0) {
+      address _tokenIn = _isRewardTokenA ? address(_tokenA) : address(_tokenB);
+      address _tokenOut = _isRewardTokenA ? address(_tokenB) : address(_tokenA);
 
-    // Approve the router to spend the specifed `rewardAmount` of tokenIn.
-    TransferHelper.safeApprove(_tokenIn, address(swapRouter), _rewardAmount);
+      // Approve the router to spend the specifed `rewardAmount` of tokenIn.
+      TransferHelper.safeApprove(_tokenIn, address(swapRouter), _rewardAmount);
 
-    ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
-      tokenIn: _tokenIn,
-      tokenOut: _tokenOut,
-      fee: 3000, // Set to 0.3%
-      recipient: msg.sender, // Send it directly to pair
-      deadline: block.timestamp, // Needs to happen now
-      amountOut: _amountToProvide,
-      amountInMaximum: _rewardAmount,
-      sqrtPriceLimitX96: 0
-    });
+      ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
+        tokenIn: _tokenIn,
+        tokenOut: _tokenOut,
+        fee: 3000, // Set to 0.3%
+        recipient: msg.sender, // Send it directly to pair
+        deadline: block.timestamp, // Needs to happen now
+        amountOut: _amountToProvide,
+        amountInMaximum: _rewardAmount,
+        sqrtPriceLimitX96: 0
+      });
 
-    // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
-    uint256 _amountIn = swapRouter.exactOutputSingle(params);
+      // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
+      uint256 _amountIn = swapRouter.exactOutputSingle(params);
 
-    // For exact output swaps, the amountInMaximum may not have all been spent.
-    // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the pair (msg.sender) and approve the swapRouter to spend 0.
-    if (_amountIn < _rewardAmount) {
-      TransferHelper.safeApprove(_tokenIn, address(swapRouter), 0);
-      TransferHelper.safeTransfer(_tokenIn, msg.sender, _rewardAmount - _amountIn);
+      // For exact output swaps, the amountInMaximum may not have all been spent.
+      // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the pair (msg.sender) and approve the swapRouter to spend 0.
+      if (_amountIn < _rewardAmount) {
+        TransferHelper.safeApprove(_tokenIn, address(swapRouter), 0);
+        TransferHelper.safeTransfer(_tokenIn, msg.sender, _rewardAmount - _amountIn);
+      }
     }
   }
 }
