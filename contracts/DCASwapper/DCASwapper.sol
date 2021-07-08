@@ -13,16 +13,20 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
 
   IDCAFactory public immutable override factory;
   ISwapRouter public immutable override swapRouter;
+  IQuoterV2 public immutable override quoter;
   EnumerableSet.AddressSet internal _watchedPairs;
 
   constructor(
     address _governor,
     IDCAFactory _factory,
-    ISwapRouter _swapRouter
+    ISwapRouter _swapRouter,
+    IQuoterV2 _quoter
   ) Governable(_governor) {
-    if (address(_factory) == address(0) || address(_swapRouter) == address(0)) revert CommonErrors.ZeroAddress();
+    if (address(_factory) == address(0) || address(_swapRouter) == address(0) || address(_quoter) == address(0))
+      revert CommonErrors.ZeroAddress();
     factory = _factory;
     swapRouter = _swapRouter;
+    quoter = _quoter;
   }
 
   function startWatchingPairs(address[] calldata _pairs) public override onlyGovernor {
@@ -45,6 +49,30 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     _pairs = new address[](_length);
     for (uint256 i; i < _length; i++) {
       _pairs[i] = _watchedPairs.at(i);
+    }
+  }
+
+  /**
+   * This method isn't a view because the Uniswap quoter doesn't support view quotes.
+   * Therefore, we highly recommend that this method is not called on-chain.
+   */
+  function _shouldSwapPair(IDCAPair _pair) internal returns (bool _shouldSwap) {
+    IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
+    if (_nextSwapInformation.amountOfSwaps == 0) {
+      return false;
+    } else if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
+      return true;
+    } else {
+      IQuoterV2.QuoteExactOutputSingleParams memory _params = IQuoterV2.QuoteExactOutputSingleParams({
+        tokenIn: address(_nextSwapInformation.tokenToRewardSwapperWith),
+        tokenOut: address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+        amount: _nextSwapInformation.amountToBeProvidedBySwapper,
+        fee: 3000,
+        sqrtPriceLimitX96: 0
+      });
+
+      (uint256 _inputNecessary, , , ) = quoter.quoteExactOutputSingle(_params);
+      return _nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary;
     }
   }
 

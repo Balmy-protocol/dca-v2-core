@@ -12,24 +12,24 @@ describe('DCASwapper', () => {
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
 
   let owner: SignerWithAddress, swapperCaller: SignerWithAddress;
-  let DCASwapperContract: ContractFactory;
-  let DCAFactoryContract: ContractFactory;
-  let UniswapRouterContract: ContractFactory;
-  let DCASwapper: Contract;
-  let DCAFactory: Contract;
-  let UniswapRouter: Contract;
+  let DCASwapperContract: ContractFactory, DCAFactoryContract: ContractFactory;
+  let UniswapRouterContract: ContractFactory, UniswapQuoterContract: ContractFactory;
+  let DCASwapper: Contract, DCAFactory: Contract;
+  let UniswapRouter: Contract, UniswapQuoter: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner, swapperCaller] = await ethers.getSigners();
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCASwapper.sol:DCASwapperMock');
     DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAFactoryMock.sol:DCAFactoryMock');
     UniswapRouterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/SwapRouterMock.sol:SwapRouterMock');
+    UniswapQuoterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/QuoterMock.sol:QuoterMock');
   });
 
   beforeEach('Deploy and configure', async () => {
     DCAFactory = await DCAFactoryContract.deploy();
     UniswapRouter = await UniswapRouterContract.deploy();
-    DCASwapper = await DCASwapperContract.deploy(owner.address, DCAFactory.address, UniswapRouter.address);
+    UniswapQuoter = await UniswapQuoterContract.deploy();
+    DCASwapper = await DCASwapperContract.deploy(owner.address, DCAFactory.address, UniswapRouter.address, UniswapQuoter.address);
   });
 
   describe('constructor', () => {
@@ -37,7 +37,7 @@ describe('DCASwapper', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCASwapperContract,
-          args: [owner.address, constants.ZERO_ADDRESS, UniswapRouter.address],
+          args: [owner.address, constants.ZERO_ADDRESS, UniswapRouter.address, UniswapQuoter.address],
           message: 'ZeroAddress',
         });
       });
@@ -46,7 +46,16 @@ describe('DCASwapper', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCASwapperContract,
-          args: [owner.address, DCAFactory.address, constants.ZERO_ADDRESS],
+          args: [owner.address, DCAFactory.address, constants.ZERO_ADDRESS, UniswapQuoter.address],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('quoter is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCASwapperContract,
+          args: [owner.address, DCAFactory.address, UniswapRouter.address, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -59,6 +68,10 @@ describe('DCASwapper', () => {
       then('router is set correctly', async () => {
         const router = await DCASwapper.swapRouter();
         expect(router).to.equal(UniswapRouter.address);
+      });
+      then('quoter is set correctly', async () => {
+        const quoter = await DCASwapper.quoter();
+        expect(quoter).to.equal(UniswapQuoter.address);
       });
     });
   });
@@ -235,5 +248,88 @@ describe('DCASwapper', () => {
         expect(balance).to.equal(BigNumber.from(1));
       });
     });
+  });
+  describe('_shouldSwapPair', () => {
+    const REWARD_AMOUNT = BigNumber.from(1000);
+    const AMOUNT_TO_PROVIDE = BigNumber.from(2000);
+    let DCAPair: Contract;
+
+    given(async () => {
+      const DCAPairMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAPairMock.sol:DCAPairMock');
+      DCAPair = await DCAPairMockContract.deploy();
+    });
+
+    when('amount of swaps is zero', () => {
+      let shouldSwap: boolean;
+
+      given(async () => {
+        await DCAPair.setNextSwapInfo(0, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        shouldSwap = await DCASwapper.callStatic.shouldSwapPair(DCAPair.address);
+      });
+
+      then('pair should not be swapped', async () => {
+        expect(shouldSwap).to.be.false;
+      });
+    });
+
+    when('there are some swaps, but no amount to provide', () => {
+      let shouldSwap: boolean;
+
+      given(async () => {
+        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, constants.ZERO, REWARD_AMOUNT);
+        shouldSwap = await DCASwapper.callStatic.shouldSwapPair(DCAPair.address);
+      });
+
+      then('pair should be swapped', async () => {
+        expect(shouldSwap).to.be.true;
+      });
+    });
+
+    shouldBeSwappedTest({
+      title: 'quoter needs more than reward',
+      rewardAmount: REWARD_AMOUNT,
+      amountNeededByQuoter: REWARD_AMOUNT.add(1),
+      shouldBeSwapped: false,
+    });
+
+    shouldBeSwappedTest({
+      title: 'quoter needs exactly reward',
+      rewardAmount: REWARD_AMOUNT,
+      amountNeededByQuoter: REWARD_AMOUNT,
+      shouldBeSwapped: true,
+    });
+
+    shouldBeSwappedTest({
+      title: 'quoter needs less than reward',
+      rewardAmount: REWARD_AMOUNT,
+      amountNeededByQuoter: REWARD_AMOUNT.sub(1),
+      shouldBeSwapped: true,
+    });
+
+    function shouldBeSwappedTest({
+      title,
+      rewardAmount,
+      amountNeededByQuoter,
+      shouldBeSwapped,
+    }: {
+      title: string;
+      rewardAmount: BigNumber;
+      amountNeededByQuoter: BigNumber;
+      shouldBeSwapped: boolean;
+    }) {
+      when(title, () => {
+        let shouldSwap: boolean;
+
+        given(async () => {
+          await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, rewardAmount);
+          await UniswapQuoter.setAmountNecessary(amountNeededByQuoter);
+          shouldSwap = await DCASwapper.callStatic.shouldSwapPair(DCAPair.address);
+        });
+
+        then('shouldSwapPair returns as expected', async () => {
+          expect(shouldSwap).to.equal(shouldBeSwapped);
+        });
+      });
+    }
   });
 });

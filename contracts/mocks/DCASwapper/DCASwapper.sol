@@ -8,6 +8,11 @@ contract DCASwapperMock is DCASwapper {
   constructor(
     address _governor,
     IDCAFactory _factory,
-    ISwapRouter _router
-  ) DCASwapper(_governor, _factory, _router) {}
+    ISwapRouter _router,
+    IQuoterV2 _quoter
+  ) DCASwapper(_governor, _factory, _router, _quoter) {}
+
+  function shouldSwapPair(IDCAPair _pair) external returns (bool _shouldSwap) {
+    _shouldSwap = _shouldSwapPair(_pair);
+  }
 }
