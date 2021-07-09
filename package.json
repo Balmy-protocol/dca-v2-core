@@ -54,6 +54,7 @@
     "@types/chai-as-promised": "7.1.4",
     "@types/mocha": "8.2.2",
     "@types/node": "15.12.2",
+    "@uniswap/v3-core": "^1.0.0",
     "axios": "0.21.1",
     "chai": "4.3.4",
     "chai-as-promised": "7.1.1",
