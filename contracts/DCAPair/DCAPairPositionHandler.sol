@@ -27,17 +27,17 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   {}
 
   function userPosition(uint256 _dcaId) public view override returns (UserPosition memory _userPosition) {
-    DCA memory position = _userPositions[_dcaId];
-    _userPosition.from = position.fromTokenA ? tokenA : tokenB;
-    _userPosition.to = position.fromTokenA ? tokenB : tokenA;
-    _userPosition.swapInterval = position.swapInterval;
-    _userPosition.swapsExecuted = position.swapInterval > 0 ? performedSwaps[position.swapInterval] - position.lastWithdrawSwap : 0;
-    _userPosition.swapped = _calculateSwapped(_dcaId);
-    _userPosition.swapsLeft = position.lastSwap > performedSwaps[position.swapInterval]
-      ? position.lastSwap - performedSwaps[position.swapInterval]
+    DCA memory _position = _userPositions[_dcaId];
+    _userPosition.from = _position.fromTokenA ? tokenA : tokenB;
+    _userPosition.to = _position.fromTokenA ? tokenB : tokenA;
+    _userPosition.swapInterval = _position.swapInterval;
+    _userPosition.swapsExecuted = _position.swapInterval > 0 ? performedSwaps[_position.swapInterval] - _position.lastWithdrawSwap : 0;
+    _userPosition.swapped = _calculateSwapped(_dcaId, true);
+    _userPosition.swapsLeft = _position.lastSwap > performedSwaps[_position.swapInterval]
+      ? _position.lastSwap - performedSwaps[_position.swapInterval]
       : 0;
     _userPosition.remaining = _calculateUnswapped(_dcaId);
-    _userPosition.rate = position.rate;
+    _userPosition.rate = _position.rate;
   }
 
   function deposit(
@@ -63,7 +63,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function withdrawSwapped(uint256 _dcaId) public override nonReentrant returns (uint256 _swapped) {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    _swapped = _calculateSwapped(_dcaId);
+    _swapped = _calculateSwapped(_dcaId, true);
 
     _userPositions[_dcaId].lastWithdrawSwap = performedSwaps[_userPositions[_dcaId].swapInterval];
     _userPositions[_dcaId].swappedBeforeModified = 0;
@@ -84,7 +84,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     for (uint256 i; i < _dcaIds.length; i++) {
       uint256 _dcaId = _dcaIds[i];
       _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-      uint256 _swappedDCA = _calculateSwapped(_dcaId);
+      uint256 _swappedDCA = _calculateSwapped(_dcaId, true);
       if (_userPositions[_dcaId].fromTokenA) {
         _swappedTokenB += _swappedDCA;
       } else {
@@ -109,7 +109,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function terminate(uint256 _dcaId) public override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    uint256 _swapped = _calculateSwapped(_dcaId);
+    uint256 _swapped = _calculateSwapped(_dcaId, true);
     uint256 _unswapped = _calculateUnswapped(_dcaId);
 
     IERC20Detailed _from = _getFrom(_dcaId);
@@ -133,9 +133,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function modifyRate(uint256 _dcaId, uint160 _newRate) public override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    DCA memory _userDCA = _userPositions[_dcaId];
-
-    uint32 _swapsLeft = _userDCA.lastSwap - performedSwaps[_userDCA.swapInterval];
+    uint32 _swapsLeft = _userPositions[_dcaId].lastSwap - performedSwaps[_userPositions[_dcaId].swapInterval];
     if (_swapsLeft == 0) revert PositionCompleted();
 
     _modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
@@ -248,20 +246,19 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   function _removePosition(uint256 _dcaId) internal {
-    DCA memory _userDCA = _userPositions[_dcaId];
-    if (_userDCA.lastSwap > performedSwaps[_userDCA.swapInterval]) {
-      address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
-      swapAmountDelta[_userDCA.swapInterval][_from][performedSwaps[_userDCA.swapInterval] + 1] -= int160(_userDCA.rate);
-      swapAmountDelta[_userDCA.swapInterval][_from][_userDCA.lastSwap] += int160(_userDCA.rate);
+    uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
+    uint32 _lastSwap = _userPositions[_dcaId].lastSwap;
+
+    if (_lastSwap > performedSwaps[_swapInterval]) {
+      uint160 _rate = _userPositions[_dcaId].rate;
+      address _from = _userPositions[_dcaId].fromTokenA ? address(tokenA) : address(tokenB);
+      swapAmountDelta[_swapInterval][_from][performedSwaps[_swapInterval] + 1] -= int160(_rate);
+      swapAmountDelta[_swapInterval][_from][_lastSwap] += int160(_rate);
     }
     delete _userPositions[_dcaId];
   }
 
   /** Return the amount of tokens swapped in TO */
-  function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
-    _swapped = _calculateSwapped(_dcaId, true);
-  }
-
   function _calculateSwapped(uint256 _dcaId, bool _applyFee) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = _userPositions[_dcaId];
     address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
@@ -280,12 +277,15 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
   /** Returns how many FROM remains unswapped  */
   function _calculateUnswapped(uint256 _dcaId) internal view returns (uint256 _unswapped) {
-    DCA memory _userDCA = _userPositions[_dcaId];
-    if (_userDCA.lastSwap <= performedSwaps[_userDCA.swapInterval]) {
+    uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
+    uint32 _lastSwap = _userPositions[_dcaId].lastSwap;
+
+    if (_lastSwap <= performedSwaps[_swapInterval]) {
       return 0;
     }
-    uint32 _remainingSwaps = _userDCA.lastSwap - performedSwaps[_userDCA.swapInterval];
-    _unswapped = _remainingSwaps * _userDCA.rate;
+    uint160 _rate = _userPositions[_dcaId].rate;
+    uint32 _remainingSwaps = _lastSwap - performedSwaps[_swapInterval];
+    _unswapped = _remainingSwaps * _rate;
   }
 
   function _getFrom(uint256 _dcaId) internal view returns (IERC20Detailed _from) {
