@@ -8,6 +8,7 @@ interface IDCAGlobalParameters {
     address feeRecipient;
     bool isPaused;
     uint32 swapFee;
+    ISlidingOracle oracle;
   }
 
   struct LoanParameters {
@@ -18,6 +19,7 @@ interface IDCAGlobalParameters {
 
   event FeeRecipientSet(address _feeRecipient);
   event NFTDescriptorSet(IDCATokenDescriptor _descriptor);
+  event OracleSet(ISlidingOracle _oracle);
   event SwapFeeSet(uint32 _feeSet);
   event LoanFeeSet(uint32 _feeSet);
   event SwapIntervalsAllowed(uint32[] _swapIntervals, string[] _descriptions);
@@ -36,6 +38,8 @@ interface IDCAGlobalParameters {
   function loanFee() external view returns (uint32);
 
   function nftDescriptor() external view returns (IDCATokenDescriptor);
+
+  function oracle() external view returns (ISlidingOracle);
 
   // solhint-disable-next-line func-name-mixedcase
   function FEE_PRECISION() external view returns (uint24);
@@ -63,6 +67,8 @@ interface IDCAGlobalParameters {
   function setLoanFee(uint32 _fee) external;
 
   function setNFTDescriptor(IDCATokenDescriptor _descriptor) external;
+
+  function setOracle(ISlidingOracle _oracle) external;
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) external;
 

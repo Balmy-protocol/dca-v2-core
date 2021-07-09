@@ -54,7 +54,12 @@ describe('DCAPositionHandler', () => {
       initialAccount: owner.address,
       initialAmount: INITIAL_TOKEN_B_BALANCE_USER,
     });
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
+      owner.address,
+      constants.NOT_ZERO_ADDRESS,
+      constants.NOT_ZERO_ADDRESS,
+      constants.NOT_ZERO_ADDRESS
+    );
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));

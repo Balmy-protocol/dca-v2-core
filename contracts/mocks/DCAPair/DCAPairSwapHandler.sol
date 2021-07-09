@@ -16,9 +16,8 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   constructor(
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB,
-    IDCAGlobalParameters _globalParameters,
-    ISlidingOracle _oracle
-  ) DCAPairParametersMock(_globalParameters, _tokenA, _tokenB) DCAPairSwapHandler(_oracle) {
+    IDCAGlobalParameters _globalParameters
+  ) DCAPairParametersMock(_globalParameters, _tokenA, _tokenB) DCAPairSwapHandler() {
     /* */
   }
 

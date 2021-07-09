@@ -129,8 +129,6 @@ interface IDCAPairSwapHandler {
 
   function swapAmountAccumulator(uint32, address) external view returns (uint256);
 
-  function oracle() external returns (ISlidingOracle);
-
   function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 
   function swap() external;

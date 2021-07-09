@@ -8,6 +8,7 @@ contract DCAGlobalParametersMock is DCAGlobalParameters {
   constructor(
     address _governor,
     address _feeRecipient,
-    IDCATokenDescriptor _nftDescriptor
-  ) DCAGlobalParameters(_governor, _feeRecipient, _nftDescriptor) {}
+    IDCATokenDescriptor _nftDescriptor,
+    ISlidingOracle _oracle
+  ) DCAGlobalParameters(_governor, _feeRecipient, _nftDescriptor, _oracle) {}
 }

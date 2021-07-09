@@ -37,7 +37,12 @@ describe('DCAPairLoanHandler', () => {
       name: 'tokenB',
       symbol: 'TKNB',
     });
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address, constants.NOT_ZERO_ADDRESS);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
+      owner.address,
+      feeRecipient.address,
+      constants.NOT_ZERO_ADDRESS,
+      constants.NOT_ZERO_ADDRESS
+    );
     DCAPairLoanHandler = await DCAPairLoanHandlerContract.deploy(tokenA.address, tokenB.address, DCAGlobalParameters.address);
   });
 

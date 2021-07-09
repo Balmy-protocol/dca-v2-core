@@ -51,8 +51,13 @@ contract('DCAPair', () => {
         symbol: 'TKNB',
       });
       staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
-      DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(governor.address, feeRecipient.address, constants.NOT_ZERO_ADDRESS);
-      DCAPair = await DCAPairFactory.deploy(DCAGlobalParameters.address, staticSlidingOracle.address, tokenA.address, tokenB.address);
+      DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(
+        governor.address,
+        feeRecipient.address,
+        constants.NOT_ZERO_ADDRESS,
+        staticSlidingOracle.address
+      );
+      DCAPair = await DCAPairFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
     });
 

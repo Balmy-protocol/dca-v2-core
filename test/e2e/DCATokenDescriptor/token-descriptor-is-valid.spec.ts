@@ -44,8 +44,13 @@ contract('DCATokenDescriptor', () => {
     });
     staticSlidingOracle = await staticSlidingOracleContract.deploy(tokenA.asUnits(1), tokenA.amountOfDecimals); // Rate is 1 token A = 1 token B
     DCATokenDescriptor = await DCATokenDescriptorContract.deploy();
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(governor.address, feeRecipient.address, DCATokenDescriptor.address);
-    DCAPair = await DCAPairContract.deploy(DCAGlobalParameters.address, staticSlidingOracle.address, tokenA.address, tokenB.address);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
+      governor.address,
+      feeRecipient.address,
+      DCATokenDescriptor.address,
+      staticSlidingOracle.address
+    );
+    DCAPair = await DCAPairContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));

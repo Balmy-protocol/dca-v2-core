@@ -50,51 +50,18 @@ describe('DCAPairSwapHandler', () => {
       initialAmount: ethers.constants.MaxUint256.div(2),
     });
     staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address, constants.NOT_ZERO_ADDRESS);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
+      owner.address,
+      feeRecipient.address,
+      constants.NOT_ZERO_ADDRESS,
+      staticSlidingOracle.address
+    );
     DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
-      DCAGlobalParameters.address, // global parameters
-      staticSlidingOracle.address // oracle
+      DCAGlobalParameters.address // global parameters
     );
     await DCAPairSwapHandler.addActiveSwapInterval(SWAP_INTERVAL);
-  });
-
-  describe('constructor', () => {
-    when('global parameters is zero', () => {
-      then('reverts with message', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, constants.ZERO_ADDRESS, staticSlidingOracle.address],
-          message: 'ZeroAddress',
-        });
-      });
-    });
-    when('oracle is zero', () => {
-      then('reverts with message', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, DCAGlobalParameters.address, constants.ZERO_ADDRESS],
-          message: 'ZeroAddress',
-        });
-      });
-    });
-    when('all arguments are valid', () => {
-      let DCAPairSwapHandler: Contract;
-
-      given(async () => {
-        DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
-          tokenA.address,
-          tokenB.address,
-          DCAGlobalParameters.address, // global parameters
-          staticSlidingOracle.address
-        );
-      });
-
-      it('oracle is set correctly', async () => {
-        expect(await DCAPairSwapHandler.oracle()).to.equal(staticSlidingOracle.address);
-      });
-    });
   });
 
   function addNewRatePerUnitTest({

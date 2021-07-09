@@ -13,6 +13,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
 
   address public override feeRecipient;
   IDCATokenDescriptor public override nftDescriptor;
+  ISlidingOracle public override oracle;
   uint32 public override swapFee = 3000; // 0.3%
   uint32 public override loanFee = 1000; // 0.1%
   uint24 public constant override FEE_PRECISION = 10000;
@@ -23,12 +24,14 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   constructor(
     address _governor,
     address _feeRecipient,
-    IDCATokenDescriptor _nftDescriptor
+    IDCATokenDescriptor _nftDescriptor,
+    ISlidingOracle _oracle
   ) Governable(_governor) {
-    if (_feeRecipient == address(0)) revert CommonErrors.ZeroAddress();
-    if (address(_nftDescriptor) == address(0)) revert CommonErrors.ZeroAddress();
+    if (_feeRecipient == address(0) || address(_nftDescriptor) == address(0) || address(_oracle) == address(0))
+      revert CommonErrors.ZeroAddress();
     feeRecipient = _feeRecipient;
     nftDescriptor = _nftDescriptor;
+    oracle = _oracle;
   }
 
   function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
@@ -41,6 +44,12 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     if (address(_descriptor) == address(0)) revert CommonErrors.ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);
+  }
+
+  function setOracle(ISlidingOracle _oracle) public override onlyGovernor {
+    if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
+    oracle = _oracle;
+    emit OracleSet(_oracle);
   }
 
   function setSwapFee(uint32 _swapFee) public override onlyGovernor {
@@ -108,5 +117,6 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     _swapParameters.feeRecipient = feeRecipient;
     _swapParameters.isPaused = paused();
     _swapParameters.swapFee = swapFee;
+    _swapParameters.oracle = oracle;
   }
 }

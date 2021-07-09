@@ -7,19 +7,19 @@ import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAGlobalParameters', () => {
-  let owner: SignerWithAddress, feeRecipient: SignerWithAddress, nftDescriptor: SignerWithAddress;
+  let owner: SignerWithAddress, feeRecipient: SignerWithAddress, nftDescriptor: SignerWithAddress, oracle: SignerWithAddress;
   let DCAGlobalParametersContract: ContractFactory;
   let DCAGlobalParameters: Contract;
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient, nftDescriptor] = await ethers.getSigners();
+    [owner, feeRecipient, nftDescriptor, oracle] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
   });
 
   beforeEach('Deploy and configure', async () => {
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address, nftDescriptor.address);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address, nftDescriptor.address, oracle.address);
   });
 
   describe('constructor', () => {
@@ -27,16 +27,25 @@ describe('DCAGlobalParameters', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
-          args: [owner.address, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
+          args: [owner.address, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
     });
-    when('feeRecipient is zero address', () => {
+    when('nft descriptor is zero address', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
-          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('oracle is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAGlobalParametersContract,
+          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -44,7 +53,12 @@ describe('DCAGlobalParameters', () => {
     when('all arguments are valid', () => {
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAGlobalParametersContract, [owner.address, feeRecipient.address, nftDescriptor.address]);
+        const deployment = await contracts.deploy(DCAGlobalParametersContract, [
+          owner.address,
+          feeRecipient.address,
+          nftDescriptor.address,
+          oracle.address,
+        ]);
         deployedContract = deployment.contract;
       });
       then('sets governor correctly', async () => {
@@ -55,6 +69,9 @@ describe('DCAGlobalParameters', () => {
       });
       then('sets nft descriptor correctly', async () => {
         expect(await deployedContract.nftDescriptor()).to.equal(nftDescriptor.address);
+      });
+      then('sets oracle correctly', async () => {
+        expect(await deployedContract.oracle()).to.equal(oracle.address);
       });
       then('contract starts as unpaused', async () => {
         expect(await deployedContract.paused()).to.be.false;
@@ -119,6 +136,37 @@ describe('DCAGlobalParameters', () => {
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'setNFTDescriptor(address)',
+      params: [constants.NOT_ZERO_ADDRESS],
+      governor: () => owner,
+    });
+  });
+
+  describe('setOracle', () => {
+    when('address is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAGlobalParameters,
+          func: 'setOracle',
+          args: [constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('address is not zero', () => {
+      then('sets oracle and emits event with correct arguments', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAGlobalParameters,
+          getterFunc: 'oracle',
+          setterFunc: 'setOracle',
+          variable: constants.NOT_ZERO_ADDRESS,
+          eventEmitted: 'OracleSet',
+        });
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAGlobalParameters,
+      funcAndSignature: 'setOracle(address)',
       params: [constants.NOT_ZERO_ADDRESS],
       governor: () => owner,
     });
