@@ -17,9 +17,14 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     factory = _factory;
   }
 
-  function supportsPair(address, address) external view override returns (bool _isPairSupported) {
-    // TODO
-    _isPairSupported = true;
+  function supportsPair(address _tokenA, address _tokenB) external view override returns (bool) {
+    uint256 _length = _supportedFeeTiers.length();
+    for (uint256 i; i < _length; i++) {
+      if (factory.getPool(_tokenA, _tokenB, uint24(_supportedFeeTiers.at(i))) != address(0)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function quote(

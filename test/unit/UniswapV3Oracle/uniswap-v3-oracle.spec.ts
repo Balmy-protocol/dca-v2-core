@@ -76,4 +76,37 @@ describe('UniswapV3Oracle', () => {
       governor: () => owner,
     });
   });
+
+  describe('supportsPair', () => {
+    const TOKEN_A = '0x0000000000000000000000000000000000000001';
+    const TOKEN_B = '0x0000000000000000000000000000000000000002';
+    const POOL = '0x0000000000000000000000000000000000000003';
+    const FEE = 1000;
+
+    when('no pool exists for pair', () => {
+      then('pair is not supported', async () => {
+        expect(await UniswapV3Oracle.supportsPair(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+
+    when('pool exists for pair on unsupported fie tier', () => {
+      given(async () => {
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, POOL);
+      });
+      then('pair is not supported', async () => {
+        expect(await UniswapV3Oracle.supportsPair(TOKEN_A, TOKEN_B)).to.be.false;
+      });
+    });
+
+    when('pool exists for pair on supported fie tier', () => {
+      given(async () => {
+        await UniswapV3Factory.setTickSpacing(1);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, POOL);
+        await UniswapV3Oracle.addFeeTier(FEE);
+      });
+      then('pair is marked as supported', async () => {
+        expect(await UniswapV3Oracle.supportsPair(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+  });
 });
