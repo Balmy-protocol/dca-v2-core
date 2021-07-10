@@ -10,10 +10,13 @@ describe('DCAFactoryPairsHandler', function () {
   let owner: SignerWithAddress;
   let tokenAContract: Contract, tokenBContract: Contract;
   let DCAGlobalParametersContract: ContractFactory, DCAFactoryPairsHandlerContract: ContractFactory;
+  let timeWeightedOracleContract: ContractFactory;
   let DCAGlobalParameters: Contract, DCAFactoryPairsHandler: Contract;
+  let timeWeightedOracle: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
+    timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
@@ -35,12 +38,14 @@ describe('DCAFactoryPairsHandler', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
+    timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS,
-      constants.NOT_ZERO_ADDRESS
+      timeWeightedOracle.address
     );
+
     DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(DCAGlobalParameters.address);
   });
 

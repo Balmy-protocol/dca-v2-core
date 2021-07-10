@@ -4,7 +4,6 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-import '../interfaces/ISlidingOracle.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
@@ -100,7 +99,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
   }
 
-  function _getNextSwapInfo(uint32 _swapFee, ISlidingOracle _oracle)
+  function _getNextSwapInfo(uint32 _swapFee, ITimeWeightedOracle _oracle)
     internal
     view
     virtual
@@ -117,8 +116,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _nextSwapInformation.swapsToPerform = _swapsToPerform;
       _nextSwapInformation.amountOfSwaps = _amountOfSwaps;
     }
-    // TODO: Instead of using current, it should use quote to get a moving average and not current?
-    _nextSwapInformation.ratePerUnitBToA = _oracle.current(address(tokenB), _magnitudeB, address(tokenA));
+    _nextSwapInformation.ratePerUnitBToA = _oracle.quote(address(tokenB), _magnitudeB, address(tokenA));
     _nextSwapInformation.ratePerUnitAToB = (_magnitudeB * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
 
     uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(_magnitudeB, _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);

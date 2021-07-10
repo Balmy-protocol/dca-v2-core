@@ -21,8 +21,8 @@ contract('DCAPair', () => {
     let DCAGlobalParameters: Contract;
     let reentrantDCAPairLoanCalleeFactory: ContractFactory;
     let reentrantDCAPairSwapCalleeFactory: ContractFactory;
-    let staticSlidingOracleContract: ContractFactory;
-    let staticSlidingOracle: Contract;
+    let TimeWeightedOracleFactory: ContractFactory;
+    let TimeWeightedOracle: Contract;
     const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
     before('Setup accounts and contracts', async () => {
@@ -37,7 +37,7 @@ contract('DCAPair', () => {
       reentrantDCAPairSwapCalleeFactory = await ethers.getContractFactory(
         'contracts/mocks/DCAPairSwapCallee.sol:ReentrantDCAPairSwapCalleeMock'
       );
-      staticSlidingOracleContract = await ethers.getContractFactory('contracts/mocks/StaticSlidingOracle.sol:StaticSlidingOracle');
+      TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -50,12 +50,12 @@ contract('DCAPair', () => {
         name: 'tokenB',
         symbol: 'TKNB',
       });
-      staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
+      TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(0, 0);
       DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(
         governor.address,
         feeRecipient.address,
         constants.NOT_ZERO_ADDRESS,
-        staticSlidingOracle.address
+        TimeWeightedOracle.address
       );
       DCAPair = await DCAPairFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
@@ -90,7 +90,7 @@ contract('DCAPair', () => {
       let totalTokenA: BigNumber;
       let reentrantDCAPairSwapCallee: Contract;
       given(async () => {
-        await staticSlidingOracle.setRate(tokenA.asUnits('1'), 18);
+        await TimeWeightedOracle.setRate(tokenA.asUnits('1'), 18);
         totalTokenA = tokenA.asUnits(rateTokenA).mul(swapsTokenA);
         await deposit({
           token: () => tokenA,

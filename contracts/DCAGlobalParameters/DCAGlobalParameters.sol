@@ -13,7 +13,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
 
   address public override feeRecipient;
   IDCATokenDescriptor public override nftDescriptor;
-  ISlidingOracle public override oracle;
+  ITimeWeightedOracle public override oracle;
   uint32 public override swapFee = 3000; // 0.3%
   uint32 public override loanFee = 1000; // 0.1%
   uint24 public constant override FEE_PRECISION = 10000;
@@ -25,7 +25,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     address _governor,
     address _feeRecipient,
     IDCATokenDescriptor _nftDescriptor,
-    ISlidingOracle _oracle
+    ITimeWeightedOracle _oracle
   ) Governable(_governor) {
     if (_feeRecipient == address(0) || address(_nftDescriptor) == address(0) || address(_oracle) == address(0))
       revert CommonErrors.ZeroAddress();
@@ -46,7 +46,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     emit NFTDescriptorSet(_descriptor);
   }
 
-  function setOracle(ISlidingOracle _oracle) public override onlyGovernor {
+  function setOracle(ITimeWeightedOracle _oracle) public override onlyGovernor {
     if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
     oracle = _oracle;
     emit OracleSet(_oracle);

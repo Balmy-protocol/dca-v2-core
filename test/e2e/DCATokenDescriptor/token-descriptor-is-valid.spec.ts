@@ -19,8 +19,8 @@ contract('DCATokenDescriptor', () => {
   let DCAGlobalParameters: Contract;
   let DCATokenDescriptorContract: ContractFactory;
   let DCATokenDescriptor: Contract;
-  let staticSlidingOracleContract: ContractFactory;
-  let staticSlidingOracle: Contract;
+  let TimeWeightedOracleFactory: ContractFactory;
+  let TimeWeightedOracle: Contract;
   const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
   before('Setup accounts and contracts', async () => {
@@ -28,8 +28,7 @@ contract('DCATokenDescriptor', () => {
     DCAGlobalParametersContract = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
     DCAPairContract = await ethers.getContractFactory('contracts/DCAPair/DCAPair.sol:DCAPair');
     DCATokenDescriptorContract = await ethers.getContractFactory('contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor');
-
-    staticSlidingOracleContract = await ethers.getContractFactory('contracts/mocks/StaticSlidingOracle.sol:StaticSlidingOracle');
+    TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -42,13 +41,13 @@ contract('DCATokenDescriptor', () => {
       name: 'tokenB',
       symbol: 'TKNB',
     });
-    staticSlidingOracle = await staticSlidingOracleContract.deploy(tokenA.asUnits(1), tokenA.amountOfDecimals); // Rate is 1 token A = 1 token B
+    TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(tokenA.asUnits(1), tokenA.amountOfDecimals); // Rate is 1 token A = 1 token B
     DCATokenDescriptor = await DCATokenDescriptorContract.deploy();
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       governor.address,
       feeRecipient.address,
       DCATokenDescriptor.address,
-      staticSlidingOracle.address
+      TimeWeightedOracle.address
     );
     DCAPair = await DCAPairContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);

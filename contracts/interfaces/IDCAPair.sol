@@ -3,7 +3,6 @@ pragma solidity 0.8.4;
 
 import './IDCAGlobalParameters.sol';
 import './IERC20Detailed.sol';
-import './ISlidingOracle.sol';
 
 interface IDCAPairParameters {
   /* Public getters */

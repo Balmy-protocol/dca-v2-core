@@ -5,18 +5,20 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 
 interface ITimeWeightedOracle {
   /** Returns whether this oracle supports this pair of tokens */
-  // TODO
-  // function supportsPair(address _tokenA, address _tokenB) external view returns (bool);
+  function supportsPair(address _tokenA, address _tokenB) external view returns (bool);
+
   /** Returns a quote, based on the given tokens and amount */
-  // TODO
-  // function quote(
-  //   address _tokenIn,
-  //   uint256 _amountIn,
-  //   address _tokenOut
-  // ) external view returns (uint256 _amountOut);
-  /** Let the oracle take some actions to prepare for this new pair of tokens */
-  // TODO
-  // function initializePair(address _tokenA, address _tokenB) external;
+  function quote(
+    address _tokenIn,
+    uint256 _amountIn,
+    address _tokenOut
+  ) external view returns (uint256 _amountOut);
+
+  /**
+   * Let the oracle take some actions to prepare for this new pair of tokens.
+   * Will revert if pair is not supported.
+   */
+  function initializePair(address _tokenA, address _tokenB) external;
 }
 
 interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
