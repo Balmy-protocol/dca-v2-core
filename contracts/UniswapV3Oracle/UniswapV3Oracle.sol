@@ -9,7 +9,10 @@ import '../libraries/CommonErrors.sol';
 contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   using EnumerableSet for EnumerableSet.UintSet;
 
-  IUniswapV3Factory public override factory;
+  uint32 public constant override MINIMUM_PERIOD = 1 minutes;
+  uint32 public constant override MAXIMUM_PERIOD = 20 minutes;
+  IUniswapV3Factory public immutable override factory;
+  uint32 public override period = 5 minutes;
   EnumerableSet.UintSet internal _supportedFeeTiers;
 
   constructor(address _governor, IUniswapV3Factory _factory) Governable(_governor) {
@@ -46,6 +49,16 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     for (uint256 i; i < _length; i++) {
       _feeTiers[i] = uint24(_supportedFeeTiers.at(i));
     }
+  }
+
+  function setPeriod(uint32 _period) external override onlyGovernor {
+    if (_period > MAXIMUM_PERIOD) {
+      revert GreaterThanMaximumPeriod();
+    } else if (_period < MINIMUM_PERIOD) {
+      revert LessThanMinimumPeriod();
+    }
+    period = _period;
+    emit PeriodChanged(_period);
   }
 
   function addFeeTier(uint24 _feeTier) external override onlyGovernor {

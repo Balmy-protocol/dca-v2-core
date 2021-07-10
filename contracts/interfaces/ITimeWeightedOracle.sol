@@ -23,28 +23,27 @@ interface ITimeWeightedOracle {
 
 interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
   event AddedFeeTier(uint24 _feeTier);
+  event PeriodChanged(uint32 _period);
 
   error InvalidFeeTier();
+  error GreaterThanMaximumPeriod();
+  error LessThanMinimumPeriod();
 
   /* Public getters */
   function factory() external view returns (IUniswapV3Factory);
 
   function supportedFeeTiers() external view returns (uint24[] memory);
 
-  // TODO
-  // function period() external view returns (uint32);
+  function period() external view returns (uint32);
 
-  // TODO
   // solhint-disable-next-line func-name-mixedcase
-  // function MINIMUM_PERIOD() external view returns (uint32);
+  function MINIMUM_PERIOD() external view returns (uint32);
 
-  // TODO
   // solhint-disable-next-line func-name-mixedcase
-  // function MAXIMUM_PERIOD() external view returns (uint32);
+  function MAXIMUM_PERIOD() external view returns (uint32);
 
   /* Public setters */
   function addFeeTier(uint24) external;
 
-  // TODO
-  // function setPeriod(uint32) external;
+  function setPeriod(uint32) external;
 }

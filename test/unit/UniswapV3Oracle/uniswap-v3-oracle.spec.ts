@@ -37,6 +37,18 @@ describe('UniswapV3Oracle', () => {
         const factory = await UniswapV3Oracle.factory();
         expect(factory).to.equal(UniswapV3Factory.address);
       });
+      then('max period is 20 minutes', async () => {
+        const maxPeriod = await UniswapV3Oracle.MAXIMUM_PERIOD();
+        expect(maxPeriod).to.equal(20 * 60);
+      });
+      then('min period is 1 minute', async () => {
+        const minPeriod = await UniswapV3Oracle.MINIMUM_PERIOD();
+        expect(minPeriod).to.equal(60);
+      });
+      then('starting period is 5 minutes', async () => {
+        const period = await UniswapV3Oracle.period();
+        expect(period).to.equal(5 * 60);
+      });
     });
   });
 
@@ -107,6 +119,52 @@ describe('UniswapV3Oracle', () => {
       then('pair is marked as supported', async () => {
         expect(await UniswapV3Oracle.supportsPair(TOKEN_A, TOKEN_B)).to.be.true;
       });
+    });
+  });
+
+  describe('setPeriod', () => {
+    when('period is higher than max period', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'setPeriod',
+          args: [20 * 60 + 1],
+          message: 'GreaterThanMaximumPeriod',
+        });
+      });
+    });
+    when('period is lower than min period', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'setPeriod',
+          args: [60 - 1],
+          message: 'LessThanMinimumPeriod',
+        });
+      });
+    });
+    when('new period is valid', () => {
+      const PERIOD = 6 * 60;
+
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await UniswapV3Oracle.setPeriod(PERIOD);
+      });
+
+      then('period is set', async () => {
+        expect(await UniswapV3Oracle.period()).to.eql(PERIOD);
+      });
+
+      then('event is emmitted', async () => {
+        await expect(tx).to.emit(UniswapV3Oracle, 'PeriodChanged').withArgs(PERIOD);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => UniswapV3Oracle,
+      funcAndSignature: 'setPeriod(uint32)',
+      params: [10 * 60],
+      governor: () => owner,
     });
   });
 });
