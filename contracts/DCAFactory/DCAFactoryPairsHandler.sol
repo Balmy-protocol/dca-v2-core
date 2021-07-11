@@ -41,19 +41,13 @@ abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
     _pair = _pairByTokens[__tokenA][__tokenB];
   }
 
-  function createPair(address _tokenA, address _tokenB) public override returns (address _pair) {
+  function createPair(address _tokenA, address _tokenB) external override returns (address _pair) {
     if (_tokenA == address(0) || _tokenB == address(0)) revert CommonErrors.ZeroAddress();
     if (_tokenA == _tokenB) revert IdenticalTokens();
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     if (_pairByTokens[__tokenA][__tokenB] != address(0)) revert PairAlreadyExists();
-    _pair = address(
-      new DCAPair(
-        globalParameters,
-        ISlidingOracle(address(0x84F4BC40C227CEF248ec5b46e7A44947D7D2F94a)),
-        IERC20Detailed(__tokenA),
-        IERC20Detailed(__tokenB)
-      )
-    );
+    globalParameters.oracle().addSupportForPair(__tokenA, __tokenB); // Note: this call will revert if the oracle doesn't support this particular pair
+    _pair = address(new DCAPair(globalParameters, IERC20Detailed(__tokenA), IERC20Detailed(__tokenB)));
     _pairByTokens[__tokenA][__tokenB] = _pair;
     _allPairs.add(_pair);
     emit PairCreated(__tokenA, __tokenB, _pair);

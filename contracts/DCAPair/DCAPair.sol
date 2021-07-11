@@ -10,8 +10,7 @@ import './DCAPairLoanHandler.sol';
 contract DCAPair is DCAPairParameters, DCAPairSwapHandler, DCAPairPositionHandler, DCAPairLoanHandler, IDCAPair {
   constructor(
     IDCAGlobalParameters _globalParameters,
-    ISlidingOracle _oracle,
     IERC20Detailed _tokenA,
     IERC20Detailed _tokenB
-  ) DCAPairParameters(_globalParameters, _tokenA, _tokenB) DCAPairSwapHandler(_oracle) DCAPairPositionHandler(_tokenA, _tokenB) {}
+  ) DCAPairParameters(_globalParameters, _tokenA, _tokenB) DCAPairPositionHandler(_tokenA, _tokenB) {}
 }

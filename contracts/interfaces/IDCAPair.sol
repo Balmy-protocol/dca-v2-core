@@ -3,7 +3,6 @@ pragma solidity 0.8.4;
 
 import './IDCAGlobalParameters.sol';
 import './IERC20Detailed.sol';
-import './ISlidingOracle.sol';
 
 interface IDCAPairParameters {
   /* Public getters */
@@ -128,8 +127,6 @@ interface IDCAPairSwapHandler {
   function nextSwapAvailable(uint32) external view returns (uint32);
 
   function swapAmountAccumulator(uint32, address) external view returns (uint256);
-
-  function oracle() external returns (ISlidingOracle);
 
   function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 

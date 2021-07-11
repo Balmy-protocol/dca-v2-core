@@ -17,8 +17,8 @@ describe('DCAPairSwapHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAPairSwapHandlerContract: ContractFactory;
   let DCAPairSwapHandler: Contract;
-  let staticSlidingOracleContract: ContractFactory;
-  let staticSlidingOracle: Contract;
+  let timeWeightedOracleContract: ContractFactory;
+  let timeWeightedOracle: Contract;
   let DCAGlobalParametersContract: ContractFactory;
   let DCAGlobalParameters: Contract;
   const SWAP_INTERVAL = moment.duration(1, 'days').as('seconds');
@@ -30,7 +30,7 @@ describe('DCAPairSwapHandler', () => {
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
     DCAPairSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairSwapHandler.sol:DCAPairSwapHandlerMock');
-    staticSlidingOracleContract = await ethers.getContractFactory('contracts/mocks/StaticSlidingOracle.sol:StaticSlidingOracle');
+    timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -49,52 +49,19 @@ describe('DCAPairSwapHandler', () => {
       initialAccount: owner.address,
       initialAmount: ethers.constants.MaxUint256.div(2),
     });
-    staticSlidingOracle = await staticSlidingOracleContract.deploy(0, 0);
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address, constants.NOT_ZERO_ADDRESS);
+    timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
+      owner.address,
+      feeRecipient.address,
+      constants.NOT_ZERO_ADDRESS,
+      timeWeightedOracle.address
+    );
     DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
-      DCAGlobalParameters.address, // global parameters
-      staticSlidingOracle.address // oracle
+      DCAGlobalParameters.address // global parameters
     );
     await DCAPairSwapHandler.addActiveSwapInterval(SWAP_INTERVAL);
-  });
-
-  describe('constructor', () => {
-    when('global parameters is zero', () => {
-      then('reverts with message', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, constants.ZERO_ADDRESS, staticSlidingOracle.address],
-          message: 'ZeroAddress',
-        });
-      });
-    });
-    when('oracle is zero', () => {
-      then('reverts with message', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCAPairSwapHandlerContract,
-          args: [tokenA.address, tokenB.address, DCAGlobalParameters.address, constants.ZERO_ADDRESS],
-          message: 'ZeroAddress',
-        });
-      });
-    });
-    when('all arguments are valid', () => {
-      let DCAPairSwapHandler: Contract;
-
-      given(async () => {
-        DCAPairSwapHandler = await DCAPairSwapHandlerContract.deploy(
-          tokenA.address,
-          tokenB.address,
-          DCAGlobalParameters.address, // global parameters
-          staticSlidingOracle.address
-        );
-      });
-
-      it('oracle is set correctly', async () => {
-        expect(await DCAPairSwapHandler.oracle()).to.equal(staticSlidingOracle.address);
-      });
-    });
   });
 
   function addNewRatePerUnitTest({
@@ -291,7 +258,7 @@ describe('DCAPairSwapHandler', () => {
 
   const setOracleData = async ({ ratePerUnitBToA }: { ratePerUnitBToA: BigNumber }) => {
     const tokenBDecimals = BigNumber.from(await tokenB.decimals());
-    await staticSlidingOracle.setRate(ratePerUnitBToA, tokenBDecimals);
+    await timeWeightedOracle.setRate(ratePerUnitBToA, tokenBDecimals);
   };
 
   type NextSwapInformationContext = {

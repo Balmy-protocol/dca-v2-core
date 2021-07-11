@@ -10,10 +10,13 @@ describe('DCAFactoryPairsHandler', function () {
   let owner: SignerWithAddress;
   let tokenAContract: Contract, tokenBContract: Contract;
   let DCAGlobalParametersContract: ContractFactory, DCAFactoryPairsHandlerContract: ContractFactory;
+  let timeWeightedOracleContract: ContractFactory;
   let DCAGlobalParameters: Contract, DCAFactoryPairsHandler: Contract;
+  let timeWeightedOracle: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
+    timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
@@ -35,7 +38,14 @@ describe('DCAFactoryPairsHandler', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     });
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
+    timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
+      owner.address,
+      constants.NOT_ZERO_ADDRESS,
+      constants.NOT_ZERO_ADDRESS,
+      timeWeightedOracle.address
+    );
+
     DCAFactoryPairsHandler = await DCAFactoryPairsHandlerContract.deploy(DCAGlobalParameters.address);
   });
 
@@ -106,7 +116,7 @@ describe('DCAFactoryPairsHandler', function () {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
-            args: [tokenAContract.address, tokenBContract.address],
+            args: [tokenBContract.address, tokenAContract.address],
             message: 'PairAlreadyExists',
           });
         });
@@ -149,42 +159,10 @@ describe('DCAFactoryPairsHandler', function () {
         await DCAFactoryPairsHandler.createPair(tokenAContract.address, tokenBContract.address);
       });
       then('returns correct pair address', async () => {
-        const { tokenA, tokenB } = sortTokens(tokenAContract.address, tokenBContract.address);
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA, tokenB)).to.equal(hipotheticPairAddress);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(hipotheticPairAddress);
       });
       then('returns the same address if asking for tokenB<->tokenA pair', async () => {
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(
-          await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)
-        );
-      });
-    });
-  });
-
-  describe('sortTokens', () => {
-    when('sorting token addresses', () => {
-      let tokenA: string;
-      let tokenB: string;
-      given(async () => {
-        [tokenA, tokenB] = await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address);
-      });
-      then('tokenA is correct', () => {
-        expect(sortTokens(tokenAContract.address, tokenBContract.address).tokenA).to.equal(tokenA);
-      });
-      then('tokenB is correct', () => {
-        expect(sortTokens(tokenAContract.address, tokenBContract.address).tokenB).to.equal(tokenB);
-      });
-    });
-    when('calling with inverted order', () => {
-      let tokenA: string;
-      let tokenB: string;
-      given(async () => {
-        [tokenA, tokenB] = await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address);
-      });
-      then('tokenA is the same', async () => {
-        expect((await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address))[0]).to.equal(tokenA);
-      });
-      then('tokenB is the same', async () => {
-        expect((await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address))[1]).to.equal(tokenB);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenBContract.address, tokenAContract.address)).to.equal(hipotheticPairAddress);
       });
     });
   });

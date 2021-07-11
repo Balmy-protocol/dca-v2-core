@@ -15,8 +15,8 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
-  uint256 internal immutable _magnitudeA;
-  uint256 internal immutable _magnitudeB;
+  uint112 internal immutable _magnitudeA;
+  uint112 internal immutable _magnitudeB;
   uint24 internal immutable _feePrecision;
 
   // Basic setup
@@ -42,11 +42,11 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     _feePrecision = globalParameters.FEE_PRECISION();
     tokenA = _tokenA;
     tokenB = _tokenB;
-    _magnitudeA = 10**_tokenA.decimals();
-    _magnitudeB = 10**_tokenB.decimals();
+    _magnitudeA = uint112(10**_tokenA.decimals());
+    _magnitudeB = uint112(10**_tokenB.decimals());
   }
 
-  function activeSwapIntervals() public view override returns (uint32[] memory __activeSwapIntervals) {
+  function activeSwapIntervals() external view override returns (uint32[] memory __activeSwapIntervals) {
     uint256 _activeSwapIntervalsLength = _activeSwapIntervals.length();
     __activeSwapIntervals = new uint32[](_activeSwapIntervalsLength);
     for (uint256 i; i < _activeSwapIntervalsLength; i++) {

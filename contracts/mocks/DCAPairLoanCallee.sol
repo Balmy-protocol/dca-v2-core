@@ -41,7 +41,7 @@ contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
     uint256 _feeTokenA,
     uint256 _feeTokenB,
     bytes calldata _data
-  ) public override {
+  ) external override {
     require(_tokenA.balanceOf(address(this)) == _initialBalanceA + _amountBorrowedTokenA, 'DCAPairLoanCallee: token A not sent optimistically');
     require(_tokenB.balanceOf(address(this)) == _initialBalanceB + _amountBorrowedTokenB, 'DCAPairLoanCallee: token B not sent optimistically');
 
@@ -56,17 +56,17 @@ contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
     }
   }
 
-  function returnSpecificAmounts(uint256 __amountToReturnTokenA, uint256 __amountToReturnTokenB) public {
+  function returnSpecificAmounts(uint256 __amountToReturnTokenA, uint256 __amountToReturnTokenB) external {
     _amountToReturnTokenA = __amountToReturnTokenA;
     _amountToReturnTokenB = __amountToReturnTokenB;
     _returnAsExpected = false;
   }
 
-  function wasThereACall() public view returns (bool) {
+  function wasThereACall() external view returns (bool) {
     return _lastCall.pair != address(0);
   }
 
-  function getLastCall() public view returns (LoanCall memory __lastCall) {
+  function getLastCall() external view returns (LoanCall memory __lastCall) {
     __lastCall = _lastCall;
   }
 }
@@ -90,7 +90,7 @@ contract ReentrantDCAPairLoanCalleeMock is IDCAPairLoanCallee {
     uint256,
     uint256,
     bytes calldata
-  ) public override {
+  ) external override {
     (msg.sender).functionCall(_attack);
   }
 }

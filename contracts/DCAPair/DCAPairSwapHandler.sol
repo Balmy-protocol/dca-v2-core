@@ -4,7 +4,6 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-import '../interfaces/ISlidingOracle.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
@@ -17,12 +16,6 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   mapping(uint32 => mapping(address => uint256)) public override swapAmountAccumulator; // swap interval => from token => swap amount accum
 
   mapping(uint32 => uint32) public override nextSwapAvailable; // swap interval => timestamp
-  ISlidingOracle public override oracle;
-
-  constructor(ISlidingOracle _oracle) {
-    if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
-    oracle = _oracle;
-  }
 
   function _addNewRatePerUnit(
     uint32 _swapInterval,
@@ -73,18 +66,17 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
       if (nextSwapAvailable[_swapInterval] <= _getTimestamp()) {
         uint32 _swapToPerform = performedSwaps[_swapInterval] + 1;
-        _swapsToPerform[_amountOfSwapsToPerform] = SwapInformation({
+        _swapsToPerform[_amountOfSwapsToPerform++] = SwapInformation({
           interval: _swapInterval,
           swapToPerform: _swapToPerform,
           amountToSwapTokenA: _getAmountToSwap(_swapInterval, address(tokenA), _swapToPerform),
           amountToSwapTokenB: _getAmountToSwap(_swapInterval, address(tokenB), _swapToPerform)
         });
-        _amountOfSwapsToPerform++;
       }
     }
   }
 
-  function secondsUntilNextSwap() public view override returns (uint32 _secondsUntil) {
+  function secondsUntilNextSwap() external view override returns (uint32 _secondsUntil) {
     _secondsUntil = type(uint32).max;
     uint32 _timestamp = _getTimestamp();
     for (uint256 i; i < _activeSwapIntervals.length(); i++) {
@@ -101,12 +93,17 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     }
   }
 
-  function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
-    uint32 _swapFee = globalParameters.swapFee();
-    _nextSwapInformation = _getNextSwapInfo(_swapFee);
+  function getNextSwapInfo() external view override returns (NextSwapInformation memory _nextSwapInformation) {
+    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
+    _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
   }
 
-  function _getNextSwapInfo(uint32 _swapFee) internal view virtual returns (NextSwapInformation memory _nextSwapInformation) {
+  function _getNextSwapInfo(uint32 _swapFee, ITimeWeightedOracle _oracle)
+    internal
+    view
+    virtual
+    returns (NextSwapInformation memory _nextSwapInformation)
+  {
     uint256 _amountToSwapTokenA;
     uint256 _amountToSwapTokenB;
     {
@@ -118,9 +115,8 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _nextSwapInformation.swapsToPerform = _swapsToPerform;
       _nextSwapInformation.amountOfSwaps = _amountOfSwaps;
     }
-    // TODO: Instead of using current, it should use quote to get a moving average and not current?
-    _nextSwapInformation.ratePerUnitBToA = oracle.current(address(tokenB), _magnitudeB, address(tokenA));
-    _nextSwapInformation.ratePerUnitAToB = (_magnitudeB * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
+    _nextSwapInformation.ratePerUnitBToA = _oracle.quote(address(tokenB), _magnitudeB, address(tokenA));
+    _nextSwapInformation.ratePerUnitAToB = (uint256(_magnitudeB) * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
 
     uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(_magnitudeB, _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
@@ -158,7 +154,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     }
   }
 
-  function swap() public override {
+  function swap() external override {
     swap(0, 0, msg.sender, '');
   }
 
@@ -170,7 +166,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   ) public override nonReentrant {
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
     if (_swapParameters.isPaused) revert CommonErrors.Paused();
-    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee);
+    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
     if (_nextSwapInformation.amountOfSwaps == 0) revert NoSwapsToExecute();
 
     uint32 _timestamp = _getTimestamp();
