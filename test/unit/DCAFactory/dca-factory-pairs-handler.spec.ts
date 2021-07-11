@@ -116,7 +116,7 @@ describe('DCAFactoryPairsHandler', function () {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAFactoryPairsHandler,
             func: 'createPair',
-            args: [tokenAContract.address, tokenBContract.address],
+            args: [tokenBContract.address, tokenAContract.address],
             message: 'PairAlreadyExists',
           });
         });
@@ -159,42 +159,10 @@ describe('DCAFactoryPairsHandler', function () {
         await DCAFactoryPairsHandler.createPair(tokenAContract.address, tokenBContract.address);
       });
       then('returns correct pair address', async () => {
-        const { tokenA, tokenB } = sortTokens(tokenAContract.address, tokenBContract.address);
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenA, tokenB)).to.equal(hipotheticPairAddress);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(hipotheticPairAddress);
       });
       then('returns the same address if asking for tokenB<->tokenA pair', async () => {
-        expect(await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)).to.equal(
-          await DCAFactoryPairsHandler.pairByTokens(tokenAContract.address, tokenBContract.address)
-        );
-      });
-    });
-  });
-
-  describe('sortTokens', () => {
-    when('sorting token addresses', () => {
-      let tokenA: string;
-      let tokenB: string;
-      given(async () => {
-        [tokenA, tokenB] = await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address);
-      });
-      then('tokenA is correct', () => {
-        expect(sortTokens(tokenAContract.address, tokenBContract.address).tokenA).to.equal(tokenA);
-      });
-      then('tokenB is correct', () => {
-        expect(sortTokens(tokenAContract.address, tokenBContract.address).tokenB).to.equal(tokenB);
-      });
-    });
-    when('calling with inverted order', () => {
-      let tokenA: string;
-      let tokenB: string;
-      given(async () => {
-        [tokenA, tokenB] = await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address);
-      });
-      then('tokenA is the same', async () => {
-        expect((await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address))[0]).to.equal(tokenA);
-      });
-      then('tokenB is the same', async () => {
-        expect((await DCAFactoryPairsHandler.sortTokens(tokenAContract.address, tokenBContract.address))[1]).to.equal(tokenB);
+        expect(await DCAFactoryPairsHandler.pairByTokens(tokenBContract.address, tokenAContract.address)).to.equal(hipotheticPairAddress);
       });
     });
   });
