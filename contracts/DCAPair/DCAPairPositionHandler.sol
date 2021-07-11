@@ -47,7 +47,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _swapInterval
   ) public override nonReentrant returns (uint256) {
     if (_tokenAddress != address(tokenA) && _tokenAddress != address(tokenB)) revert InvalidToken();
-    if (!globalParameters.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
+    if (!_activeSwapIntervals.contains(_swapInterval) && !globalParameters.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
     IERC20Detailed _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
     uint256 _amount = _rate * _amountOfSwaps;
     _from.safeTransferFrom(msg.sender, address(this), _amount);
@@ -262,12 +262,11 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function _calculateSwapped(uint256 _dcaId, bool _applyFee) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = _userPositions[_dcaId];
     address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
-    uint256 _accumRatesLastWidthraw = _accumRatesPerUnit[_userDCA.swapInterval][_from][_userDCA.lastWithdrawSwap];
     uint256 _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.swapInterval][_from][
       performedSwaps[_userDCA.swapInterval] < _userDCA.lastSwap ? performedSwaps[_userDCA.swapInterval] : _userDCA.lastSwap
     ];
 
-    uint256 _accumPerUnit = _accumRatesLastSwap - _accumRatesLastWidthraw;
+    uint256 _accumPerUnit = _accumRatesLastSwap - _accumRatesPerUnit[_userDCA.swapInterval][_from][_userDCA.lastWithdrawSwap];
     uint256 _magnitude = _userDCA.fromTokenA ? _magnitudeA : _magnitudeB;
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
     uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumPerUnit / _magnitude) * _userDCA.rate;
@@ -283,9 +282,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     if (_lastSwap <= performedSwaps[_swapInterval]) {
       return 0;
     }
-    uint160 _rate = _userPositions[_dcaId].rate;
-    uint32 _remainingSwaps = _lastSwap - performedSwaps[_swapInterval];
-    _unswapped = _remainingSwaps * _rate;
+    _unswapped = (_lastSwap - performedSwaps[_swapInterval]) * _userPositions[_dcaId].rate;
   }
 
   function _getFrom(uint256 _dcaId) internal view returns (IERC20Detailed _from) {
