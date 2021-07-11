@@ -55,8 +55,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _idCounter += 1;
     _safeMint(msg.sender, _idCounter);
     _activeSwapIntervals.add(_swapInterval);
-    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_idCounter, _tokenAddress, _rate, _amountOfSwaps, 0, _swapInterval);
-    emit Deposited(msg.sender, _idCounter, _tokenAddress, _rate, _startingSwap, _swapInterval, _finalSwap);
+    (uint32 _startingSwap, uint32 _lastSwap) = _addPosition(_idCounter, _tokenAddress, _rate, _amountOfSwaps, 0, _swapInterval);
+    emit Deposited(msg.sender, _idCounter, _tokenAddress, _rate, _startingSwap, _swapInterval, _lastSwap);
     return _idCounter;
   }
 
@@ -179,10 +179,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint160 _newRate,
     uint32 _newAmountOfSwaps
   ) internal {
-    uint256 _unswapped = _calculateUnswapped(_dcaId);
-    uint256 _totalNecessary = _newRate * _newAmountOfSwaps;
-
-    _modifyPosition(_dcaId, _totalNecessary, _unswapped, _newRate, _newAmountOfSwaps);
+    _modifyPosition(_dcaId, _newRate * _newAmountOfSwaps, _calculateUnswapped(_dcaId), _newRate, _newAmountOfSwaps);
   }
 
   function _modifyPosition(
@@ -200,7 +197,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
     uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
     _removePosition(_dcaId);
-    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(
+    (uint32 _startingSwap, uint32 _lastSwap) = _addPosition(
       _dcaId,
       address(_from),
       _newRate,
@@ -219,7 +216,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
       _from.safeTransfer(msg.sender, _unswapped - _totalNecessary);
     }
 
-    emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _finalSwap);
+    emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _lastSwap);
   }
 
   function _assertPositionExistsAndCanBeOperatedByCaller(uint256 _dcaId) internal view {
@@ -234,26 +231,27 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _amountOfSwaps,
     uint248 _swappedBeforeModified,
     uint32 _swapInterval
-  ) internal returns (uint32 _startingSwap, uint32 _finalSwap) {
+  ) internal returns (uint32 _startingSwap, uint32 _lastSwap) {
     if (_rate == 0) revert ZeroRate();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     uint32 _performedSwaps = performedSwaps[_swapInterval];
     _startingSwap = _performedSwaps + 1;
-    _finalSwap = _performedSwaps + _amountOfSwaps;
+    _lastSwap = _performedSwaps + _amountOfSwaps;
     swapAmountDelta[_swapInterval][_from][_startingSwap] += int160(_rate);
-    swapAmountDelta[_swapInterval][_from][_finalSwap] -= int160(_rate);
-    _userPositions[_dcaId] = DCA(_performedSwaps, _finalSwap, _swapInterval, _rate, _from == address(tokenA), _swappedBeforeModified);
+    swapAmountDelta[_swapInterval][_from][_lastSwap] -= int160(_rate);
+    _userPositions[_dcaId] = DCA(_performedSwaps, _lastSwap, _swapInterval, _rate, _from == address(tokenA), _swappedBeforeModified);
   }
 
   function _removePosition(uint256 _dcaId) internal {
     uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
     uint32 _lastSwap = _userPositions[_dcaId].lastSwap;
+    uint32 _performedSwaps = performedSwaps[_swapInterval];
 
-    if (_lastSwap > performedSwaps[_swapInterval]) {
-      uint160 _rate = _userPositions[_dcaId].rate;
+    if (_lastSwap > _performedSwaps) {
+      int160 _rate = int160(_userPositions[_dcaId].rate);
       address _from = _userPositions[_dcaId].fromTokenA ? address(tokenA) : address(tokenB);
-      swapAmountDelta[_swapInterval][_from][performedSwaps[_swapInterval] + 1] -= int160(_rate);
-      swapAmountDelta[_swapInterval][_from][_lastSwap] += int160(_rate);
+      swapAmountDelta[_swapInterval][_from][_performedSwaps + 1] -= _rate;
+      swapAmountDelta[_swapInterval][_from][_lastSwap] += _rate;
     }
     delete _userPositions[_dcaId];
   }
@@ -276,13 +274,11 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
   /** Returns how many FROM remains unswapped  */
   function _calculateUnswapped(uint256 _dcaId) internal view returns (uint256 _unswapped) {
-    uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
+    uint32 _performedSwaps = performedSwaps[_userPositions[_dcaId].swapInterval];
     uint32 _lastSwap = _userPositions[_dcaId].lastSwap;
 
-    if (_lastSwap <= performedSwaps[_swapInterval]) {
-      return 0;
-    }
-    _unswapped = (_lastSwap - performedSwaps[_swapInterval]) * _userPositions[_dcaId].rate;
+    if (_lastSwap <= _performedSwaps) return 0;
+    _unswapped = (_lastSwap - _performedSwaps) * _userPositions[_dcaId].rate;
   }
 
   function _getFrom(uint256 _dcaId) internal view returns (IERC20Detailed _from) {
