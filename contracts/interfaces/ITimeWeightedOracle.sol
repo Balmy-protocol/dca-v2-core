@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity 0.8.4;
+pragma solidity >=0.5.0;
 
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 
@@ -12,7 +12,7 @@ interface ITimeWeightedOracle {
   /** Returns a quote, based on the given tokens and amount */
   function quote(
     address _tokenIn,
-    uint256 _amountIn,
+    uint128 _amountIn,
     address _tokenOut
   ) external view returns (uint256 _amountOut);
 
@@ -26,11 +26,6 @@ interface ITimeWeightedOracle {
 interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
   event AddedFeeTier(uint24 _feeTier);
   event PeriodChanged(uint32 _period);
-
-  error InvalidFeeTier();
-  error GreaterThanMaximumPeriod();
-  error LessThanMinimumPeriod();
-  error PairNotSupported();
 
   /* Public getters */
   function factory() external view returns (IUniswapV3Factory);

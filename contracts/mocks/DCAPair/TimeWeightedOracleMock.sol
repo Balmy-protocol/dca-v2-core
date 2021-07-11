@@ -24,12 +24,10 @@ contract TimeWeightedOracleMock is ITimeWeightedOracle {
   function addSupportForPair(address _tokenA, address _tokenB) external override {}
 
   function quote(
-    address _tokenIn,
-    uint256 _amountIn,
-    address _tokenOut
+    address,
+    uint128 _amountIn,
+    address
   ) public view override returns (uint256 _amountOut) {
-    _tokenIn;
-    _tokenOut;
     _amountOut = (_amountIn * rate) / 10**decimals;
   }
 }

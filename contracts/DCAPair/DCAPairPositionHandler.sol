@@ -132,7 +132,6 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
   function modifyRate(uint256 _dcaId, uint160 _newRate) public override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-
     uint32 _swapsLeft = _userPositions[_dcaId].lastSwap - performedSwaps[_userPositions[_dcaId].swapInterval];
     if (_swapsLeft == 0) revert PositionCompleted();
 
@@ -140,8 +139,6 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   function modifySwaps(uint256 _dcaId, uint32 _newSwaps) public override nonReentrant {
-    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-
     _modifyRateAndSwaps(_dcaId, _userPositions[_dcaId].rate, _newSwaps);
   }
 
@@ -150,8 +147,6 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint160 _newRate,
     uint32 _newAmountOfSwaps
   ) public override nonReentrant {
-    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-
     _modifyRateAndSwaps(_dcaId, _newRate, _newAmountOfSwaps);
   }
 
@@ -160,7 +155,6 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _amount,
     uint32 _newSwaps
   ) public override nonReentrant {
-    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
     if (_amount == 0) revert ZeroAmount();
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
@@ -189,6 +183,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint160 _newRate,
     uint32 _newAmountOfSwaps
   ) internal {
+    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
     IERC20Detailed _from = _getFrom(_dcaId);
 
     // We will store the swapped amount without the fee. The fee will be applied during withdraw/terminate
@@ -249,7 +244,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
     if (_lastSwap > _performedSwaps) {
       int160 _rate = int160(_userPositions[_dcaId].rate);
-      address _from = _userPositions[_dcaId].fromTokenA ? address(tokenA) : address(tokenB);
+      address _from = address(_getFrom(_dcaId));
       swapAmountDelta[_swapInterval][_from][_performedSwaps + 1] -= _rate;
       swapAmountDelta[_swapInterval][_from][_lastSwap + 1] += _rate;
     }

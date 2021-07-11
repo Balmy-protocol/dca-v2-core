@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.4;
+pragma solidity >=0.5.0 <0.8.0;
 
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
+import '../libraries/EnumerableSet.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
 import '../utils/Governable.sol';
-import '../libraries/CommonErrors.sol';
+import '../libraries/WeightedOracleLibrary.sol';
 
 contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   using EnumerableSet for EnumerableSet.UintSet;
@@ -20,7 +21,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   mapping(address => mapping(address => EnumerableSet.AddressSet)) internal _poolsForPair;
 
   constructor(address _governor, IUniswapV3Factory _factory) Governable(_governor) {
-    if (address(_factory) == address(0)) revert CommonErrors.ZeroAddress();
+    require(address(_factory) != address(0), 'ZeroAddress');
     factory = _factory;
   }
 
@@ -35,12 +36,19 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   }
 
   function quote(
-    address,
-    uint256,
-    address
+    address _tokenIn,
+    uint128 _amountIn,
+    address _tokenOut
   ) external view override returns (uint256 _amountOut) {
-    // TODO
-    _amountOut = 0;
+    (address __tokenA, address __tokenB) = _sortTokens(_tokenIn, _tokenOut);
+    EnumerableSet.AddressSet storage _pools = _poolsForPair[__tokenA][__tokenB];
+    uint256 _length = _pools.length();
+    WeightedOracleLibrary.PeriodObservation[] memory _observations = new WeightedOracleLibrary.PeriodObservation[](_length);
+    for (uint256 i; i < _length; i++) {
+      _observations[i] = WeightedOracleLibrary.consult(_pools.at(i), period);
+    }
+    int24 _arithmeticMeanWeightedTick = WeightedOracleLibrary.getArithmeticMeanTickWeightedByLiquidity(_observations);
+    _amountOut = OracleLibrary.getQuoteAtTick(_arithmeticMeanWeightedTick, _amountIn, _tokenIn, _tokenOut);
   }
 
   /**
@@ -61,9 +69,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
         IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_cardinality);
       }
     }
-    if (_pools.length() == 0) {
-      revert PairNotSupported();
-    }
+    require(_pools.length() > 0, 'PairNotSupported');
     emit AddedSupportForPair(__tokenA, __tokenB);
   }
 
@@ -86,17 +92,14 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   }
 
   function setPeriod(uint16 _period) external override onlyGovernor {
-    if (_period > MAXIMUM_PERIOD) {
-      revert GreaterThanMaximumPeriod();
-    } else if (_period < MINIMUM_PERIOD) {
-      revert LessThanMinimumPeriod();
-    }
+    require(_period <= MAXIMUM_PERIOD, 'GreaterThanMaximumPeriod');
+    require(_period >= MINIMUM_PERIOD, 'LessThanMinimumPeriod');
     period = _period;
     emit PeriodChanged(_period);
   }
 
   function addFeeTier(uint24 _feeTier) external override onlyGovernor {
-    if (factory.feeAmountTickSpacing(_feeTier) == 0) revert InvalidFeeTier();
+    require(factory.feeAmountTickSpacing(_feeTier) > 0, 'InvalidFeeTier');
 
     _supportedFeeTiers.add(_feeTier);
 
