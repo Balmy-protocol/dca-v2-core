@@ -192,7 +192,7 @@ describe('DCAPositionHandler', () => {
         const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
           SWAP_INTERVAL,
           tokenA.address,
-          PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10
+          PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10 + 1
         );
 
         expect(deltaPerformedSwaps).to.equal(0);
@@ -1013,6 +1013,8 @@ describe('DCAPositionHandler', () => {
     newRate = newRate ?? initialRate;
     newSwaps = newSwaps ?? initialSwaps;
 
+    const PERFORMED_SWAPS_11 = 11;
+
     when(title, () => {
       let response: TransactionResponse;
       let dcaId: BigNumber;
@@ -1037,7 +1039,7 @@ describe('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Modified')
-          .withArgs(owner.address, dcaId, tokenA.asUnits(newRate!), PERFORMED_SWAPS_10 + 2, PERFORMED_SWAPS_10 + newSwaps! + 1);
+          .withArgs(owner.address, dcaId, tokenA.asUnits(newRate!), PERFORMED_SWAPS_11 + 1, PERFORMED_SWAPS_10 + newSwaps! + 1);
       });
 
       then('final balances are as expected', async () => {
@@ -1063,6 +1065,23 @@ describe('DCAPositionHandler', () => {
           swapped: initialRate * RATE_PER_UNIT_5,
           remaining: newRate! * newSwaps!,
         });
+      });
+
+      then('previous trade is rolled back', async () => {
+        // If it happens that this condition is true, then the new last swap will match the previous last swap, making the delta not 0
+        if (PERFORMED_SWAPS_10 + initialSwaps + 1 !== PERFORMED_SWAPS_11 + newSwaps! + 1) {
+          const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_10 + initialSwaps + 1);
+
+          expect(deltaLastSwap).to.equal(0);
+        }
+      });
+
+      then('new trade is recorded', async () => {
+        const deltaNextSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_11 + 1);
+        const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_11 + newSwaps! + 1);
+
+        expect(deltaNextSwap).to.equal(tokenA.asUnits((newRate! - initialRate).toFixed(2)));
+        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();

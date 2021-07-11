@@ -238,7 +238,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _startingSwap = _performedSwaps + 1;
     _lastSwap = _performedSwaps + _amountOfSwaps;
     swapAmountDelta[_swapInterval][_from][_startingSwap] += int160(_rate);
-    swapAmountDelta[_swapInterval][_from][_lastSwap] -= int160(_rate);
+    swapAmountDelta[_swapInterval][_from][_lastSwap + 1] -= int160(_rate);
     _userPositions[_dcaId] = DCA(_performedSwaps, _lastSwap, _swapInterval, _rate, _from == address(tokenA), _swappedBeforeModified);
   }
 
@@ -251,7 +251,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
       int160 _rate = int160(_userPositions[_dcaId].rate);
       address _from = _userPositions[_dcaId].fromTokenA ? address(tokenA) : address(tokenB);
       swapAmountDelta[_swapInterval][_from][_performedSwaps + 1] -= _rate;
-      swapAmountDelta[_swapInterval][_from][_lastSwap] += _rate;
+      swapAmountDelta[_swapInterval][_from][_lastSwap + 1] += _rate;
     }
     delete _userPositions[_dcaId];
   }
