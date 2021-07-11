@@ -55,7 +55,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     EnumerableSet.AddressSet storage _pools = _poolsForPair[__tokenA][__tokenB];
     uint16 _cardinality = uint16(period / _AVERAGE_BLOCK_INTERVAL) + 10; // We add 10 just to be on the safe side
     for (uint256 i; i < _length; i++) {
-      address _pool = factory.getPool(_tokenA, _tokenB, uint24(_supportedFeeTiers.at(i)));
+      address _pool = factory.getPool(__tokenA, __tokenB, uint24(_supportedFeeTiers.at(i)));
       if (_pool != address(0) && !_pools.contains(_pool)) {
         _pools.add(_pool);
         IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_cardinality);
@@ -65,6 +65,16 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
       revert PairNotSupported();
     }
     emit AddedSupportForPair(__tokenA, __tokenB);
+  }
+
+  function poolsUsedForPair(address _tokenA, address _tokenB) external view override returns (address[] memory _usedPools) {
+    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    EnumerableSet.AddressSet storage _pools = _poolsForPair[__tokenA][__tokenB];
+    uint256 _length = _pools.length();
+    _usedPools = new address[](_length);
+    for (uint256 i; i < _length; i++) {
+      _usedPools[i] = _pools.at(i);
+    }
   }
 
   function supportedFeeTiers() external view override returns (uint24[] memory _feeTiers) {

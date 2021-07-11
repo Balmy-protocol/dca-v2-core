@@ -69,10 +69,7 @@ describe('UniswapV3Oracle', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        // This will make the following fee tier valid
-        await UniswapV3Factory.setTickSpacing(1);
-
-        tx = await UniswapV3Oracle.addFeeTier(10);
+        tx = await supportFieTier(10);
       });
 
       then('fee tier is added', async () => {
@@ -114,9 +111,8 @@ describe('UniswapV3Oracle', () => {
 
     when('pool exists for pair on supported fie tier', () => {
       given(async () => {
-        await UniswapV3Factory.setTickSpacing(1);
+        await supportFieTier(FEE);
         await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, POOL);
-        await UniswapV3Oracle.addFeeTier(FEE);
       });
       then('pair is marked as supported', async () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
@@ -192,8 +188,7 @@ describe('UniswapV3Oracle', () => {
     });
     when('there are no pools for the pair', () => {
       given(async () => {
-        await UniswapV3Factory.setTickSpacing(1);
-        await UniswapV3Oracle.addFeeTier(FEE);
+        await supportFieTier(FEE);
       });
 
       then('tx is reverted with reason', async () => {
@@ -209,14 +204,12 @@ describe('UniswapV3Oracle', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        await UniswapV3Factory.setTickSpacing(1);
-        await UniswapV3Oracle.addFeeTier(FEE);
+        await supportFieTier(FEE);
         await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
         tx = await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
       });
 
-      // TODO: Implement and unskip
-      then.skip(`it is added to list of pair's list of pools`, async () => {
+      then(`it is added to list of pair's list of pools`, async () => {
         expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([UniswapV3Pool.address]);
       });
 
@@ -230,8 +223,7 @@ describe('UniswapV3Oracle', () => {
     });
     when('pool was already supported for the pair', () => {
       given(async () => {
-        await UniswapV3Factory.setTickSpacing(1);
-        await UniswapV3Oracle.addFeeTier(FEE);
+        await supportFieTier(FEE);
         await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
         await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
         await UniswapV3Pool.reset();
@@ -246,16 +238,81 @@ describe('UniswapV3Oracle', () => {
     });
     when(`pair's addreses are inverted`, () => {
       given(async () => {
-        await UniswapV3Factory.setTickSpacing(1);
-        await UniswapV3Oracle.addFeeTier(FEE);
+        await supportFieTier(FEE);
         await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
         await UniswapV3Oracle.addSupportForPair(TOKEN_B, TOKEN_A);
       });
 
-      // TODO: Implement and unskip
-      then.skip(`correct pool is still added to list of pair's list of pools`, async () => {
+      then(`correct pool is still added to list of pair's list of pools`, async () => {
         expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([UniswapV3Pool.address]);
       });
     });
+    when('a new pool is deployed for already supported pair', () => {
+      const FEE_2 = 2000;
+      let UniswapV3Pool2: Contract;
+      let tx: TransactionResponse;
+      given(async () => {
+        // Support FEE
+        await supportFieTier(FEE);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
+        await UniswapV3Pool.reset();
+
+        // Support FEE_2
+        await supportFieTier(FEE_2);
+        UniswapV3Pool2 = await UniswapV3PoolContract.deploy();
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool2.address);
+        tx = await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
+      });
+
+      then('pool 1 is not called again', async () => {
+        await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
+        await supportFieTier(FEE_2);
+        expect(await UniswapV3Pool.cardinalitySent()).to.equal(0);
+      });
+
+      then(`it is added to list of pair's list of pools`, async () => {
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([UniswapV3Pool.address, UniswapV3Pool2.address]);
+      });
+
+      then('event is emmitted', async () => {
+        await expect(tx).to.emit(UniswapV3Oracle, 'AddedSupportForPair').withArgs(TOKEN_A, TOKEN_B);
+      });
+
+      then(`pool's cardinality is increased correctly`, async () => {
+        expect(await UniswapV3Pool2.cardinalitySent()).to.equal((5 * 60) / 15 + 10);
+      });
+    });
   });
+  describe('poolsUsedForPair', () => {
+    const TOKEN_A = '0x0000000000000000000000000000000000000001';
+    const TOKEN_B = '0x0000000000000000000000000000000000000002';
+
+    when('there are no pools registered', () => {
+      then('an empty list is returned', async () => {
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.be.empty;
+      });
+    });
+    when('there is a pool for the pair', () => {
+      const FEE = 1000;
+      let UniswapV3Pool: Contract;
+
+      given(async () => {
+        UniswapV3Pool = await UniswapV3PoolContract.deploy();
+        await supportFieTier(FEE);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
+      });
+      then('it is marked as used', async () => {
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([UniswapV3Pool.address]);
+      });
+      then('it is marked as used even when token addresses are reverted', async () => {
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_B, TOKEN_A)).to.eql([UniswapV3Pool.address]);
+      });
+    });
+  });
+  async function supportFieTier(fee: number) {
+    await UniswapV3Factory.setTickSpacing(1);
+    return UniswapV3Oracle.addFeeTier(fee);
+  }
 });

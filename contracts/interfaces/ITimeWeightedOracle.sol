@@ -37,6 +37,8 @@ interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
 
   function supportedFeeTiers() external view returns (uint24[] memory);
 
+  function poolsUsedForPair(address _tokenA, address _tokenB) external view returns (address[] memory);
+
   function period() external view returns (uint16);
 
   // solhint-disable-next-line func-name-mixedcase
