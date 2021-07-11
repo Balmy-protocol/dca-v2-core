@@ -46,7 +46,7 @@ abstract contract DCAPairParameters is IDCAPairParameters {
     _magnitudeB = uint112(10**_tokenB.decimals());
   }
 
-  function activeSwapIntervals() public view override returns (uint32[] memory __activeSwapIntervals) {
+  function activeSwapIntervals() external view override returns (uint32[] memory __activeSwapIntervals) {
     uint256 _activeSwapIntervalsLength = _activeSwapIntervals.length();
     __activeSwapIntervals = new uint32[](_activeSwapIntervalsLength);
     for (uint256 i; i < _activeSwapIntervalsLength; i++) {

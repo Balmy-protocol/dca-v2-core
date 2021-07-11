@@ -16,7 +16,7 @@ abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCA
     uint256 _amountToBorrowTokenB,
     address _to,
     bytes memory _data
-  ) public override nonReentrant {
+  ) external override nonReentrant {
     if (_amountToBorrowTokenA == 0 && _amountToBorrowTokenB == 0) revert ZeroLoan();
 
     IDCAGlobalParameters.LoanParameters memory _loanParameters = globalParameters.loanParameters();

@@ -20,11 +20,11 @@ contract ERC20Mock is ERC20 {
     }
   }
 
-  function mint(address _account, uint256 _amount) public {
+  function mint(address _account, uint256 _amount) external {
     _mint(_account, _amount);
   }
 
-  function burn(address _account, uint256 _amount) public {
+  function burn(address _account, uint256 _amount) external {
     _burn(_account, _amount);
   }
 
@@ -32,7 +32,7 @@ contract ERC20Mock is ERC20 {
     address _from,
     address _to,
     uint256 _value
-  ) public {
+  ) external {
     _transfer(_from, _to, _value);
   }
 
@@ -40,7 +40,7 @@ contract ERC20Mock is ERC20 {
     address _owner,
     address _spender,
     uint256 _value
-  ) public {
+  ) external {
     _approve(_owner, _spender, _value);
   }
 

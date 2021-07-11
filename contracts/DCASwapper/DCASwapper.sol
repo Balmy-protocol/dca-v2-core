@@ -29,7 +29,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     quoter = _quoter;
   }
 
-  function startWatchingPairs(address[] calldata _pairs) public override onlyGovernor {
+  function startWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
     for (uint256 i; i < _pairs.length; i++) {
       if (!factory.isPair(_pairs[i])) revert InvalidPairAddress();
       _watchedPairs.add(_pairs[i]);
@@ -37,7 +37,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     emit WatchingNewPairs(_pairs);
   }
 
-  function stopWatchingPairs(address[] calldata _pairs) public override onlyGovernor {
+  function stopWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
     for (uint256 i; i < _pairs.length; i++) {
       _watchedPairs.remove(_pairs[i]);
     }

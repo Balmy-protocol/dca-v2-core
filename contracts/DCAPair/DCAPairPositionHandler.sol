@@ -26,7 +26,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA')
   {}
 
-  function userPosition(uint256 _dcaId) public view override returns (UserPosition memory _userPosition) {
+  function userPosition(uint256 _dcaId) external view override returns (UserPosition memory _userPosition) {
     DCA memory _position = _userPositions[_dcaId];
     _userPosition.from = _position.fromTokenA ? tokenA : tokenB;
     _userPosition.to = _position.fromTokenA ? tokenB : tokenA;
@@ -45,7 +45,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint160 _rate,
     uint32 _amountOfSwaps,
     uint32 _swapInterval
-  ) public override nonReentrant returns (uint256) {
+  ) external override nonReentrant returns (uint256) {
     if (_tokenAddress != address(tokenA) && _tokenAddress != address(tokenB)) revert InvalidToken();
     if (!_activeSwapIntervals.contains(_swapInterval) && !globalParameters.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
     IERC20Detailed _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
@@ -60,7 +60,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     return _idCounter;
   }
 
-  function withdrawSwapped(uint256 _dcaId) public override nonReentrant returns (uint256 _swapped) {
+  function withdrawSwapped(uint256 _dcaId) external override nonReentrant returns (uint256 _swapped) {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     _swapped = _calculateSwapped(_dcaId, true);
@@ -76,7 +76,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   function withdrawSwappedMany(uint256[] calldata _dcaIds)
-    public
+    external
     override
     nonReentrant
     returns (uint256 _swappedTokenA, uint256 _swappedTokenB)
@@ -106,7 +106,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     emit WithdrewMany(msg.sender, _dcaIds, _swappedTokenA, _swappedTokenB);
   }
 
-  function terminate(uint256 _dcaId) public override nonReentrant {
+  function terminate(uint256 _dcaId) external override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     uint256 _swapped = _calculateSwapped(_dcaId, true);
@@ -130,7 +130,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     emit Terminated(msg.sender, _dcaId, _unswapped, _swapped);
   }
 
-  function modifyRate(uint256 _dcaId, uint160 _newRate) public override nonReentrant {
+  function modifyRate(uint256 _dcaId, uint160 _newRate) external override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
     uint32 _swapsLeft = _userPositions[_dcaId].lastSwap - performedSwaps[_userPositions[_dcaId].swapInterval];
     if (_swapsLeft == 0) revert PositionCompleted();
@@ -138,7 +138,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
   }
 
-  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) public override nonReentrant {
+  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) external override nonReentrant {
     _modifyRateAndSwaps(_dcaId, _userPositions[_dcaId].rate, _newSwaps);
   }
 
@@ -146,7 +146,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _dcaId,
     uint160 _newRate,
     uint32 _newAmountOfSwaps
-  ) public override nonReentrant {
+  ) external override nonReentrant {
     _modifyRateAndSwaps(_dcaId, _newRate, _newAmountOfSwaps);
   }
 
@@ -154,7 +154,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _dcaId,
     uint256 _amount,
     uint32 _newSwaps
-  ) public override nonReentrant {
+  ) external override nonReentrant {
     if (_amount == 0) revert ZeroAmount();
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);

@@ -12,7 +12,7 @@ contract TimeWeightedOracleMock is ITimeWeightedOracle {
     decimals = _decimals;
   }
 
-  function setRate(uint256 _rate, uint256 _decimals) public {
+  function setRate(uint256 _rate, uint256 _decimals) external {
     rate = _rate;
     decimals = _decimals;
   }
@@ -27,7 +27,7 @@ contract TimeWeightedOracleMock is ITimeWeightedOracle {
     address,
     uint128 _amountIn,
     address
-  ) public view override returns (uint256 _amountOut) {
+  ) external view override returns (uint256 _amountOut) {
     _amountOut = (_amountIn * rate) / 10**decimals;
   }
 }

@@ -41,7 +41,7 @@ abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
     _pair = _pairByTokens[__tokenA][__tokenB];
   }
 
-  function createPair(address _tokenA, address _tokenB) public override returns (address _pair) {
+  function createPair(address _tokenA, address _tokenB) external override returns (address _pair) {
     if (_tokenA == address(0) || _tokenB == address(0)) revert CommonErrors.ZeroAddress();
     if (_tokenA == _tokenB) revert IdenticalTokens();
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);

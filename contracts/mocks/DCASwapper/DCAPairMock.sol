@@ -23,7 +23,7 @@ contract DCAPairMock {
     _gasToConsume = __gasToConsume;
   }
 
-  function getNextSwapInfo() public view returns (IDCAPairSwapHandler.NextSwapInformation memory) {
+  function getNextSwapInfo() external view returns (IDCAPairSwapHandler.NextSwapInformation memory) {
     return _nextSwapInfo;
   }
 
@@ -33,7 +33,7 @@ contract DCAPairMock {
     IERC20Detailed _tokenToBeProvidedBySwapper,
     uint256 _amountToBeProvidedBySwapper,
     uint256 _amountToRewardSwapperWith
-  ) public {
+  ) external {
     _nextSwapInfo.amountOfSwaps = _amountOfSwaps;
     _nextSwapInfo.tokenToRewardSwapperWith = _tokenToRewardSwapperWith;
     _nextSwapInfo.tokenToBeProvidedBySwapper = _tokenToBeProvidedBySwapper;

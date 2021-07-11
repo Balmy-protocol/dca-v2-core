@@ -23,7 +23,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
 
   // SwapHandler
 
-  function getNextSwapsToPerform() public view returns (SwapInformation[] memory, uint8) {
+  function getNextSwapsToPerform() external view returns (SwapInformation[] memory, uint8) {
     return _getNextSwapsToPerform();
   }
 
@@ -39,7 +39,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     }
   }
 
-  function setNextSwapsToPerform(SwapInformation[] calldata __swapsToPerform) public {
+  function setNextSwapsToPerform(SwapInformation[] calldata __swapsToPerform) external {
     for (uint8 i; i < __swapsToPerform.length; i++) {
       _swapsToPerform[i] = __swapsToPerform[i];
     }
@@ -53,7 +53,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     uint256 _internalAmountUsedToSwap,
     uint256 _ratePerUnit,
     uint32 _swapToRegister
-  ) public {
+  ) external {
     _registerSwap(_swapInterval, _token, _internalAmountUsedToSwap, _ratePerUnit, _swapToRegister);
   }
 
@@ -61,11 +61,11 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     uint32 _swapInterval,
     address _tokenAddress,
     uint32 _swap
-  ) public view returns (uint256) {
+  ) external view returns (uint256) {
     return _getAmountToSwap(_swapInterval, _tokenAddress, _swap);
   }
 
-  function setBlockTimestamp(uint32 _blockTimestamp) public {
+  function setBlockTimestamp(uint32 _blockTimestamp) external {
     _customTimestamp = _blockTimestamp;
   }
 
@@ -80,7 +80,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     address _tokenAddress,
     uint32 _swap,
     uint256 _ratePerUnit
-  ) public {
+  ) external {
     _addNewRatePerUnit(_swapInterval, _tokenAddress, _swap, _ratePerUnit);
   }
 
@@ -88,11 +88,11 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     uint32 _swapInterval,
     address _tokenAddress,
     uint256 _swapAmountAccumulator
-  ) public {
+  ) external {
     swapAmountAccumulator[_swapInterval][_tokenAddress] = _swapAmountAccumulator;
   }
 
-  function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) public {
+  function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) external {
     nextSwapAvailable[_swapInterval] = _nextSwapAvailable;
   }
 }

@@ -17,7 +17,7 @@ contract UniswapV3FactoryMock {
     _pool = _pools[_tokenA][_tokenB][_fee];
   }
 
-  function setTickSpacing(int24 __tickSpacing) public {
+  function setTickSpacing(int24 __tickSpacing) external {
     _tickSpacing = __tickSpacing;
   }
 

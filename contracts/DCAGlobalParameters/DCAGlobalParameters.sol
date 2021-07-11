@@ -34,37 +34,37 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     oracle = _oracle;
   }
 
-  function setFeeRecipient(address _feeRecipient) public override onlyGovernor {
+  function setFeeRecipient(address _feeRecipient) external override onlyGovernor {
     if (_feeRecipient == address(0)) revert CommonErrors.ZeroAddress();
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
   }
 
-  function setNFTDescriptor(IDCATokenDescriptor _descriptor) public override onlyGovernor {
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external override onlyGovernor {
     if (address(_descriptor) == address(0)) revert CommonErrors.ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);
   }
 
-  function setOracle(ITimeWeightedOracle _oracle) public override onlyGovernor {
+  function setOracle(ITimeWeightedOracle _oracle) external override onlyGovernor {
     if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
     oracle = _oracle;
     emit OracleSet(_oracle);
   }
 
-  function setSwapFee(uint32 _swapFee) public override onlyGovernor {
+  function setSwapFee(uint32 _swapFee) external override onlyGovernor {
     if (_swapFee > MAX_FEE) revert HighFee();
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
   }
 
-  function setLoanFee(uint32 _loanFee) public override onlyGovernor {
+  function setLoanFee(uint32 _loanFee) external override onlyGovernor {
     if (_loanFee > MAX_FEE) revert HighFee();
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
   }
 
-  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) public override onlyGovernor {
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) external override onlyGovernor {
     if (_swapIntervals.length != _descriptions.length) revert InvalidParams();
     for (uint256 i; i < _swapIntervals.length; i++) {
       if (_swapIntervals[i] == 0) revert ZeroInterval();
@@ -75,7 +75,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     emit SwapIntervalsAllowed(_swapIntervals, _descriptions);
   }
 
-  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) public override onlyGovernor {
+  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external override onlyGovernor {
     for (uint256 i; i < _swapIntervals.length; i++) {
       _allowedSwapIntervals.remove(_swapIntervals[i]);
       delete intervalDescription[_swapIntervals[i]];
@@ -91,7 +91,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     }
   }
 
-  function isSwapIntervalAllowed(uint32 _swapInterval) public view override returns (bool) {
+  function isSwapIntervalAllowed(uint32 _swapInterval) external view override returns (bool) {
     return _allowedSwapIntervals.contains(_swapInterval);
   }
 
@@ -99,21 +99,21 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     return super.paused();
   }
 
-  function pause() public override onlyGovernor {
+  function pause() external override onlyGovernor {
     _pause();
   }
 
-  function unpause() public override onlyGovernor {
+  function unpause() external override onlyGovernor {
     _unpause();
   }
 
-  function loanParameters() public view override returns (LoanParameters memory _loanParameters) {
+  function loanParameters() external view override returns (LoanParameters memory _loanParameters) {
     _loanParameters.feeRecipient = feeRecipient;
     _loanParameters.isPaused = paused();
     _loanParameters.loanFee = loanFee;
   }
 
-  function swapParameters() public view override returns (SwapParameters memory _swapParameters) {
+  function swapParameters() external view override returns (SwapParameters memory _swapParameters) {
     _swapParameters.feeRecipient = feeRecipient;
     _swapParameters.isPaused = paused();
     _swapParameters.swapFee = swapFee;

@@ -76,7 +76,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     }
   }
 
-  function secondsUntilNextSwap() public view override returns (uint32 _secondsUntil) {
+  function secondsUntilNextSwap() external view override returns (uint32 _secondsUntil) {
     _secondsUntil = type(uint32).max;
     uint32 _timestamp = _getTimestamp();
     for (uint256 i; i < _activeSwapIntervals.length(); i++) {
@@ -93,7 +93,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     }
   }
 
-  function getNextSwapInfo() public view override returns (NextSwapInformation memory _nextSwapInformation) {
+  function getNextSwapInfo() external view override returns (NextSwapInformation memory _nextSwapInformation) {
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
     _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
   }
@@ -154,7 +154,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     }
   }
 
-  function swap() public override {
+  function swap() external override {
     swap(0, 0, msg.sender, '');
   }
 

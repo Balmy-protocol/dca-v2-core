@@ -15,28 +15,28 @@ contract DCAPairParametersMock is DCAPairParameters {
 
   // Mocks setters
 
-  function magnitudeA() public view returns (uint256) {
+  function magnitudeA() external view returns (uint256) {
     return _magnitudeA;
   }
 
-  function magnitudeB() public view returns (uint256) {
+  function magnitudeB() external view returns (uint256) {
     return _magnitudeB;
   }
 
-  function internalBalanceOf(address _token) public view returns (uint256) {
+  function internalBalanceOf(address _token) external view returns (uint256) {
     return _balances[_token];
   }
 
-  function setInternalBalances(uint256 _amountTokenA, uint256 _amountTokenB) public {
+  function setInternalBalances(uint256 _amountTokenA, uint256 _amountTokenB) external {
     _balances[address(tokenA)] = _amountTokenA;
     _balances[address(tokenB)] = _amountTokenB;
   }
 
-  function addActiveSwapInterval(uint32 _activeInterval) public {
+  function addActiveSwapInterval(uint32 _activeInterval) external {
     _activeSwapIntervals.add(_activeInterval);
   }
 
-  function removeActiveSwapInterval(uint32 _activeInterval) public {
+  function removeActiveSwapInterval(uint32 _activeInterval) external {
     _activeSwapIntervals.remove(_activeInterval);
   }
 
@@ -45,7 +45,7 @@ contract DCAPairParametersMock is DCAPairParameters {
     address _tokenAddress,
     uint32 _swap,
     int256 _delta
-  ) public {
+  ) external {
     swapAmountDelta[_swapInterval][_tokenAddress][_swap] = _delta;
   }
 
@@ -54,7 +54,7 @@ contract DCAPairParametersMock is DCAPairParameters {
     address _tokenAddress,
     uint32 _swap,
     uint256 _accumRatePerUnit
-  ) public {
+  ) external {
     _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap] = _accumRatePerUnit;
   }
 
@@ -62,11 +62,11 @@ contract DCAPairParametersMock is DCAPairParameters {
     uint32 _swapInterval,
     address _tokenAddress,
     uint32 _swap
-  ) public view returns (uint256) {
+  ) external view returns (uint256) {
     return _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap];
   }
 
-  function setPerformedSwaps(uint32 _swapInterval, uint32 _performedSwaps) public {
+  function setPerformedSwaps(uint32 _swapInterval, uint32 _performedSwaps) external {
     performedSwaps[_swapInterval] = _performedSwaps;
   }
 
@@ -75,15 +75,15 @@ contract DCAPairParametersMock is DCAPairParameters {
     address _tokenAddress,
     uint32 _swap,
     uint256 _rate
-  ) public {
+  ) external {
     _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap] = _rate;
   }
 
-  function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) public view returns (uint256) {
+  function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external view returns (uint256) {
     return _getFeeFromAmount(_feeAmount, _amount);
   }
 
-  function feePrecision() public view returns (uint24) {
+  function feePrecision() external view returns (uint24) {
     return _feePrecision;
   }
 }
