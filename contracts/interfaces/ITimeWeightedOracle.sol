@@ -4,8 +4,10 @@ pragma solidity 0.8.4;
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 
 interface ITimeWeightedOracle {
-  /** Returns whether this oracle supports this pair of tokens */
-  function supportsPair(address _tokenA, address _tokenB) external view returns (bool);
+  event AddedSupportForPair(address _tokenA, address _tokenB);
+
+  /** Returns whether this oracle can support this pair of tokens */
+  function canSupportPair(address _tokenA, address _tokenB) external view returns (bool);
 
   /** Returns a quote, based on the given tokens and amount */
   function quote(
@@ -15,10 +17,10 @@ interface ITimeWeightedOracle {
   ) external view returns (uint256 _amountOut);
 
   /**
-   * Let the oracle take some actions to prepare for this new pair of tokens.
-   * Will revert if pair is not supported.
+   * Let the oracle take some actions to configure this pair of tokens for future uses.
+   * Will revert if pair cannot be supported.
    */
-  function initializePair(address _tokenA, address _tokenB) external;
+  function addSupportForPair(address _tokenA, address _tokenB) external;
 }
 
 interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
@@ -28,22 +30,23 @@ interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
   error InvalidFeeTier();
   error GreaterThanMaximumPeriod();
   error LessThanMinimumPeriod();
+  error PairNotSupported();
 
   /* Public getters */
   function factory() external view returns (IUniswapV3Factory);
 
   function supportedFeeTiers() external view returns (uint24[] memory);
 
-  function period() external view returns (uint32);
+  function period() external view returns (uint16);
 
   // solhint-disable-next-line func-name-mixedcase
-  function MINIMUM_PERIOD() external view returns (uint32);
+  function MINIMUM_PERIOD() external view returns (uint16);
 
   // solhint-disable-next-line func-name-mixedcase
-  function MAXIMUM_PERIOD() external view returns (uint32);
+  function MAXIMUM_PERIOD() external view returns (uint16);
 
   /* Public setters */
   function addFeeTier(uint24) external;
 
-  function setPeriod(uint32) external;
+  function setPeriod(uint16) external;
 }

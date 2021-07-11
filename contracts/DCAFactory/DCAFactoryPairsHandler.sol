@@ -46,7 +46,7 @@ abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
     if (_tokenA == _tokenB) revert IdenticalTokens();
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     if (_pairByTokens[__tokenA][__tokenB] != address(0)) revert PairAlreadyExists();
-    globalParameters.oracle().initializePair(__tokenA, __tokenB); // Note: this call will revert if the oracle doesn't support this particular pair
+    globalParameters.oracle().addSupportForPair(__tokenA, __tokenB); // Note: this call will revert if the oracle doesn't support this particular pair
     _pair = address(new DCAPair(globalParameters, IERC20Detailed(__tokenA), IERC20Detailed(__tokenB)));
     _pairByTokens[__tokenA][__tokenB] = _pair;
     _allPairs.add(_pair);

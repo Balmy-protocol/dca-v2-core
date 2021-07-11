@@ -17,12 +17,11 @@ contract TimeWeightedOracleMock is ITimeWeightedOracle {
     decimals = _decimals;
   }
 
-  function supportsPair(address, address) external pure override returns (bool) {
+  function canSupportPair(address, address) external pure override returns (bool) {
     return true;
   }
 
-  /** Let the oracle take some actions to prepare for this new pair of tokens */
-  function initializePair(address _tokenA, address _tokenB) external override {}
+  function addSupportForPair(address _tokenA, address _tokenB) external override {}
 
   function quote(
     address _tokenIn,
