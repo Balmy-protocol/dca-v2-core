@@ -5268,10 +5268,10 @@ hardhat-contract-sizer@2.0.3:
     cli-table3 "^0.6.0"
     colors "^1.4.0"
 
-hardhat-deploy@0.8.8:
-  version "0.8.8"
-  resolved "https://registry.npmjs.org/hardhat-deploy/-/hardhat-deploy-0.8.8.tgz"
-  integrity sha512-ffouHqv8ExehBthdltPMVYDIOFZba5utlrWbBFHYS8kLsMixA6/jcH8lbG4JyAIr2/PEaf9+h1oRQkDKsv8l6A==
+hardhat-deploy@0.8.11:
+  version "0.8.11"
+  resolved "https://registry.yarnpkg.com/hardhat-deploy/-/hardhat-deploy-0.8.11.tgz#faa20def76f031101db81c5b71d7388e0475b794"
+  integrity sha512-PJIYckR9lYvGMHxaIb8esvZw9k+gW2xPCUYf4XJTQ3f1fLTXhA86AOhPQsfyBr+MY11/D+UUerIP88tl+PW2+g==
   dependencies:
     "@ethersproject/abi" "^5.3.1"
     "@ethersproject/abstract-signer" "^5.3.0"

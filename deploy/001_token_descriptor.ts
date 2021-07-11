@@ -1,8 +1,11 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
+import { BigNumber } from 'ethers';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer } = await hre.getNamedAccounts();
+  const { deployer, governor, feeRecipient } = await hre.getNamedAccounts();
+  console.log('deployer', deployer);
+  console.log('governor', governor);
 
   await hre.deployments.deploy('TokenDescriptor', {
     contract: 'contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor',
