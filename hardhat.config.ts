@@ -19,6 +19,10 @@ const networks: NetworksUserConfig = process.env.TEST
           enabled: process.env.FORK ? true : false,
           url: getNodeUrl('fork'),
         },
+        mining: {
+          auto: true,
+          interval: 1000,
+        },
         tags: ['test', 'local'],
       },
       localhost: {
