@@ -2,14 +2,17 @@
 pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 
-import '../utils/Governable.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
 import '../libraries/CommonErrors.sol';
 
-contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
+contract DCAGlobalParameters is IDCAGlobalParameters, AccessControl, Pausable {
   using EnumerableSet for EnumerableSet.UintSet;
+
+  bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
+  bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
 
   address public override feeRecipient;
   IDCATokenDescriptor public override nftDescriptor;
@@ -22,49 +25,64 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
   EnumerableSet.UintSet internal _allowedSwapIntervals;
 
   constructor(
-    address _governor,
+    address _immediateGovernor,
+    address _timeLockedGovernor,
     address _feeRecipient,
     IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
-  ) Governable(_governor) {
-    if (_feeRecipient == address(0) || address(_nftDescriptor) == address(0) || address(_oracle) == address(0))
-      revert CommonErrors.ZeroAddress();
+  ) {
+    if (
+      _immediateGovernor == address(0) ||
+      _timeLockedGovernor == address(0) ||
+      _feeRecipient == address(0) ||
+      address(_nftDescriptor) == address(0) ||
+      address(_oracle) == address(0)
+    ) revert CommonErrors.ZeroAddress();
+    _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
+    _setupRole(TIME_LOCKED_ROLE, _timeLockedGovernor);
+    // We set each role as its own admin, so they can assign new addresses with the same role
+    _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
+    _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);
     feeRecipient = _feeRecipient;
     nftDescriptor = _nftDescriptor;
     oracle = _oracle;
   }
 
-  function setFeeRecipient(address _feeRecipient) external override onlyGovernor {
+  function setFeeRecipient(address _feeRecipient) external override onlyRole(IMMEDIATE_ROLE) {
     if (_feeRecipient == address(0)) revert CommonErrors.ZeroAddress();
     feeRecipient = _feeRecipient;
     emit FeeRecipientSet(_feeRecipient);
   }
 
-  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external override onlyGovernor {
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external override onlyRole(IMMEDIATE_ROLE) {
     if (address(_descriptor) == address(0)) revert CommonErrors.ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);
   }
 
-  function setOracle(ITimeWeightedOracle _oracle) external override onlyGovernor {
+  function setOracle(ITimeWeightedOracle _oracle) external override onlyRole(TIME_LOCKED_ROLE) {
     if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
     oracle = _oracle;
     emit OracleSet(_oracle);
   }
 
-  function setSwapFee(uint32 _swapFee) external override onlyGovernor {
+  function setSwapFee(uint32 _swapFee) external override onlyRole(TIME_LOCKED_ROLE) {
     if (_swapFee > MAX_FEE) revert HighFee();
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
   }
 
-  function setLoanFee(uint32 _loanFee) external override onlyGovernor {
+  function setLoanFee(uint32 _loanFee) external override onlyRole(TIME_LOCKED_ROLE) {
     if (_loanFee > MAX_FEE) revert HighFee();
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
   }
 
-  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) external override onlyGovernor {
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions)
+    external
+    override
+    onlyRole(IMMEDIATE_ROLE)
+  {
     if (_swapIntervals.length != _descriptions.length) revert InvalidParams();
     for (uint256 i; i < _swapIntervals.length; i++) {
       if (_swapIntervals[i] == 0) revert ZeroInterval();
@@ -75,7 +93,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     emit SwapIntervalsAllowed(_swapIntervals, _descriptions);
   }
 
-  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external override onlyGovernor {
+  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external override onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
       _allowedSwapIntervals.remove(_swapIntervals[i]);
       delete intervalDescription[_swapIntervals[i]];
@@ -99,11 +117,11 @@ contract DCAGlobalParameters is IDCAGlobalParameters, Governable, Pausable {
     return super.paused();
   }
 
-  function pause() external override onlyGovernor {
+  function pause() external override onlyRole(IMMEDIATE_ROLE) {
     _pause();
   }
 
-  function unpause() external override onlyGovernor {
+  function unpause() external override onlyRole(IMMEDIATE_ROLE) {
     _unpause();
   }
 

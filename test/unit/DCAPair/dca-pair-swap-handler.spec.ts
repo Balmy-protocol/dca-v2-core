@@ -52,6 +52,7 @@ describe('DCAPairSwapHandler', () => {
     timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
+      owner.address,
       feeRecipient.address,
       constants.NOT_ZERO_ADDRESS,
       timeWeightedOracle.address

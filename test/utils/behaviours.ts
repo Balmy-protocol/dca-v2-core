@@ -250,6 +250,46 @@ const shouldBeExecutableOnlyByPendingGovernor = ({
   });
 };
 
+const shouldBeExecutableOnlyByRole = ({
+  contract,
+  funcAndSignature,
+  params,
+  addressWithRole,
+  role,
+}: {
+  contract: () => Contract;
+  funcAndSignature: string;
+  params?: any[];
+  addressWithRole: () => SignerWithAddress;
+  role: () => string;
+}) => {
+  params = params ?? [];
+  when('called from address without role', () => {
+    let tx: Promise<TransactionResponse>;
+    let walletWithoutRole: Wallet;
+    given(async () => {
+      walletWithoutRole = await wallet.generateRandom();
+      tx = contract()
+        .connect(walletWithoutRole)
+        [funcAndSignature](...params!, { gasPrice: 0 });
+    });
+    then('tx is reverted with reason', async () => {
+      await expect(tx).to.be.revertedWith(`AccessControl: account ${walletWithoutRole.address.toLowerCase()} is missing role ${role()}`);
+    });
+  });
+  when('called from address with role', () => {
+    let tx: Promise<TransactionResponse>;
+    given(async () => {
+      tx = contract()
+        .connect(addressWithRole())
+        [funcAndSignature](...params!, { gasPrice: 0 });
+    });
+    then('tx is not reverted or not reverted with reason only governor', async () => {
+      await expect(tx).to.not.be.revertedWith(`AccessControl: account ${addressWithRole().address.toLowerCase()} is missing role ${role()}`);
+    });
+  });
+};
+
 const waitForTxAndNotThrow = (tx: Promise<TransactionResponse>): Promise<any> => {
   return new Promise((resolve) => {
     tx.then(resolve).catch(resolve);
@@ -268,4 +308,5 @@ export default {
   waitForTxAndNotThrow,
   shouldBeExecutableOnlyByGovernor,
   shouldBeExecutableOnlyByPendingGovernor,
+  shouldBeExecutableOnlyByRole,
 };

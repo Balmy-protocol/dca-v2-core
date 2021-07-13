@@ -7,27 +7,70 @@ import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAGlobalParameters', () => {
-  let owner: SignerWithAddress, feeRecipient: SignerWithAddress, nftDescriptor: SignerWithAddress, oracle: SignerWithAddress;
+  let owner: SignerWithAddress,
+    timeLockedOwner: SignerWithAddress,
+    feeRecipient: SignerWithAddress,
+    nftDescriptor: SignerWithAddress,
+    oracle: SignerWithAddress;
   let DCAGlobalParametersContract: ContractFactory;
   let DCAGlobalParameters: Contract;
+  let immediateRole: string, timeLockedRole: string;
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient, nftDescriptor, oracle] = await ethers.getSigners();
+    [owner, timeLockedOwner, feeRecipient, nftDescriptor, oracle] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
   });
 
   beforeEach('Deploy and configure', async () => {
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(owner.address, feeRecipient.address, nftDescriptor.address, oracle.address);
+    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
+      owner.address,
+      timeLockedOwner.address,
+      feeRecipient.address,
+      nftDescriptor.address,
+      oracle.address
+    );
+    immediateRole = await DCAGlobalParameters.IMMEDIATE_ROLE();
+    timeLockedRole = await DCAGlobalParameters.TIME_LOCKED_ROLE();
   });
 
   describe('constructor', () => {
+    when('immediate governor is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAGlobalParametersContract,
+          args: [
+            constants.ZERO_ADDRESS,
+            constants.NOT_ZERO_ADDRESS,
+            constants.ZERO_ADDRESS,
+            constants.NOT_ZERO_ADDRESS,
+            constants.NOT_ZERO_ADDRESS,
+          ],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('time locked governor is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAGlobalParametersContract,
+          args: [
+            constants.NOT_ZERO_ADDRESS,
+            constants.ZERO_ADDRESS,
+            constants.ZERO_ADDRESS,
+            constants.NOT_ZERO_ADDRESS,
+            constants.NOT_ZERO_ADDRESS,
+          ],
+          message: 'ZeroAddress',
+        });
+      });
+    });
     when('feeRecipient is zero address', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
-          args: [owner.address, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
+          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -36,7 +79,7 @@ describe('DCAGlobalParameters', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
-          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
+          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -45,7 +88,7 @@ describe('DCAGlobalParameters', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
-          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          args: [owner.address, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -55,14 +98,18 @@ describe('DCAGlobalParameters', () => {
       given(async () => {
         const deployment = await contracts.deploy(DCAGlobalParametersContract, [
           owner.address,
+          timeLockedOwner.address,
           feeRecipient.address,
           nftDescriptor.address,
           oracle.address,
         ]);
         deployedContract = deployment.contract;
       });
-      then('sets governor correctly', async () => {
-        expect(await deployedContract.governor()).to.equal(owner.address);
+      then('sets immediate governor correctly', async () => {
+        expect(await deployedContract.hasRole(immediateRole, owner.address)).to.be.true;
+      });
+      then('sets time locked governor correctly', async () => {
+        expect(await deployedContract.hasRole(timeLockedRole, timeLockedOwner.address)).to.be.true;
       });
       then('sets fee recipient correctly', async () => {
         expect(await deployedContract.feeRecipient()).to.equal(feeRecipient.address);
@@ -102,11 +149,12 @@ describe('DCAGlobalParameters', () => {
       });
     });
 
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'setFeeRecipient(address)',
       params: [constants.NOT_ZERO_ADDRESS],
-      governor: () => owner,
+      addressWithRole: () => owner,
+      role: () => immediateRole,
     });
   });
 
@@ -133,11 +181,12 @@ describe('DCAGlobalParameters', () => {
       });
     });
 
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'setNFTDescriptor(address)',
       params: [constants.NOT_ZERO_ADDRESS],
-      governor: () => owner,
+      addressWithRole: () => owner,
+      role: () => immediateRole,
     });
   });
 
@@ -145,7 +194,7 @@ describe('DCAGlobalParameters', () => {
     when('address is zero', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           func: 'setOracle',
           args: [constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
@@ -155,7 +204,7 @@ describe('DCAGlobalParameters', () => {
     when('address is not zero', () => {
       then('sets oracle and emits event with correct arguments', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           getterFunc: 'oracle',
           setterFunc: 'setOracle',
           variable: constants.NOT_ZERO_ADDRESS,
@@ -164,11 +213,12 @@ describe('DCAGlobalParameters', () => {
       });
     });
 
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'setOracle(address)',
       params: [constants.NOT_ZERO_ADDRESS],
-      governor: () => owner,
+      addressWithRole: () => timeLockedOwner,
+      role: () => timeLockedRole,
     });
   });
 
@@ -176,7 +226,7 @@ describe('DCAGlobalParameters', () => {
     when('sets fee bigger than MAX_FEE', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           func: 'setSwapFee',
           args: [(await DCAGlobalParameters.MAX_FEE()) + 1],
           message: 'HighFee',
@@ -186,7 +236,7 @@ describe('DCAGlobalParameters', () => {
     when('sets fee equal to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           getterFunc: 'swapFee',
           setterFunc: 'setSwapFee',
           variable: await DCAGlobalParameters.MAX_FEE(),
@@ -197,7 +247,7 @@ describe('DCAGlobalParameters', () => {
     when('sets fee lower to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           getterFunc: 'swapFee',
           setterFunc: 'setSwapFee',
           variable: (await DCAGlobalParameters.MAX_FEE()) - 1,
@@ -205,11 +255,12 @@ describe('DCAGlobalParameters', () => {
         });
       });
     });
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'setSwapFee(uint32)',
       params: [1],
-      governor: () => owner,
+      addressWithRole: () => timeLockedOwner,
+      role: () => timeLockedRole,
     });
   });
 
@@ -217,7 +268,7 @@ describe('DCAGlobalParameters', () => {
     when('sets fee bigger than MAX_FEE', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           func: 'setLoanFee',
           args: [(await DCAGlobalParameters.MAX_FEE()) + 1],
           message: 'HighFee',
@@ -227,7 +278,7 @@ describe('DCAGlobalParameters', () => {
     when('sets fee equal to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           getterFunc: 'loanFee',
           setterFunc: 'setLoanFee',
           variable: await DCAGlobalParameters.MAX_FEE(),
@@ -238,7 +289,7 @@ describe('DCAGlobalParameters', () => {
     when('sets fee lower to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAGlobalParameters,
+          contract: DCAGlobalParameters.connect(timeLockedOwner),
           getterFunc: 'loanFee',
           setterFunc: 'setLoanFee',
           variable: (await DCAGlobalParameters.MAX_FEE()) - 1,
@@ -246,11 +297,12 @@ describe('DCAGlobalParameters', () => {
         });
       });
     });
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'setLoanFee(uint32)',
       params: [1],
-      governor: () => owner,
+      addressWithRole: () => timeLockedOwner,
+      role: () => timeLockedRole,
     });
   });
 
@@ -338,11 +390,12 @@ describe('DCAGlobalParameters', () => {
         expect(await DCAGlobalParameters.intervalDescription(100)).to.equal('d2');
       });
     });
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'addSwapIntervalsToAllowedList(uint32[],string[])',
       params: [[1], ['description']],
-      governor: () => owner,
+      addressWithRole: () => owner,
+      role: () => immediateRole,
     });
   });
   describe('removeSwapIntervalsFromAllowedList', () => {
@@ -371,11 +424,12 @@ describe('DCAGlobalParameters', () => {
         expect(await DCAGlobalParameters.intervalDescription(1)).to.be.empty;
       });
     });
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'removeSwapIntervalsFromAllowedList(uint32[])',
       params: [[1]],
-      governor: () => owner,
+      addressWithRole: () => owner,
+      role: () => immediateRole,
     });
   });
 
@@ -440,11 +494,12 @@ describe('DCAGlobalParameters', () => {
       });
     });
 
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'pause()',
       params: [],
-      governor: () => owner,
+      addressWithRole: () => owner,
+      role: () => immediateRole,
     });
   });
 
@@ -478,11 +533,12 @@ describe('DCAGlobalParameters', () => {
       });
     });
 
-    behaviours.shouldBeExecutableOnlyByGovernor({
+    behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAGlobalParameters,
       funcAndSignature: 'unpause()',
       params: [],
-      governor: () => owner,
+      addressWithRole: () => owner,
+      role: () => immediateRole,
     });
   });
 });
