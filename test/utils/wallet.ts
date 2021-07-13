@@ -20,8 +20,17 @@ const impersonate = async (address: string): Promise<JsonRpcSigner> => {
   return ethers.provider.getSigner(address);
 };
 
+const stopImpersonating = async (address: string): Promise<JsonRpcSigner> => {
+  await network.provider.request({
+    method: 'hardhat_stopImpersonatingAccount',
+    params: [address],
+  });
+  return ethers.provider.getSigner(address);
+};
+
 export default {
   generateRandom,
   generateRandomAddress,
   impersonate,
+  stopImpersonating,
 };

@@ -25,7 +25,7 @@ const randomFloat = (min: number, max: number): number => {
   return Math.random() * (max - min + 1) + min;
 };
 
-let randomUser: SignerWithAddress;
+let deployer: SignerWithAddress;
 
 async function main() {
   const uniswapFactory = await ethers.getContractAt(FACTORY_ABI, '0x1F98431c8aD98523631AE4a59f267346ea31F984');
@@ -33,22 +33,21 @@ async function main() {
   console.log('dca factory address', dcaFactory.address);
   console.log('dca global parameters', await dcaFactory.globalParameters());
   const [deployer, governor] = await ethers.getSigners();
-  [, , , randomUser] = await ethers.getSigners();
   console.log('deployer', deployer.address);
   console.log('governor', governor.address);
 
   const WETHDAIPool = await uniswapFactory.getPool(WETH, DAI, FeeAmount.MEDIUM);
   console.log('Uniswap WETH<->DAI 0.3%', WETHDAIPool);
 
-  const WETHDAIPoolPairAddress = await dcaFactory.callStatic.createPair(WETH, DAI);
-  await dcaFactory.createPair(WETH, DAI);
+  const WETHDAIPoolPairAddress = await dcaFactory.callStatic.createPair(WETH, DAI, { gasPrice: 0 });
+  await dcaFactory.createPair(WETH, DAI, { gasPrice: 0 });
   console.log('Created DCAPair WETH<->DAI', WETHDAIPoolPairAddress);
 
   const WBTCDAIPool = await uniswapFactory.getPool(WBTC, DAI, FeeAmount.MEDIUM);
   console.log('Uniswap WBTC<->DAI 0.3%', WBTCDAIPool);
 
-  const WBTCDAIPoolPairAddress = await dcaFactory.callStatic.createPair(WBTC, DAI);
-  await dcaFactory.createPair(WBTC, DAI);
+  const WBTCDAIPoolPairAddress = await dcaFactory.callStatic.createPair(WBTC, DAI, { gasPrice: 0 });
+  await dcaFactory.createPair(WBTC, DAI, { gasPrice: 0 });
   console.log('Created DCAPair WBTC<->DAI', WBTCDAIPoolPairAddress);
 }
 

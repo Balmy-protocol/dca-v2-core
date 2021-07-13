@@ -1,11 +1,15 @@
+import { ChainId, Fetcher, Percent, Route } from '@uniswap/sdk-core';
+import { NonfungiblePositionManager, Pool, Position, SwapRouter } from '@uniswap/v3-sdk';
 import { BigNumber } from '@ethersproject/bignumber';
+import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers, network } from 'hardhat';
 import moment from 'moment';
 import { abi as FACTORY_ABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Factory.sol/IUniswapV3Factory.json';
-import erc20, { TokenContract } from '../../test/utils/erc20';
+import { abi as POOL_ABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
+import erc20, { TokenContract } from '../../../test/utils/erc20';
 import { Contract, utils } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import constants from '../../test/utils/constants';
+import constants from '../../../test/utils/constants';
 
 enum FeeAmount {
   LOW = 500,
@@ -61,40 +65,44 @@ async function main() {
     console.log('Deployed and minted token1', token1.address);
 
     const poolAddress = await uniswapFactory.callStatic.createPool(token0.address, token1.address, FeeAmount.MEDIUM);
-    await uniswapFactory.createPool(token0.address, token1.address, FeeAmount.MEDIUM);
+    (await uniswapFactory.createPool(token0.address, token1.address, FeeAmount.MEDIUM)) as TransactionResponse;
 
-    console.log('Created pool on uniswap', poolAddress);
+    // const token0 = await ethers.getContractAt('ERC20Mock', '0xc12e4EE8C4BE5774B12b7BAf35Ba5720a38f4BE4');
+    // const token1 = await ethers.getContractAt('ERC20Mock', '0x4E8c70d3244fAc8f1924571Fc58bD9F9cc4d1621');
+    // const poolAddress = await uniswapFactory.getPool(token0.address, token1.address, FeeAmount.MEDIUM);
 
-    const pairAddress = await dcaFactory.callStatic.createPair(token0.address, token1.address);
-    await dcaFactory.createPair(token0.address, token1.address);
-    console.log('Created DCAPair', pairAddress);
+    console.log('Pool on uniswap', poolAddress);
 
-    const pair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', pairAddress);
+    // const pairAddress = await dcaFactory.callStatic.createPair(token0.address, token1.address, { gasLimit: 10000000 });
+    // await dcaFactory.createPair(token0.address, token1.address, { gasLimit: 10000000 });
+    // console.log('Created DCAPair', pairAddress);
 
-    console.log('Got pair contract');
+    // const pair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', pairAddress);
 
-    const dailyPositionId = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
-    const dailyPositionId2 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
-    const dailyPositionId3 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
-    console.log('Daily position generated');
+    // console.log('Got pair contract');
 
-    const fiveMinutesPositionId = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
-    const fiveMinutesPositionId2 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
-    const fiveMinutesPositionId3 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
-    console.log('Ten minutes position generated');
+    // const dailyPositionId = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
+    // const dailyPositionId2 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
+    // const dailyPositionId3 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, daily);
+    // console.log('Daily position generated');
 
-    // logging
-    console.log(`T0-${i}`, token0.address);
-    console.log(`T1-${i}`, token1.address);
-    console.log(`Uniswap Pool (T0-${i} <-> T1-${i})`, poolAddress);
-    console.log(`DCA Pair (T0-${i} <-> T1-${i})`, pairAddress);
+    // const fiveMinutesPositionId = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
+    // const fiveMinutesPositionId2 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
+    // const fiveMinutesPositionId3 = await generatePosition(pair, randomNumber(1, 2) == 1 ? token0 : token1, fiveMinutes);
+    // console.log('Ten minutes position generated');
 
-    console.log('Daily position ID', dailyPositionId);
-    console.log('Daily position ID 2', dailyPositionId2);
-    console.log('Daily position ID 3', dailyPositionId3);
-    console.log('Five minutes position ID', fiveMinutesPositionId);
-    console.log('Five minutes position ID 2', fiveMinutesPositionId2);
-    console.log('Five minutes position ID 3', fiveMinutesPositionId3);
+    // // logging
+    // console.log(`T0-${i}`, token0.address);
+    // console.log(`T1-${i}`, token1.address);
+    // console.log(`Uniswap Pool (T0-${i} <-> T1-${i})`, poolAddress);
+    // console.log(`DCA Pair (T0-${i} <-> T1-${i})`, pairAddress);
+
+    // console.log('Daily position ID', dailyPositionId);
+    // console.log('Daily position ID 2', dailyPositionId2);
+    // console.log('Daily position ID 3', dailyPositionId3);
+    // console.log('Five minutes position ID', fiveMinutesPositionId);
+    // console.log('Five minutes position ID 2', fiveMinutesPositionId2);
+    // console.log('Five minutes position ID 3', fiveMinutesPositionId3);
   }
 }
 

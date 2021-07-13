@@ -1,6 +1,6 @@
 import { utils } from 'ethers';
 import { ethers, getNamedAccounts } from 'hardhat';
-import { wallet } from '../../../test/utils';
+import wallet from '../../../test/utils/wallet';
 
 const SEBI_TEST_ACCOUNT = '0xD04Fc1C35cd00F799d6831E33978F302FE861789';
 
@@ -10,7 +10,7 @@ const DAI = '0x6b175474e89094c44da98b954eedeac495271d0f';
 
 const WBTC_WHALE = '0x9ff58f4ffb29fa2266ab25e75e2a8b3503311656';
 const WETH_WHALE = '0x2f0b23f53734252bda2277357e97e1517d6b042a';
-const DAI_WHALE = '0x5d3a536e4d6dbd6114cc1ead35777bab948e3643';
+const DAI_WHALE = '0x028171bca77440897b824ca71d1c56cac55b68a3';
 
 async function main() {
   const { deployer, governor, feeRecipient, marketMaker } = await getNamedAccounts();
@@ -20,7 +20,7 @@ async function main() {
   const DAIWhale = await wallet.impersonate(DAI_WHALE);
 
   const dai = await ethers.getContractAt('ERC20Mock', DAI, DAIWhale);
-  const wbtc = await ethers.getContractAt('ERC20Mock', WBTC, WBTC_WHALE);
+  const wbtc = await ethers.getContractAt('ERC20Mock', WBTC, WBTCWhale);
   const weth = await ethers.getContractAt('ERC20Mock', WETH, WETHWhale);
 
   await ethers.provider.send('hardhat_setBalance', [deployer, '0xfffffffffffffffff']);
@@ -46,6 +46,10 @@ async function main() {
   await wbtc.transfer(feeRecipient, utils.parseUnits('10', 8), { gasPrice: 0 });
   await wbtc.transfer(marketMaker, utils.parseUnits('10', 8), { gasPrice: 0 });
   await wbtc.transfer(SEBI_TEST_ACCOUNT, utils.parseUnits('10', 8), { gasPrice: 0 });
+
+  await wallet.stopImpersonating(WBTC_WHALE);
+  await wallet.stopImpersonating(WETH_WHALE);
+  await wallet.stopImpersonating(DAI_WHALE);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
