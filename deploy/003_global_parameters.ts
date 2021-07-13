@@ -8,10 +8,12 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const uniswapOracle = await hre.deployments.get('UniswapOracle');
   const nftDescriptor = await hre.deployments.get('TokenDescriptor');
 
+  const timelock = governor;
+
   await hre.deployments.deploy('GlobalParameters', {
     contract: 'contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters',
     from: deployer,
-    args: [governor, feeRecipient, nftDescriptor.address, uniswapOracle.address],
+    args: [governor, timelock, feeRecipient, nftDescriptor.address, uniswapOracle.address],
     log: true,
   });
 
