@@ -1,6 +1,12 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 
+enum FEE_TIER {
+  LOW = 500,
+  MEDIUM = 3000,
+  HIGH = 10000,
+}
+
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
 
@@ -12,7 +18,14 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     args: [governor, UNISWAP_V3_FACTORY_ADDRESS],
     log: true,
   });
+
+  await hre.deployments.execute('UniswapOracle', { from: governor, gasLimit: 200000 }, 'addFeeTier', FEE_TIER.LOW);
+
+  await hre.deployments.execute('UniswapOracle', { from: governor, gasLimit: 200000 }, 'addFeeTier', FEE_TIER.MEDIUM);
+
+  await hre.deployments.execute('UniswapOracle', { from: governor, gasLimit: 200000 }, 'addFeeTier', FEE_TIER.HIGH);
 };
+
 export default deployFunction;
 deployFunction.tags = ['UniswapOracle'];
 deployFunction.dependencies = ['TokenDescriptor'];
