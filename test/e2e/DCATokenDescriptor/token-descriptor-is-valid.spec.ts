@@ -1,7 +1,7 @@
 import moment from 'moment';
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
-import { erc20, evm } from '../../utils';
+import { constants, erc20, evm } from '../../utils';
 import { contract } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '../../utils/erc20';
@@ -45,6 +45,7 @@ contract('DCATokenDescriptor', () => {
     DCATokenDescriptor = await DCATokenDescriptorContract.deploy();
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       governor.address,
+      constants.NOT_ZERO_ADDRESS,
       feeRecipient.address,
       DCATokenDescriptor.address,
       TimeWeightedOracle.address

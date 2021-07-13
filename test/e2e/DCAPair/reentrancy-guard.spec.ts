@@ -53,6 +53,7 @@ contract('DCAPair', () => {
       TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(0, 0);
       DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(
         governor.address,
+        constants.NOT_ZERO_ADDRESS,
         feeRecipient.address,
         constants.NOT_ZERO_ADDRESS,
         TimeWeightedOracle.address
