@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { BigNumber, utils } from 'ethers';
-import moment from 'moment';
 
 type CoingeckoDataPoints = {
   prices: [number, number][];

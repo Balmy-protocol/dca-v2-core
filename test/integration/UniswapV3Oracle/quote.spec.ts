@@ -9,7 +9,7 @@ import { getLastPrice, convertPriceToNumberWithDecimals } from '../../utils/coin
 
 let oracle: Contract;
 let startingTime: number;
-let oraclePeriod: number = moment.duration('5', 'minutes').as('seconds');
+let oraclePeriod: number = moment.duration('7', 'minutes').as('seconds');
 
 // 15 USDC as a price threshold
 const PRICE_THRESHOLD = 15;
@@ -19,12 +19,6 @@ const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const UNI_WETH_USDC_POOL_LOW = '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640';
 const UNI_WETH_USDC_POOL_MEDIUM = '0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8';
 const UNI_WETH_USDC_POOL_HIGH = '0x7BeA39867e4169DBe237d55C8242a8f2fcDcc387';
-
-type CoingeckoDataPoints = {
-  prices: [number, number][];
-  market_caps: [number, number][];
-  total_volumes: [number, number][];
-};
 
 contract('UniswapV3Oracle', () => {
   before(async () => {
