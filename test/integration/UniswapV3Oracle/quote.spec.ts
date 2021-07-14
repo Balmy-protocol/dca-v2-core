@@ -36,7 +36,7 @@ contract('UniswapV3Oracle', () => {
   describe('quote', () => {
     let feedPrice: number;
     given(async () => {
-      // Funny thing, coingeck updates this price feed every 5 minute (not a twap, but close enough).
+      // Funny thing, coingecko updates this price feed every 5 minute (not a twap, but close enough).
       const coingeckoDatapoints = (
         await axios.get(
           `https://api.coingecko.com/api/v3/coins/ethereum/market_chart/range?vs_currency=usd&from=${
