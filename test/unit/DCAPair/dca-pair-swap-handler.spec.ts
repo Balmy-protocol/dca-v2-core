@@ -993,6 +993,21 @@ describe('DCAPairSwapHandler', () => {
     });
 
     swapTest({
+      title: 'all balance of one token is being swapped, and the other has no balance',
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 0,
+        },
+      ],
+      initialContractTokenABalance: 1,
+      initialContractTokenBBalance: 0,
+      ratePerUnitBToA: 1,
+    });
+
+    swapTest({
       title: 'one interval, rate per unit is 1:1 and needing token b to be provided externally',
       nextSwapContext: [
         {
@@ -1693,7 +1708,7 @@ describe('DCAPairSwapHandler', () => {
           });
         }
       });
-      then('token to reward the swapper (+ fee) is sent to the swapper', async () => {
+      then('token to reward the swapper is sent to the swapper', async () => {
         if (!tokenToRewardSwapperWith) {
           expect(await tokenA.balanceOf(owner.address)).to.equal(initialSwapperTokenABalance);
           expect(await tokenB.balanceOf(owner.address)).to.equal(initialSwapperTokenBBalance);
@@ -1866,19 +1881,21 @@ describe('DCAPairSwapHandler', () => {
     } else if (amountToSwapBInA.gt(amountToSwapOfTokenA)) {
       tokenToBeProvidedBySwapper = () => tokenA.address;
       tokenToRewardSwapperWith = () => tokenB.address;
-      amountToBeProvidedBySwapper = amountToSwapBInA.sub(amountToSwapOfTokenA);
-      const amountToBeProvidedInB = amountToBeProvidedBySwapper.mul(ratePerUnitAToB).div(tokenA.magnitude);
-      amountToRewardSwapperWith = amountToBeProvidedInB.add(APPLY_FEE(amountToBeProvidedInB));
+      const needed = amountToSwapBInA.sub(amountToSwapOfTokenA);
+      const neededConvertedToB = needed.mul(ratePerUnitAToB).div(tokenA.magnitude);
+      amountToBeProvidedBySwapper = needed.sub(APPLY_FEE(needed));
+      amountToRewardSwapperWith = neededConvertedToB;
       platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA);
-      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB.sub(amountToBeProvidedInB));
+      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB.sub(neededConvertedToB));
     } else {
       tokenToBeProvidedBySwapper = () => tokenB.address;
       tokenToRewardSwapperWith = () => tokenA.address;
       const amountToSwapAInB = amountToSwapOfTokenA.mul(ratePerUnitAToB).div(tokenA.magnitude);
-      amountToBeProvidedBySwapper = amountToSwapAInB.sub(amountToSwapOfTokenB);
-      const amountToBeProvidedInA = amountToBeProvidedBySwapper.mul(ratePerUnitBToA).div(tokenB.magnitude);
-      amountToRewardSwapperWith = amountToBeProvidedInA.add(APPLY_FEE(amountToBeProvidedInA));
-      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA.sub(amountToBeProvidedInA));
+      const needed = amountToSwapAInB.sub(amountToSwapOfTokenB);
+      const neededConvertedToA = needed.mul(ratePerUnitBToA).div(tokenB.magnitude);
+      amountToBeProvidedBySwapper = needed.sub(APPLY_FEE(needed));
+      amountToRewardSwapperWith = neededConvertedToA;
+      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA.sub(neededConvertedToA));
       platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB);
     }
 
