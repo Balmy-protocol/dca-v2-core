@@ -48,8 +48,8 @@ contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
     _lastCall = LoanCall(msg.sender, _sender, _tokenA, _tokenB, _amountBorrowedTokenA, _amountBorrowedTokenB, _feeTokenA, _feeTokenB, _data);
 
     if (_returnAsExpected) {
-      _tokenA.transfer(msg.sender, _amountBorrowedTokenA);
-      _tokenB.transfer(msg.sender, _amountBorrowedTokenB);
+      _tokenA.transfer(msg.sender, _amountBorrowedTokenA + _feeTokenA);
+      _tokenB.transfer(msg.sender, _amountBorrowedTokenB + _feeTokenB);
     } else {
       _tokenA.transfer(msg.sender, _amountToReturnTokenA);
       _tokenB.transfer(msg.sender, _amountToReturnTokenB);

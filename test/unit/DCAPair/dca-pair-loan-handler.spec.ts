@@ -143,7 +143,6 @@ describe('DCAPairLoanHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        await DCAPairLoanCallee.returnSpecificAmounts(PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee), PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee));
         tx = await DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
           PAIR_TOKEN_A_INITIAL_BALANCE,
           PAIR_TOKEN_B_INITIAL_BALANCE,
