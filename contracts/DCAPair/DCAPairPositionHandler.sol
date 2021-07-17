@@ -32,7 +32,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _userPosition.to = _position.fromTokenA ? tokenB : tokenA;
     _userPosition.swapInterval = _position.swapInterval;
     _userPosition.swapsExecuted = _position.swapInterval > 0 ? performedSwaps[_position.swapInterval] - _position.lastWithdrawSwap : 0;
-    _userPosition.swapped = _calculateSwapped(_dcaId, true);
+    _userPosition.swapped = _calculateSwapped(_dcaId);
     _userPosition.swapsLeft = _position.lastSwap > performedSwaps[_position.swapInterval]
       ? _position.lastSwap - performedSwaps[_position.swapInterval]
       : 0;
@@ -63,7 +63,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function withdrawSwapped(uint256 _dcaId) external override nonReentrant returns (uint256 _swapped) {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    _swapped = _calculateSwapped(_dcaId, true);
+    _swapped = _calculateSwapped(_dcaId);
 
     _userPositions[_dcaId].lastWithdrawSwap = performedSwaps[_userPositions[_dcaId].swapInterval];
     _userPositions[_dcaId].swappedBeforeModified = 0;
@@ -84,7 +84,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     for (uint256 i; i < _dcaIds.length; i++) {
       uint256 _dcaId = _dcaIds[i];
       _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-      uint256 _swappedDCA = _calculateSwapped(_dcaId, true);
+      uint256 _swappedDCA = _calculateSwapped(_dcaId);
       if (_userPositions[_dcaId].fromTokenA) {
         _swappedTokenB += _swappedDCA;
       } else {
@@ -109,7 +109,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   function terminate(uint256 _dcaId) external override nonReentrant {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
-    uint256 _swapped = _calculateSwapped(_dcaId, true);
+    uint256 _swapped = _calculateSwapped(_dcaId);
     uint256 _unswapped = _calculateUnswapped(_dcaId);
 
     IERC20Detailed _from = _getFrom(_dcaId);
@@ -186,8 +186,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
     IERC20Detailed _from = _getFrom(_dcaId);
 
-    // We will store the swapped amount without the fee. The fee will be applied during withdraw/terminate
-    uint256 _swapped = _calculateSwapped(_dcaId, false);
+    uint256 _swapped = _calculateSwapped(_dcaId);
     if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
 
     uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
@@ -252,7 +251,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   /** Return the amount of tokens swapped in TO */
-  function _calculateSwapped(uint256 _dcaId, bool _applyFee) internal view returns (uint256 _swapped) {
+  function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = _userPositions[_dcaId];
     address _from = _userDCA.fromTokenA ? address(tokenA) : address(tokenB);
     uint256 _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.swapInterval][_from][
@@ -263,8 +262,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint256 _magnitude = _userDCA.fromTokenA ? _magnitudeA : _magnitudeB;
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
     uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumPerUnit / _magnitude) * _userDCA.rate;
-    uint256 _actuallySwapped = _swappedInCurrentPosition + _userDCA.swappedBeforeModified;
-    _swapped = _applyFee ? _actuallySwapped - _getFeeFromAmount(globalParameters.swapFee(), _actuallySwapped) : _actuallySwapped;
+    _swapped = _swappedInCurrentPosition + _userDCA.swappedBeforeModified;
   }
 
   /** Returns how many FROM remains unswapped  */

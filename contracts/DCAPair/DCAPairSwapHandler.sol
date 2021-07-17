@@ -148,6 +148,10 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _nextSwapInformation.availableToBorrowTokenA = _balances[address(tokenA)];
       _nextSwapInformation.availableToBorrowTokenB = _balances[address(tokenB)];
     }
+
+    // We extract the fee from the rate per units, so that we don't need to calculate it later
+    _nextSwapInformation.ratePerUnitBToA -= _getFeeFromAmount(_swapFee, _nextSwapInformation.ratePerUnitBToA);
+    _nextSwapInformation.ratePerUnitAToB -= _getFeeFromAmount(_swapFee, _nextSwapInformation.ratePerUnitAToB);
   }
 
   function swap() external override {
