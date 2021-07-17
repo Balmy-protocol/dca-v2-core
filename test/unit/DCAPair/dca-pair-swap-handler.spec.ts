@@ -557,14 +557,14 @@ describe('DCAPairSwapHandler', () => {
       then('rate of unit b to a is correct', async () => {
         bn.expectToEqualWithThreshold({
           value: nextSwapInfo.ratePerUnitBToA,
-          to: APPLY_FEE(ratePerUnitBToA as BigNumber),
+          to: ratePerUnitBToA,
           threshold: threshold!,
         });
       });
       then('rate of unit a to b is correct', () => {
         bn.expectToEqualWithThreshold({
           value: nextSwapInfo.ratePerUnitAToB,
-          to: APPLY_FEE(ratePerUnitAToB as BigNumber),
+          to: ratePerUnitAToB,
           threshold: threshold!,
         });
       });
@@ -1788,12 +1788,12 @@ describe('DCAPairSwapHandler', () => {
         expect(nextSwapInformation.amountOfSwaps).to.equal(parsedNextSwaps.amount);
         bn.expectToEqualWithThreshold({
           value: nextSwapInformation.ratePerUnitBToA,
-          to: APPLY_FEE(ratePerUnitBToA as BigNumber),
+          to: ratePerUnitBToA,
           threshold: threshold!,
         });
         bn.expectToEqualWithThreshold({
           value: nextSwapInformation.ratePerUnitAToB,
-          to: APPLY_FEE(ratePerUnitAToB as BigNumber),
+          to: ratePerUnitAToB,
           threshold: threshold!,
         });
         bn.expectToEqualWithThreshold({
