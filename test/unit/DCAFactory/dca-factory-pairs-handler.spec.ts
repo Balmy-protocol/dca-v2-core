@@ -6,7 +6,7 @@ import { constants, erc20, behaviours } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
-describe.skip('DCAFactoryPairsHandler', function () {
+describe('DCAFactoryPairsHandler', function () {
   let owner: SignerWithAddress;
   let tokenAContract: Contract, tokenBContract: Contract;
   let DCAGlobalParametersContract: ContractFactory, DCAFactoryPairsHandlerContract: ContractFactory;

@@ -896,7 +896,10 @@ describe('DCAPairSwapHandler', () => {
         }
       });
       then('active swap intervals remain the same', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.eql([SWAP_INTERVAL].concat(addedSwapIntervals ?? []));
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.true;
+        for (const addedSwapInterval of addedSwapIntervals ?? []) {
+          expect(await DCAPairSwapHandler.isSwapIntervalActive(addedSwapInterval)).to.true;
+        }
       });
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
@@ -1147,8 +1150,8 @@ describe('DCAPairSwapHandler', () => {
       then('performed swaps did not increase', async () => {
         expect(await DCAPairSwapHandler.performedSwaps(SWAP_INTERVAL)).to.equal(0);
       });
-      then('swap interval is removed from active list', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.be.empty;
+      then('swap interval is no longer active', async () => {
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.be.false;
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1356,7 +1359,8 @@ describe('DCAPairSwapHandler', () => {
       });
 
       then('active swap intervals remain the same', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.eql([SWAP_INTERVAL]);
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.be.true;
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL_2)).to.be.false;
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1836,7 +1840,10 @@ describe('DCAPairSwapHandler', () => {
       });
 
       then('active swap intervals remain the same', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.eql([SWAP_INTERVAL].concat(addedSwapIntervals ?? []));
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.true;
+        for (const addedSwapInterval of addedSwapIntervals ?? []) {
+          expect(await DCAPairSwapHandler.isSwapIntervalActive(addedSwapInterval)).to.true;
+        }
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances(threshold as BigNumber);
