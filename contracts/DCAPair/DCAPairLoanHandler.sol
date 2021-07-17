@@ -11,11 +11,16 @@ import './DCAPairParameters.sol';
 abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCAPairLoanHandler {
   using SafeERC20 for IERC20Detailed;
 
+  function availableToBorrow() external view override returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB) {
+    _amountToBorrowTokenA = _balances[address(tokenA)];
+    _amountToBorrowTokenB = _balances[address(tokenB)];
+  }
+
   function loan(
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
     address _to,
-    bytes memory _data
+    bytes calldata _data
   ) external override nonReentrant {
     if (_amountToBorrowTokenA == 0 && _amountToBorrowTokenB == 0) revert ZeroLoan();
 

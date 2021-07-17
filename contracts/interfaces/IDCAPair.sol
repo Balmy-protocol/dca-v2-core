@@ -148,11 +148,13 @@ interface IDCAPairLoanHandler {
 
   error ZeroLoan();
 
+  function availableToBorrow() external view returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB);
+
   function loan(
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
     address _to,
-    bytes memory _data
+    bytes calldata _data
   ) external;
 }
 
