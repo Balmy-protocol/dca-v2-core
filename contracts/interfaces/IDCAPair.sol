@@ -119,6 +119,7 @@ interface IDCAPairSwapHandler {
     address indexed _to,
     uint256 _amountBorrowedTokenA,
     uint256 _amountBorrowedTokenB,
+    uint32 _fee,
     NextSwapInformation _nextSwapInformation
   );
 
