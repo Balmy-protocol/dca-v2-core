@@ -2,6 +2,8 @@
 pragma solidity 0.8.4;
 pragma abicoder v2;
 
+import 'hardhat/console.sol';
+
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/IDCAPairSwapCallee.sol';
@@ -77,20 +79,20 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   }
 
   function secondsUntilNextSwap() external view override returns (uint32 _secondsUntil) {
-    _secondsUntil = type(uint32).max;
-    uint32 _timestamp = _getTimestamp();
-    for (uint256 i; i < _activeSwapIntervals.length(); i++) {
-      uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
-      if (nextSwapAvailable[_swapInterval] <= _timestamp) {
-        _secondsUntil = 0;
-        break;
-      } else {
-        uint32 _diff = nextSwapAvailable[_swapInterval] - _timestamp;
-        if (_diff < _secondsUntil) {
-          _secondsUntil = _diff;
-        }
-      }
-    }
+    // _secondsUntil = type(uint32).max;
+    // uint32 _timestamp = _getTimestamp();
+    // for (uint256 i; i < _activeSwapIntervals.length(); i++) {
+    //   uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
+    //   if (nextSwapAvailable[_swapInterval] <= _timestamp) {
+    //     _secondsUntil = 0;
+    //     break;
+    //   } else {
+    //     uint32 _diff = nextSwapAvailable[_swapInterval] - _timestamp;
+    //     if (_diff < _secondsUntil) {
+    //       _secondsUntil = _diff;
+    //     }
+    //   }
+    // }
   }
 
   function getNextSwapInfo() external view override returns (NextSwapInformation memory _nextSwapInformation) {
@@ -115,11 +117,20 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _nextSwapInformation.swapsToPerform = _swapsToPerform;
       _nextSwapInformation.amountOfSwaps = _amountOfSwaps;
     }
+    // 6 decimals (1915482377) - 1915
     _nextSwapInformation.ratePerUnitBToA = _oracle.quote(address(tokenB), _magnitudeB, address(tokenA));
-    _nextSwapInformation.ratePerUnitAToB = (uint256(_magnitudeB) * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
+    // 18 decimals (522061707279283) = 5.22061707279283415719987070390050370064041575883420409040912
+    // quote al revés = 522061707211585
+    // _nextSwapInformation.ratePerUnitAToB = (uint256(_magnitudeB) * uint256(_magnitudeA)) / _nextSwapInformation.ratePerUnitBToA;
+    _nextSwapInformation.ratePerUnitAToB = _oracle.quote(address(tokenA), _magnitudeA, address(tokenB));
+    // (1e18 * 1e6) / 1915482377
 
-    uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(_magnitudeB, _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
+    // 6 decimals (191548237)
+    uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(uint256(_magnitudeB), _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
+    console.log('amount of token a if token b swapped', _amountOfTokenAIfTokenBSwapped);
 
+    console.log('balance token usdc', _balances[address(tokenA)]);
+    console.log('balance token weth', _balances[address(tokenB)]);
     if (_amountOfTokenAIfTokenBSwapped < _amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
@@ -134,8 +145,15 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     } else if (_amountOfTokenAIfTokenBSwapped > _amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenA;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenB;
+      // 6 decimals (191548237)
       uint256 _needed = _amountOfTokenAIfTokenBSwapped - _amountToSwapTokenA;
+      console.log('needed', _needed);
+      // 18 decimals (99999999634556725) = 9.9999999634556725274071 × 10^19
       uint256 _neededConvertedToB = _convertTo(_magnitudeA, _needed, _nextSwapInformation.ratePerUnitAToB);
+      // _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
+      // (191548237 * 522061707279283) / 1e6
+      // 1e6 * 1e16 /
+      console.log('needed to convert b ', _neededConvertedToB);
       _nextSwapInformation.amountToBeProvidedBySwapper = _needed - _getFeeFromAmount(_swapFee, _needed);
       _nextSwapInformation.amountToRewardSwapperWith = _neededConvertedToB;
       _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _amountToSwapTokenA);
