@@ -117,15 +117,15 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _nextSwapInformation.swapsToPerform = _swapsToPerform;
       _nextSwapInformation.amountOfSwaps = _amountOfSwaps;
     }
-    // 6 decimals (1915482377) - 1915
-    _nextSwapInformation.ratePerUnitBToA = _oracle.quote(address(tokenB), _magnitudeB, address(tokenA));
-    // 18 decimals (522061707279283) = 5.22061707279283415719987070390050370064041575883420409040912
-    // quote al revés = 522061707211585
-    // _nextSwapInformation.ratePerUnitAToB = (uint256(_magnitudeB) * uint256(_magnitudeA)) / _nextSwapInformation.ratePerUnitBToA;
-    _nextSwapInformation.ratePerUnitAToB = _oracle.quote(address(tokenA), _magnitudeA, address(tokenB));
-    // (1e18 * 1e6) / 1915482377
 
-    // 6 decimals (191548237)
+    // 6 decimals (191509933)
+    console.log('amount to swap token A', _amountToSwapTokenA);
+    // 6 decimals (1915099338)
+    _nextSwapInformation.ratePerUnitBToA = _oracle.quote(address(tokenB), _magnitudeB, address(tokenA));
+    // 18 decimals (522166124836287)
+    _nextSwapInformation.ratePerUnitAToB = (uint256(_magnitudeB) * uint256(_magnitudeA)) / _nextSwapInformation.ratePerUnitBToA;
+
+    // 6 decimals (0)
     uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(uint256(_magnitudeB), _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
     console.log('amount of token a if token b swapped', _amountOfTokenAIfTokenBSwapped);
 
@@ -134,8 +134,13 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     if (_amountOfTokenAIfTokenBSwapped < _amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
+      // 6 decimals (191509933)
       uint256 _tokenASurplus = _amountToSwapTokenA - _amountOfTokenAIfTokenBSwapped;
+      console.log('token A surplus', _tokenASurplus);
+      // 18 decimals (99999999582266959)
       uint256 _needed = _convertTo(_magnitudeA, _tokenASurplus, _nextSwapInformation.ratePerUnitAToB);
+      // (191509933 * 522166124836287) / 1e6
+      console.log('needed', _needed);
       _nextSwapInformation.amountToBeProvidedBySwapper = _needed - _getFeeFromAmount(_swapFee, _needed);
       _nextSwapInformation.amountToRewardSwapperWith = _tokenASurplus;
       _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _amountOfTokenAIfTokenBSwapped);

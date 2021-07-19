@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
+import 'hardhat/console.sol';
+
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
@@ -110,6 +112,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     uint256 _swapped = _calculateSwapped(_dcaId);
+    console.log('till here');
     uint256 _unswapped = _calculateUnswapped(_dcaId);
 
     IERC20Detailed _from = _getFrom(_dcaId);
@@ -118,6 +121,8 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     _burn(_dcaId);
 
     if (_swapped > 0) {
+      console.log('balances to', _balances[address(_to)]);
+      console.log('swapped', _swapped);
       _balances[address(_to)] -= _swapped;
       _to.safeTransfer(msg.sender, _swapped);
     }
