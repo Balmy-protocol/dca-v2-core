@@ -140,8 +140,8 @@ library NFTSVG {
         _generateData('Remaining', _remaining, 454),
         _generateData('Rate', _rate, 484),
         '<g style="transform:translate(25px, 514px)">',
-        '<text x="12px" y="17px" font-family="\'Courier New\', monospace" font-size="11px" fill="white">',
-        '<tspan fill="rgba(255,255,255,0.8)">* since start or last withdraw</tspan>',
+        '<text x="12px" y="17px" font-family="\'Courier New\', monospace" font-size="10px" fill="white">',
+        '<tspan fill="rgba(255,255,255,0.8)">* since start or last edit/withdraw</tspan>',
         '</text>',
         '</g>'
       )
