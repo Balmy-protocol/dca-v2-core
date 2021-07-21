@@ -95,14 +95,18 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
 
   function getNextSwapInfo() external view override returns (NextSwapInformation memory _nextSwapInformation) {
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
+    (_nextSwapInformation, , ) = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
   }
 
   function _getNextSwapInfo(uint32 _swapFee, ITimeWeightedOracle _oracle)
     internal
     view
     virtual
-    returns (NextSwapInformation memory _nextSwapInformation)
+    returns (
+      NextSwapInformation memory _nextSwapInformation,
+      uint256 _ratePerUnitBToAWithFee,
+      uint256 _ratePerUnitAToBWithFee
+    )
   {
     uint256 _amountToSwapTokenA;
     uint256 _amountToSwapTokenB;
@@ -118,14 +122,16 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _nextSwapInformation.ratePerUnitBToA = _oracle.quote(address(tokenB), _magnitudeB, address(tokenA));
     _nextSwapInformation.ratePerUnitAToB = (uint256(_magnitudeB) * _magnitudeA) / _nextSwapInformation.ratePerUnitBToA;
 
+    _ratePerUnitBToAWithFee = _nextSwapInformation.ratePerUnitBToA - _getFeeFromAmount(_swapFee, _nextSwapInformation.ratePerUnitBToA);
+    _ratePerUnitAToBWithFee = _nextSwapInformation.ratePerUnitAToB - _getFeeFromAmount(_swapFee, _nextSwapInformation.ratePerUnitAToB);
+
     uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(_magnitudeB, _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
 
     if (_amountOfTokenAIfTokenBSwapped < _amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
       uint256 _tokenASurplus = _amountToSwapTokenA - _amountOfTokenAIfTokenBSwapped;
-      uint256 _needed = _convertTo(_magnitudeA, _tokenASurplus, _nextSwapInformation.ratePerUnitAToB);
-      _nextSwapInformation.amountToBeProvidedBySwapper = _needed - _getFeeFromAmount(_swapFee, _needed);
+      _nextSwapInformation.amountToBeProvidedBySwapper = _convertTo(_magnitudeA, _tokenASurplus, _ratePerUnitAToBWithFee);
       _nextSwapInformation.amountToRewardSwapperWith = _tokenASurplus;
       _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _amountOfTokenAIfTokenBSwapped);
       _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_swapFee, _amountToSwapTokenB);
@@ -134,12 +140,12 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     } else if (_amountOfTokenAIfTokenBSwapped > _amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenA;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenB;
-      uint256 _needed = _amountOfTokenAIfTokenBSwapped - _amountToSwapTokenA;
-      uint256 _neededConvertedToB = _convertTo(_magnitudeA, _needed, _nextSwapInformation.ratePerUnitAToB);
-      _nextSwapInformation.amountToBeProvidedBySwapper = _needed - _getFeeFromAmount(_swapFee, _needed);
-      _nextSwapInformation.amountToRewardSwapperWith = _neededConvertedToB;
+      uint256 _amountOfTokenBIfTokenASwapped = (_amountToSwapTokenA * _magnitudeB) / _nextSwapInformation.ratePerUnitBToA;
+      uint256 _tokenBSurplus = _amountToSwapTokenB - _amountOfTokenBIfTokenASwapped;
+      _nextSwapInformation.amountToBeProvidedBySwapper = _convertTo(_magnitudeB, _tokenBSurplus, _ratePerUnitBToAWithFee);
+      _nextSwapInformation.amountToRewardSwapperWith = _tokenBSurplus;
       _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _amountToSwapTokenA);
-      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_swapFee, _amountToSwapTokenB - _neededConvertedToB);
+      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_swapFee, _amountOfTokenBIfTokenASwapped);
       _nextSwapInformation.availableToBorrowTokenA = _balances[address(tokenA)];
       _nextSwapInformation.availableToBorrowTokenB = _balances[address(tokenB)] - _nextSwapInformation.amountToRewardSwapperWith;
     } else {
@@ -162,32 +168,42 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
   ) public override nonReentrant {
     IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
     if (_swapParameters.isPaused) revert CommonErrors.Paused();
-    NextSwapInformation memory _nextSwapInformation = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
-    if (_nextSwapInformation.amountOfSwaps == 0) revert NoSwapsToExecute();
 
-    uint32 _timestamp = _getTimestamp();
-    for (uint256 i; i < _nextSwapInformation.amountOfSwaps; i++) {
-      uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
-      uint32 _swapToPerform = _nextSwapInformation.swapsToPerform[i].swapToPerform;
-      if (_nextSwapInformation.swapsToPerform[i].amountToSwapTokenA > 0 || _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB > 0) {
-        _registerSwap(
-          _swapInterval,
-          address(tokenA),
-          _nextSwapInformation.swapsToPerform[i].amountToSwapTokenA,
-          _nextSwapInformation.ratePerUnitAToB - _getFeeFromAmount(_swapParameters.swapFee, _nextSwapInformation.ratePerUnitAToB),
-          _swapToPerform
-        );
-        _registerSwap(
-          _swapInterval,
-          address(tokenB),
-          _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB,
-          _nextSwapInformation.ratePerUnitBToA - _getFeeFromAmount(_swapParameters.swapFee, _nextSwapInformation.ratePerUnitBToA),
-          _swapToPerform
-        );
-        performedSwaps[_swapInterval] = _swapToPerform;
-        nextSwapAvailable[_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
-      } else {
-        _activeSwapIntervals.remove(_swapInterval);
+    NextSwapInformation memory _nextSwapInformation;
+
+    {
+      uint256 _ratePerUnitBToAWithFee;
+      uint256 _ratePerUnitAToBWithFee;
+      (_nextSwapInformation, _ratePerUnitBToAWithFee, _ratePerUnitAToBWithFee) = _getNextSwapInfo(
+        _swapParameters.swapFee,
+        _swapParameters.oracle
+      );
+      if (_nextSwapInformation.amountOfSwaps == 0) revert NoSwapsToExecute();
+
+      uint32 _timestamp = _getTimestamp();
+      for (uint256 i; i < _nextSwapInformation.amountOfSwaps; i++) {
+        uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
+        uint32 _swapToPerform = _nextSwapInformation.swapsToPerform[i].swapToPerform;
+        if (_nextSwapInformation.swapsToPerform[i].amountToSwapTokenA > 0 || _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB > 0) {
+          _registerSwap(
+            _swapInterval,
+            address(tokenA),
+            _nextSwapInformation.swapsToPerform[i].amountToSwapTokenA,
+            _ratePerUnitAToBWithFee,
+            _swapToPerform
+          );
+          _registerSwap(
+            _swapInterval,
+            address(tokenB),
+            _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB,
+            _ratePerUnitBToAWithFee,
+            _swapToPerform
+          );
+          performedSwaps[_swapInterval] = _swapToPerform;
+          nextSwapAvailable[_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
+        } else {
+          _activeSwapIntervals.remove(_swapInterval);
+        }
       }
     }
 

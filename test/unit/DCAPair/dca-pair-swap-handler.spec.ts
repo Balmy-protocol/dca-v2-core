@@ -569,10 +569,18 @@ describe('DCAPairSwapHandler', () => {
         });
       });
       then('token a fee is correct', async () => {
-        expect(nextSwapInfo.platformFeeTokenA).to.equal(platformFeeTokenA);
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.platformFeeTokenA,
+          to: platformFeeTokenA,
+          threshold: threshold!,
+        });
       });
       then('token b fee is correct', async () => {
-        expect(nextSwapInfo.platformFeeTokenB).to.equal(platformFeeTokenB);
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.platformFeeTokenB,
+          to: platformFeeTokenB,
+          threshold: threshold!,
+        });
       });
       then('the amount of tokens to be provided by swapper is correct', async () => {
         bn.expectToEqualWithThreshold({
@@ -715,6 +723,7 @@ describe('DCAPairSwapHandler', () => {
           amountToSwapOfTokenB: 5,
         },
       ],
+      threshold: 2,
       ratePerUnitBToA: 0.6,
     });
 
