@@ -562,19 +562,6 @@ describe('DCAPositionHandler', () => {
       });
     });
 
-    when('modifying a position with 0 swaps', () => {
-      then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
-
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAPositionHandler,
-          func: 'modifyRateAndSwaps',
-          args: [dcaId, POSITION_RATE_5, 0],
-          message: 'ZeroSwaps',
-        });
-      });
-    });
-
     when('modifying a position many times', () => {
       const POSITION_RATE_6 = 6;
       const POSITION_RATE_7 = 7;
@@ -618,6 +605,15 @@ describe('DCAPositionHandler', () => {
     erc721PermissionTest(({ token, contract, dcaId }) => contract.modifyRateAndSwaps(dcaId, token.asUnits(9), 5));
 
     modifyPositionTest({
+      title: `setting amount of swaps to 0`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 9,
+      newSwaps: 0,
+      exec: ({ token, dcaId, newRate, newSwaps }) => modifyRateAndSwaps(token, dcaId, newRate, newSwaps),
+    });
+
+    modifyPositionTest({
       title: `re-allocating deposited rate and swaps of a valid position`,
       initialRate: POSITION_RATE_5,
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -657,17 +653,12 @@ describe('DCAPositionHandler', () => {
       });
     });
 
-    when('modifying a position with 0 swaps', () => {
-      then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
-
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAPositionHandler,
-          func: 'modifySwaps',
-          args: [dcaId, 0],
-          message: 'ZeroSwaps',
-        });
-      });
+    modifyPositionTest({
+      title: `setting amount of swaps to 0`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newSwaps: 0,
+      exec: ({ dcaId, newSwaps }) => modifySwaps(dcaId, newSwaps),
     });
 
     erc721PermissionTest(({ contract, dcaId }) => contract.modifySwaps(dcaId, POSITION_SWAPS_TO_PERFORM_10));
@@ -721,6 +712,19 @@ describe('DCAPositionHandler', () => {
           func: 'addFundsToPosition',
           args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
           message: 'ZeroAmount',
+        });
+      });
+    });
+
+    when('adding funds but with 0 swaps', () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'addFundsToPosition',
+          args: [dcaId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), 0],
+          message: 'ZeroSwaps',
         });
       });
     });
@@ -1053,8 +1057,12 @@ describe('DCAPositionHandler', () => {
         const deltaNextSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_11 + 1);
         const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_11 + newSwaps! + 1);
 
-        expect(deltaNextSwap).to.equal(tokenA.asUnits((newRate! - initialRate).toFixed(2)));
-        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
+        if (newSwaps! > 0) {
+          expect(deltaNextSwap).to.equal(tokenA.asUnits((newRate! - initialRate).toFixed(2)));
+          expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
+        } else {
+          expect(deltaLastSwap).to.equal(tokenA.asUnits(initialRate!).mul(-1));
+        }
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
