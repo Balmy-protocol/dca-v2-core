@@ -47,6 +47,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _swapInterval
   ) external override nonReentrant returns (uint256) {
     if (_tokenAddress != address(tokenA) && _tokenAddress != address(tokenB)) revert InvalidToken();
+    if (_amountOfSwaps == 0) revert ZeroSwaps();
     if (!_activeSwapIntervals.contains(_swapInterval) && !globalParameters.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
     IERC20Detailed _from = _tokenAddress == address(tokenA) ? tokenA : tokenB;
     uint256 _amount = _rate * _amountOfSwaps;
@@ -156,6 +157,7 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _newSwaps
   ) external override nonReentrant {
     if (_amount == 0) revert ZeroAmount();
+    if (_newSwaps == 0) revert ZeroSwaps();
 
     uint256 _unswapped = _calculateUnswapped(_dcaId);
     uint256 _total = _unswapped + _amount;
@@ -227,7 +229,6 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
     uint32 _swapInterval
   ) internal returns (uint32 _startingSwap, uint32 _lastSwap) {
     if (_rate == 0) revert ZeroRate();
-    if (_amountOfSwaps == 0) revert ZeroSwaps();
     uint32 _performedSwaps = performedSwaps[_swapInterval];
     _startingSwap = _performedSwaps + 1;
     _lastSwap = _performedSwaps + _amountOfSwaps;
