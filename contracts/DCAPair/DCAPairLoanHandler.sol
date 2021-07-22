@@ -23,17 +23,24 @@ abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCA
     bytes calldata _data
   ) external override nonReentrant {
     if (_amountToBorrowTokenA == 0 && _amountToBorrowTokenB == 0) revert ZeroLoan();
+
     IDCAGlobalParameters.LoanParameters memory _loanParameters = globalParameters.loanParameters();
+
     if (_loanParameters.isPaused) revert CommonErrors.Paused();
+
     uint256 _beforeBalanceTokenA = _balances[address(tokenA)];
     uint256 _beforeBalanceTokenB = _balances[address(tokenB)];
+
     if (_amountToBorrowTokenA > _beforeBalanceTokenA || _amountToBorrowTokenB > _beforeBalanceTokenB)
       revert CommonErrors.InsufficientLiquidity();
+
     // Calculate fees
     uint256 _feeTokenA = _amountToBorrowTokenA > 0 ? _getFeeFromAmount(_loanParameters.loanFee, _amountToBorrowTokenA) : 0;
     uint256 _feeTokenB = _amountToBorrowTokenB > 0 ? _getFeeFromAmount(_loanParameters.loanFee, _amountToBorrowTokenB) : 0;
+
     if (_amountToBorrowTokenA > 0) tokenA.safeTransfer(_to, _amountToBorrowTokenA);
     if (_amountToBorrowTokenB > 0) tokenB.safeTransfer(_to, _amountToBorrowTokenB);
+
     // Make call
     IDCAPairLoanCallee(_to).DCAPairLoanCall(
       msg.sender,
@@ -45,14 +52,18 @@ abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCA
       _feeTokenB,
       _data
     );
+
     uint256 _afterBalanceTokenA = tokenA.balanceOf(address(this));
     uint256 _afterBalanceTokenB = tokenB.balanceOf(address(this));
+
     // Make sure that they sent the tokens back
     if (_afterBalanceTokenA < (_beforeBalanceTokenA + _feeTokenA) || _afterBalanceTokenB < (_beforeBalanceTokenB + _feeTokenB))
       revert CommonErrors.LiquidityNotReturned();
+
     // Send fees and extra
     tokenA.safeTransfer(_loanParameters.feeRecipient, _afterBalanceTokenA - _beforeBalanceTokenA);
     tokenB.safeTransfer(_loanParameters.feeRecipient, _afterBalanceTokenB - _beforeBalanceTokenB);
+
     // Emit event
     emit Loaned(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _loanParameters.loanFee);
   }
