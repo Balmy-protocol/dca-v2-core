@@ -125,27 +125,29 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _ratePerUnitBToAWithFee = _nextSwapInformation.ratePerUnitBToA - _getFeeFromAmount(_swapFee, _nextSwapInformation.ratePerUnitBToA);
     _ratePerUnitAToBWithFee = _nextSwapInformation.ratePerUnitAToB - _getFeeFromAmount(_swapFee, _nextSwapInformation.ratePerUnitAToB);
 
-    uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(_magnitudeB, _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
+    uint256 _finalNeededTokenA = _convertTo(_magnitudeB, _amountToSwapTokenB, _ratePerUnitBToAWithFee);
+    uint256 _finalNeededTokenB = _convertTo(_magnitudeA, _amountToSwapTokenA, _ratePerUnitAToBWithFee);
 
+    uint256 _amountOfTokenAIfTokenBSwapped = _convertTo(_magnitudeB, _amountToSwapTokenB, _nextSwapInformation.ratePerUnitBToA);
     if (_amountOfTokenAIfTokenBSwapped < _amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenB;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenA;
-      uint256 _tokenASurplus = _amountToSwapTokenA - _amountOfTokenAIfTokenBSwapped;
-      _nextSwapInformation.amountToBeProvidedBySwapper = _convertTo(_magnitudeA, _tokenASurplus, _ratePerUnitAToBWithFee);
-      _nextSwapInformation.amountToRewardSwapperWith = _tokenASurplus;
       _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _amountOfTokenAIfTokenBSwapped);
       _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_swapFee, _amountToSwapTokenB);
+      _nextSwapInformation.amountToBeProvidedBySwapper = _finalNeededTokenB + _nextSwapInformation.platformFeeTokenB - _amountToSwapTokenB;
+      _nextSwapInformation.amountToRewardSwapperWith = _amountToSwapTokenA - _finalNeededTokenA - _nextSwapInformation.platformFeeTokenA;
       _nextSwapInformation.availableToBorrowTokenA = _balances[address(tokenA)] - _nextSwapInformation.amountToRewardSwapperWith;
       _nextSwapInformation.availableToBorrowTokenB = _balances[address(tokenB)];
     } else if (_amountOfTokenAIfTokenBSwapped > _amountToSwapTokenA) {
       _nextSwapInformation.tokenToBeProvidedBySwapper = tokenA;
       _nextSwapInformation.tokenToRewardSwapperWith = tokenB;
-      uint256 _amountOfTokenBIfTokenASwapped = (_amountToSwapTokenA * _magnitudeB) / _nextSwapInformation.ratePerUnitBToA;
-      uint256 _tokenBSurplus = _amountToSwapTokenB - _amountOfTokenBIfTokenASwapped;
-      _nextSwapInformation.amountToBeProvidedBySwapper = _convertTo(_magnitudeB, _tokenBSurplus, _ratePerUnitBToAWithFee);
-      _nextSwapInformation.amountToRewardSwapperWith = _tokenBSurplus;
       _nextSwapInformation.platformFeeTokenA = _getFeeFromAmount(_swapFee, _amountToSwapTokenA);
-      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(_swapFee, _amountOfTokenBIfTokenASwapped);
+      _nextSwapInformation.platformFeeTokenB = _getFeeFromAmount(
+        _swapFee,
+        (_amountToSwapTokenA * _magnitudeB) / _nextSwapInformation.ratePerUnitBToA
+      );
+      _nextSwapInformation.amountToBeProvidedBySwapper = _finalNeededTokenA + _nextSwapInformation.platformFeeTokenA - _amountToSwapTokenA;
+      _nextSwapInformation.amountToRewardSwapperWith = _amountToSwapTokenB - _finalNeededTokenB - _nextSwapInformation.platformFeeTokenB;
       _nextSwapInformation.availableToBorrowTokenA = _balances[address(tokenA)];
       _nextSwapInformation.availableToBorrowTokenB = _balances[address(tokenB)] - _nextSwapInformation.amountToRewardSwapperWith;
     } else {
