@@ -108,7 +108,7 @@ contract('DCASwapper', () => {
       });
     });
 
-    when('twap doesnt allow for profitable swap', () => {
+    when(`twap doesn't allow for profitable swap`, () => {
       let swapPairsTx: Promise<TransactionResponse>;
       given(async () => {
         await pushPriceOfWETHDown();
