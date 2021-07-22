@@ -8,9 +8,9 @@ export type GlobalParametersDeployFunction = DeployFunction & {
 };
 
 const INTERVALS = [
-  moment.duration('1', 'days').as('seconds'),
-  moment.duration('1', 'weeks').as('seconds'),
-  moment.duration('1', 'months').as('seconds'),
+  moment.duration('1', 'day').as('seconds'),
+  moment.duration('1', 'week').as('seconds'),
+  moment.duration('1', 'month').as('seconds'),
 ];
 const DESCRIPTIONS = ['daily', 'weekly', 'monthly'];
 
