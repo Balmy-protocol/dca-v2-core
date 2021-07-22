@@ -12,5 +12,5 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     log: true,
   });
 };
-export default deployFunction;
 deployFunction.tags = ['TokenDescriptor'];
+export default deployFunction;
