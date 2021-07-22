@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
-import 'hardhat/console.sol';
-
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
@@ -148,7 +146,6 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
       address _tokenOut = _isRewardTokenA ? address(_tokenB) : address(_tokenA);
 
       // Approve the router to spend the specifed `rewardAmount` of tokenIn.
-      console.log('reward amount', _rewardAmount);
       TransferHelper.safeApprove(_tokenIn, address(swapRouter), _rewardAmount);
 
       ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
@@ -164,7 +161,6 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
 
       // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
       uint256 _amountIn = swapRouter.exactOutputSingle(params);
-      console.log('amount needed', _amountIn);
 
       // For exact output swaps, the amountInMaximum may not have all been spent.
       // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the pair (msg.sender) and approve the swapRouter to spend 0.

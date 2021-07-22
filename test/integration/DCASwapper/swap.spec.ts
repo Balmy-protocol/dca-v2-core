@@ -26,7 +26,7 @@ const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(3).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
-contract.only('DCASwapper', () => {
+contract('DCASwapper', () => {
   let DCASwapper: Contract;
   let DCAFactory: Contract;
   let DCAPair: Contract;
@@ -111,6 +111,7 @@ contract.only('DCASwapper', () => {
     when('twap doesnt allow for profitable swap', () => {
       let swapPairsTx: Promise<TransactionResponse>;
       given(async () => {
+        await pushPriceOfWETHDown();
         swapPairsTx = DCASwapper.connect(governor).swapPairs([DCAPair.address], { gasPrice: 0 });
       });
       then('tx gets reverted', async () => {
@@ -118,17 +119,17 @@ contract.only('DCASwapper', () => {
       });
     });
 
-    when.only('twap price < uni price => allows for profitable swap', () => {
+    when('twap price < uni price => allows for profitable swap', () => {
       let twapPrice: BigNumber;
       let currentUniswapPrice: BigNumber;
       let amountOfETHNeededToGetUSDC: BigNumber;
       given(async () => {
         currentUniswapPrice = await pushPriceOfWETHUp();
         twapPrice = await oracle.quote(WETH.address, RATE, USDC.address);
-        console.log(utils.formatUnits(twapPrice, 6), 'usdc');
         expect(twapPrice).to.be.lt(currentUniswapPrice, 'Didnt push the price of WETH up enough');
-        await DCASwapper.connect(governor).swapPairs([DCAPair.address], { gasPrice: 0 });
         await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, constants.MAX_UINT_256, { gasPrice: 0 });
+        // This is approx since our call static is made in block T-1 and swap uses block T, so using quote is not accurate.
+        // That is why also amountOut is hardcoded, and we are not using twapPrice
         amountOfETHNeededToGetUSDC = await uniswapSwapRouter.connect(wethWhale).callStatic.exactOutputSingle(
           {
             tokenIn: WETH_ADDRESS,
@@ -136,85 +137,29 @@ contract.only('DCASwapper', () => {
             fee: 3000,
             recipient: wallet.generateRandomAddress(),
             deadline: moment().unix(),
-            amountOut: APPLY_FEE(twapPrice),
+            amountOut: '190992690',
             amountInMaximum: RATE,
             sqrtPriceLimitX96: 0,
           },
           { gasPrice: 0 }
         );
+        await DCASwapper.connect(governor).swapPairs([DCAPair.address], { gasPrice: 0 });
       });
       then('swap is executed', async () => {
         expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
       });
       then('pair balance is correct', async () => {
         expect(await WETH.balanceOf(DCAPair.address)).to.equal(RATE.mul(AMOUNT_OF_SWAPS - 1));
-        expect(await USDC.balanceOf(DCAPair.address)).to.equal(APPLY_FEE(twapPrice));
+        expect(await USDC.balanceOf(DCAPair.address)).to.be.gte(APPLY_FEE(twapPrice));
       });
-      then.only('fee + change is sent to fee recipient', async () => {
-        await logBalances('swaper', DCASwapper.address);
-        await logBalances('pair', DCAPair.address);
-        await logBalances('fee receipient', feeRecipient);
-        console.log('my calcs', utils.formatEther(amountOfETHNeededToGetUSDC));
-        const feeWETHBalance = await WETH.balanceOf(feeRecipient);
-        console.log('diff', utils.formatEther(amountOfETHNeededToGetUSDC.add(feeWETHBalance)));
-        console.log('sum', utils.formatEther(feeWETHBalance.add(amountOfETHNeededToGetUSDC)));
-        // expect(await WETH.balanceOf(feeRecipient)).to.equal(RATE.sub(amountOfETHNeededToGetUSDC));
+      then('fee + change is sent to fee recipient', async () => {
+        const feeToGet = RATE.sub(amountOfETHNeededToGetUSDC);
+        bn.expectToEqualWithThreshold({
+          value: await WETH.balanceOf(feeRecipient),
+          to: feeToGet,
+          threshold: feeToGet.div(100), // 1%
+        });
         expect(await USDC.balanceOf(feeRecipient)).to.equal(0);
-      });
-    });
-
-    when.skip('twap price < uni price => allows for profitable swap', () => {
-      let twapPrice: BigNumber;
-      let currentUniswapPrice: BigNumber;
-      given(async () => {
-        console.log('is token B weth ?', (await DCAPair.tokenB()).toLowerCase() == WETH_ADDRESS.toLowerCase());
-        console.log('quote ETH/USDC', utils.formatUnits(await oracle.quote(WETH.address, utils.parseEther('1'), USDC.address), 6));
-        currentUniswapPrice = await pushPriceOfWETHDown();
-        twapPrice = await oracle.quote(WETH.address, RATE, USDC.address);
-
-        // Create falopa position
-        await USDC.connect(alice).approve(DCAPair.address, '191509933');
-        await DCAPair.connect(alice).deposit(USDC.address, '191509933', 1, INTERVAL);
-
-        console.log('pushed up quote ETH/USDC', utils.formatUnits(twapPrice, 6));
-        console.log('pushed up uni price ETH/USDC', utils.formatUnits(currentUniswapPrice, 6));
-        console.log('pair weth', utils.formatEther(await WETH.balanceOf(DCAPair.address)));
-        console.log('pair usdc', utils.formatUnits(await USDC.balanceOf(DCAPair.address), 6));
-        console.log('---- get next swap info ----');
-        const nextSwapInfo = await DCAPair.getNextSwapInfo();
-        console.log('availableToBorrowTokenA', nextSwapInfo.availableToBorrowTokenA.toString(), 'usdc');
-        console.log('availableToBorrowTokenB', nextSwapInfo.availableToBorrowTokenB.toString(), 'ether');
-        console.log('ratePerUnitBToA', nextSwapInfo.ratePerUnitBToA.toString(), 'usdc');
-        console.log('ratePerUnitAToB', nextSwapInfo.ratePerUnitAToB.toString(), 'ether');
-        console.log('platformFeeTokenA', nextSwapInfo.platformFeeTokenA.toString(), 'usdc');
-        console.log('platformFeeTokenB', nextSwapInfo.platformFeeTokenB.toString(), 'ether');
-        console.log('amountToBeProvidedBySwapper', nextSwapInfo.amountToBeProvidedBySwapper.toString(), 'usdc');
-        console.log('amountToRewardSwapperWith', nextSwapInfo.amountToRewardSwapperWith.toString(), 'ether');
-        console.log('----------------------------');
-        // console.log(await DCAPair.getNextSwapInfo());
-        console.log('- swap');
-        await DCASwapper.connect(governor).swapPairs([DCAPair.address], { gasPrice: 0 });
-        console.log('fee recipient weth', utils.formatEther(await WETH.balanceOf(feeRecipient)));
-        console.log('fee recipient usdc', utils.formatUnits(await USDC.balanceOf(feeRecipient), 6));
-
-        console.log('pair weth', utils.formatEther(await WETH.balanceOf(DCAPair.address)));
-        console.log('pair usdc', utils.formatUnits(await USDC.balanceOf(DCAPair.address), 6));
-        await DCAPair.connect(alice).terminate(1);
-        console.log('terminate');
-        console.log('pair weth', utils.formatEther(await WETH.balanceOf(DCAPair.address)));
-        console.log('pair usdc', utils.formatUnits(await USDC.balanceOf(DCAPair.address), 6));
-      });
-      then('swap is executed', async () => {
-        expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
-      });
-      then.skip('pair balance is correct', async () => {
-        expect(await WETH.balanceOf(DCAPair.address)).to.equal(RATE.mul(AMOUNT_OF_SWAPS - 1));
-        expect(await USDC.balanceOf(DCAPair.address)).to.equal(APPLY_FEE(twapPrice));
-      });
-      then.skip('fee + change is sent to fee recipient', async () => {
-        await logBalances('swaper', DCASwapper.address);
-        await logBalances('pair', DCAPair.address);
-        // check fee recipient WETH
       });
     });
   });
@@ -230,7 +175,6 @@ contract.only('DCASwapper', () => {
     };
     await USDC.connect(usdcWhale).approve(uniswapSwapRouter.address, buyAmount, { gasPrice: 0 });
     await uniswapSwapRouter.connect(usdcWhale).exactInput(wethUpPriceParams, { gasPrice: 0 });
-    // await evm.advanceTimeAndBlock(moment.duration('30', 'minutes').as('seconds'));
     await evm.advanceBlock();
     const currentPriceParams = {
       path: pack(['address', 'uint24', 'address'], [WETH.address, 3000, USDC.address]),
@@ -254,10 +198,8 @@ contract.only('DCASwapper', () => {
       amountOutMinimum: 0,
     };
     await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, sellAmount, { gasPrice: 0 });
-    console.log('approved down');
     await uniswapSwapRouter.connect(wethWhale).exactInput(wethDownPriceParams, { gasPrice: 0 });
     await evm.advanceBlock();
-    console.log('checkpoint down');
     const currentPriceParams = {
       path: pack(['address', 'uint24', 'address'], [WETH.address, 3000, USDC.address]),
       recipient: usdcWhale._address,
@@ -269,9 +211,4 @@ contract.only('DCASwapper', () => {
     const currentPrice = await uniswapSwapRouter.connect(wethWhale).callStatic.exactInput(currentPriceParams, { gasPrice: 0 });
     return currentPrice;
   }
-
-  const logBalances = async (thing: string, address: string) => {
-    console.log(thing, utils.formatEther(await WETH.balanceOf(address)), 'weth');
-    console.log(thing, utils.formatUnits(await USDC.balanceOf(address), 6), 'usdc');
-  };
 });
