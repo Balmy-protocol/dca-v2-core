@@ -32,6 +32,12 @@ const networks: NetworksUserConfig = process.env.TEST
         gasPrice: 'auto',
         tags: ['staging'],
       },
+      rinkeby: {
+        url: getNodeUrl('rinkeby'),
+        accounts: accounts('rinkeby'),
+        gasPrice: 'auto',
+        tags: ['staging'],
+      },
       mainnet: {
         url: getNodeUrl('mainnet'),
         accounts: accounts('mainnet'),
