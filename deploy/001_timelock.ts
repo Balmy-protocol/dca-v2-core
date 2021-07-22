@@ -17,5 +17,5 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     log: true,
   });
 };
-export default deployFunction;
 deployFunction.tags = ['Timelock'];
+export default deployFunction;

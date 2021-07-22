@@ -24,6 +24,6 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     ['daily', 'weekly', 'monthly']
   );
 };
-export default deployFunction;
 deployFunction.tags = ['GlobalParameters'];
 deployFunction.dependencies = ['Timelock', 'TokenDescriptor', 'UniswapOracle'];
+export default deployFunction;

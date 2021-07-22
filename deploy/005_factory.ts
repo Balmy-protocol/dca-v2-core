@@ -13,6 +13,6 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     log: true,
   });
 };
-export default deployFunction;
 deployFunction.tags = ['Factory'];
 deployFunction.dependencies = ['GlobalParameters'];
+export default deployFunction;
