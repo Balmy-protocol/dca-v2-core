@@ -11,19 +11,13 @@ contract QuoterMock {
     _amountNecessary = __amountNecessary;
   }
 
-  function quoteExactOutputSingle(IQuoterV2.QuoteExactOutputSingleParams memory)
-    external
-    view
-    returns (
-      uint256 __amountNecessary,
-      uint160 _sqrtPriceX96After,
-      uint32 _initializedTicksCrossed,
-      uint256 _gasEstimate
-    )
-  {
-    __amountNecessary = _amountNecessary;
-    _sqrtPriceX96After = 0;
-    _initializedTicksCrossed = 0;
-    _gasEstimate = 0;
+  function quoteExactOutputSingle(
+    address,
+    address,
+    uint24,
+    uint256,
+    uint160
+  ) external view returns (uint256) {
+    return _amountNecessary;
   }
 }

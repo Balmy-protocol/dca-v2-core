@@ -2,7 +2,7 @@
 pragma solidity 0.8.4;
 
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '../interfaces/IDCAFactory.sol';
 
 interface IDCASwapper {
@@ -20,7 +20,7 @@ interface IDCASwapper {
 
   function swapRouter() external view returns (ISwapRouter);
 
-  function quoter() external view returns (IQuoterV2);
+  function quoter() external view returns (IQuoter);
 
   /**
    * This method isn't a view and it is extremelly expensive and inefficient.

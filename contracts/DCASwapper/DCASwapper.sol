@@ -13,14 +13,14 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
 
   IDCAFactory public immutable override factory;
   ISwapRouter public immutable override swapRouter;
-  IQuoterV2 public immutable override quoter;
+  IQuoter public immutable override quoter;
   EnumerableSet.AddressSet internal _watchedPairs;
 
   constructor(
     address _governor,
     IDCAFactory _factory,
     ISwapRouter _swapRouter,
-    IQuoterV2 _quoter
+    IQuoter _quoter
   ) Governable(_governor) {
     if (address(_factory) == address(0) || address(_swapRouter) == address(0) || address(_quoter) == address(0))
       revert CommonErrors.ZeroAddress();
@@ -111,15 +111,13 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     } else if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
       return true;
     } else {
-      IQuoterV2.QuoteExactOutputSingleParams memory _params = IQuoterV2.QuoteExactOutputSingleParams({
-        tokenIn: address(_nextSwapInformation.tokenToRewardSwapperWith),
-        tokenOut: address(_nextSwapInformation.tokenToBeProvidedBySwapper),
-        amount: _nextSwapInformation.amountToBeProvidedBySwapper,
-        fee: 3000,
-        sqrtPriceLimitX96: 0
-      });
-
-      (uint256 _inputNecessary, , , ) = quoter.quoteExactOutputSingle(_params);
+      uint256 _inputNecessary = quoter.quoteExactOutputSingle(
+        address(_nextSwapInformation.tokenToRewardSwapperWith),
+        address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+        3000,
+        _nextSwapInformation.amountToBeProvidedBySwapper,
+        0
+      );
       return _nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary;
     }
   }
