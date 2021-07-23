@@ -2,7 +2,19 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import moment from 'moment';
 
-const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+export type GlobalParametersDeployFunction = DeployFunction & {
+  intervals: number[];
+  descriptions: string[];
+};
+
+const INTERVALS = [
+  moment.duration('1', 'day').as('seconds'),
+  moment.duration('1', 'week').as('seconds'),
+  moment.duration('1', 'month').as('seconds'),
+];
+const DESCRIPTIONS = ['daily', 'weekly', 'monthly'];
+
+const deployFunction: GlobalParametersDeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor, feeRecipient } = await hre.getNamedAccounts();
 
   const uniswapOracle = await hre.deployments.get('UniswapOracle');
@@ -20,10 +32,13 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     'GlobalParameters',
     { from: governor, gasLimit: 2000000 },
     'addSwapIntervalsToAllowedList',
-    [moment.duration('1', 'days').as('seconds'), moment.duration('1', 'weeks').as('seconds'), moment.duration('1', 'months').as('seconds')],
-    ['daily', 'weekly', 'monthly']
+    INTERVALS,
+    DESCRIPTIONS
   );
 };
+
+deployFunction.intervals = INTERVALS;
+deployFunction.descriptions = DESCRIPTIONS;
 deployFunction.tags = ['GlobalParameters'];
 deployFunction.dependencies = ['Timelock', 'TokenDescriptor', 'UniswapOracle'];
 export default deployFunction;
