@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import '../../interfaces/IDCAPair.sol';
 
 contract DCAPairMock {
-  bool public swapped;
+  uint24 private _swappedFee;
   IDCAPairSwapHandler.NextSwapInformation private _nextSwapInfo;
   uint256 private _gasToConsume;
 
@@ -12,11 +12,19 @@ contract DCAPairMock {
     uint256,
     uint256,
     address,
-    bytes calldata
+    bytes calldata _bytes
   ) external {
-    swapped = true;
+    _swappedFee = abi.decode(_bytes, (uint24));
     uint256 _start = gasleft();
     while (_start - gasleft() < _gasToConsume) {}
+  }
+
+  function swapped() external view returns (bool) {
+    return _swappedFee > 0;
+  }
+
+  function swappedWithFee(uint24 _feeTier) external view returns (bool) {
+    return _swappedFee == _feeTier;
   }
 
   function setGasToConsumeInSwap(uint256 __gasToConsume) external {

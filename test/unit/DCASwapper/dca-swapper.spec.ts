@@ -6,6 +6,7 @@ import { behaviours, constants } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import erc20, { TokenContract } from '../../utils/erc20';
+import { readArgFromEvent } from '../../utils/event-utils';
 
 describe('DCASwapper', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
@@ -210,7 +211,7 @@ describe('DCASwapper', () => {
           true,
           rewardAmount,
           amountToProvide,
-          ethers.utils.randomBytes(5)
+          ethers.utils.defaultAbiCoder.encode(['uint24'], [10000])
         );
       });
 
@@ -218,7 +219,7 @@ describe('DCASwapper', () => {
         const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
         expect(tokenIn).to.equal(tokenA.address);
         expect(tokenOut).to.equal(tokenB.address);
-        expect(fee).to.equal(3000);
+        expect(fee).to.equal(10000);
         expect(recipient).to.equal(swapperCaller.address);
         expect(deadline.gt(0)).to.be.true;
         expect(amountOut).to.equal(amountToProvide);
@@ -251,7 +252,7 @@ describe('DCASwapper', () => {
           true,
           rewardAmount,
           amountToProvide,
-          ethers.utils.randomBytes(5)
+          ethers.utils.defaultAbiCoder.encode(['uint24'], [500])
         );
       });
 
@@ -259,7 +260,7 @@ describe('DCASwapper', () => {
         const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
         expect(tokenIn).to.equal(tokenA.address);
         expect(tokenOut).to.equal(tokenB.address);
-        expect(fee).to.equal(3000);
+        expect(fee).to.equal(500);
         expect(recipient).to.equal(swapperCaller.address);
         expect(deadline.gt(0)).to.be.true;
         expect(amountOut).to.equal(amountToProvide);
@@ -424,6 +425,7 @@ describe('DCASwapper', () => {
 
       then('empty list is returned', async () => {
         const pairsToSwap = await DCASwapper.callStatic.getPairsToSwap();
+        expect(pairsToSwap).to.be.empty;
       });
     });
 
@@ -447,13 +449,14 @@ describe('DCASwapper', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCASwapper,
           func: 'swapPairs',
-          args: [[]],
+          args: [[], []],
           message: 'ZeroPairsToSwap',
         });
       });
     });
 
     when('gas limit is enough', () => {
+      let pairsToSwap: [string, number][];
       let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
       let tx: TransactionResponse;
 
@@ -463,21 +466,30 @@ describe('DCASwapper', () => {
         DCAPair2 = await DCAPairMockContract.deploy();
         DCAPair3 = await DCAPairMockContract.deploy();
 
-        tx = await DCASwapper.swapPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address]);
+        pairsToSwap = [
+          [DCAPair1.address, 500],
+          [DCAPair2.address, 3000],
+          [DCAPair3.address, 10000],
+        ];
+        tx = await DCASwapper.swapPairs(pairsToSwap);
       });
 
       then('all pairs are swapped', async () => {
-        expect(await DCAPair1.swapped()).to.be.true;
-        expect(await DCAPair2.swapped()).to.be.true;
-        expect(await DCAPair3.swapped()).to.be.true;
+        expect(await DCAPair1.swappedWithFee(500)).to.be.true;
+        expect(await DCAPair2.swappedWithFee(3000)).to.be.true;
+        expect(await DCAPair3.swappedWithFee(10000)).to.be.true;
       });
 
       then('event is emitted', async () => {
-        await expect(tx).to.emit(DCASwapper, 'Swapped').withArgs([DCAPair1.address, DCAPair2.address, DCAPair3.address], 3);
+        const pairs = await readArgFromEvent(tx, 'Swapped', '_pairsToSwap');
+        const amount = await readArgFromEvent(tx, 'Swapped', '_amountSwapped');
+        expect(pairs).to.eql(pairsToSwap);
+        expect(amount).to.equal(3);
       });
     });
 
     when('gas limit is not enough', () => {
+      let pairsToSwap: [string, number][];
       let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
       let tx: TransactionResponse;
 
@@ -490,17 +502,25 @@ describe('DCASwapper', () => {
         await DCAPair1.setGasToConsumeInSwap(100000);
         await DCAPair2.setGasToConsumeInSwap(200000);
 
-        tx = await DCASwapper.swapPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address], { gasLimit: 500000 });
+        pairsToSwap = [
+          [DCAPair1.address, 10000],
+          [DCAPair2.address, 500],
+          [DCAPair3.address, 3000],
+        ];
+        tx = await DCASwapper.swapPairs(pairsToSwap, { gasLimit: 500000 });
       });
 
       then('some pairs are not swapped', async () => {
-        expect(await DCAPair1.swapped()).to.be.true;
-        expect(await DCAPair2.swapped()).to.be.true;
+        expect(await DCAPair1.swappedWithFee(10000)).to.be.true;
+        expect(await DCAPair2.swappedWithFee(500)).to.be.true;
         expect(await DCAPair3.swapped()).to.be.false;
       });
 
       then('event is still emitted', async () => {
-        await expect(tx).to.emit(DCASwapper, 'Swapped').withArgs([DCAPair1.address, DCAPair2.address, DCAPair3.address], 2);
+        const pairs = await readArgFromEvent(tx, 'Swapped', '_pairsToSwap');
+        const amount = await readArgFromEvent(tx, 'Swapped', '_amountSwapped');
+        expect(pairs).to.eql(pairsToSwap);
+        expect(amount).to.equal(2);
       });
     });
   });

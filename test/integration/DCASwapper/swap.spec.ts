@@ -96,7 +96,7 @@ contract('DCASwapper', () => {
         usdcNeeded = await oracle.quote(WETH.address, RATE, USDC.address);
         await USDC.connect(alice).approve(DCAPair.address, usdcNeeded);
         await DCAPair.connect(alice).deposit(USDC.address, usdcNeeded, 1, INTERVAL);
-        await DCASwapper.swapPairs([DCAPair.address]);
+        await DCASwapper.swapPairs([[DCAPair.address, 3000]]);
       });
       then('swap is executed', async () => {
         expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
@@ -119,7 +119,7 @@ contract('DCASwapper', () => {
         expect(pairs).to.be.empty;
       });
       then('swap gets reverted', async () => {
-        const swapPairsTx = DCASwapper.connect(governor).swapPairs([DCAPair.address], { gasPrice: 0 });
+        const swapPairsTx = DCASwapper.connect(governor).swapPairs([[DCAPair.address, 3000]], { gasPrice: 0 });
         await expect(swapPairsTx).to.be.reverted;
       });
     });
@@ -157,7 +157,7 @@ contract('DCASwapper', () => {
       });
       describe('swap', () => {
         given(async () => {
-          await DCASwapper.connect(governor).swapPairs([DCAPair.address], { gasPrice: 0 });
+          await DCASwapper.connect(governor).swapPairs([[DCAPair.address, 3000]], { gasPrice: 0 });
         });
         then('swap is executed', async () => {
           expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);

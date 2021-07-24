@@ -83,7 +83,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     }
   }
 
-  function swapPairs(IDCAPair[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
+  function swapPairs(PairToSwap[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
     if (_pairsToSwap.length == 0) revert ZeroPairsToSwap();
 
     uint256 _maxGasSpent;
@@ -141,9 +141,9 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     }
   }
 
-  function _swap(IDCAPair _pair) internal {
+  function _swap(PairToSwap memory _pair) internal {
     // Execute the swap, making myself the callee so that the `DCAPairSwapCall` function is called
-    _pair.swap(0, 0, address(this), '-');
+    _pair.pair.swap(0, 0, address(this), abi.encode(_pair.bestFeeTier));
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -156,7 +156,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     bool _isRewardTokenA,
     uint256 _rewardAmount,
     uint256 _amountToProvide,
-    bytes calldata
+    bytes calldata _bytes
   ) external override {
     if (_amountToProvide > 0) {
       address _tokenIn = _isRewardTokenA ? address(_tokenA) : address(_tokenB);
@@ -168,7 +168,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
       ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
         tokenIn: _tokenIn,
         tokenOut: _tokenOut,
-        fee: 3000, // Set to 0.3%
+        fee: abi.decode(_bytes, (uint24)),
         recipient: msg.sender, // Send it directly to pair
         deadline: block.timestamp, // Needs to happen now
         amountOut: _amountToProvide,

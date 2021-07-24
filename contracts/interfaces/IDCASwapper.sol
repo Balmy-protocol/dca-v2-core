@@ -16,7 +16,7 @@ interface IDCASwapper {
 
   event WatchingNewPairs(address[] _pairs);
   event StoppedWatchingPairs(address[] _pairs);
-  event Swapped(IDCAPair[] _pairsToSwap, uint256 _amountSwapped);
+  event Swapped(PairToSwap[] _pairsToSwap, uint256 _amountSwapped);
 
   error InvalidPairAddress();
   error ZeroPairsToSwap();
@@ -44,5 +44,5 @@ interface IDCASwapper {
   /**
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
    */
-  function swapPairs(IDCAPair[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
+  function swapPairs(PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
 }
