@@ -1,0 +1,564 @@
+{
+  "address": "0xbeB86E729d2742461386a7C42d735F1Cf8Ce5202",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_governor",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IDCAFactory",
+          "name": "_factory",
+          "type": "address"
+        },
+        {
+          "internalType": "contract ISwapRouter",
+          "name": "_swapRouter",
+          "type": "address"
+        },
+        {
+          "internalType": "contract ICustomQuoter",
+          "name": "_quoter",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "InvalidPairAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroPairsToSwap",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "PendingGovernorAccepted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "_pendingGovernor",
+          "type": "address"
+        }
+      ],
+      "name": "PendingGovernorSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "_pairs",
+          "type": "address[]"
+        }
+      ],
+      "name": "StoppedWatchingPairs",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "contract IDCAPair",
+              "name": "pair",
+              "type": "address"
+            },
+            {
+              "internalType": "uint24",
+              "name": "bestFeeTier",
+              "type": "uint24"
+            }
+          ],
+          "indexed": false,
+          "internalType": "struct IDCASwapper.PairToSwap[]",
+          "name": "_pairsToSwap",
+          "type": "tuple[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_amountSwapped",
+          "type": "uint256"
+        }
+      ],
+      "name": "Swapped",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "_pairs",
+          "type": "address[]"
+        }
+      ],
+      "name": "WatchingNewPairs",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IERC20Detailed",
+          "name": "_tokenA",
+          "type": "address"
+        },
+        {
+          "internalType": "contract IERC20Detailed",
+          "name": "_tokenB",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "_isRewardTokenA",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_rewardAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amountToProvide",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "_bytes",
+          "type": "bytes"
+        }
+      ],
+      "name": "DCAPairSwapCall",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "acceptPendingGovernor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_to",
+          "type": "address"
+        }
+      ],
+      "name": "die",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "factory",
+      "outputs": [
+        {
+          "internalType": "contract IDCAFactory",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getPairsToSwap",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "contract IDCAPair",
+              "name": "pair",
+              "type": "address"
+            },
+            {
+              "internalType": "uint24",
+              "name": "bestFeeTier",
+              "type": "uint24"
+            }
+          ],
+          "internalType": "struct IDCASwapper.PairToSwap[]",
+          "name": "_pairs",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governor",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_account",
+          "type": "address"
+        }
+      ],
+      "name": "isGovernor",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_isGovernor",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_account",
+          "type": "address"
+        }
+      ],
+      "name": "isPendingGovernor",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_isPendingGovernor",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pendingGovernor",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "quoter",
+      "outputs": [
+        {
+          "internalType": "contract ICustomQuoter",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "__pendingGovernor",
+          "type": "address"
+        }
+      ],
+      "name": "setPendingGovernor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_pairs",
+          "type": "address[]"
+        }
+      ],
+      "name": "startWatchingPairs",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_pairs",
+          "type": "address[]"
+        }
+      ],
+      "name": "stopWatchingPairs",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "contract IDCAPair",
+              "name": "pair",
+              "type": "address"
+            },
+            {
+              "internalType": "uint24",
+              "name": "bestFeeTier",
+              "type": "uint24"
+            }
+          ],
+          "internalType": "struct IDCASwapper.PairToSwap[]",
+          "name": "_pairsToSwap",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "swapPairs",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amountSwapped",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "swapRouter",
+      "outputs": [
+        {
+          "internalType": "contract ISwapRouter",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "watchedPairs",
+      "outputs": [
+        {
+          "internalType": "address[]",
+          "name": "_pairs",
+          "type": "address[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x506b9cb0387fdadd653853953ff2651cc4df88a9401fcd8ac5e3d880be55d674",
+  "receipt": {
+    "to": null,
+    "from": "0xd63455f6723772654Dddb596bA518D9179d5d932",
+    "contractAddress": "0xbeB86E729d2742461386a7C42d735F1Cf8Ce5202",
+    "transactionIndex": 8,
+    "gasUsed": "1776239",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x426f7ef742cc97aed98546f5bbf72457bc1d7859363eb7e511c4baa5e0618a5e",
+    "transactionHash": "0x506b9cb0387fdadd653853953ff2651cc4df88a9401fcd8ac5e3d880be55d674",
+    "logs": [],
+    "blockNumber": 8994140,
+    "cumulativeGasUsed": "4478012",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x9012D9bbFdcEe42c618f9464b4632568e6385dCa",
+    "0x5f6AD3A83088188e81ff80295F7686e868400C29",
+    "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+    "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6"
+  ],
+  "solcInputHash": "622328babecd71f99f3f1fbcedd1b8b4",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.4+commit.c7e474f2\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_governor\",\"type\":\"address\"},{\"internalType\":\"contract IDCAFactory\",\"name\":\"_factory\",\"type\":\"address\"},{\"internalType\":\"contract ISwapRouter\",\"name\":\"_swapRouter\",\"type\":\"address\"},{\"internalType\":\"contract ICustomQuoter\",\"name\":\"_quoter\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"InvalidPairAddress\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ZeroAddress\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ZeroPairsToSwap\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"PendingGovernorAccepted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"_pendingGovernor\",\"type\":\"address\"}],\"name\":\"PendingGovernorSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"_pairs\",\"type\":\"address[]\"}],\"name\":\"StoppedWatchingPairs\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"components\":[{\"internalType\":\"contract IDCAPair\",\"name\":\"pair\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"bestFeeTier\",\"type\":\"uint24\"}],\"indexed\":false,\"internalType\":\"struct IDCASwapper.PairToSwap[]\",\"name\":\"_pairsToSwap\",\"type\":\"tuple[]\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_amountSwapped\",\"type\":\"uint256\"}],\"name\":\"Swapped\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"_pairs\",\"type\":\"address[]\"}],\"name\":\"WatchingNewPairs\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"contract IERC20Detailed\",\"name\":\"_tokenA\",\"type\":\"address\"},{\"internalType\":\"contract IERC20Detailed\",\"name\":\"_tokenB\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"_isRewardTokenA\",\"type\":\"bool\"},{\"internalType\":\"uint256\",\"name\":\"_rewardAmount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_amountToProvide\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"_bytes\",\"type\":\"bytes\"}],\"name\":\"DCAPairSwapCall\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"acceptPendingGovernor\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_to\",\"type\":\"address\"}],\"name\":\"die\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"factory\",\"outputs\":[{\"internalType\":\"contract IDCAFactory\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getPairsToSwap\",\"outputs\":[{\"components\":[{\"internalType\":\"contract IDCAPair\",\"name\":\"pair\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"bestFeeTier\",\"type\":\"uint24\"}],\"internalType\":\"struct IDCASwapper.PairToSwap[]\",\"name\":\"_pairs\",\"type\":\"tuple[]\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"governor\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"name\":\"isGovernor\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_isGovernor\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"name\":\"isPendingGovernor\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_isPendingGovernor\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pendingGovernor\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"quoter\",\"outputs\":[{\"internalType\":\"contract ICustomQuoter\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"__pendingGovernor\",\"type\":\"address\"}],\"name\":\"setPendingGovernor\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_pairs\",\"type\":\"address[]\"}],\"name\":\"startWatchingPairs\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_pairs\",\"type\":\"address[]\"}],\"name\":\"stopWatchingPairs\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"contract IDCAPair\",\"name\":\"pair\",\"type\":\"address\"},{\"internalType\":\"uint24\",\"name\":\"bestFeeTier\",\"type\":\"uint24\"}],\"internalType\":\"struct IDCASwapper.PairToSwap[]\",\"name\":\"_pairsToSwap\",\"type\":\"tuple[]\"}],\"name\":\"swapPairs\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_amountSwapped\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"swapRouter\",\"outputs\":[{\"internalType\":\"contract ISwapRouter\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"watchedPairs\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"_pairs\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"getPairsToSwap()\":{\"notice\":\"This method isn't a view and it is extremelly expensive and inefficient. DO NOT call this method on-chain, it is for off-chain purposes only.\"},\"swapPairs((address,uint24)[])\":{\"notice\":\"Takes an array of swaps, and executes as many as possible, returning the amount that was swapped\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/DCASwapper/DCASwapper.sol\":\"DCASwapper\"},\"evmVersion\":\"istanbul\",\"libraries\":{\":__CACHE_BREAKER__\":\"0x00000000d41867734bbee4c6863d9255b2b06ac1\"},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Interface of the ERC20 standard as defined in the EIP.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Returns the amount of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the amount of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves `amount` tokens from the caller's account to `recipient`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Moves `amount` tokens from `sender` to `recipient` using the\\n     * allowance mechanism. `amount` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n}\\n\",\"keccak256\":\"0xf8e8d118a7a8b2e134181f7da655f6266aa3a0f9134b2605747139fcb0c5d835\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/structs/EnumerableSet.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Library for managing\\n * https://en.wikipedia.org/wiki/Set_(abstract_data_type)[sets] of primitive\\n * types.\\n *\\n * Sets have the following properties:\\n *\\n * - Elements are added, removed, and checked for existence in constant time\\n * (O(1)).\\n * - Elements are enumerated in O(n). No guarantees are made on the ordering.\\n *\\n * ```\\n * contract Example {\\n *     // Add the library methods\\n *     using EnumerableSet for EnumerableSet.AddressSet;\\n *\\n *     // Declare a set state variable\\n *     EnumerableSet.AddressSet private mySet;\\n * }\\n * ```\\n *\\n * As of v3.3.0, sets of type `bytes32` (`Bytes32Set`), `address` (`AddressSet`)\\n * and `uint256` (`UintSet`) are supported.\\n */\\nlibrary EnumerableSet {\\n    // To implement this library for multiple types with as little code\\n    // repetition as possible, we write it in terms of a generic Set type with\\n    // bytes32 values.\\n    // The Set implementation uses private functions, and user-facing\\n    // implementations (such as AddressSet) are just wrappers around the\\n    // underlying Set.\\n    // This means that we can only create new EnumerableSets for types that fit\\n    // in bytes32.\\n\\n    struct Set {\\n        // Storage of set values\\n        bytes32[] _values;\\n\\n        // Position of the value in the `values` array, plus 1 because index 0\\n        // means a value is not in the set.\\n        mapping (bytes32 => uint256) _indexes;\\n    }\\n\\n    /**\\n     * @dev Add a value to a set. O(1).\\n     *\\n     * Returns true if the value was added to the set, that is if it was not\\n     * already present.\\n     */\\n    function _add(Set storage set, bytes32 value) private returns (bool) {\\n        if (!_contains(set, value)) {\\n            set._values.push(value);\\n            // The value is stored at length-1, but we add 1 to all indexes\\n            // and use 0 as a sentinel value\\n            set._indexes[value] = set._values.length;\\n            return true;\\n        } else {\\n            return false;\\n        }\\n    }\\n\\n    /**\\n     * @dev Removes a value from a set. O(1).\\n     *\\n     * Returns true if the value was removed from the set, that is if it was\\n     * present.\\n     */\\n    function _remove(Set storage set, bytes32 value) private returns (bool) {\\n        // We read and store the value's index to prevent multiple reads from the same storage slot\\n        uint256 valueIndex = set._indexes[value];\\n\\n        if (valueIndex != 0) { // Equivalent to contains(set, value)\\n            // To delete an element from the _values array in O(1), we swap the element to delete with the last one in\\n            // the array, and then remove the last element (sometimes called as 'swap and pop').\\n            // This modifies the order of the array, as noted in {at}.\\n\\n            uint256 toDeleteIndex = valueIndex - 1;\\n            uint256 lastIndex = set._values.length - 1;\\n\\n            // When the value to delete is the last one, the swap operation is unnecessary. However, since this occurs\\n            // so rarely, we still do the swap anyway to avoid the gas cost of adding an 'if' statement.\\n\\n            bytes32 lastvalue = set._values[lastIndex];\\n\\n            // Move the last value to the index where the value to delete is\\n            set._values[toDeleteIndex] = lastvalue;\\n            // Update the index for the moved value\\n            set._indexes[lastvalue] = valueIndex; // Replace lastvalue's index to valueIndex\\n\\n            // Delete the slot where the moved value was stored\\n            set._values.pop();\\n\\n            // Delete the index for the deleted slot\\n            delete set._indexes[value];\\n\\n            return true;\\n        } else {\\n            return false;\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns true if the value is in the set. O(1).\\n     */\\n    function _contains(Set storage set, bytes32 value) private view returns (bool) {\\n        return set._indexes[value] != 0;\\n    }\\n\\n    /**\\n     * @dev Returns the number of values on the set. O(1).\\n     */\\n    function _length(Set storage set) private view returns (uint256) {\\n        return set._values.length;\\n    }\\n\\n   /**\\n    * @dev Returns the value stored at position `index` in the set. O(1).\\n    *\\n    * Note that there are no guarantees on the ordering of values inside the\\n    * array, and it may change when more values are added or removed.\\n    *\\n    * Requirements:\\n    *\\n    * - `index` must be strictly less than {length}.\\n    */\\n    function _at(Set storage set, uint256 index) private view returns (bytes32) {\\n        require(set._values.length > index, \\\"EnumerableSet: index out of bounds\\\");\\n        return set._values[index];\\n    }\\n\\n    // Bytes32Set\\n\\n    struct Bytes32Set {\\n        Set _inner;\\n    }\\n\\n    /**\\n     * @dev Add a value to a set. O(1).\\n     *\\n     * Returns true if the value was added to the set, that is if it was not\\n     * already present.\\n     */\\n    function add(Bytes32Set storage set, bytes32 value) internal returns (bool) {\\n        return _add(set._inner, value);\\n    }\\n\\n    /**\\n     * @dev Removes a value from a set. O(1).\\n     *\\n     * Returns true if the value was removed from the set, that is if it was\\n     * present.\\n     */\\n    function remove(Bytes32Set storage set, bytes32 value) internal returns (bool) {\\n        return _remove(set._inner, value);\\n    }\\n\\n    /**\\n     * @dev Returns true if the value is in the set. O(1).\\n     */\\n    function contains(Bytes32Set storage set, bytes32 value) internal view returns (bool) {\\n        return _contains(set._inner, value);\\n    }\\n\\n    /**\\n     * @dev Returns the number of values in the set. O(1).\\n     */\\n    function length(Bytes32Set storage set) internal view returns (uint256) {\\n        return _length(set._inner);\\n    }\\n\\n   /**\\n    * @dev Returns the value stored at position `index` in the set. O(1).\\n    *\\n    * Note that there are no guarantees on the ordering of values inside the\\n    * array, and it may change when more values are added or removed.\\n    *\\n    * Requirements:\\n    *\\n    * - `index` must be strictly less than {length}.\\n    */\\n    function at(Bytes32Set storage set, uint256 index) internal view returns (bytes32) {\\n        return _at(set._inner, index);\\n    }\\n\\n    // AddressSet\\n\\n    struct AddressSet {\\n        Set _inner;\\n    }\\n\\n    /**\\n     * @dev Add a value to a set. O(1).\\n     *\\n     * Returns true if the value was added to the set, that is if it was not\\n     * already present.\\n     */\\n    function add(AddressSet storage set, address value) internal returns (bool) {\\n        return _add(set._inner, bytes32(uint256(uint160(value))));\\n    }\\n\\n    /**\\n     * @dev Removes a value from a set. O(1).\\n     *\\n     * Returns true if the value was removed from the set, that is if it was\\n     * present.\\n     */\\n    function remove(AddressSet storage set, address value) internal returns (bool) {\\n        return _remove(set._inner, bytes32(uint256(uint160(value))));\\n    }\\n\\n    /**\\n     * @dev Returns true if the value is in the set. O(1).\\n     */\\n    function contains(AddressSet storage set, address value) internal view returns (bool) {\\n        return _contains(set._inner, bytes32(uint256(uint160(value))));\\n    }\\n\\n    /**\\n     * @dev Returns the number of values in the set. O(1).\\n     */\\n    function length(AddressSet storage set) internal view returns (uint256) {\\n        return _length(set._inner);\\n    }\\n\\n   /**\\n    * @dev Returns the value stored at position `index` in the set. O(1).\\n    *\\n    * Note that there are no guarantees on the ordering of values inside the\\n    * array, and it may change when more values are added or removed.\\n    *\\n    * Requirements:\\n    *\\n    * - `index` must be strictly less than {length}.\\n    */\\n    function at(AddressSet storage set, uint256 index) internal view returns (address) {\\n        return address(uint160(uint256(_at(set._inner, index))));\\n    }\\n\\n\\n    // UintSet\\n\\n    struct UintSet {\\n        Set _inner;\\n    }\\n\\n    /**\\n     * @dev Add a value to a set. O(1).\\n     *\\n     * Returns true if the value was added to the set, that is if it was not\\n     * already present.\\n     */\\n    function add(UintSet storage set, uint256 value) internal returns (bool) {\\n        return _add(set._inner, bytes32(value));\\n    }\\n\\n    /**\\n     * @dev Removes a value from a set. O(1).\\n     *\\n     * Returns true if the value was removed from the set, that is if it was\\n     * present.\\n     */\\n    function remove(UintSet storage set, uint256 value) internal returns (bool) {\\n        return _remove(set._inner, bytes32(value));\\n    }\\n\\n    /**\\n     * @dev Returns true if the value is in the set. O(1).\\n     */\\n    function contains(UintSet storage set, uint256 value) internal view returns (bool) {\\n        return _contains(set._inner, bytes32(value));\\n    }\\n\\n    /**\\n     * @dev Returns the number of values on the set. O(1).\\n     */\\n    function length(UintSet storage set) internal view returns (uint256) {\\n        return _length(set._inner);\\n    }\\n\\n   /**\\n    * @dev Returns the value stored at position `index` in the set. O(1).\\n    *\\n    * Note that there are no guarantees on the ordering of values inside the\\n    * array, and it may change when more values are added or removed.\\n    *\\n    * Requirements:\\n    *\\n    * - `index` must be strictly less than {length}.\\n    */\\n    function at(UintSet storage set, uint256 index) internal view returns (uint256) {\\n        return uint256(_at(set._inner, index));\\n    }\\n}\\n\",\"keccak256\":\"0x4878ef6c288f4cef3c2a288d32cc548c648831cc55503ad3d9a581ed3b93aad9\",\"license\":\"MIT\"},\"@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.5.0;\\n\\n/// @title The interface for the Uniswap V3 Factory\\n/// @notice The Uniswap V3 Factory facilitates creation of Uniswap V3 pools and control over the protocol fees\\ninterface IUniswapV3Factory {\\n    /// @notice Emitted when the owner of the factory is changed\\n    /// @param oldOwner The owner before the owner was changed\\n    /// @param newOwner The owner after the owner was changed\\n    event OwnerChanged(address indexed oldOwner, address indexed newOwner);\\n\\n    /// @notice Emitted when a pool is created\\n    /// @param token0 The first token of the pool by address sort order\\n    /// @param token1 The second token of the pool by address sort order\\n    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip\\n    /// @param tickSpacing The minimum number of ticks between initialized ticks\\n    /// @param pool The address of the created pool\\n    event PoolCreated(\\n        address indexed token0,\\n        address indexed token1,\\n        uint24 indexed fee,\\n        int24 tickSpacing,\\n        address pool\\n    );\\n\\n    /// @notice Emitted when a new fee amount is enabled for pool creation via the factory\\n    /// @param fee The enabled fee, denominated in hundredths of a bip\\n    /// @param tickSpacing The minimum number of ticks between initialized ticks for pools created with the given fee\\n    event FeeAmountEnabled(uint24 indexed fee, int24 indexed tickSpacing);\\n\\n    /// @notice Returns the current owner of the factory\\n    /// @dev Can be changed by the current owner via setOwner\\n    /// @return The address of the factory owner\\n    function owner() external view returns (address);\\n\\n    /// @notice Returns the tick spacing for a given fee amount, if enabled, or 0 if not enabled\\n    /// @dev A fee amount can never be removed, so this value should be hard coded or cached in the calling context\\n    /// @param fee The enabled fee, denominated in hundredths of a bip. Returns 0 in case of unenabled fee\\n    /// @return The tick spacing\\n    function feeAmountTickSpacing(uint24 fee) external view returns (int24);\\n\\n    /// @notice Returns the pool address for a given pair of tokens and a fee, or address 0 if it does not exist\\n    /// @dev tokenA and tokenB may be passed in either token0/token1 or token1/token0 order\\n    /// @param tokenA The contract address of either token0 or token1\\n    /// @param tokenB The contract address of the other token\\n    /// @param fee The fee collected upon every swap in the pool, denominated in hundredths of a bip\\n    /// @return pool The pool address\\n    function getPool(\\n        address tokenA,\\n        address tokenB,\\n        uint24 fee\\n    ) external view returns (address pool);\\n\\n    /// @notice Creates a pool for the given two tokens and fee\\n    /// @param tokenA One of the two tokens in the desired pool\\n    /// @param tokenB The other of the two tokens in the desired pool\\n    /// @param fee The desired fee for the pool\\n    /// @dev tokenA and tokenB may be passed in either order: token0/token1 or token1/token0. tickSpacing is retrieved\\n    /// from the fee. The call will revert if the pool already exists, the fee is invalid, or the token arguments\\n    /// are invalid.\\n    /// @return pool The address of the newly created pool\\n    function createPool(\\n        address tokenA,\\n        address tokenB,\\n        uint24 fee\\n    ) external returns (address pool);\\n\\n    /// @notice Updates the owner of the factory\\n    /// @dev Must be called by the current owner\\n    /// @param _owner The new owner of the factory\\n    function setOwner(address _owner) external;\\n\\n    /// @notice Enables a fee amount with the given tickSpacing\\n    /// @dev Fee amounts may never be removed once enabled\\n    /// @param fee The fee amount to enable, denominated in hundredths of a bip (i.e. 1e-6)\\n    /// @param tickSpacing The spacing between ticks to be enforced for all pools created with the given fee amount\\n    function enableFeeAmount(uint24 fee, int24 tickSpacing) external;\\n}\\n\",\"keccak256\":\"0xcc3d0c93fc9ac0febbe09f941b465b57f750bcf3b48432da0b97dc289cfdc489\",\"license\":\"GPL-2.0-or-later\"},\"@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.5.0;\\n\\n/// @title Callback for IUniswapV3PoolActions#swap\\n/// @notice Any contract that calls IUniswapV3PoolActions#swap must implement this interface\\ninterface IUniswapV3SwapCallback {\\n    /// @notice Called to `msg.sender` after executing a swap via IUniswapV3Pool#swap.\\n    /// @dev In the implementation you must pay the pool tokens owed for the swap.\\n    /// The caller of this method must be checked to be a UniswapV3Pool deployed by the canonical UniswapV3Factory.\\n    /// amount0Delta and amount1Delta can both be 0 if no tokens were swapped.\\n    /// @param amount0Delta The amount of token0 that was sent (negative) or must be received (positive) by the pool by\\n    /// the end of the swap. If positive, the callback must send that amount of token0 to the pool.\\n    /// @param amount1Delta The amount of token1 that was sent (negative) or must be received (positive) by the pool by\\n    /// the end of the swap. If positive, the callback must send that amount of token1 to the pool.\\n    /// @param data Any data passed through by the caller via the IUniswapV3PoolActions#swap call\\n    function uniswapV3SwapCallback(\\n        int256 amount0Delta,\\n        int256 amount1Delta,\\n        bytes calldata data\\n    ) external;\\n}\\n\",\"keccak256\":\"0x3f485fb1a44e8fbeadefb5da07d66edab3cfe809f0ac4074b1e54e3eb3c4cf69\",\"license\":\"GPL-2.0-or-later\"},\"@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.5.0;\\n\\n/// @title Immutable state\\n/// @notice Functions that return immutable state of the router\\ninterface IPeripheryImmutableState {\\n    /// @return Returns the address of the Uniswap V3 factory\\n    function factory() external view returns (address);\\n\\n    /// @return Returns the address of WETH9\\n    function WETH9() external view returns (address);\\n}\\n\",\"keccak256\":\"0x7affcfeb5127c0925a71d6a65345e117c33537523aeca7bc98085ead8452519d\",\"license\":\"GPL-2.0-or-later\"},\"@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.7.5;\\npragma abicoder v2;\\n\\n/// @title Quoter Interface\\n/// @notice Supports quoting the calculated amounts from exact input or exact output swaps\\n/// @dev These functions are not marked view because they rely on calling non-view functions and reverting\\n/// to compute the result. They are also not gas efficient and should not be called on-chain.\\ninterface IQuoter {\\n    /// @notice Returns the amount out received for a given exact input swap without executing the swap\\n    /// @param path The path of the swap, i.e. each token pair and the pool fee\\n    /// @param amountIn The amount of the first token to swap\\n    /// @return amountOut The amount of the last token that would be received\\n    function quoteExactInput(bytes memory path, uint256 amountIn) external returns (uint256 amountOut);\\n\\n    /// @notice Returns the amount out received for a given exact input but for a swap of a single pool\\n    /// @param tokenIn The token being swapped in\\n    /// @param tokenOut The token being swapped out\\n    /// @param fee The fee of the token pool to consider for the pair\\n    /// @param amountIn The desired input amount\\n    /// @param sqrtPriceLimitX96 The price limit of the pool that cannot be exceeded by the swap\\n    /// @return amountOut The amount of `tokenOut` that would be received\\n    function quoteExactInputSingle(\\n        address tokenIn,\\n        address tokenOut,\\n        uint24 fee,\\n        uint256 amountIn,\\n        uint160 sqrtPriceLimitX96\\n    ) external returns (uint256 amountOut);\\n\\n    /// @notice Returns the amount in required for a given exact output swap without executing the swap\\n    /// @param path The path of the swap, i.e. each token pair and the pool fee. Path must be provided in reverse order\\n    /// @param amountOut The amount of the last token to receive\\n    /// @return amountIn The amount of first token required to be paid\\n    function quoteExactOutput(bytes memory path, uint256 amountOut) external returns (uint256 amountIn);\\n\\n    /// @notice Returns the amount in required to receive the given exact output amount but for a swap of a single pool\\n    /// @param tokenIn The token being swapped in\\n    /// @param tokenOut The token being swapped out\\n    /// @param fee The fee of the token pool to consider for the pair\\n    /// @param amountOut The desired output amount\\n    /// @param sqrtPriceLimitX96 The price limit of the pool that cannot be exceeded by the swap\\n    /// @return amountIn The amount required as the input for the swap in order to receive `amountOut`\\n    function quoteExactOutputSingle(\\n        address tokenIn,\\n        address tokenOut,\\n        uint24 fee,\\n        uint256 amountOut,\\n        uint160 sqrtPriceLimitX96\\n    ) external returns (uint256 amountIn);\\n}\\n\",\"keccak256\":\"0x124b4334f058f70afd8f3b04315cc0812961d400957225d0875872b2a31afbff\",\"license\":\"GPL-2.0-or-later\"},\"@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.7.5;\\npragma abicoder v2;\\n\\nimport '@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3SwapCallback.sol';\\n\\n/// @title Router token swapping functionality\\n/// @notice Functions for swapping tokens via Uniswap V3\\ninterface ISwapRouter is IUniswapV3SwapCallback {\\n    struct ExactInputSingleParams {\\n        address tokenIn;\\n        address tokenOut;\\n        uint24 fee;\\n        address recipient;\\n        uint256 deadline;\\n        uint256 amountIn;\\n        uint256 amountOutMinimum;\\n        uint160 sqrtPriceLimitX96;\\n    }\\n\\n    /// @notice Swaps `amountIn` of one token for as much as possible of another token\\n    /// @param params The parameters necessary for the swap, encoded as `ExactInputSingleParams` in calldata\\n    /// @return amountOut The amount of the received token\\n    function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);\\n\\n    struct ExactInputParams {\\n        bytes path;\\n        address recipient;\\n        uint256 deadline;\\n        uint256 amountIn;\\n        uint256 amountOutMinimum;\\n    }\\n\\n    /// @notice Swaps `amountIn` of one token for as much as possible of another along the specified path\\n    /// @param params The parameters necessary for the multi-hop swap, encoded as `ExactInputParams` in calldata\\n    /// @return amountOut The amount of the received token\\n    function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);\\n\\n    struct ExactOutputSingleParams {\\n        address tokenIn;\\n        address tokenOut;\\n        uint24 fee;\\n        address recipient;\\n        uint256 deadline;\\n        uint256 amountOut;\\n        uint256 amountInMaximum;\\n        uint160 sqrtPriceLimitX96;\\n    }\\n\\n    /// @notice Swaps as little as possible of one token for `amountOut` of another token\\n    /// @param params The parameters necessary for the swap, encoded as `ExactOutputSingleParams` in calldata\\n    /// @return amountIn The amount of the input token\\n    function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn);\\n\\n    struct ExactOutputParams {\\n        bytes path;\\n        address recipient;\\n        uint256 deadline;\\n        uint256 amountOut;\\n        uint256 amountInMaximum;\\n    }\\n\\n    /// @notice Swaps as little as possible of one token for `amountOut` of another along the specified path (reversed)\\n    /// @param params The parameters necessary for the multi-hop swap, encoded as `ExactOutputParams` in calldata\\n    /// @return amountIn The amount of the input token\\n    function exactOutput(ExactOutputParams calldata params) external payable returns (uint256 amountIn);\\n}\\n\",\"keccak256\":\"0x9bfaf1feb32814623e627ab70f2409760b15d95f1f9b058e2b3399a8bb732975\",\"license\":\"GPL-2.0-or-later\"},\"@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.6.0;\\n\\nimport '@openzeppelin/contracts/token/ERC20/IERC20.sol';\\n\\nlibrary TransferHelper {\\n    /// @notice Transfers tokens from the targeted address to the given destination\\n    /// @notice Errors with 'STF' if transfer fails\\n    /// @param token The contract address of the token to be transferred\\n    /// @param from The originating address from which the tokens will be transferred\\n    /// @param to The destination address of the transfer\\n    /// @param value The amount to be transferred\\n    function safeTransferFrom(\\n        address token,\\n        address from,\\n        address to,\\n        uint256 value\\n    ) internal {\\n        (bool success, bytes memory data) =\\n            token.call(abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, value));\\n        require(success && (data.length == 0 || abi.decode(data, (bool))), 'STF');\\n    }\\n\\n    /// @notice Transfers tokens from msg.sender to a recipient\\n    /// @dev Errors with ST if transfer fails\\n    /// @param token The contract address of the token which will be transferred\\n    /// @param to The recipient of the transfer\\n    /// @param value The value of the transfer\\n    function safeTransfer(\\n        address token,\\n        address to,\\n        uint256 value\\n    ) internal {\\n        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.transfer.selector, to, value));\\n        require(success && (data.length == 0 || abi.decode(data, (bool))), 'ST');\\n    }\\n\\n    /// @notice Approves the stipulated contract to spend the given allowance in the given token\\n    /// @dev Errors with 'SA' if transfer fails\\n    /// @param token The contract address of the token to be approved\\n    /// @param to The target of the approval\\n    /// @param value The amount of the given token the target will be allowed to spend\\n    function safeApprove(\\n        address token,\\n        address to,\\n        uint256 value\\n    ) internal {\\n        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(IERC20.approve.selector, to, value));\\n        require(success && (data.length == 0 || abi.decode(data, (bool))), 'SA');\\n    }\\n\\n    /// @notice Transfers ETH to the recipient address\\n    /// @dev Fails with `STE`\\n    /// @param to The destination of the transfer\\n    /// @param value The value to be transferred\\n    function safeTransferETH(address to, uint256 value) internal {\\n        (bool success, ) = to.call{value: value}(new bytes(0));\\n        require(success, 'STE');\\n    }\\n}\\n\",\"keccak256\":\"0x9af98b0908c96320ca6d08b22f0efca864742f6adbe5794cafe2d1d2e808b0cd\",\"license\":\"GPL-2.0-or-later\"},\"contracts/DCASwapper/DCASwapper.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\npragma solidity 0.8.4;\\n\\nimport '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';\\nimport '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';\\nimport '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';\\nimport '../utils/Governable.sol';\\nimport '../interfaces/IDCASwapper.sol';\\nimport '../interfaces/IDCAPairSwapCallee.sol';\\nimport '../libraries/CommonErrors.sol';\\n\\ncontract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {\\n  using EnumerableSet for EnumerableSet.AddressSet;\\n\\n  // solhint-disable-next-line var-name-mixedcase\\n  uint24[] private _FEE_TIERS = [500, 3000, 10000];\\n  IDCAFactory public immutable override factory;\\n  ISwapRouter public immutable override swapRouter;\\n  ICustomQuoter public immutable override quoter;\\n  EnumerableSet.AddressSet internal _watchedPairs;\\n\\n  constructor(\\n    address _governor,\\n    IDCAFactory _factory,\\n    ISwapRouter _swapRouter,\\n    ICustomQuoter _quoter\\n  ) Governable(_governor) {\\n    if (address(_factory) == address(0) || address(_swapRouter) == address(0) || address(_quoter) == address(0))\\n      revert CommonErrors.ZeroAddress();\\n    factory = _factory;\\n    swapRouter = _swapRouter;\\n    quoter = _quoter;\\n  }\\n\\n  function startWatchingPairs(address[] calldata _pairs) external override onlyGovernor {\\n    for (uint256 i; i < _pairs.length; i++) {\\n      if (!factory.isPair(_pairs[i])) revert InvalidPairAddress();\\n      _watchedPairs.add(_pairs[i]);\\n    }\\n    emit WatchingNewPairs(_pairs);\\n  }\\n\\n  function stopWatchingPairs(address[] calldata _pairs) external override onlyGovernor {\\n    for (uint256 i; i < _pairs.length; i++) {\\n      _watchedPairs.remove(_pairs[i]);\\n    }\\n    emit StoppedWatchingPairs(_pairs);\\n  }\\n\\n  function watchedPairs() external view override returns (address[] memory _pairs) {\\n    uint256 _length = _watchedPairs.length();\\n    _pairs = new address[](_length);\\n    for (uint256 i; i < _length; i++) {\\n      _pairs[i] = _watchedPairs.at(i);\\n    }\\n  }\\n\\n  /**\\n   * This method isn't a view and it is extremelly expensive and inefficient.\\n   * DO NOT call this method on-chain, it is for off-chain purposes only.\\n   */\\n  function getPairsToSwap() external override returns (PairToSwap[] memory _pairs) {\\n    uint256 _count;\\n\\n    // Count how many pairs can be swapped\\n    uint256 _length = _watchedPairs.length();\\n    for (uint256 i; i < _length; i++) {\\n      if (_bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {\\n        _count++;\\n      }\\n    }\\n\\n    // Create result array with correct size\\n    _pairs = new PairToSwap[](_count);\\n\\n    // Fill result array\\n    for (uint256 i; i < _length; i++) {\\n      IDCAPair _pair = IDCAPair(_watchedPairs.at(i));\\n      uint24 _feeTier = _bestFeeTierForSwap(_pair);\\n      if (_feeTier > 0) {\\n        _pairs[--_count] = PairToSwap({pair: _pair, bestFeeTier: _feeTier});\\n      }\\n    }\\n  }\\n\\n  function swapPairs(PairToSwap[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {\\n    if (_pairsToSwap.length == 0) revert ZeroPairsToSwap();\\n\\n    uint256 _maxGasSpent;\\n\\n    do {\\n      uint256 _gasLeftStart = gasleft();\\n      _swap(_pairsToSwap[_amountSwapped++]);\\n      uint256 _gasSpent = _gasLeftStart - gasleft();\\n\\n      // Update max gas spent if necessary\\n      if (_gasSpent > _maxGasSpent) {\\n        _maxGasSpent = _gasSpent;\\n      }\\n\\n      // We will continue to execute swaps if there are more swaps to execute, and (gas left) >= 1.5 * (max gas spent on a swap)\\n    } while (_amountSwapped < _pairsToSwap.length && gasleft() >= (_maxGasSpent * 3) / 2);\\n\\n    emit Swapped(_pairsToSwap, _amountSwapped);\\n  }\\n\\n  function die(address _to) external override onlyGovernor {\\n    selfdestruct(payable(_to));\\n  }\\n\\n  /**\\n   * This method isn't a view because the Uniswap quoter doesn't support view quotes.\\n   * Therefore, we highly recommend that this method is not called on-chain.\\n   * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap\\n   */\\n  function _bestFeeTierForSwap(IDCAPair _pair) internal virtual returns (uint24 _feeTier) {\\n    IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();\\n    if (_nextSwapInformation.amountOfSwaps == 0) {\\n      return 0;\\n    } else if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {\\n      return type(uint24).max;\\n    } else {\\n      uint256 _minNecessary = type(uint256).max;\\n      for (uint256 i; i < _FEE_TIERS.length; i++) {\\n        address _factory = quoter.factory();\\n        address _pool = IUniswapV3Factory(_factory).getPool(\\n          address(_nextSwapInformation.tokenToRewardSwapperWith),\\n          address(_nextSwapInformation.tokenToBeProvidedBySwapper),\\n          _FEE_TIERS[i]\\n        );\\n        if (_pool != address(0)) {\\n          uint256 _inputNecessary = quoter.quoteExactOutputSingle(\\n            address(_nextSwapInformation.tokenToRewardSwapperWith),\\n            address(_nextSwapInformation.tokenToBeProvidedBySwapper),\\n            _FEE_TIERS[i],\\n            _nextSwapInformation.amountToBeProvidedBySwapper,\\n            0\\n          );\\n          if (_nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary && _inputNecessary < _minNecessary) {\\n            _minNecessary = _inputNecessary;\\n            _feeTier = _FEE_TIERS[i];\\n          }\\n        }\\n      }\\n    }\\n  }\\n\\n  function _swap(PairToSwap memory _pair) internal {\\n    // Execute the swap, making myself the callee so that the `DCAPairSwapCall` function is called\\n    _pair.pair.swap(0, 0, address(this), abi.encode(_pair.bestFeeTier));\\n  }\\n\\n  // solhint-disable-next-line func-name-mixedcase\\n  function DCAPairSwapCall(\\n    address,\\n    IERC20Detailed _tokenA,\\n    IERC20Detailed _tokenB,\\n    uint256,\\n    uint256,\\n    bool _isRewardTokenA,\\n    uint256 _rewardAmount,\\n    uint256 _amountToProvide,\\n    bytes calldata _bytes\\n  ) external override {\\n    if (_amountToProvide > 0) {\\n      address _tokenIn = _isRewardTokenA ? address(_tokenA) : address(_tokenB);\\n      address _tokenOut = _isRewardTokenA ? address(_tokenB) : address(_tokenA);\\n\\n      // Approve the router to spend the specifed `rewardAmount` of tokenIn.\\n      TransferHelper.safeApprove(_tokenIn, address(swapRouter), _rewardAmount);\\n\\n      ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({\\n        tokenIn: _tokenIn,\\n        tokenOut: _tokenOut,\\n        fee: abi.decode(_bytes, (uint24)),\\n        recipient: msg.sender, // Send it directly to pair\\n        deadline: block.timestamp, // Needs to happen now\\n        amountOut: _amountToProvide,\\n        amountInMaximum: _rewardAmount,\\n        sqrtPriceLimitX96: 0\\n      });\\n\\n      // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.\\n      uint256 _amountIn = swapRouter.exactOutputSingle(params);\\n\\n      // For exact output swaps, the amountInMaximum may not have all been spent.\\n      // If the actual amount spent (amountIn) is less than the specified maximum amount, we must refund the pair (msg.sender) and approve the swapRouter to spend 0.\\n      if (_amountIn < _rewardAmount) {\\n        TransferHelper.safeApprove(_tokenIn, address(swapRouter), 0);\\n        TransferHelper.safeTransfer(_tokenIn, msg.sender, _rewardAmount - _amountIn);\\n      }\\n    }\\n  }\\n}\\n\",\"keccak256\":\"0xd8368f3cb7352453cb0a656abd2023e2d040d725f97afee7360e510e0a9c8f16\",\"license\":\"BUSL-1.1\"},\"contracts/interfaces/IDCAFactory.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nimport './IDCAGlobalParameters.sol';\\n\\ninterface IDCAFactoryPairsHandler {\\n  error IdenticalTokens();\\n  error PairAlreadyExists();\\n\\n  event PairCreated(address indexed _tokenA, address indexed _tokenB, address _pair);\\n\\n  function globalParameters() external view returns (IDCAGlobalParameters);\\n\\n  function pairByTokens(address _tokenA, address _tokenB) external view returns (address _pair);\\n\\n  function allPairs() external view returns (address[] memory _pairs);\\n\\n  function isPair(address _address) external view returns (bool _isPair);\\n\\n  function createPair(address _tokenA, address _tokenB) external returns (address pair);\\n}\\n\\ninterface IDCAFactory is IDCAFactoryPairsHandler {}\\n\",\"keccak256\":\"0xff9baefe89a31a0dc6c1ce4c9ca2ff40489db52866f7bbae8dfbbad947f76448\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/IDCAGlobalParameters.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nimport './ITimeWeightedOracle.sol';\\nimport './IDCATokenDescriptor.sol';\\n\\ninterface IDCAGlobalParameters {\\n  struct SwapParameters {\\n    address feeRecipient;\\n    bool isPaused;\\n    uint32 swapFee;\\n    ITimeWeightedOracle oracle;\\n  }\\n\\n  struct LoanParameters {\\n    address feeRecipient;\\n    bool isPaused;\\n    uint32 loanFee;\\n  }\\n\\n  event FeeRecipientSet(address _feeRecipient);\\n  event NFTDescriptorSet(IDCATokenDescriptor _descriptor);\\n  event OracleSet(ITimeWeightedOracle _oracle);\\n  event SwapFeeSet(uint32 _feeSet);\\n  event LoanFeeSet(uint32 _feeSet);\\n  event SwapIntervalsAllowed(uint32[] _swapIntervals, string[] _descriptions);\\n  event SwapIntervalsForbidden(uint32[] _swapIntervals);\\n\\n  error HighFee();\\n  error InvalidParams();\\n  error ZeroInterval();\\n  error EmptyDescription();\\n\\n  /* Public getters */\\n  function feeRecipient() external view returns (address);\\n\\n  function swapFee() external view returns (uint32);\\n\\n  function loanFee() external view returns (uint32);\\n\\n  function nftDescriptor() external view returns (IDCATokenDescriptor);\\n\\n  function oracle() external view returns (ITimeWeightedOracle);\\n\\n  // solhint-disable-next-line func-name-mixedcase\\n  function FEE_PRECISION() external view returns (uint24);\\n\\n  // solhint-disable-next-line func-name-mixedcase\\n  function MAX_FEE() external view returns (uint32);\\n\\n  function allowedSwapIntervals() external view returns (uint32[] memory __allowedSwapIntervals);\\n\\n  function intervalDescription(uint32 _swapInterval) external view returns (string memory);\\n\\n  function isSwapIntervalAllowed(uint32 _swapInterval) external view returns (bool);\\n\\n  function paused() external view returns (bool);\\n\\n  function swapParameters() external view returns (SwapParameters memory);\\n\\n  function loanParameters() external view returns (LoanParameters memory);\\n\\n  /* Public setters */\\n  function setFeeRecipient(address _feeRecipient) external;\\n\\n  function setSwapFee(uint32 _fee) external;\\n\\n  function setLoanFee(uint32 _fee) external;\\n\\n  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external;\\n\\n  function setOracle(ITimeWeightedOracle _oracle) external;\\n\\n  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) external;\\n\\n  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external;\\n\\n  function pause() external;\\n\\n  function unpause() external;\\n}\\n\",\"keccak256\":\"0xa42670c088a9691c65ac4e5112705fb9e7a40a4bb1dad49acdf549a6dc10a774\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/IDCAPair.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nimport './IDCAGlobalParameters.sol';\\nimport './IERC20Detailed.sol';\\n\\ninterface IDCAPairParameters {\\n  /* Public getters */\\n  function globalParameters() external view returns (IDCAGlobalParameters);\\n\\n  function tokenA() external view returns (IERC20Detailed);\\n\\n  function tokenB() external view returns (IERC20Detailed);\\n\\n  function swapAmountDelta(\\n    uint32,\\n    address,\\n    uint32\\n  ) external view returns (int256);\\n\\n  function isSwapIntervalActive(uint32) external view returns (bool);\\n\\n  function performedSwaps(uint32) external view returns (uint32);\\n}\\n\\ninterface IDCAPairPositionHandler is IDCAPairParameters {\\n  struct UserPosition {\\n    IERC20Detailed from;\\n    IERC20Detailed to;\\n    uint32 swapInterval;\\n    uint32 swapsExecuted; // Since deposit or last withdraw\\n    uint256 swapped; // Since deposit or last withdraw\\n    uint32 swapsLeft;\\n    uint256 remaining;\\n    uint160 rate;\\n  }\\n\\n  event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);\\n  event Deposited(\\n    address indexed _user,\\n    uint256 _dcaId,\\n    address _fromToken,\\n    uint160 _rate,\\n    uint32 _startingSwap,\\n    uint32 _swapInterval,\\n    uint32 _lastSwap\\n  );\\n  event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);\\n  event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);\\n  event Modified(address indexed _user, uint256 _dcaId, uint160 _rate, uint32 _startingSwap, uint32 _lastSwap);\\n\\n  error InvalidToken();\\n  error InvalidInterval();\\n  error InvalidPosition();\\n  error UnauthorizedCaller();\\n  error ZeroRate();\\n  error ZeroSwaps();\\n  error ZeroAmount();\\n  error PositionCompleted();\\n  error MandatoryWithdraw();\\n\\n  function userPosition(uint256) external view returns (UserPosition memory _position);\\n\\n  function deposit(\\n    address _tokenAddress,\\n    uint160 _rate,\\n    uint32 _amountOfSwaps,\\n    uint32 _swapInterval\\n  ) external returns (uint256 _dcaId);\\n\\n  function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);\\n\\n  function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);\\n\\n  function modifyRate(uint256 _dcaId, uint160 _newRate) external;\\n\\n  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) external;\\n\\n  function modifyRateAndSwaps(\\n    uint256 _dcaId,\\n    uint160 _newRate,\\n    uint32 _newSwaps\\n  ) external;\\n\\n  function addFundsToPosition(\\n    uint256 _dcaId,\\n    uint256 _amount,\\n    uint32 _newSwaps\\n  ) external;\\n\\n  function terminate(uint256 _dcaId) external;\\n}\\n\\ninterface IDCAPairSwapHandler {\\n  struct SwapInformation {\\n    uint32 interval;\\n    uint32 swapToPerform;\\n    uint256 amountToSwapTokenA;\\n    uint256 amountToSwapTokenB;\\n  }\\n\\n  struct NextSwapInformation {\\n    SwapInformation[] swapsToPerform;\\n    uint8 amountOfSwaps;\\n    uint256 availableToBorrowTokenA;\\n    uint256 availableToBorrowTokenB;\\n    uint256 ratePerUnitBToA;\\n    uint256 ratePerUnitAToB;\\n    uint256 platformFeeTokenA;\\n    uint256 platformFeeTokenB;\\n    uint256 amountToBeProvidedBySwapper;\\n    uint256 amountToRewardSwapperWith;\\n    IERC20Detailed tokenToBeProvidedBySwapper;\\n    IERC20Detailed tokenToRewardSwapperWith;\\n  }\\n\\n  event Swapped(\\n    address indexed _sender,\\n    address indexed _to,\\n    uint256 _amountBorrowedTokenA,\\n    uint256 _amountBorrowedTokenB,\\n    uint32 _fee,\\n    NextSwapInformation _nextSwapInformation\\n  );\\n\\n  error NoSwapsToExecute();\\n\\n  function nextSwapAvailable(uint32) external view returns (uint32);\\n\\n  function swapAmountAccumulator(uint32, address) external view returns (uint256);\\n\\n  function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);\\n\\n  function swap() external;\\n\\n  function swap(\\n    uint256 _amountToBorrowTokenA,\\n    uint256 _amountToBorrowTokenB,\\n    address _to,\\n    bytes calldata _data\\n  ) external;\\n\\n  function secondsUntilNextSwap() external view returns (uint32);\\n}\\n\\ninterface IDCAPairLoanHandler {\\n  event Loaned(address indexed _sender, address indexed _to, uint256 _amountBorrowedTokenA, uint256 _amountBorrowedTokenB, uint32 _loanFee);\\n\\n  error ZeroLoan();\\n\\n  function availableToBorrow() external view returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB);\\n\\n  function loan(\\n    uint256 _amountToBorrowTokenA,\\n    uint256 _amountToBorrowTokenB,\\n    address _to,\\n    bytes calldata _data\\n  ) external;\\n}\\n\\ninterface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler, IDCAPairLoanHandler {}\\n\",\"keccak256\":\"0x4c5bf2a9933f41348df17008dc0a2c84b12bd46c158358f23d8b40665ccd96ca\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/IDCAPairSwapCallee.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nimport './IERC20Detailed.sol';\\n\\ninterface IDCAPairSwapCallee {\\n  // solhint-disable-next-line func-name-mixedcase\\n  function DCAPairSwapCall(\\n    address _sender,\\n    IERC20Detailed _tokenA,\\n    IERC20Detailed _tokenB,\\n    uint256 _amountBorrowedTokenA,\\n    uint256 _amountBorrowedTokenB,\\n    bool _isRewardTokenA,\\n    uint256 _rewardAmount,\\n    uint256 _amountToProvide,\\n    bytes calldata _data\\n  ) external;\\n}\\n\",\"keccak256\":\"0xd689f8ea598cd6b9530c69f499db1f8b1233801866dad025267d61b1ae19592f\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/IDCASwapper.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nimport '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';\\nimport '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';\\nimport '@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol';\\nimport '../interfaces/IDCAFactory.sol';\\n\\ninterface ICustomQuoter is IQuoter, IPeripheryImmutableState {}\\n\\ninterface IDCASwapper {\\n  struct PairToSwap {\\n    IDCAPair pair;\\n    uint24 bestFeeTier;\\n  }\\n\\n  event WatchingNewPairs(address[] _pairs);\\n  event StoppedWatchingPairs(address[] _pairs);\\n  event Swapped(PairToSwap[] _pairsToSwap, uint256 _amountSwapped);\\n\\n  error InvalidPairAddress();\\n  error ZeroPairsToSwap();\\n\\n  /* Public getters */\\n  function watchedPairs() external view returns (address[] memory);\\n\\n  function factory() external view returns (IDCAFactory);\\n\\n  function swapRouter() external view returns (ISwapRouter);\\n\\n  function quoter() external view returns (ICustomQuoter);\\n\\n  /**\\n   * This method isn't a view and it is extremelly expensive and inefficient.\\n   * DO NOT call this method on-chain, it is for off-chain purposes only.\\n   */\\n  function getPairsToSwap() external returns (PairToSwap[] memory _pairs);\\n\\n  /* Public setters */\\n  function startWatchingPairs(address[] calldata) external;\\n\\n  function stopWatchingPairs(address[] calldata) external;\\n\\n  /**\\n   * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped\\n   */\\n  function swapPairs(PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);\\n\\n  function die(address _to) external;\\n}\\n\",\"keccak256\":\"0x30d27d6273273a550e33ed425544664a35ad81e6557bea52384827edbdff1541\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/IDCATokenDescriptor.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nimport './IDCAPair.sol';\\n\\ninterface IDCATokenDescriptor {\\n  function tokenURI(IDCAPairPositionHandler _positionHandler, uint256 _tokenId) external view returns (string memory);\\n}\\n\",\"keccak256\":\"0x02d47009390b1163d86af7b9dd69b31a5ff86d11f3ec3e3cccf6a5ed48013328\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/IERC20Detailed.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nimport '@openzeppelin/contracts/token/ERC20/IERC20.sol';\\n\\ninterface IERC20Detailed is IERC20 {\\n  function decimals() external view returns (uint8);\\n\\n  function name() external view returns (string memory);\\n\\n  function symbol() external view returns (string memory);\\n}\\n\",\"keccak256\":\"0x86fb39cf10020e4372633e2e28b3fc5b78ea9d455e4decc56248b2fc65847517\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/ITimeWeightedOracle.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.5.0;\\n\\nimport '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';\\n\\ninterface ITimeWeightedOracle {\\n  event AddedSupportForPair(address _tokenA, address _tokenB);\\n\\n  /** Returns whether this oracle can support this pair of tokens */\\n  function canSupportPair(address _tokenA, address _tokenB) external view returns (bool);\\n\\n  /** Returns a quote, based on the given tokens and amount */\\n  function quote(\\n    address _tokenIn,\\n    uint128 _amountIn,\\n    address _tokenOut\\n  ) external view returns (uint256 _amountOut);\\n\\n  /**\\n   * Let the oracle take some actions to configure this pair of tokens for future uses.\\n   * Will revert if pair cannot be supported.\\n   */\\n  function addSupportForPair(address _tokenA, address _tokenB) external;\\n}\\n\\ninterface IUniswapV3OracleAggregator is ITimeWeightedOracle {\\n  event AddedFeeTier(uint24 _feeTier);\\n  event PeriodChanged(uint32 _period);\\n\\n  /* Public getters */\\n  function factory() external view returns (IUniswapV3Factory);\\n\\n  function supportedFeeTiers() external view returns (uint24[] memory);\\n\\n  function poolsUsedForPair(address _tokenA, address _tokenB) external view returns (address[] memory);\\n\\n  function period() external view returns (uint16);\\n\\n  // solhint-disable-next-line func-name-mixedcase\\n  function MINIMUM_PERIOD() external view returns (uint16);\\n\\n  // solhint-disable-next-line func-name-mixedcase\\n  function MAXIMUM_PERIOD() external view returns (uint16);\\n\\n  /* Public setters */\\n  function addFeeTier(uint24) external;\\n\\n  function setPeriod(uint16) external;\\n}\\n\",\"keccak256\":\"0xa4d11329f1af41227caf2693d7826428bc917802239c18f29a7d49fd476d25bc\",\"license\":\"GPL-2.0-or-later\"},\"contracts/libraries/CommonErrors.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity 0.8.4;\\n\\nlibrary CommonErrors {\\n  error ZeroAddress();\\n  error Paused();\\n  error InsufficientLiquidity();\\n  error LiquidityNotReturned();\\n}\\n\",\"keccak256\":\"0xdb5b09a418d0e3590014e48c1e4f46b6b6be6b7ac3de4e58351adc4a34197d74\",\"license\":\"GPL-2.0-or-later\"},\"contracts/utils/Governable.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\n\\npragma solidity >=0.7.0;\\n\\ninterface IGovernable {\\n  event PendingGovernorSet(address _pendingGovernor);\\n  event PendingGovernorAccepted();\\n\\n  function setPendingGovernor(address _pendingGovernor) external;\\n\\n  function acceptPendingGovernor() external;\\n\\n  function governor() external view returns (address);\\n\\n  function pendingGovernor() external view returns (address);\\n\\n  function isGovernor(address _account) external view returns (bool _isGovernor);\\n\\n  function isPendingGovernor(address _account) external view returns (bool _isPendingGovernor);\\n}\\n\\nabstract contract Governable is IGovernable {\\n  address private _governor;\\n  address private _pendingGovernor;\\n\\n  constructor(address __governor) {\\n    require(__governor != address(0), 'Governable: zero address');\\n    _governor = __governor;\\n  }\\n\\n  function governor() external view override returns (address) {\\n    return _governor;\\n  }\\n\\n  function pendingGovernor() external view override returns (address) {\\n    return _pendingGovernor;\\n  }\\n\\n  function setPendingGovernor(address __pendingGovernor) external virtual override onlyGovernor {\\n    _setPendingGovernor(__pendingGovernor);\\n  }\\n\\n  function _setPendingGovernor(address __pendingGovernor) internal {\\n    require(__pendingGovernor != address(0), 'Governable: zero address');\\n    _pendingGovernor = __pendingGovernor;\\n    emit PendingGovernorSet(__pendingGovernor);\\n  }\\n\\n  function acceptPendingGovernor() external virtual override onlyPendingGovernor {\\n    _acceptPendingGovernor();\\n  }\\n\\n  function _acceptPendingGovernor() internal {\\n    require(_pendingGovernor != address(0), 'Governable: no pending governor');\\n    _governor = _pendingGovernor;\\n    _pendingGovernor = address(0);\\n    emit PendingGovernorAccepted();\\n  }\\n\\n  function isGovernor(address _account) public view override returns (bool _isGovernor) {\\n    return _account == _governor;\\n  }\\n\\n  function isPendingGovernor(address _account) public view override returns (bool _isPendingGovernor) {\\n    return _account == _pendingGovernor;\\n  }\\n\\n  modifier onlyGovernor {\\n    require(isGovernor(msg.sender), 'Governable: only governor');\\n    _;\\n  }\\n\\n  modifier onlyPendingGovernor {\\n    require(isPendingGovernor(msg.sender), 'Governable: only pending governor');\\n    _;\\n  }\\n}\\n\",\"keccak256\":\"0xae9503328e1d186d19ff86223d99f54fbb6de8633206409b9909c34261fca9f2\",\"license\":\"BUSL-1.1\"}},\"version\":1}",
+  "bytecode": "0x6101406040526101f460e0908152610bb861010052612710610120526200002b90600290600362000145565b503480156200003957600080fd5b50604051620020ab380380620020ab8339810160408190526200005c916200020e565b836001600160a01b038116620000b85760405162461bcd60e51b815260206004820152601860248201527f476f7665726e61626c653a207a65726f20616464726573730000000000000000604482015260640160405180910390fd5b600080546001600160a01b0319166001600160a01b0392831617905583161580620000ea57506001600160a01b038216155b80620000fd57506001600160a01b038116155b156200011c5760405163d92e233d60e01b815260040160405180910390fd5b6001600160601b0319606093841b811660805291831b821660a05290911b1660c052506200028e565b82805482825590600052602060002090600901600a90048101928215620001e55791602002820160005b83821115620001b257835183826101000a81548162ffffff021916908361ffff16021790555092602001926003016020816002010492830192600103026200016f565b8015620001e35782816101000a81549062ffffff0219169055600301602081600201049283019260010302620001b2565b505b50620001f3929150620001f7565b5090565b5b80821115620001f35760008155600101620001f8565b6000806000806080858703121562000224578384fd5b8451620002318162000275565b6020860151909450620002448162000275565b6040860151909350620002578162000275565b60608601519092506200026a8162000275565b939692955090935050565b6001600160a01b03811681146200028b57600080fd5b50565b60805160601c60a05160601c60c05160601c611dba620002f16000396000818161020101528181610ee2015261106f0152600081816101b3015281816105ec015281816106e501526107720152600081816101da01526103c90152611dba6000f3fe608060405234801561001057600080fd5b50600436106101005760003560e01c8063c45a015511610097578063e3056a3411610066578063e3056a3414610268578063e43581b814610279578063f235757f1461029b578063fd080b8c146102ae57600080fd5b8063c45a0155146101d5578063c6bbd5a7146101fc578063c9353cb514610223578063df08aed51461023657600080fd5b80633d33803c116100d35780633d33803c146101655780633e9e35e51461017857806391373dab1461018d578063c31c9c07146101ae57600080fd5b806304830ae7146101055780630c340a24146101235780630fd249101461014857806313f6986d1461015d575b600080fd5b61010d6102c1565b60405161011a9190611a60565b60405180910390f35b6000546001600160a01b03165b6040516001600160a01b03909116815260200161011a565b61015b610156366004611783565b610389565b005b61015b610550565b61015b6101733660046116a3565b6105be565b6101806107bd565b60405161011a9190611b1b565b6101a061019b3660046117f3565b61092e565b60405190815260200161011a565b6101307f000000000000000000000000000000000000000000000000000000000000000081565b6101307f000000000000000000000000000000000000000000000000000000000000000081565b6101307f000000000000000000000000000000000000000000000000000000000000000081565b61015b61023136600461166b565b610a27565b61025861024436600461166b565b6001546001600160a01b0391821691161490565b604051901515815260200161011a565b6001546001600160a01b0316610130565b61025861028736600461166b565b6000546001600160a01b0391821691161490565b61015b6102a936600461166b565b610a5d565b61015b6102bc366004611783565b610a93565b606060006102cf6003610b4d565b90508067ffffffffffffffff8111156102f857634e487b7160e01b600052604160045260246000fd5b604051908082528060200260200182016040528015610321578160200160208202803683370190505b50915060005b818110156103845761033a600382610b5d565b83828151811061035a57634e487b7160e01b600052603260045260246000fd5b6001600160a01b03909216602092830291909101909101528061037c81611d1a565b915050610327565b505090565b6000546001600160a01b031633146103bc5760405162461bcd60e51b81526004016103b390611bc8565b60405180910390fd5b60005b81811015610512577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663e5e31b1384848481811061041657634e487b7160e01b600052603260045260246000fd5b905060200201602081019061042b919061166b565b6040516001600160e01b031960e084901b1681526001600160a01b03909116600482015260240160206040518083038186803b15801561046a57600080fd5b505afa15801561047e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104a29190611851565b6104bf5760405163157a7c9760e11b815260040160405180910390fd5b6104ff8383838181106104e257634e487b7160e01b600052603260045260246000fd5b90506020020160208101906104f7919061166b565b600390610b70565b508061050a81611d1a565b9150506103bf565b507fe9b4f02df663d875b1341e4104eeb7dd675ebfa4d7bbc039f83d6fe3347ab4758282604051610544929190611a12565b60405180910390a15050565b6001546001600160a01b031633146105b45760405162461bcd60e51b815260206004820152602160248201527f476f7665726e61626c653a206f6e6c792070656e64696e6720676f7665726e6f6044820152603960f91b60648201526084016103b3565b6105bc610b85565b565b82156107b1576000856105d157886105d3565b895b90506000866105e2578a6105e4565b895b9050610611827f000000000000000000000000000000000000000000000000000000000000000088610c2d565b60408051610100810182526001600160a01b038085168252831660208201526000918101610641868801886119c4565b62ffffff9081168252336020808401919091524260408085019190915260608085018c905260808086018e9052600060a09687018190528351631b67c43360e31b815288516001600160a01b0390811660048301529589015186166024820152938801519095166044840152908601518316606483015285015160848201529284015160a484015260c084015160c484015260e0840151811660e4840152929350917f0000000000000000000000000000000000000000000000000000000000000000169063db3e21989061010401602060405180830381600087803b15801561072a57600080fd5b505af115801561073e573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061076291906119de565b9050878110156107ac57610798847f00000000000000000000000000000000000000000000000000000000000000006000610c2d565b6107ac84336107a7848c611cbc565b610d2d565b505050505b50505050505050505050565b60606000806107cc6003610b4d565b905060005b818110156108195760006107ee6107e9600384610b5d565b610e26565b62ffffff161115610807578261080381611d1a565b9350505b8061081181611d1a565b9150506107d1565b508167ffffffffffffffff81111561084157634e487b7160e01b600052604160045260246000fd5b60405190808252806020026020018201604052801561088657816020015b604080518082019091526000808252602082015281526020019060019003908161085f5790505b50925060005b818110156109285760006108a1600383610b5d565b905060006108ae82610e26565b905062ffffff81161561091357604080518082019091526001600160a01b038316815262ffffff82166020820152866108e687611d03565b9650868151811061090757634e487b7160e01b600052603260045260246000fd5b60200260200101819052505b5050808061092090611d1a565b91505061088c565b50505090565b60008161094e57604051635088761560e01b815260040160405180910390fd5b60005b60005a905061099f85858561096581611d1a565b965081811061098457634e487b7160e01b600052603260045260246000fd5b90506040020180360381019061099a9190611968565b61120f565b60005a6109ac9083611cbc565b9050828111156109ba578092505b505082821080156109e1575060026109d3826003611c9d565b6109dd9190611c7d565b5a10155b610951577f146495b33789c0d6d20a4163b06f2d9aa062b248e00538d5ae49054bf20b492a848484604051610a1893929190611aad565b60405180910390a15092915050565b6000546001600160a01b03163314610a515760405162461bcd60e51b81526004016103b390611bc8565b806001600160a01b0316ff5b6000546001600160a01b03163314610a875760405162461bcd60e51b81526004016103b390611bc8565b610a90816112a2565b50565b6000546001600160a01b03163314610abd5760405162461bcd60e51b81526004016103b390611bc8565b60005b81811015610b1b57610b08838383818110610aeb57634e487b7160e01b600052603260045260246000fd5b9050602002016020810190610b00919061166b565b60039061134c565b5080610b1381611d1a565b915050610ac0565b507f7128e431a215a0d3757c5985db974624eabad7abd7fb2a005e87502cc0f5047c8282604051610544929190611a12565b6000610b57825490565b92915050565b6000610b698383611361565b9392505050565b6000610b69836001600160a01b0384166113f5565b6001546001600160a01b0316610bdd5760405162461bcd60e51b815260206004820152601f60248201527f476f7665726e61626c653a206e6f2070656e64696e6720676f7665726e6f720060448201526064016103b3565b60018054600080546001600160a01b03199081166001600160a01b0384161782559091169091556040517fdc57ca23c46d823853915ed5a090ca0ee9db5eb6a46f5c58e1c9158de861fd769190a1565b604080516001600160a01b038481166024830152604480830185905283518084039091018152606490920183526020820180516001600160e01b031663095ea7b360e01b1790529151600092839290871691610c8991906119f6565b6000604051808303816000865af19150503d8060008114610cc6576040519150601f19603f3d011682016040523d82523d6000602084013e610ccb565b606091505b5091509150818015610cf5575080511580610cf5575080806020019051810190610cf59190611851565b610d265760405162461bcd60e51b8152602060048201526002602482015261534160f01b60448201526064016103b3565b5050505050565b604080516001600160a01b038481166024830152604480830185905283518084039091018152606490920183526020820180516001600160e01b031663a9059cbb60e01b1790529151600092839290871691610d8991906119f6565b6000604051808303816000865af19150503d8060008114610dc6576040519150601f19603f3d011682016040523d82523d6000602084013e610dcb565b606091505b5091509150818015610df5575080511580610df5575080806020019051810190610df59190611851565b610d265760405162461bcd60e51b815260206004820152600260248201526114d560f21b60448201526064016103b3565b600080826001600160a01b0316632f84cbf56040518163ffffffff1660e01b815260040160006040518083038186803b158015610e6257600080fd5b505afa158015610e76573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f19168201604052610e9e919081019061186d565b9050806020015160ff1660001415610eb95750600092915050565b610100810151610ece575062ffffff92915050565b60001960005b6002548110156112075760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663c45a01556040518163ffffffff1660e01b815260040160206040518083038186803b158015610f3957600080fd5b505afa158015610f4d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610f719190611687565b90506000816001600160a01b0316631698ee8286610160015187610140015160028781548110610fb157634e487b7160e01b600052603260045260246000fd5b60009182526020909120600a8083049091015460405160e087901b6001600160e01b03191681526001600160a01b03958616600482015293909416602484015290066003026101000a90910462ffffff16604482015260640160206040518083038186803b15801561102257600080fd5b505afa158015611036573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061105a9190611687565b90506001600160a01b038116156111f25760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166330d07f21876101600151886101400151600288815481106110c957634e487b7160e01b600052603260045260246000fd5b600091825260208220600a808304909101546101008e81015160405160e08a901b6001600160e01b03191681526001600160a01b03988916600482015296909716602487015291909206600302900a900462ffffff1660448301526064820192909252608481019190915260a401602060405180830381600087803b15801561115157600080fd5b505af1158015611165573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061118991906119de565b9050808661012001511015801561119f57508481105b156111f057809450600284815481106111c857634e487b7160e01b600052603260045260246000fd5b90600052602060002090600a91828204019190066003029054906101000a900462ffffff1696505b505b505080806111ff90611d1a565b915050610ed4565b505050919050565b80600001516001600160a01b031663022c0d9f600080308560200151604051602001611246919062ffffff91909116815260200190565b6040516020818303038152906040526040518563ffffffff1660e01b81526004016112749493929190611b78565b600060405180830381600087803b15801561128e57600080fd5b505af1158015610d26573d6000803e3d6000fd5b6001600160a01b0381166112f85760405162461bcd60e51b815260206004820152601860248201527f476f7665726e61626c653a207a65726f2061646472657373000000000000000060448201526064016103b3565b600180546001600160a01b0319166001600160a01b0383169081179091556040519081527f56bddfa0cee9697cebddf9acd7f23dc6583663b05e007b877056d05017994def9060200160405180910390a150565b6000610b69836001600160a01b038416611444565b815460009082106113bf5760405162461bcd60e51b815260206004820152602260248201527f456e756d657261626c655365743a20696e646578206f7574206f6620626f756e604482015261647360f01b60648201526084016103b3565b8260000182815481106113e257634e487b7160e01b600052603260045260246000fd5b9060005260206000200154905092915050565b600081815260018301602052604081205461143c57508154600181810184556000848152602080822090930184905584548482528286019093526040902091909155610b57565b506000610b57565b60008181526001830160205260408120548015611551576000611468600183611cbc565b855490915060009061147c90600190611cbc565b905060008660000182815481106114a357634e487b7160e01b600052603260045260246000fd5b90600052602060002001549050808760000184815481106114d457634e487b7160e01b600052603260045260246000fd5b60009182526020808320909101929092558281526001890190915260409020849055865487908061151557634e487b7160e01b600052603160045260246000fd5b60019003818190600052602060002001600090559055866001016000878152602001908152602001600020600090556001945050505050610b57565b6000915050610b57565b600082601f83011261156b578081fd5b8151602067ffffffffffffffff82111561158757611587611d4b565b611595818360051b01611c4c565b80838252828201915082860187848660071b89010111156115b4578586fd5b855b8581101561161657608080838b0312156115ce578788fd5b6115d6611bff565b6115df84611646565b81526115ec878501611646565b818801526040848101519082015260608085015190820152855293850193909101906001016115b6565b5090979650505050505050565b805161162e81611d61565b919050565b803562ffffff8116811461162e57600080fd5b805163ffffffff8116811461162e57600080fd5b805160ff8116811461162e57600080fd5b60006020828403121561167c578081fd5b8135610b6981611d61565b600060208284031215611698578081fd5b8151610b6981611d61565b6000806000806000806000806000806101208b8d0312156116c2578586fd5b8a356116cd81611d61565b995060208b01356116dd81611d61565b985060408b01356116ed81611d61565b975060608b0135965060808b0135955060a08b013561170b81611d76565b945060c08b0135935060e08b013592506101008b013567ffffffffffffffff80821115611736578384fd5b818d0191508d601f830112611749578384fd5b813581811115611757578485fd5b8e6020828501011115611768578485fd5b6020830194508093505050509295989b9194979a5092959850565b60008060208385031215611795578182fd5b823567ffffffffffffffff808211156117ac578384fd5b818501915085601f8301126117bf578384fd5b8135818111156117cd578485fd5b8660208260051b85010111156117e1578485fd5b60209290920196919550909350505050565b60008060208385031215611805578182fd5b823567ffffffffffffffff8082111561181c578384fd5b818501915085601f83011261182f578384fd5b81358181111561183d578485fd5b8660208260061b85010111156117e1578485fd5b600060208284031215611862578081fd5b8151610b6981611d76565b60006020828403121561187e578081fd5b815167ffffffffffffffff80821115611895578283fd5b9083019061018082860312156118a9578283fd5b6118b1611c28565b8251828111156118bf578485fd5b6118cb8782860161155b565b8252506118da6020840161165a565b602082015260408301516040820152606083015160608201526080830151608082015260a083015160a082015260c083015160c082015260e083015160e082015261010091508183015182820152610120915081830151828201526101409150611945828401611623565b828201526101609150611959828401611623565b91810191909152949350505050565b600060408284031215611979578081fd5b6040516040810181811067ffffffffffffffff8211171561199c5761199c611d4b565b60405282356119aa81611d61565b81526119b860208401611633565b60208201529392505050565b6000602082840312156119d5578081fd5b610b6982611633565b6000602082840312156119ef578081fd5b5051919050565b60008251611a08818460208701611cd3565b9190910192915050565b60208082528181018390526000908460408401835b86811015611a55578235611a3a81611d61565b6001600160a01b031682529183019190830190600101611a27565b509695505050505050565b6020808252825182820181905260009190848201906040850190845b81811015611aa15783516001600160a01b031683529284019291840191600101611a7c565b50909695505050505050565b60408082528181018490526000908560608401835b87811015611b06578235611ad581611d61565b6001600160a01b03168252602062ffffff611af1858301611633565b16908301529183019190830190600101611ac2565b50809350505050826020830152949350505050565b602080825282518282018190526000919060409081850190868401855b82811015611b6b57815180516001600160a01b0316855286015162ffffff16868501529284019290850190600101611b38565b5091979650505050505050565b84815283602082015260018060a01b03831660408201526080606082015260008251806080840152611bb18160a0850160208701611cd3565b601f01601f19169190910160a00195945050505050565b60208082526019908201527f476f7665726e61626c653a206f6e6c7920676f7665726e6f7200000000000000604082015260600190565b6040516080810167ffffffffffffffff81118282101715611c2257611c22611d4b565b60405290565b604051610180810167ffffffffffffffff81118282101715611c2257611c22611d4b565b604051601f8201601f1916810167ffffffffffffffff81118282101715611c7557611c75611d4b565b604052919050565b600082611c9857634e487b7160e01b81526012600452602481fd5b500490565b6000816000190483118215151615611cb757611cb7611d35565b500290565b600082821015611cce57611cce611d35565b500390565b60005b83811015611cee578181015183820152602001611cd6565b83811115611cfd576000848401525b50505050565b600081611d1257611d12611d35565b506000190190565b6000600019821415611d2e57611d2e611d35565b5060010190565b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b0381168114610a9057600080fd5b8015158114610a9057600080fdfea26469706673582212201194be58e9ccfe6edd39d694cc4f6a247b88bf3a7d9a68edb5cbb8c7c4a3437864736f6c63430008040033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101005760003560e01c8063c45a015511610097578063e3056a3411610066578063e3056a3414610268578063e43581b814610279578063f235757f1461029b578063fd080b8c146102ae57600080fd5b8063c45a0155146101d5578063c6bbd5a7146101fc578063c9353cb514610223578063df08aed51461023657600080fd5b80633d33803c116100d35780633d33803c146101655780633e9e35e51461017857806391373dab1461018d578063c31c9c07146101ae57600080fd5b806304830ae7146101055780630c340a24146101235780630fd249101461014857806313f6986d1461015d575b600080fd5b61010d6102c1565b60405161011a9190611a60565b60405180910390f35b6000546001600160a01b03165b6040516001600160a01b03909116815260200161011a565b61015b610156366004611783565b610389565b005b61015b610550565b61015b6101733660046116a3565b6105be565b6101806107bd565b60405161011a9190611b1b565b6101a061019b3660046117f3565b61092e565b60405190815260200161011a565b6101307f000000000000000000000000000000000000000000000000000000000000000081565b6101307f000000000000000000000000000000000000000000000000000000000000000081565b6101307f000000000000000000000000000000000000000000000000000000000000000081565b61015b61023136600461166b565b610a27565b61025861024436600461166b565b6001546001600160a01b0391821691161490565b604051901515815260200161011a565b6001546001600160a01b0316610130565b61025861028736600461166b565b6000546001600160a01b0391821691161490565b61015b6102a936600461166b565b610a5d565b61015b6102bc366004611783565b610a93565b606060006102cf6003610b4d565b90508067ffffffffffffffff8111156102f857634e487b7160e01b600052604160045260246000fd5b604051908082528060200260200182016040528015610321578160200160208202803683370190505b50915060005b818110156103845761033a600382610b5d565b83828151811061035a57634e487b7160e01b600052603260045260246000fd5b6001600160a01b03909216602092830291909101909101528061037c81611d1a565b915050610327565b505090565b6000546001600160a01b031633146103bc5760405162461bcd60e51b81526004016103b390611bc8565b60405180910390fd5b60005b81811015610512577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663e5e31b1384848481811061041657634e487b7160e01b600052603260045260246000fd5b905060200201602081019061042b919061166b565b6040516001600160e01b031960e084901b1681526001600160a01b03909116600482015260240160206040518083038186803b15801561046a57600080fd5b505afa15801561047e573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104a29190611851565b6104bf5760405163157a7c9760e11b815260040160405180910390fd5b6104ff8383838181106104e257634e487b7160e01b600052603260045260246000fd5b90506020020160208101906104f7919061166b565b600390610b70565b508061050a81611d1a565b9150506103bf565b507fe9b4f02df663d875b1341e4104eeb7dd675ebfa4d7bbc039f83d6fe3347ab4758282604051610544929190611a12565b60405180910390a15050565b6001546001600160a01b031633146105b45760405162461bcd60e51b815260206004820152602160248201527f476f7665726e61626c653a206f6e6c792070656e64696e6720676f7665726e6f6044820152603960f91b60648201526084016103b3565b6105bc610b85565b565b82156107b1576000856105d157886105d3565b895b90506000866105e2578a6105e4565b895b9050610611827f000000000000000000000000000000000000000000000000000000000000000088610c2d565b60408051610100810182526001600160a01b038085168252831660208201526000918101610641868801886119c4565b62ffffff9081168252336020808401919091524260408085019190915260608085018c905260808086018e9052600060a09687018190528351631b67c43360e31b815288516001600160a01b0390811660048301529589015186166024820152938801519095166044840152908601518316606483015285015160848201529284015160a484015260c084015160c484015260e0840151811660e4840152929350917f0000000000000000000000000000000000000000000000000000000000000000169063db3e21989061010401602060405180830381600087803b15801561072a57600080fd5b505af115801561073e573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061076291906119de565b9050878110156107ac57610798847f00000000000000000000000000000000000000000000000000000000000000006000610c2d565b6107ac84336107a7848c611cbc565b610d2d565b505050505b50505050505050505050565b60606000806107cc6003610b4d565b905060005b818110156108195760006107ee6107e9600384610b5d565b610e26565b62ffffff161115610807578261080381611d1a565b9350505b8061081181611d1a565b9150506107d1565b508167ffffffffffffffff81111561084157634e487b7160e01b600052604160045260246000fd5b60405190808252806020026020018201604052801561088657816020015b604080518082019091526000808252602082015281526020019060019003908161085f5790505b50925060005b818110156109285760006108a1600383610b5d565b905060006108ae82610e26565b905062ffffff81161561091357604080518082019091526001600160a01b038316815262ffffff82166020820152866108e687611d03565b9650868151811061090757634e487b7160e01b600052603260045260246000fd5b60200260200101819052505b5050808061092090611d1a565b91505061088c565b50505090565b60008161094e57604051635088761560e01b815260040160405180910390fd5b60005b60005a905061099f85858561096581611d1a565b965081811061098457634e487b7160e01b600052603260045260246000fd5b90506040020180360381019061099a9190611968565b61120f565b60005a6109ac9083611cbc565b9050828111156109ba578092505b505082821080156109e1575060026109d3826003611c9d565b6109dd9190611c7d565b5a10155b610951577f146495b33789c0d6d20a4163b06f2d9aa062b248e00538d5ae49054bf20b492a848484604051610a1893929190611aad565b60405180910390a15092915050565b6000546001600160a01b03163314610a515760405162461bcd60e51b81526004016103b390611bc8565b806001600160a01b0316ff5b6000546001600160a01b03163314610a875760405162461bcd60e51b81526004016103b390611bc8565b610a90816112a2565b50565b6000546001600160a01b03163314610abd5760405162461bcd60e51b81526004016103b390611bc8565b60005b81811015610b1b57610b08838383818110610aeb57634e487b7160e01b600052603260045260246000fd5b9050602002016020810190610b00919061166b565b60039061134c565b5080610b1381611d1a565b915050610ac0565b507f7128e431a215a0d3757c5985db974624eabad7abd7fb2a005e87502cc0f5047c8282604051610544929190611a12565b6000610b57825490565b92915050565b6000610b698383611361565b9392505050565b6000610b69836001600160a01b0384166113f5565b6001546001600160a01b0316610bdd5760405162461bcd60e51b815260206004820152601f60248201527f476f7665726e61626c653a206e6f2070656e64696e6720676f7665726e6f720060448201526064016103b3565b60018054600080546001600160a01b03199081166001600160a01b0384161782559091169091556040517fdc57ca23c46d823853915ed5a090ca0ee9db5eb6a46f5c58e1c9158de861fd769190a1565b604080516001600160a01b038481166024830152604480830185905283518084039091018152606490920183526020820180516001600160e01b031663095ea7b360e01b1790529151600092839290871691610c8991906119f6565b6000604051808303816000865af19150503d8060008114610cc6576040519150601f19603f3d011682016040523d82523d6000602084013e610ccb565b606091505b5091509150818015610cf5575080511580610cf5575080806020019051810190610cf59190611851565b610d265760405162461bcd60e51b8152602060048201526002602482015261534160f01b60448201526064016103b3565b5050505050565b604080516001600160a01b038481166024830152604480830185905283518084039091018152606490920183526020820180516001600160e01b031663a9059cbb60e01b1790529151600092839290871691610d8991906119f6565b6000604051808303816000865af19150503d8060008114610dc6576040519150601f19603f3d011682016040523d82523d6000602084013e610dcb565b606091505b5091509150818015610df5575080511580610df5575080806020019051810190610df59190611851565b610d265760405162461bcd60e51b815260206004820152600260248201526114d560f21b60448201526064016103b3565b600080826001600160a01b0316632f84cbf56040518163ffffffff1660e01b815260040160006040518083038186803b158015610e6257600080fd5b505afa158015610e76573d6000803e3d6000fd5b505050506040513d6000823e601f3d908101601f19168201604052610e9e919081019061186d565b9050806020015160ff1660001415610eb95750600092915050565b610100810151610ece575062ffffff92915050565b60001960005b6002548110156112075760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663c45a01556040518163ffffffff1660e01b815260040160206040518083038186803b158015610f3957600080fd5b505afa158015610f4d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610f719190611687565b90506000816001600160a01b0316631698ee8286610160015187610140015160028781548110610fb157634e487b7160e01b600052603260045260246000fd5b60009182526020909120600a8083049091015460405160e087901b6001600160e01b03191681526001600160a01b03958616600482015293909416602484015290066003026101000a90910462ffffff16604482015260640160206040518083038186803b15801561102257600080fd5b505afa158015611036573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061105a9190611687565b90506001600160a01b038116156111f25760007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166330d07f21876101600151886101400151600288815481106110c957634e487b7160e01b600052603260045260246000fd5b600091825260208220600a808304909101546101008e81015160405160e08a901b6001600160e01b03191681526001600160a01b03988916600482015296909716602487015291909206600302900a900462ffffff1660448301526064820192909252608481019190915260a401602060405180830381600087803b15801561115157600080fd5b505af1158015611165573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061118991906119de565b9050808661012001511015801561119f57508481105b156111f057809450600284815481106111c857634e487b7160e01b600052603260045260246000fd5b90600052602060002090600a91828204019190066003029054906101000a900462ffffff1696505b505b505080806111ff90611d1a565b915050610ed4565b505050919050565b80600001516001600160a01b031663022c0d9f600080308560200151604051602001611246919062ffffff91909116815260200190565b6040516020818303038152906040526040518563ffffffff1660e01b81526004016112749493929190611b78565b600060405180830381600087803b15801561128e57600080fd5b505af1158015610d26573d6000803e3d6000fd5b6001600160a01b0381166112f85760405162461bcd60e51b815260206004820152601860248201527f476f7665726e61626c653a207a65726f2061646472657373000000000000000060448201526064016103b3565b600180546001600160a01b0319166001600160a01b0383169081179091556040519081527f56bddfa0cee9697cebddf9acd7f23dc6583663b05e007b877056d05017994def9060200160405180910390a150565b6000610b69836001600160a01b038416611444565b815460009082106113bf5760405162461bcd60e51b815260206004820152602260248201527f456e756d657261626c655365743a20696e646578206f7574206f6620626f756e604482015261647360f01b60648201526084016103b3565b8260000182815481106113e257634e487b7160e01b600052603260045260246000fd5b9060005260206000200154905092915050565b600081815260018301602052604081205461143c57508154600181810184556000848152602080822090930184905584548482528286019093526040902091909155610b57565b506000610b57565b60008181526001830160205260408120548015611551576000611468600183611cbc565b855490915060009061147c90600190611cbc565b905060008660000182815481106114a357634e487b7160e01b600052603260045260246000fd5b90600052602060002001549050808760000184815481106114d457634e487b7160e01b600052603260045260246000fd5b60009182526020808320909101929092558281526001890190915260409020849055865487908061151557634e487b7160e01b600052603160045260246000fd5b60019003818190600052602060002001600090559055866001016000878152602001908152602001600020600090556001945050505050610b57565b6000915050610b57565b600082601f83011261156b578081fd5b8151602067ffffffffffffffff82111561158757611587611d4b565b611595818360051b01611c4c565b80838252828201915082860187848660071b89010111156115b4578586fd5b855b8581101561161657608080838b0312156115ce578788fd5b6115d6611bff565b6115df84611646565b81526115ec878501611646565b818801526040848101519082015260608085015190820152855293850193909101906001016115b6565b5090979650505050505050565b805161162e81611d61565b919050565b803562ffffff8116811461162e57600080fd5b805163ffffffff8116811461162e57600080fd5b805160ff8116811461162e57600080fd5b60006020828403121561167c578081fd5b8135610b6981611d61565b600060208284031215611698578081fd5b8151610b6981611d61565b6000806000806000806000806000806101208b8d0312156116c2578586fd5b8a356116cd81611d61565b995060208b01356116dd81611d61565b985060408b01356116ed81611d61565b975060608b0135965060808b0135955060a08b013561170b81611d76565b945060c08b0135935060e08b013592506101008b013567ffffffffffffffff80821115611736578384fd5b818d0191508d601f830112611749578384fd5b813581811115611757578485fd5b8e6020828501011115611768578485fd5b6020830194508093505050509295989b9194979a5092959850565b60008060208385031215611795578182fd5b823567ffffffffffffffff808211156117ac578384fd5b818501915085601f8301126117bf578384fd5b8135818111156117cd578485fd5b8660208260051b85010111156117e1578485fd5b60209290920196919550909350505050565b60008060208385031215611805578182fd5b823567ffffffffffffffff8082111561181c578384fd5b818501915085601f83011261182f578384fd5b81358181111561183d578485fd5b8660208260061b85010111156117e1578485fd5b600060208284031215611862578081fd5b8151610b6981611d76565b60006020828403121561187e578081fd5b815167ffffffffffffffff80821115611895578283fd5b9083019061018082860312156118a9578283fd5b6118b1611c28565b8251828111156118bf578485fd5b6118cb8782860161155b565b8252506118da6020840161165a565b602082015260408301516040820152606083015160608201526080830151608082015260a083015160a082015260c083015160c082015260e083015160e082015261010091508183015182820152610120915081830151828201526101409150611945828401611623565b828201526101609150611959828401611623565b91810191909152949350505050565b600060408284031215611979578081fd5b6040516040810181811067ffffffffffffffff8211171561199c5761199c611d4b565b60405282356119aa81611d61565b81526119b860208401611633565b60208201529392505050565b6000602082840312156119d5578081fd5b610b6982611633565b6000602082840312156119ef578081fd5b5051919050565b60008251611a08818460208701611cd3565b9190910192915050565b60208082528181018390526000908460408401835b86811015611a55578235611a3a81611d61565b6001600160a01b031682529183019190830190600101611a27565b509695505050505050565b6020808252825182820181905260009190848201906040850190845b81811015611aa15783516001600160a01b031683529284019291840191600101611a7c565b50909695505050505050565b60408082528181018490526000908560608401835b87811015611b06578235611ad581611d61565b6001600160a01b03168252602062ffffff611af1858301611633565b16908301529183019190830190600101611ac2565b50809350505050826020830152949350505050565b602080825282518282018190526000919060409081850190868401855b82811015611b6b57815180516001600160a01b0316855286015162ffffff16868501529284019290850190600101611b38565b5091979650505050505050565b84815283602082015260018060a01b03831660408201526080606082015260008251806080840152611bb18160a0850160208701611cd3565b601f01601f19169190910160a00195945050505050565b60208082526019908201527f476f7665726e61626c653a206f6e6c7920676f7665726e6f7200000000000000604082015260600190565b6040516080810167ffffffffffffffff81118282101715611c2257611c22611d4b565b60405290565b604051610180810167ffffffffffffffff81118282101715611c2257611c22611d4b565b604051601f8201601f1916810167ffffffffffffffff81118282101715611c7557611c75611d4b565b604052919050565b600082611c9857634e487b7160e01b81526012600452602481fd5b500490565b6000816000190483118215151615611cb757611cb7611d35565b500290565b600082821015611cce57611cce611d35565b500390565b60005b83811015611cee578181015183820152602001611cd6565b83811115611cfd576000848401525b50505050565b600081611d1257611d12611d35565b506000190190565b6000600019821415611d2e57611d2e611d35565b5060010190565b634e487b7160e01b600052601160045260246000fd5b634e487b7160e01b600052604160045260246000fd5b6001600160a01b0381168114610a9057600080fd5b8015158114610a9057600080fdfea26469706673582212201194be58e9ccfe6edd39d694cc4f6a247b88bf3a7d9a68edb5cbb8c7c4a3437864736f6c63430008040033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "getPairsToSwap()": {
+        "notice": "This method isn't a view and it is extremelly expensive and inefficient. DO NOT call this method on-chain, it is for off-chain purposes only."
+      },
+      "swapPairs((address,uint24)[])": {
+        "notice": "Takes an array of swaps, and executes as many as possible, returning the amount that was swapped"
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 13730,
+        "contract": "contracts/DCASwapper/DCASwapper.sol:DCASwapper",
+        "label": "_governor",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 13732,
+        "contract": "contracts/DCASwapper/DCASwapper.sol:DCASwapper",
+        "label": "_pendingGovernor",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 8379,
+        "contract": "contracts/DCASwapper/DCASwapper.sol:DCASwapper",
+        "label": "_FEE_TIERS",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_array(t_uint24)dyn_storage"
+      },
+      {
+        "astId": 8394,
+        "contract": "contracts/DCASwapper/DCASwapper.sol:DCASwapper",
+        "label": "_watchedPairs",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_struct(AddressSet)3156_storage"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_bytes32)dyn_storage": {
+        "base": "t_bytes32",
+        "encoding": "dynamic_array",
+        "label": "bytes32[]",
+        "numberOfBytes": "32"
+      },
+      "t_array(t_uint24)dyn_storage": {
+        "base": "t_uint24",
+        "encoding": "dynamic_array",
+        "label": "uint24[]",
+        "numberOfBytes": "32"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_bytes32,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_struct(AddressSet)3156_storage": {
+        "encoding": "inplace",
+        "label": "struct EnumerableSet.AddressSet",
+        "members": [
+          {
+            "astId": 3155,
+            "contract": "contracts/DCASwapper/DCASwapper.sol:DCASwapper",
+            "label": "_inner",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_struct(Set)2881_storage"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_struct(Set)2881_storage": {
+        "encoding": "inplace",
+        "label": "struct EnumerableSet.Set",
+        "members": [
+          {
+            "astId": 2876,
+            "contract": "contracts/DCASwapper/DCASwapper.sol:DCASwapper",
+            "label": "_values",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_array(t_bytes32)dyn_storage"
+          },
+          {
+            "astId": 2880,
+            "contract": "contracts/DCASwapper/DCASwapper.sol:DCASwapper",
+            "label": "_indexes",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_bytes32,t_uint256)"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint24": {
+        "encoding": "inplace",
+        "label": "uint24",
+        "numberOfBytes": "3"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

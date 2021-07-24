@@ -26,6 +26,6 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await hre.deployments.execute('UniswapOracle', { from: governor, gasLimit: 200000 }, 'addFeeTier', FEE_TIER.HIGH);
 };
 
-export default deployFunction;
 deployFunction.tags = ['UniswapOracle'];
 deployFunction.dependencies = ['TokenDescriptor'];
+export default deployFunction;

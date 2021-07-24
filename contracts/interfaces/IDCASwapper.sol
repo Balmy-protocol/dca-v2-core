@@ -2,13 +2,21 @@
 pragma solidity 0.8.4;
 
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol';
 import '../interfaces/IDCAFactory.sol';
 
+interface ICustomQuoter is IQuoter, IPeripheryImmutableState {}
+
 interface IDCASwapper {
+  struct PairToSwap {
+    IDCAPair pair;
+    uint24 bestFeeTier;
+  }
+
   event WatchingNewPairs(address[] _pairs);
   event StoppedWatchingPairs(address[] _pairs);
-  event Swapped(IDCAPair[] _pairsToSwap, uint256 _amountSwapped);
+  event Swapped(PairToSwap[] _pairsToSwap, uint256 _amountSwapped);
 
   error InvalidPairAddress();
   error ZeroPairsToSwap();
@@ -20,13 +28,13 @@ interface IDCASwapper {
 
   function swapRouter() external view returns (ISwapRouter);
 
-  function quoter() external view returns (IQuoterV2);
+  function quoter() external view returns (ICustomQuoter);
 
   /**
    * This method isn't a view and it is extremelly expensive and inefficient.
    * DO NOT call this method on-chain, it is for off-chain purposes only.
    */
-  function getPairsToSwap() external returns (IDCAPair[] memory);
+  function getPairsToSwap() external returns (PairToSwap[] memory _pairs);
 
   /* Public setters */
   function startWatchingPairs(address[] calldata) external;
@@ -36,5 +44,7 @@ interface IDCASwapper {
   /**
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
    */
-  function swapPairs(IDCAPair[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
+  function swapPairs(PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
+
+  function die(address _to) external;
 }

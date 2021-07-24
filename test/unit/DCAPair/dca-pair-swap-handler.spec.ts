@@ -9,7 +9,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { readArgFromEvent } from '../../utils/event-utils';
 import { TokenContract } from '../../utils/erc20';
 
-const APPLY_FEE = (bn: BigNumber) => bn.mul(3).div(1000);
+const CALCULATE_FEE = (bn: BigNumber) => bn.mul(3).div(1000);
+const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
 describe('DCAPairSwapHandler', () => {
   let owner: SignerWithAddress;
@@ -568,10 +569,18 @@ describe('DCAPairSwapHandler', () => {
         });
       });
       then('token a fee is correct', async () => {
-        expect(nextSwapInfo.platformFeeTokenA).to.equal(platformFeeTokenA);
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.platformFeeTokenA,
+          to: platformFeeTokenA,
+          threshold: threshold!,
+        });
       });
       then('token b fee is correct', async () => {
-        expect(nextSwapInfo.platformFeeTokenB).to.equal(platformFeeTokenB);
+        bn.expectToEqualWithThreshold({
+          value: nextSwapInfo.platformFeeTokenB,
+          to: platformFeeTokenB,
+          threshold: threshold!,
+        });
       });
       then('the amount of tokens to be provided by swapper is correct', async () => {
         bn.expectToEqualWithThreshold({
@@ -610,8 +619,8 @@ describe('DCAPairSwapHandler', () => {
         }
       });
       then('fees are no more than expected', () => {
-        const expectedFeesTokenA = APPLY_FEE(totalAmountToSwapOfTokenA as BigNumber);
-        const expectedFeesTokenB = APPLY_FEE(totalAmountToSwapOfTokenB as BigNumber);
+        const expectedFeesTokenA = CALCULATE_FEE(totalAmountToSwapOfTokenA as BigNumber);
+        const expectedFeesTokenB = CALCULATE_FEE(totalAmountToSwapOfTokenB as BigNumber);
 
         let totalFeesTokenA = platformFeeTokenA;
         let totalFeesTokenB = platformFeeTokenB;
@@ -714,6 +723,7 @@ describe('DCAPairSwapHandler', () => {
           amountToSwapOfTokenB: 5,
         },
       ],
+      threshold: 2,
       ratePerUnitBToA: 0.6,
     });
 
@@ -895,7 +905,10 @@ describe('DCAPairSwapHandler', () => {
         }
       });
       then('active swap intervals remain the same', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.eql([SWAP_INTERVAL].concat(addedSwapIntervals ?? []));
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.true;
+        for (const addedSwapInterval of addedSwapIntervals ?? []) {
+          expect(await DCAPairSwapHandler.isSwapIntervalActive(addedSwapInterval)).to.true;
+        }
       });
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
@@ -990,6 +1003,21 @@ describe('DCAPairSwapHandler', () => {
       initialSwapperBalanceTokenB: 1,
       ratePerUnitBToA: 1,
       reason: `Paused`,
+    });
+
+    swapTest({
+      title: 'all balance of one token is being swapped, and the other has no balance',
+      nextSwapContext: [
+        {
+          interval: SWAP_INTERVAL,
+          nextSwapToPerform: 2,
+          amountToSwapOfTokenA: 1,
+          amountToSwapOfTokenB: 0,
+        },
+      ],
+      initialContractTokenABalance: 1,
+      initialContractTokenBBalance: 0,
+      ratePerUnitBToA: 1,
     });
 
     swapTest({
@@ -1131,8 +1159,8 @@ describe('DCAPairSwapHandler', () => {
       then('performed swaps did not increase', async () => {
         expect(await DCAPairSwapHandler.performedSwaps(SWAP_INTERVAL)).to.equal(0);
       });
-      then('swap interval is removed from active list', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.be.empty;
+      then('swap interval is no longer active', async () => {
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.be.false;
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1331,14 +1359,17 @@ describe('DCAPairSwapHandler', () => {
         const to = await readArgFromEvent(tx, 'Swapped', '_to');
         const amountBorrowedTokenA = await readArgFromEvent(tx, 'Swapped', '_amountBorrowedTokenA');
         const amountBorrowedTokenB = await readArgFromEvent(tx, 'Swapped', '_amountBorrowedTokenB');
+        const fee = await readArgFromEvent(tx, 'Swapped', '_fee');
         expect(sender).to.equal(owner.address);
         expect(to).to.equal(DCAPairSwapCallee.address);
         expect(amountBorrowedTokenA).to.equal(availableToBorrowTokenA);
         expect(amountBorrowedTokenB).to.equal(availableToBorrowTokenB);
+        expect(fee).to.equal(3000);
       });
 
       then('active swap intervals remain the same', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.eql([SWAP_INTERVAL]);
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.be.true;
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL_2)).to.be.false;
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1693,7 +1724,7 @@ describe('DCAPairSwapHandler', () => {
           });
         }
       });
-      then('token to reward the swapper (+ fee) is sent to the swapper', async () => {
+      then('token to reward the swapper is sent to the swapper', async () => {
         if (!tokenToRewardSwapperWith) {
           expect(await tokenA.balanceOf(owner.address)).to.equal(initialSwapperTokenABalance);
           expect(await tokenB.balanceOf(owner.address)).to.equal(initialSwapperTokenBBalance);
@@ -1722,7 +1753,7 @@ describe('DCAPairSwapHandler', () => {
             toBN(nextSwapContext[i].amountToSwapOfTokenA, tokenA)
           );
           expect(accumRatesPerUnit).to.not.equal(0);
-          expect(accumRatesPerUnit).to.equal(ratePerUnitAToB);
+          expect(accumRatesPerUnit).to.equal(APPLY_FEE(ratePerUnitAToB as BigNumber));
         }
       });
       then('register swaps from tokenB to tokenA with correct information', async () => {
@@ -1735,7 +1766,7 @@ describe('DCAPairSwapHandler', () => {
           expect(await DCAPairSwapHandler.swapAmountAccumulator(nextSwapContext[i].interval, tokenB.address)).to.equal(
             toBN(nextSwapContext[i].amountToSwapOfTokenB, tokenB)
           );
-          expect(accumRatesPerUnit).to.equal(ratePerUnitBToA);
+          expect(accumRatesPerUnit).to.equal(APPLY_FEE(ratePerUnitBToA as BigNumber));
         }
       });
       then('sends token a fee correctly to fee recipient', async () => {
@@ -1809,14 +1840,19 @@ describe('DCAPairSwapHandler', () => {
         const to = await readArgFromEvent(swapTx, 'Swapped', '_to');
         const amountBorrowedTokenA = await readArgFromEvent(swapTx, 'Swapped', '_amountBorrowedTokenA');
         const amountBorrowedTokenB = await readArgFromEvent(swapTx, 'Swapped', '_amountBorrowedTokenB');
+        const fee = await readArgFromEvent(swapTx, 'Swapped', '_fee');
         expect(sender).to.equal(owner.address);
         expect(to).to.equal(owner.address);
         expect(amountBorrowedTokenA).to.equal(constants.ZERO);
         expect(amountBorrowedTokenB).to.equal(constants.ZERO);
+        expect(fee).to.equal(3000);
       });
 
       then('active swap intervals remain the same', async () => {
-        expect(await DCAPairSwapHandler.activeSwapIntervals()).to.eql([SWAP_INTERVAL].concat(addedSwapIntervals ?? []));
+        expect(await DCAPairSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.true;
+        for (const addedSwapInterval of addedSwapIntervals ?? []) {
+          expect(await DCAPairSwapHandler.isSwapIntervalActive(addedSwapInterval)).to.true;
+        }
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances(threshold as BigNumber);
@@ -1861,25 +1897,27 @@ describe('DCAPairSwapHandler', () => {
       tokenToRewardSwapperWith = () => constants.ZERO_ADDRESS;
       amountToBeProvidedBySwapper = bn.toBN(0);
       amountToRewardSwapperWith = bn.toBN(0);
-      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA);
-      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB);
+      platformFeeTokenA = CALCULATE_FEE(amountToSwapOfTokenA);
+      platformFeeTokenB = CALCULATE_FEE(amountToSwapOfTokenB);
     } else if (amountToSwapBInA.gt(amountToSwapOfTokenA)) {
       tokenToBeProvidedBySwapper = () => tokenA.address;
       tokenToRewardSwapperWith = () => tokenB.address;
-      amountToBeProvidedBySwapper = amountToSwapBInA.sub(amountToSwapOfTokenA);
-      const amountToBeProvidedInB = amountToBeProvidedBySwapper.mul(ratePerUnitAToB).div(tokenA.magnitude);
-      amountToRewardSwapperWith = amountToBeProvidedInB.add(APPLY_FEE(amountToBeProvidedInB));
-      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA);
-      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB.sub(amountToBeProvidedInB));
+      const needed = amountToSwapBInA.sub(amountToSwapOfTokenA);
+      const neededConvertedToB = needed.mul(ratePerUnitAToB).div(tokenA.magnitude);
+      amountToBeProvidedBySwapper = needed.sub(CALCULATE_FEE(needed));
+      amountToRewardSwapperWith = neededConvertedToB;
+      platformFeeTokenA = CALCULATE_FEE(amountToSwapOfTokenA);
+      platformFeeTokenB = CALCULATE_FEE(amountToSwapOfTokenB.sub(neededConvertedToB));
     } else {
       tokenToBeProvidedBySwapper = () => tokenB.address;
       tokenToRewardSwapperWith = () => tokenA.address;
       const amountToSwapAInB = amountToSwapOfTokenA.mul(ratePerUnitAToB).div(tokenA.magnitude);
-      amountToBeProvidedBySwapper = amountToSwapAInB.sub(amountToSwapOfTokenB);
-      const amountToBeProvidedInA = amountToBeProvidedBySwapper.mul(ratePerUnitBToA).div(tokenB.magnitude);
-      amountToRewardSwapperWith = amountToBeProvidedInA.add(APPLY_FEE(amountToBeProvidedInA));
-      platformFeeTokenA = APPLY_FEE(amountToSwapOfTokenA.sub(amountToBeProvidedInA));
-      platformFeeTokenB = APPLY_FEE(amountToSwapOfTokenB);
+      const needed = amountToSwapAInB.sub(amountToSwapOfTokenB);
+      const neededConvertedToA = needed.mul(ratePerUnitBToA).div(tokenB.magnitude);
+      amountToBeProvidedBySwapper = needed.sub(CALCULATE_FEE(needed));
+      amountToRewardSwapperWith = neededConvertedToA;
+      platformFeeTokenA = CALCULATE_FEE(amountToSwapOfTokenA.sub(neededConvertedToA));
+      platformFeeTokenB = CALCULATE_FEE(amountToSwapOfTokenB);
     }
 
     return {

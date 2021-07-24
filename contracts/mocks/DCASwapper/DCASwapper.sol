@@ -8,32 +8,32 @@ import '../../DCASwapper/DCASwapper.sol';
 contract DCASwapperMock is DCASwapper {
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  EnumerableSet.AddressSet internal _pairsToSwap;
+  mapping(address => uint24) internal _pairsToSwap;
   bool private _pairsToSwapSet = false;
 
   constructor(
     address _governor,
     IDCAFactory _factory,
     ISwapRouter _router,
-    IQuoterV2 _quoter
+    ICustomQuoter _quoter
   ) DCASwapper(_governor, _factory, _router, _quoter) {}
 
-  function shouldSwapPair(IDCAPair _pair) external returns (bool _shouldSwap) {
-    _shouldSwap = _shouldSwapPair(_pair);
+  function bestFeeTierForSwap(IDCAPair _pair) external returns (uint24 _feeTier) {
+    _feeTier = _bestFeeTierForSwap(_pair);
   }
 
-  function _shouldSwapPair(IDCAPair _pair) internal override returns (bool _shouldSwap) {
+  function _bestFeeTierForSwap(IDCAPair _pair) internal override returns (uint24 _feeTier) {
     if (_pairsToSwapSet) {
-      _shouldSwap = _pairsToSwap.contains(address(_pair));
+      _feeTier = _pairsToSwap[address(_pair)];
     } else {
-      _shouldSwap = super._shouldSwapPair(_pair);
+      _feeTier = super._bestFeeTierForSwap(_pair);
     }
   }
 
-  function setPairsToSwap(address[] memory _pairs) external {
+  function setPairsToSwap(address[] calldata _pairs, uint24[] calldata _feeTiers) external {
     _pairsToSwapSet = true;
     for (uint256 i; i < _pairs.length; i++) {
-      _pairsToSwap.add(_pairs[i]);
+      _pairsToSwap[_pairs[i]] = _feeTiers[i];
     }
   }
 }

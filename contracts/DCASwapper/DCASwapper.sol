@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
 import '../interfaces/IDCASwapper.sol';
@@ -11,16 +12,18 @@ import '../libraries/CommonErrors.sol';
 contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
   using EnumerableSet for EnumerableSet.AddressSet;
 
+  // solhint-disable-next-line var-name-mixedcase
+  uint24[] private _FEE_TIERS = [500, 3000, 10000];
   IDCAFactory public immutable override factory;
   ISwapRouter public immutable override swapRouter;
-  IQuoterV2 public immutable override quoter;
+  ICustomQuoter public immutable override quoter;
   EnumerableSet.AddressSet internal _watchedPairs;
 
   constructor(
     address _governor,
     IDCAFactory _factory,
     ISwapRouter _swapRouter,
-    IQuoterV2 _quoter
+    ICustomQuoter _quoter
   ) Governable(_governor) {
     if (address(_factory) == address(0) || address(_swapRouter) == address(0) || address(_quoter) == address(0))
       revert CommonErrors.ZeroAddress();
@@ -56,30 +59,31 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
    * This method isn't a view and it is extremelly expensive and inefficient.
    * DO NOT call this method on-chain, it is for off-chain purposes only.
    */
-  function getPairsToSwap() external override returns (IDCAPair[] memory _pairs) {
+  function getPairsToSwap() external override returns (PairToSwap[] memory _pairs) {
     uint256 _count;
 
     // Count how many pairs can be swapped
     uint256 _length = _watchedPairs.length();
     for (uint256 i; i < _length; i++) {
-      if (_shouldSwapPair(IDCAPair(_watchedPairs.at(i)))) {
+      if (_bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
         _count++;
       }
     }
 
     // Create result array with correct size
-    _pairs = new IDCAPair[](_count);
+    _pairs = new PairToSwap[](_count);
 
     // Fill result array
     for (uint256 i; i < _length; i++) {
       IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
-      if (_shouldSwapPair(_pair)) {
-        _pairs[--_count] = _pair;
+      uint24 _feeTier = _bestFeeTierForSwap(_pair);
+      if (_feeTier > 0) {
+        _pairs[--_count] = PairToSwap({pair: _pair, bestFeeTier: _feeTier});
       }
     }
   }
 
-  function swapPairs(IDCAPair[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
+  function swapPairs(PairToSwap[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
     if (_pairsToSwap.length == 0) revert ZeroPairsToSwap();
 
     uint256 _maxGasSpent;
@@ -100,33 +104,53 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     emit Swapped(_pairsToSwap, _amountSwapped);
   }
 
+  function die(address _to) external override onlyGovernor {
+    selfdestruct(payable(_to));
+  }
+
   /**
    * This method isn't a view because the Uniswap quoter doesn't support view quotes.
    * Therefore, we highly recommend that this method is not called on-chain.
+   * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap
    */
-  function _shouldSwapPair(IDCAPair _pair) internal virtual returns (bool _shouldSwap) {
+  function _bestFeeTierForSwap(IDCAPair _pair) internal virtual returns (uint24 _feeTier) {
     IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
     if (_nextSwapInformation.amountOfSwaps == 0) {
-      return false;
+      return 0;
     } else if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
-      return true;
+      return type(uint24).max;
     } else {
-      IQuoterV2.QuoteExactOutputSingleParams memory _params = IQuoterV2.QuoteExactOutputSingleParams({
-        tokenIn: address(_nextSwapInformation.tokenToRewardSwapperWith),
-        tokenOut: address(_nextSwapInformation.tokenToBeProvidedBySwapper),
-        amount: _nextSwapInformation.amountToBeProvidedBySwapper,
-        fee: 3000,
-        sqrtPriceLimitX96: 0
-      });
-
-      (uint256 _inputNecessary, , , ) = quoter.quoteExactOutputSingle(_params);
-      return _nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary;
+      uint256 _minNecessary = 0;
+      for (uint256 i; i < _FEE_TIERS.length; i++) {
+        address _factory = quoter.factory();
+        address _pool = IUniswapV3Factory(_factory).getPool(
+          address(_nextSwapInformation.tokenToRewardSwapperWith),
+          address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+          _FEE_TIERS[i]
+        );
+        if (_pool != address(0)) {
+          try
+            quoter.quoteExactOutputSingle(
+              address(_nextSwapInformation.tokenToRewardSwapperWith),
+              address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+              _FEE_TIERS[i],
+              _nextSwapInformation.amountToBeProvidedBySwapper,
+              0
+            )
+          returns (uint256 _inputNecessary) {
+            if (_nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary && (_minNecessary == 0 || _inputNecessary < _minNecessary)) {
+              _minNecessary = _inputNecessary;
+              _feeTier = _FEE_TIERS[i];
+            }
+          } catch {}
+        }
+      }
     }
   }
 
-  function _swap(IDCAPair _pair) internal {
+  function _swap(PairToSwap memory _pair) internal {
     // Execute the swap, making myself the callee so that the `DCAPairSwapCall` function is called
-    _pair.swap(0, 0, address(this), '-');
+    _pair.pair.swap(0, 0, address(this), abi.encode(_pair.bestFeeTier));
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -139,7 +163,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     bool _isRewardTokenA,
     uint256 _rewardAmount,
     uint256 _amountToProvide,
-    bytes calldata
+    bytes calldata _bytes
   ) external override {
     if (_amountToProvide > 0) {
       address _tokenIn = _isRewardTokenA ? address(_tokenA) : address(_tokenB);
@@ -151,7 +175,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
       ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
         tokenIn: _tokenIn,
         tokenOut: _tokenOut,
-        fee: 3000, // Set to 0.3%
+        fee: abi.decode(_bytes, (uint24)),
         recipient: msg.sender, // Send it directly to pair
         deadline: block.timestamp, // Needs to happen now
         amountOut: _amountToProvide,

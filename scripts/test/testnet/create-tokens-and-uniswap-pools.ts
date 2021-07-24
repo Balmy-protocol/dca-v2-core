@@ -16,12 +16,12 @@ enum FeeAmount {
 
 const AMOUNT_OF_PAIRS = 1;
 const SEBI_TEST_ACCOUNT = '0xD04Fc1C35cd00F799d6831E33978F302FE861789';
+const CHAMO_TEST_ACCOUNT = '0xE100cf9c1d7a96a7790Cb54b86658572C755aB2F';
 
 let randomUser: SignerWithAddress;
 
 async function main() {
   const uniswapFactory = await ethers.getContractAt(FACTORY_ABI, '0x1f98431c8ad98523631ae4a59f267346ea31f984');
-  const dcaFactory = await ethers.getContract('Factory');
   const [deployer, governor] = await ethers.getSigners();
   [, , , randomUser] = await ethers.getSigners();
   console.log('deployer', deployer.address);
@@ -30,25 +30,27 @@ async function main() {
 
   for (let i = 0; i < AMOUNT_OF_PAIRS; i++) {
     const token0 = await erc20.deploy({
-      name: `token0-${i}`,
-      symbol: `T0-${i}`,
-      initialAccount: randomUser.address,
-      initialAmount: utils.parseEther('10000000'),
-    });
-    await token0.mint(governor.address, utils.parseEther('10000000'), { gasLimit: 1000000 });
-    await token0.mint(deployer.address, utils.parseEther('10000000'), { gasLimit: 1000000 });
-    await token0.mint(SEBI_TEST_ACCOUNT, utils.parseEther('10000000'), { gasLimit: 1000000 });
-    console.log('Deployed and minted token0', token0.address);
-    const token1 = await erc20.deploy({
-      name: `token1-${i}`,
-      symbol: `T1-${i}`,
+      name: `Grizz DAI`,
+      symbol: `GDAI`,
       initialAccount: randomUser.address,
       initialAmount: utils.parseEther('100000000'),
     });
-    await token1.mint(governor.address, utils.parseEther('10000000'), { gasLimit: 1000000 });
-    await token1.mint(deployer.address, utils.parseEther('10000000'), { gasLimit: 1000000 });
-    await token1.mint(SEBI_TEST_ACCOUNT, utils.parseEther('10000000'), { gasLimit: 1000000 });
-    console.log('Deployed and minted token1', token1.address);
+    await token0.mint(governor.address, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    await token0.mint(deployer.address, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    await token0.mint(SEBI_TEST_ACCOUNT, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    await token0.mint(CHAMO_TEST_ACCOUNT, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    console.log('Deployed and minted gdai', token0.address);
+    const token1 = await erc20.deploy({
+      name: `Grizz`,
+      symbol: `GRZ`,
+      initialAccount: randomUser.address,
+      initialAmount: utils.parseEther('100000000'),
+    });
+    await token1.mint(governor.address, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    await token1.mint(deployer.address, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    await token1.mint(SEBI_TEST_ACCOUNT, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    await token1.mint(CHAMO_TEST_ACCOUNT, utils.parseEther('100000000'), { gasLimit: 1000000 });
+    console.log('Deployed and minted grz', token1.address);
 
     const poolAddress = await uniswapFactory.callStatic.createPool(token0.address, token1.address, FeeAmount.MEDIUM);
     (await uniswapFactory.createPool(token0.address, token1.address, FeeAmount.MEDIUM)) as TransactionResponse;

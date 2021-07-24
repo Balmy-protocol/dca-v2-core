@@ -5,25 +5,30 @@ import '@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol';
 import '../../interfaces/IERC20Detailed.sol';
 
 contract QuoterMock {
-  uint256 private _amountNecessary;
+  address public immutable factory;
+  mapping(uint24 => uint256) private _amountNecessary;
+  mapping(uint24 => bool) private _reverts;
 
-  function setAmountNecessary(uint256 __amountNecessary) external {
-    _amountNecessary = __amountNecessary;
+  constructor(address _factory) {
+    factory = _factory;
   }
 
-  function quoteExactOutputSingle(IQuoterV2.QuoteExactOutputSingleParams memory)
-    external
-    view
-    returns (
-      uint256 __amountNecessary,
-      uint160 _sqrtPriceX96After,
-      uint32 _initializedTicksCrossed,
-      uint256 _gasEstimate
-    )
-  {
-    __amountNecessary = _amountNecessary;
-    _sqrtPriceX96After = 0;
-    _initializedTicksCrossed = 0;
-    _gasEstimate = 0;
+  function setAmountNecessary(uint24 _feeTier, uint256 __amountNecessary) external {
+    _amountNecessary[_feeTier] = __amountNecessary;
+  }
+
+  function revertOn(uint24 _feeTier) external {
+    _reverts[_feeTier] = true;
+  }
+
+  function quoteExactOutputSingle(
+    address,
+    address,
+    uint24 _feeTier,
+    uint256,
+    uint160
+  ) external view returns (uint256) {
+    require(!_reverts[_feeTier]);
+    return _amountNecessary[_feeTier];
   }
 }

@@ -6,6 +6,7 @@ import { behaviours, constants } from '../../utils';
 import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import erc20, { TokenContract } from '../../utils/erc20';
+import { readArgFromEvent } from '../../utils/event-utils';
 
 describe('DCASwapper', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
@@ -14,8 +15,9 @@ describe('DCASwapper', () => {
   let owner: SignerWithAddress, swapperCaller: SignerWithAddress;
   let DCASwapperContract: ContractFactory, DCAFactoryContract: ContractFactory;
   let UniswapRouterContract: ContractFactory, UniswapQuoterContract: ContractFactory;
+  let UniswapFactoryContract: ContractFactory;
   let DCASwapper: Contract, DCAFactory: Contract;
-  let UniswapRouter: Contract, UniswapQuoter: Contract;
+  let UniswapRouter: Contract, UniswapQuoter: Contract, UniswapFactory: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner, swapperCaller] = await ethers.getSigners();
@@ -23,12 +25,14 @@ describe('DCASwapper', () => {
     DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAFactoryMock.sol:DCAFactoryMock');
     UniswapRouterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/SwapRouterMock.sol:SwapRouterMock');
     UniswapQuoterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/QuoterMock.sol:QuoterMock');
+    UniswapFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/UniswapFactoryMock.sol:UniswapFactoryMock');
   });
 
   beforeEach('Deploy and configure', async () => {
+    UniswapFactory = await UniswapFactoryContract.deploy();
     DCAFactory = await DCAFactoryContract.deploy();
     UniswapRouter = await UniswapRouterContract.deploy();
-    UniswapQuoter = await UniswapQuoterContract.deploy();
+    UniswapQuoter = await UniswapQuoterContract.deploy(UniswapFactory.address);
     DCASwapper = await DCASwapperContract.deploy(owner.address, DCAFactory.address, UniswapRouter.address, UniswapQuoter.address);
   });
 
@@ -207,7 +211,7 @@ describe('DCASwapper', () => {
           true,
           rewardAmount,
           amountToProvide,
-          ethers.utils.randomBytes(5)
+          ethers.utils.defaultAbiCoder.encode(['uint24'], [10000])
         );
       });
 
@@ -215,7 +219,7 @@ describe('DCASwapper', () => {
         const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
         expect(tokenIn).to.equal(tokenA.address);
         expect(tokenOut).to.equal(tokenB.address);
-        expect(fee).to.equal(3000);
+        expect(fee).to.equal(10000);
         expect(recipient).to.equal(swapperCaller.address);
         expect(deadline.gt(0)).to.be.true;
         expect(amountOut).to.equal(amountToProvide);
@@ -248,7 +252,7 @@ describe('DCASwapper', () => {
           true,
           rewardAmount,
           amountToProvide,
-          ethers.utils.randomBytes(5)
+          ethers.utils.defaultAbiCoder.encode(['uint24'], [500])
         );
       });
 
@@ -256,7 +260,7 @@ describe('DCASwapper', () => {
         const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
         expect(tokenIn).to.equal(tokenA.address);
         expect(tokenOut).to.equal(tokenB.address);
-        expect(fee).to.equal(3000);
+        expect(fee).to.equal(500);
         expect(recipient).to.equal(swapperCaller.address);
         expect(deadline.gt(0)).to.be.true;
         expect(amountOut).to.equal(amountToProvide);
@@ -275,7 +279,7 @@ describe('DCASwapper', () => {
       });
     });
   });
-  describe('_shouldSwapPair', () => {
+  describe('_bestFeeTierForSwap', () => {
     const REWARD_AMOUNT = BigNumber.from(1000);
     const AMOUNT_TO_PROVIDE = BigNumber.from(2000);
     let DCAPair: Contract;
@@ -286,28 +290,29 @@ describe('DCASwapper', () => {
     });
 
     when('amount of swaps is zero', () => {
-      let shouldSwap: boolean;
+      let feeTier: number;
 
       given(async () => {
         await DCAPair.setNextSwapInfo(0, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
-        shouldSwap = await DCASwapper.callStatic.shouldSwapPair(DCAPair.address);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, 3000);
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
       });
 
-      then('pair should not be swapped', async () => {
-        expect(shouldSwap).to.be.false;
+      then('returned fee tier is 0', async () => {
+        expect(feeTier).to.equal(0);
       });
     });
 
     when('there are some swaps, but no amount to provide', () => {
-      let shouldSwap: boolean;
+      let feeTier: BigNumber;
 
       given(async () => {
         await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, constants.ZERO, REWARD_AMOUNT);
-        shouldSwap = await DCASwapper.callStatic.shouldSwapPair(DCAPair.address);
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
       });
 
-      then('pair should be swapped', async () => {
-        expect(shouldSwap).to.be.true;
+      then('returned fee tier is max(uint24)', async () => {
+        expect(feeTier).to.equal(BigNumber.from(2).pow(24).sub(1));
       });
     });
 
@@ -344,19 +349,96 @@ describe('DCASwapper', () => {
       shouldBeSwapped: boolean;
     }) {
       when(title, () => {
-        let shouldSwap: boolean;
+        const FEE_TIER = 3000;
+        let returnedFeeTier: number;
 
         given(async () => {
           await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, rewardAmount);
-          await UniswapQuoter.setAmountNecessary(amountNeededByQuoter);
-          shouldSwap = await DCASwapper.callStatic.shouldSwapPair(DCAPair.address);
+          await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER);
+          await UniswapQuoter.setAmountNecessary(FEE_TIER, amountNeededByQuoter);
+          returnedFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
         });
 
-        then('shouldSwapPair returns as expected', async () => {
-          expect(shouldSwap).to.equal(shouldBeSwapped);
+        then('bestFeeTierForSwap returns as expected', async () => {
+          if (shouldBeSwapped) {
+            expect(returnedFeeTier).to.be.equal(FEE_TIER);
+          } else {
+            expect(returnedFeeTier).to.equal(0);
+          }
         });
       });
     }
+    when(`no pools exist for fee tier`, () => {
+      let feeTier: number;
+
+      given(async () => {
+        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+      });
+
+      then('returned fee tier is 0', async () => {
+        expect(feeTier).to.equal(0);
+      });
+    });
+
+    when('many fee tiers are available', () => {
+      const FEE_TIER_1 = 3000;
+      const FEE_TIER_2 = 10000;
+
+      let feeTier: BigNumber;
+      given(async () => {
+        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await UniswapQuoter.setAmountNecessary(FEE_TIER_1, REWARD_AMOUNT.sub(1));
+        await UniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT.sub(2));
+
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+      });
+      then('the one that requires less input is returned', () => {
+        expect(feeTier).to.equal(FEE_TIER_2);
+      });
+    });
+
+    when('quoter reverts with one of the fee tiers', () => {
+      const FEE_TIER_1 = 3000;
+      const FEE_TIER_2 = 10000;
+
+      let feeTier: BigNumber;
+      given(async () => {
+        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await UniswapQuoter.revertOn(FEE_TIER_1);
+        await UniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT);
+
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+      });
+
+      then('another fee is used without any problems', async () => {
+        expect(feeTier).to.equal(FEE_TIER_2);
+      });
+    });
+
+    when('quoter reverts with all fee tiers', () => {
+      const FEE_TIER_1 = 3000;
+      const FEE_TIER_2 = 10000;
+
+      let feeTier: BigNumber;
+      given(async () => {
+        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await UniswapQuoter.revertOn(FEE_TIER_1);
+        await UniswapQuoter.revertOn(FEE_TIER_2);
+
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+      });
+
+      then('returned fee tier is 0', async () => {
+        expect(feeTier).to.equal(0);
+      });
+    });
   });
 
   describe('getPairsToSwap', () => {
@@ -378,7 +460,7 @@ describe('DCASwapper', () => {
     when('pairs being watched should not be swaped', () => {
       given(async () => {
         await DCASwapper.startWatchingPairs([ADDRESS_1, ADDRESS_2]);
-        await DCASwapper.setPairsToSwap([]);
+        await DCASwapper.setPairsToSwap([], []);
       });
 
       then('empty list is returned', async () => {
@@ -390,12 +472,13 @@ describe('DCASwapper', () => {
     when('some of the pairs being watched should be swapped', () => {
       given(async () => {
         await DCASwapper.startWatchingPairs([ADDRESS_1, ADDRESS_2, ADDRESS_3]);
-        await DCASwapper.setPairsToSwap([ADDRESS_1, ADDRESS_3]);
+        await DCASwapper.setPairsToSwap([ADDRESS_1, ADDRESS_3], [3000, 10000]);
       });
 
       then('then they are returned', async () => {
-        const pairsToSwap = await DCASwapper.callStatic.getPairsToSwap();
-        expect(pairsToSwap).to.eql([ADDRESS_3, ADDRESS_1]);
+        const pairsToSwap: { pair: string; bestFeeTier: number }[] = await DCASwapper.callStatic.getPairsToSwap();
+        expect(pairsToSwap.map(({ pair }) => pair)).to.eql([ADDRESS_3, ADDRESS_1]);
+        expect(pairsToSwap.map(({ bestFeeTier }) => bestFeeTier)).to.eql([10000, 3000]);
       });
     });
   });
@@ -406,13 +489,14 @@ describe('DCASwapper', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCASwapper,
           func: 'swapPairs',
-          args: [[]],
+          args: [[], []],
           message: 'ZeroPairsToSwap',
         });
       });
     });
 
     when('gas limit is enough', () => {
+      let pairsToSwap: [string, number][];
       let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
       let tx: TransactionResponse;
 
@@ -422,21 +506,30 @@ describe('DCASwapper', () => {
         DCAPair2 = await DCAPairMockContract.deploy();
         DCAPair3 = await DCAPairMockContract.deploy();
 
-        tx = await DCASwapper.swapPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address]);
+        pairsToSwap = [
+          [DCAPair1.address, 500],
+          [DCAPair2.address, 3000],
+          [DCAPair3.address, 10000],
+        ];
+        tx = await DCASwapper.swapPairs(pairsToSwap);
       });
 
       then('all pairs are swapped', async () => {
-        expect(await DCAPair1.swapped()).to.be.true;
-        expect(await DCAPair2.swapped()).to.be.true;
-        expect(await DCAPair3.swapped()).to.be.true;
+        expect(await DCAPair1.swappedWithFee(500)).to.be.true;
+        expect(await DCAPair2.swappedWithFee(3000)).to.be.true;
+        expect(await DCAPair3.swappedWithFee(10000)).to.be.true;
       });
 
       then('event is emitted', async () => {
-        await expect(tx).to.emit(DCASwapper, 'Swapped').withArgs([DCAPair1.address, DCAPair2.address, DCAPair3.address], 3);
+        const pairs = await readArgFromEvent(tx, 'Swapped', '_pairsToSwap');
+        const amount = await readArgFromEvent(tx, 'Swapped', '_amountSwapped');
+        expect(pairs).to.eql(pairsToSwap);
+        expect(amount).to.equal(3);
       });
     });
 
     when('gas limit is not enough', () => {
+      let pairsToSwap: [string, number][];
       let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
       let tx: TransactionResponse;
 
@@ -449,18 +542,43 @@ describe('DCASwapper', () => {
         await DCAPair1.setGasToConsumeInSwap(100000);
         await DCAPair2.setGasToConsumeInSwap(200000);
 
-        tx = await DCASwapper.swapPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address], { gasLimit: 500000 });
+        pairsToSwap = [
+          [DCAPair1.address, 10000],
+          [DCAPair2.address, 500],
+          [DCAPair3.address, 3000],
+        ];
+        tx = await DCASwapper.swapPairs(pairsToSwap, { gasLimit: 500000 });
       });
 
       then('some pairs are not swapped', async () => {
-        expect(await DCAPair1.swapped()).to.be.true;
-        expect(await DCAPair2.swapped()).to.be.true;
+        expect(await DCAPair1.swappedWithFee(10000)).to.be.true;
+        expect(await DCAPair2.swappedWithFee(500)).to.be.true;
         expect(await DCAPair3.swapped()).to.be.false;
       });
 
       then('event is still emitted', async () => {
-        await expect(tx).to.emit(DCASwapper, 'Swapped').withArgs([DCAPair1.address, DCAPair2.address, DCAPair3.address], 2);
+        const pairs = await readArgFromEvent(tx, 'Swapped', '_pairsToSwap');
+        const amount = await readArgFromEvent(tx, 'Swapped', '_amountSwapped');
+        expect(pairs).to.eql(pairsToSwap);
+        expect(amount).to.equal(2);
       });
+    });
+  });
+  describe('die', () => {
+    when('die is called', () => {
+      given(async () => {
+        await DCASwapper.die(ADDRESS_1);
+      });
+      then('contract self destructs', async () => {
+        const code = await ethers.provider.getCode(DCASwapper.address);
+        expect(code).to.equal('0x');
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCASwapper,
+      funcAndSignature: 'die(address)',
+      params: [ADDRESS_1],
+      governor: () => owner,
     });
   });
 });

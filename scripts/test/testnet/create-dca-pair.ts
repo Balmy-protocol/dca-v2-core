@@ -29,23 +29,26 @@ const fiveMinutes = moment.duration('5', 'minutes').as('seconds');
 const daily = moment.duration('1', 'days').as('seconds');
 
 let randomUser: SignerWithAddress;
+let deployer: SignerWithAddress;
+let governor: SignerWithAddress;
 
 async function main() {
   const uniswapFactory = await ethers.getContractAt(FACTORY_ABI, '0x1f98431c8ad98523631ae4a59f267346ea31f984');
   const dcaFactory = await ethers.getContract('Factory');
-  const [deployer, governor] = await ethers.getSigners();
+  [deployer, governor] = await ethers.getSigners();
   [, , , randomUser] = await ethers.getSigners();
   console.log('deployer', deployer.address);
   console.log('governor', governor.address);
   console.log('random user', randomUser.address);
 
-  const token0 = await ethers.getContractAt('ERC20Mock', '0xa612918c2218024344c94667DEEec4e051554E42');
-  const token1 = await ethers.getContractAt('ERC20Mock', '0x41474b9A1Ec76329300193992e9cF37B1C655217');
+  const token0 = await ethers.getContractAt('ERC20Mock', '0x1295d31a824f1d516Ad624665120e22d38ac2c77');
+  const token1 = await ethers.getContractAt('ERC20Mock', '0x2203b1492a6043BAf776f41F9FEae7F13f357557');
 
-  const pairAddress = await dcaFactory.callStatic.createPair(token0.address, token1.address, { gasLimit: 10000000 });
-  await dcaFactory.createPair(token0.address, token1.address, { gasLimit: 10000000 });
-  console.log('Created DCAPair', pairAddress);
+  // const pairAddress = await dcaFactory.callStatic.createPair(token0.address, token1.address, { gasLimit: 10000000 });
+  // await dcaFactory.createPair(token0.address, token1.address, { gasLimit: 10000000 });
+  // console.log('Created DCAPair', pairAddress);
 
+  const pairAddress = '0x4fae2c865bdb0c58b77cc5a387090cdf0567eebb';
   const pair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', pairAddress);
 
   console.log('Got pair contract');
@@ -75,10 +78,12 @@ async function main() {
 
 const generatePosition = async (pair: Contract, from: Contract, interval: number): Promise<BigNumber> => {
   const rate = utils.parseEther(`${randomFloat(0, 2).toFixed(5)}`);
-  const amountOfSwaps = BigNumber.from(`${randomNumber(20, 1000)}`);
-  await from.connect(randomUser).approve(pair.address, constants.MAX_UINT_256, { gasLimit: 1500000 });
-  // const id = await pair.connect(randomUser).callStatic.deposit(from.address, rate, amountOfSwaps, interval, { gasLimit: 2500000 });
-  await pair.connect(randomUser).deposit(from.address, rate, amountOfSwaps, interval, { gasLimit: 2500000 });
+  const amountOfSwaps = BigNumber.from(`${randomNumber(20, 100)}`);
+  console.log('rate', utils.formatEther(rate));
+  console.log('amount of swaps', amountOfSwaps);
+  await from.connect(deployer).approve(pair.address, constants.MAX_UINT_256);
+  // const id = await pair.connect(deployer).callStatic.deposit(from.address, rate, amountOfSwaps, interval);
+  await pair.connect(deployer).deposit(from.address, rate, amountOfSwaps, interval);
   // return id;
   return BigNumber.from('0');
 };
