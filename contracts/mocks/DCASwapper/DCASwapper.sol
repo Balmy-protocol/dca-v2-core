@@ -8,7 +8,7 @@ import '../../DCASwapper/DCASwapper.sol';
 contract DCASwapperMock is DCASwapper {
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  EnumerableSet.AddressSet internal _pairsToSwap;
+  mapping(address => uint24) internal _pairsToSwap;
   bool private _pairsToSwapSet = false;
 
   constructor(
@@ -24,16 +24,16 @@ contract DCASwapperMock is DCASwapper {
 
   function _bestFeeTierForSwap(IDCAPair _pair) internal override returns (uint24 _feeTier) {
     if (_pairsToSwapSet) {
-      _feeTier = _pairsToSwap.contains(address(_pair)) ? 1 : 0;
+      _feeTier = _pairsToSwap[address(_pair)];
     } else {
       _feeTier = super._bestFeeTierForSwap(_pair);
     }
   }
 
-  function setPairsToSwap(address[] memory _pairs) external {
+  function setPairsToSwap(address[] calldata _pairs, uint24[] calldata _feeTiers) external {
     _pairsToSwapSet = true;
     for (uint256 i; i < _pairs.length; i++) {
-      _pairsToSwap.add(_pairs[i]);
+      _pairsToSwap[_pairs[i]] = _feeTiers[i];
     }
   }
 }

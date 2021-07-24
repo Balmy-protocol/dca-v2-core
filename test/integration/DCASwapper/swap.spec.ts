@@ -1,11 +1,9 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { JsonRpcSigner } from '@ethersproject/providers';
-import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { BigNumber, Contract, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { abi as IERC20_ABI } from '@openzeppelin/contracts/build/contracts/IERC20.json';
 import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
-import { abi as QUOTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json';
 import { getNodeUrl } from '../../../utils/network';
 import { bn, constants, evm, wallet } from '../../utils';
 import { contract, given, then, when } from '../../utils/bdd';
@@ -153,7 +151,9 @@ contract('DCASwapper', () => {
       });
       then('pair can be swapped', async () => {
         const pairs = await DCASwapper.callStatic.getPairsToSwap({ gasPrice: 0 });
-        expect(pairs).to.eql([DCAPair.address]);
+        expect(pairs.length).to.equal(1);
+        expect(pairs[0].pair).to.equal(DCAPair.address);
+        expect(pairs[0].bestFeeTier).to.equal(3000);
       });
       describe('swap', () => {
         given(async () => {
