@@ -17,5 +17,5 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   });
 };
 deployFunction.tags = ['Swapper'];
-deployFunction.dependencies = ['Factory'];
+deployFunction.runAtTheEnd = true;
 export default deployFunction;
