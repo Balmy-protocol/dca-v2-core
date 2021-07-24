@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
 import '../interfaces/IDCASwapper.sol';
@@ -11,16 +12,18 @@ import '../libraries/CommonErrors.sol';
 contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
   using EnumerableSet for EnumerableSet.AddressSet;
 
+  // solhint-disable-next-line var-name-mixedcase
+  uint24[] private _FEE_TIERS = [500, 3000, 10000];
   IDCAFactory public immutable override factory;
   ISwapRouter public immutable override swapRouter;
-  IQuoter public immutable override quoter;
+  ICustomQuoter public immutable override quoter;
   EnumerableSet.AddressSet internal _watchedPairs;
 
   constructor(
     address _governor,
     IDCAFactory _factory,
     ISwapRouter _swapRouter,
-    IQuoter _quoter
+    ICustomQuoter _quoter
   ) Governable(_governor) {
     if (address(_factory) == address(0) || address(_swapRouter) == address(0) || address(_quoter) == address(0))
       revert CommonErrors.ZeroAddress();
@@ -62,7 +65,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     // Count how many pairs can be swapped
     uint256 _length = _watchedPairs.length();
     for (uint256 i; i < _length; i++) {
-      if (_shouldSwapPair(IDCAPair(_watchedPairs.at(i)))) {
+      if (_bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
         _count++;
       }
     }
@@ -73,7 +76,8 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     // Fill result array
     for (uint256 i; i < _length; i++) {
       IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
-      if (_shouldSwapPair(_pair)) {
+      uint24 _feeTier = _bestFeeTierForSwap(_pair);
+      if (_feeTier > 0) {
         _pairs[--_count] = _pair;
       }
     }
@@ -103,22 +107,37 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
   /**
    * This method isn't a view because the Uniswap quoter doesn't support view quotes.
    * Therefore, we highly recommend that this method is not called on-chain.
+   * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap
    */
-  function _shouldSwapPair(IDCAPair _pair) internal virtual returns (bool _shouldSwap) {
+  function _bestFeeTierForSwap(IDCAPair _pair) internal virtual returns (uint24 _feeTier) {
     IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
     if (_nextSwapInformation.amountOfSwaps == 0) {
-      return false;
+      return 0;
     } else if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
-      return true;
+      return type(uint24).max;
     } else {
-      uint256 _inputNecessary = quoter.quoteExactOutputSingle(
-        address(_nextSwapInformation.tokenToRewardSwapperWith),
-        address(_nextSwapInformation.tokenToBeProvidedBySwapper),
-        3000,
-        _nextSwapInformation.amountToBeProvidedBySwapper,
-        0
-      );
-      return _nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary;
+      uint256 _minNecessary = type(uint256).max;
+      for (uint256 i; i < _FEE_TIERS.length; i++) {
+        address _factory = quoter.factory();
+        address _pool = IUniswapV3Factory(_factory).getPool(
+          address(_nextSwapInformation.tokenToRewardSwapperWith),
+          address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+          _FEE_TIERS[i]
+        );
+        if (_pool != address(0)) {
+          uint256 _inputNecessary = quoter.quoteExactOutputSingle(
+            address(_nextSwapInformation.tokenToRewardSwapperWith),
+            address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+            _FEE_TIERS[i],
+            _nextSwapInformation.amountToBeProvidedBySwapper,
+            0
+          );
+          if (_nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary && _inputNecessary < _minNecessary) {
+            _minNecessary = _inputNecessary;
+            _feeTier = _FEE_TIERS[i];
+          }
+        }
+      }
     }
   }
 

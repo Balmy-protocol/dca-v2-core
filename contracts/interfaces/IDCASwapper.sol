@@ -3,7 +3,10 @@ pragma solidity 0.8.4;
 
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol';
 import '../interfaces/IDCAFactory.sol';
+
+interface ICustomQuoter is IQuoter, IPeripheryImmutableState {}
 
 interface IDCASwapper {
   event WatchingNewPairs(address[] _pairs);
@@ -20,7 +23,7 @@ interface IDCASwapper {
 
   function swapRouter() external view returns (ISwapRouter);
 
-  function quoter() external view returns (IQuoter);
+  function quoter() external view returns (ICustomQuoter);
 
   /**
    * This method isn't a view and it is extremelly expensive and inefficient.

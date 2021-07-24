@@ -111,7 +111,9 @@ contract('DCASwapper', () => {
 
     when(`twap doesn't allow for profitable swap`, () => {
       given(async () => {
-        await pushPriceOfWETHDown();
+        await pushPriceOfWETHDown(500);
+        await pushPriceOfWETHDown(3000);
+        await pushPriceOfWETHDown(10000);
       });
       then('get pairs to swap returns empty', async () => {
         const pairs = await DCASwapper.callStatic.getPairsToSwap();
@@ -201,10 +203,10 @@ contract('DCASwapper', () => {
     return currentPrice;
   }
 
-  async function pushPriceOfWETHDown(): Promise<BigNumber> {
+  async function pushPriceOfWETHDown(feeTier: number): Promise<BigNumber> {
     const sellAmount = utils.parseEther('1000');
     const wethDownPriceParams = {
-      path: pack(['address', 'uint24', 'address'], [WETH.address, 3000, USDC.address]),
+      path: pack(['address', 'uint24', 'address'], [WETH.address, feeTier, USDC.address]),
       recipient: wethWhale._address,
       deadline: moment().add('30', 'minutes').unix(),
       amountIn: sellAmount,
@@ -214,14 +216,13 @@ contract('DCASwapper', () => {
     await uniswapSwapRouter.connect(wethWhale).exactInput(wethDownPriceParams, { gasPrice: 0 });
     await evm.advanceBlock();
     const currentPriceParams = {
-      path: pack(['address', 'uint24', 'address'], [WETH.address, 3000, USDC.address]),
+      path: pack(['address', 'uint24', 'address'], [WETH.address, feeTier, USDC.address]),
       recipient: usdcWhale._address,
       deadline: moment().add('30', 'minutes').unix(),
       amountIn: utils.parseEther('1'),
       amountOutMinimum: 0,
     };
     await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, utils.parseEther('1'), { gasPrice: 0 });
-    const currentPrice = await uniswapSwapRouter.connect(wethWhale).callStatic.exactInput(currentPriceParams, { gasPrice: 0 });
-    return currentPrice;
+    return uniswapSwapRouter.connect(wethWhale).callStatic.exactInput(currentPriceParams, { gasPrice: 0 });
   }
 });
