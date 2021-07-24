@@ -45,4 +45,6 @@ interface IDCASwapper {
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
    */
   function swapPairs(PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
+
+  function die(address _to) external;
 }

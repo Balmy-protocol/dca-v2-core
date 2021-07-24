@@ -524,4 +524,21 @@ describe('DCASwapper', () => {
       });
     });
   });
+  describe('die', () => {
+    when('die is called', () => {
+      given(async () => {
+        await DCASwapper.die(ADDRESS_1);
+      });
+      then('contract self destructs', async () => {
+        const code = await ethers.provider.getCode(DCASwapper.address);
+        expect(code).to.equal('0x');
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCASwapper,
+      funcAndSignature: 'die(address)',
+      params: [ADDRESS_1],
+      governor: () => owner,
+    });
+  });
 });
