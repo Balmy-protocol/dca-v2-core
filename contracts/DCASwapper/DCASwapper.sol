@@ -120,7 +120,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     } else if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
       return type(uint24).max;
     } else {
-      uint256 _minNecessary = type(uint256).max;
+      uint256 _minNecessary = 0;
       for (uint256 i; i < _FEE_TIERS.length; i++) {
         address _factory = quoter.factory();
         address _pool = IUniswapV3Factory(_factory).getPool(
@@ -129,17 +129,20 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
           _FEE_TIERS[i]
         );
         if (_pool != address(0)) {
-          uint256 _inputNecessary = quoter.quoteExactOutputSingle(
-            address(_nextSwapInformation.tokenToRewardSwapperWith),
-            address(_nextSwapInformation.tokenToBeProvidedBySwapper),
-            _FEE_TIERS[i],
-            _nextSwapInformation.amountToBeProvidedBySwapper,
-            0
-          );
-          if (_nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary && _inputNecessary < _minNecessary) {
-            _minNecessary = _inputNecessary;
-            _feeTier = _FEE_TIERS[i];
-          }
+          try
+            quoter.quoteExactOutputSingle(
+              address(_nextSwapInformation.tokenToRewardSwapperWith),
+              address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+              _FEE_TIERS[i],
+              _nextSwapInformation.amountToBeProvidedBySwapper,
+              0
+            )
+          returns (uint256 _inputNecessary) {
+            if (_nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary && (_minNecessary == 0 || _inputNecessary < _minNecessary)) {
+              _minNecessary = _inputNecessary;
+              _feeTier = _FEE_TIERS[i];
+            }
+          } catch {}
         }
       }
     }
