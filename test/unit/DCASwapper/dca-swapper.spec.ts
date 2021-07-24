@@ -399,6 +399,46 @@ describe('DCASwapper', () => {
         expect(feeTier).to.equal(FEE_TIER_2);
       });
     });
+
+    when('quoter reverts with one of the fee tiers', () => {
+      const FEE_TIER_1 = 3000;
+      const FEE_TIER_2 = 10000;
+
+      let feeTier: BigNumber;
+      given(async () => {
+        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await UniswapQuoter.revertOn(FEE_TIER_1);
+        await UniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT);
+
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+      });
+
+      then('another fee is used without any problems', async () => {
+        expect(feeTier).to.equal(FEE_TIER_2);
+      });
+    });
+
+    when('quoter reverts with all fee tiers', () => {
+      const FEE_TIER_1 = 3000;
+      const FEE_TIER_2 = 10000;
+
+      let feeTier: BigNumber;
+      given(async () => {
+        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await UniswapQuoter.revertOn(FEE_TIER_1);
+        await UniswapQuoter.revertOn(FEE_TIER_2);
+
+        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+      });
+
+      then('returned fee tier is 0', async () => {
+        expect(feeTier).to.equal(0);
+      });
+    });
   });
 
   describe('getPairsToSwap', () => {
