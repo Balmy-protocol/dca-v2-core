@@ -279,7 +279,7 @@ describe('DCASwapper', () => {
       });
     });
   });
-  describe('_bestFeeTierForSwap', () => {
+  describe('bestFeeTierForSwap', () => {
     const REWARD_AMOUNT = BigNumber.from(1000);
     const AMOUNT_TO_PROVIDE = BigNumber.from(2000);
     let DCAPair: Contract;

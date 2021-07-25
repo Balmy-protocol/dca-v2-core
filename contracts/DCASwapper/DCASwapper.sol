@@ -65,7 +65,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     // Count how many pairs can be swapped
     uint256 _length = _watchedPairs.length();
     for (uint256 i; i < _length; i++) {
-      if (_bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
+      if (bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
         _count++;
       }
     }
@@ -76,7 +76,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     // Fill result array
     for (uint256 i; i < _length; i++) {
       IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
-      uint24 _feeTier = _bestFeeTierForSwap(_pair);
+      uint24 _feeTier = bestFeeTierForSwap(_pair);
       if (_feeTier > 0) {
         _pairs[--_count] = PairToSwap({pair: _pair, bestFeeTier: _feeTier});
       }
@@ -113,7 +113,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
    * Therefore, we highly recommend that this method is not called on-chain.
    * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap
    */
-  function _bestFeeTierForSwap(IDCAPair _pair) internal virtual returns (uint24 _feeTier) {
+  function bestFeeTierForSwap(IDCAPair _pair) public virtual override returns (uint24 _feeTier) {
     IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
     if (_nextSwapInformation.amountOfSwaps == 0) {
       return 0;

@@ -36,6 +36,13 @@ interface IDCASwapper {
    */
   function getPairsToSwap() external returns (PairToSwap[] memory _pairs);
 
+  /**
+   * This method isn't a view and it is extremelly expensive and inefficient.
+   * DO NOT call this method on-chain, it is for off-chain purposes only.
+   * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap
+   */
+  function bestFeeTierForSwap(IDCAPair _pair) external returns (uint24 _feeTier);
+
   /* Public setters */
   function startWatchingPairs(address[] calldata) external;
 
