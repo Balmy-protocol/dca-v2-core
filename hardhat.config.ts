@@ -28,7 +28,7 @@ const networks: NetworksUserConfig = process.env.TEST
       localhost: {
         url: getNodeUrl('localhost'),
         live: false,
-        accounts: accounts('localhost'),
+        // accounts: accounts('localhost'),
         tags: ['local'],
       },
       kovan: {
