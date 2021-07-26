@@ -15,7 +15,7 @@ enum FeeAmount {
 }
 
 const AMOUNT_OF_PAIRS = 1;
-const SEBI_TEST_ACCOUNT = '0xD04Fc1C35cd00F799d6831E33978F302FE861789';
+const SEBI_TEST_ACCOUNT = '0x376cE4664dfc2e56caF8617AC5717DC952cD3001';
 
 const randomNumber = (min: number, max: number): number => {
   return Math.floor(Math.random() * (max - min + 1)) + min;

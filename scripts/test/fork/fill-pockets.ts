@@ -2,7 +2,7 @@ import { utils } from 'ethers';
 import { ethers, getNamedAccounts } from 'hardhat';
 import wallet from '../../../test/utils/wallet';
 
-const SEBI_TEST_ACCOUNT = '0xD04Fc1C35cd00F799d6831E33978F302FE861789';
+const SEBI_TEST_ACCOUNT = '0x376cE4664dfc2e56caF8617AC5717DC952cD3001';
 const CHAMO_TEST_ACCOUNT = '0xE100cf9c1d7a96a7790Cb54b86658572C755aB2F';
 
 const WBTC = '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599';

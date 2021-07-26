@@ -15,7 +15,7 @@ enum FeeAmount {
 }
 
 const AMOUNT_OF_PAIRS = 1;
-const SEBI_TEST_ACCOUNT = '0xD04Fc1C35cd00F799d6831E33978F302FE861789';
+const SEBI_TEST_ACCOUNT = '0x376cE4664dfc2e56caF8617AC5717DC952cD3001';
 const CHAMO_TEST_ACCOUNT = '0xE100cf9c1d7a96a7790Cb54b86658572C755aB2F';
 
 let randomUser: SignerWithAddress;
@@ -30,8 +30,8 @@ async function main() {
 
   for (let i = 0; i < AMOUNT_OF_PAIRS; i++) {
     const token0 = await erc20.deploy({
-      name: `Grizz DAI`,
-      symbol: `GDAI`,
+      name: `Grizz DAI2`,
+      symbol: `GDAI2`,
       initialAccount: randomUser.address,
       initialAmount: utils.parseEther('100000000'),
     });
@@ -41,8 +41,8 @@ async function main() {
     await token0.mint(CHAMO_TEST_ACCOUNT, utils.parseEther('100000000'), { gasLimit: 1000000 });
     console.log('Deployed and minted gdai', token0.address);
     const token1 = await erc20.deploy({
-      name: `Grizz`,
-      symbol: `GRZ`,
+      name: `Grizz2`,
+      symbol: `GRZ2`,
       initialAccount: randomUser.address,
       initialAmount: utils.parseEther('100000000'),
     });
