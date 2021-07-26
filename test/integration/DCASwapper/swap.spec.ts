@@ -96,14 +96,23 @@ contract('DCASwapper', () => {
         usdcNeeded = await oracle.quote(WETH.address, RATE, USDC.address);
         await USDC.connect(alice).approve(DCAPair.address, usdcNeeded);
         await DCAPair.connect(alice).deposit(USDC.address, usdcNeeded, 1, INTERVAL);
-        await DCASwapper.swapPairs([[DCAPair.address, 3000]]);
       });
-      then('swap is executed', async () => {
-        expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
+      then('bestFeeTier returns max(uint24)', async () => {
+        const bestFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+
+        expect(bestFeeTier).to.equal(BigNumber.from(2).pow(24).sub(1));
       });
-      then('fee is sent', async () => {
-        expect(await USDC.balanceOf(feeRecipient)).to.equal(CALCULATE_FEE(usdcNeeded));
-        expect(await WETH.balanceOf(feeRecipient)).to.equal(CALCULATE_FEE(RATE));
+      describe('swap', () => {
+        given(async () => {
+          await DCASwapper.swapPairs([[DCAPair.address, 3000]]);
+        });
+        then('swap is executed', async () => {
+          expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
+        });
+        then('fee is sent', async () => {
+          expect(await USDC.balanceOf(feeRecipient)).to.equal(CALCULATE_FEE(usdcNeeded));
+          expect(await WETH.balanceOf(feeRecipient)).to.equal(CALCULATE_FEE(RATE));
+        });
       });
     });
 
@@ -113,10 +122,10 @@ contract('DCASwapper', () => {
         await pushPriceOfWETHDown(3000);
         await pushPriceOfWETHDown(10000);
       });
-      then('get pairs to swap returns empty', async () => {
-        const pairs = await DCASwapper.callStatic.getPairsToSwap();
+      then('bestFeeTier returns 0', async () => {
+        const bestFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
 
-        expect(pairs).to.be.empty;
+        expect(bestFeeTier).to.equal(0);
       });
       then('swap gets reverted', async () => {
         const swapPairsTx = DCASwapper.connect(governor).swapPairs([[DCAPair.address, 3000]], { gasPrice: 0 });
@@ -149,11 +158,9 @@ contract('DCASwapper', () => {
           { gasPrice: 0 }
         );
       });
-      then('pair can be swapped', async () => {
-        const pairs = await DCASwapper.callStatic.getPairsToSwap({ gasPrice: 0 });
-        expect(pairs.length).to.equal(1);
-        expect(pairs[0].pair).to.equal(DCAPair.address);
-        expect(pairs[0].bestFeeTier).to.equal(3000);
+      then('best fee tier is 3000', async () => {
+        const bestFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+        expect(bestFeeTier).to.equal(3000);
       });
       describe('swap', () => {
         given(async () => {

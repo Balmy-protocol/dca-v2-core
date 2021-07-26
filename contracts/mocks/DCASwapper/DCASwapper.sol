@@ -18,15 +18,11 @@ contract DCASwapperMock is DCASwapper {
     ICustomQuoter _quoter
   ) DCASwapper(_governor, _factory, _router, _quoter) {}
 
-  function bestFeeTierForSwap(IDCAPair _pair) external returns (uint24 _feeTier) {
-    _feeTier = _bestFeeTierForSwap(_pair);
-  }
-
-  function _bestFeeTierForSwap(IDCAPair _pair) internal override returns (uint24 _feeTier) {
+  function bestFeeTierForSwap(IDCAPair _pair) public override returns (uint24 _feeTier) {
     if (_pairsToSwapSet) {
       _feeTier = _pairsToSwap[address(_pair)];
     } else {
-      _feeTier = super._bestFeeTierForSwap(_pair);
+      _feeTier = super.bestFeeTierForSwap(_pair);
     }
   }
 

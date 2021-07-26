@@ -265,8 +265,10 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
     _balances[address(tokenB)] = _finalAmountToHaveTokenB;
 
     // Send fees and extra
-    tokenA.safeTransfer(_swapParameters.feeRecipient, _balanceTokenA - _finalAmountToHaveTokenA);
-    tokenB.safeTransfer(_swapParameters.feeRecipient, _balanceTokenB - _finalAmountToHaveTokenB);
+    uint256 _toFeeRecipientTokenA = _balanceTokenA - _finalAmountToHaveTokenA;
+    uint256 _toFeeRecipientTokenB = _balanceTokenB - _finalAmountToHaveTokenB;
+    if (_toFeeRecipientTokenA > 0) tokenA.safeTransfer(_swapParameters.feeRecipient, _toFeeRecipientTokenA);
+    if (_toFeeRecipientTokenB > 0) tokenB.safeTransfer(_swapParameters.feeRecipient, _toFeeRecipientTokenB);
 
     // Emit event
     emit Swapped(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _swapParameters.swapFee, _nextSwapInformation);
