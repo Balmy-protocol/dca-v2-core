@@ -581,4 +581,20 @@ describe('DCASwapper', () => {
       governor: () => owner,
     });
   });
+  describe('sendDust', () => {
+    let token: TokenContract;
+    given(async () => {
+      token = await erc20.deploy({
+        name: 'tokenA',
+        symbol: 'TKNA',
+      });
+      await token.mint(DCASwapper.address, 20000);
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCASwapper,
+      funcAndSignature: 'sendDust(address,address,uint256)',
+      params: () => [owner.address, token.address, 20000],
+      governor: () => owner,
+    });
+  });
 });

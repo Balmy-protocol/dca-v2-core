@@ -5,11 +5,12 @@ import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
+import '../utils/CollectableDust.sol';
 import '../interfaces/IDCASwapper.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
+contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   // solhint-disable-next-line var-name-mixedcase
@@ -151,6 +152,14 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
   function _swap(PairToSwap memory _pair) internal {
     // Execute the swap, making myself the callee so that the `DCAPairSwapCall` function is called
     _pair.pair.swap(0, 0, address(this), abi.encode(_pair.bestFeeTier));
+  }
+
+  function sendDust(
+    address _to,
+    address _token,
+    uint256 _amount
+  ) external override onlyGovernor {
+    _sendDust(_to, _token, _amount);
   }
 
   // solhint-disable-next-line func-name-mixedcase
