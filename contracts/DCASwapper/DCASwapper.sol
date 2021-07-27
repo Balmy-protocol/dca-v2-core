@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts/security/Pausable.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
@@ -10,7 +11,7 @@ import '../interfaces/IDCASwapper.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust {
+contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   // solhint-disable-next-line var-name-mixedcase
@@ -84,7 +85,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
     }
   }
 
-  function swapPairs(PairToSwap[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
+  function swapPairs(PairToSwap[] calldata _pairsToSwap) external override whenNotPaused returns (uint256 _amountSwapped) {
     if (_pairsToSwap.length == 0) revert ZeroPairsToSwap();
 
     uint256 _maxGasSpent;
@@ -103,6 +104,18 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
     } while (_amountSwapped < _pairsToSwap.length && gasleft() >= (_maxGasSpent * 3) / 2);
 
     emit Swapped(_pairsToSwap, _amountSwapped);
+  }
+
+  function paused() public view override(IDCASwapper, Pausable) returns (bool) {
+    return super.paused();
+  }
+
+  function pause() external override onlyGovernor {
+    _pause();
+  }
+
+  function unpause() external override onlyGovernor {
+    _unpause();
   }
 
   function die(address _to) external override onlyGovernor {

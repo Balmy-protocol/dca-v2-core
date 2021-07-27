@@ -489,8 +489,21 @@ describe('DCASwapper', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCASwapper,
           func: 'swapPairs',
-          args: [[], []],
+          args: [[]],
           message: 'ZeroPairsToSwap',
+        });
+      });
+    });
+    when('contract is paused', () => {
+      given(async () => {
+        await DCASwapper.pause();
+      });
+      then('attempts to swap revert', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCASwapper,
+          func: 'swapPairs',
+          args: [[]],
+          message: 'Pausable: paused',
         });
       });
     });
@@ -594,6 +607,77 @@ describe('DCASwapper', () => {
       contract: () => DCASwapper,
       funcAndSignature: 'sendDust(address,address,uint256)',
       params: () => [owner.address, token.address, 20000],
+      governor: () => owner,
+    });
+  });
+  describe('pause', () => {
+    when('contract is paused', () => {
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await DCASwapper.pause();
+      });
+
+      then('getter says so', async () => {
+        expect(await DCASwapper.paused()).to.be.true;
+      });
+
+      then('attempts to pause it again will revert', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCASwapper,
+          func: 'pause',
+          args: [],
+          message: 'Pausable: paused',
+        });
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCASwapper, 'Paused');
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCASwapper,
+      funcAndSignature: 'pause()',
+      params: [],
+      governor: () => owner,
+    });
+  });
+
+  describe('unpause', () => {
+    given(async () => {
+      await DCASwapper.pause();
+    });
+
+    when('contract is unpaused', () => {
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await DCASwapper.unpause();
+      });
+
+      then('getter says so', async () => {
+        expect(await DCASwapper.paused()).to.be.false;
+      });
+
+      then('attempts to unpause it again will revert', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCASwapper,
+          func: 'unpause',
+          args: [],
+          message: 'Pausable: not paused',
+        });
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCASwapper, 'Unpaused');
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCASwapper,
+      funcAndSignature: 'unpause()',
+      params: [],
       governor: () => owner,
     });
   });

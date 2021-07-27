@@ -31,6 +31,8 @@ interface IDCASwapper is ICollectableDust {
 
   function quoter() external view returns (ICustomQuoter);
 
+  function paused() external view returns (bool);
+
   /**
    * This method isn't a view and it is extremelly expensive and inefficient.
    * DO NOT call this method on-chain, it is for off-chain purposes only.
@@ -55,4 +57,8 @@ interface IDCASwapper is ICollectableDust {
   function swapPairs(PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
 
   function die(address _to) external;
+
+  function pause() external;
+
+  function unpause() external;
 }
