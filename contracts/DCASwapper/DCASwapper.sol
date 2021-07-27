@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
@@ -12,49 +11,19 @@ import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
 contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
-  using EnumerableSet for EnumerableSet.AddressSet;
-
   // solhint-disable-next-line var-name-mixedcase
   uint24[] private _FEE_TIERS = [500, 3000, 10000];
-  IDCAFactory public immutable override factory;
   ISwapRouter public immutable override swapRouter;
   ICustomQuoter public immutable override quoter;
-  EnumerableSet.AddressSet internal _watchedPairs;
 
   constructor(
     address _governor,
-    IDCAFactory _factory,
     ISwapRouter _swapRouter,
     ICustomQuoter _quoter
   ) Governable(_governor) {
-    if (address(_factory) == address(0) || address(_swapRouter) == address(0) || address(_quoter) == address(0))
-      revert CommonErrors.ZeroAddress();
-    factory = _factory;
+    if (address(_swapRouter) == address(0) || address(_quoter) == address(0)) revert CommonErrors.ZeroAddress();
     swapRouter = _swapRouter;
     quoter = _quoter;
-  }
-
-  function startWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
-    for (uint256 i; i < _pairs.length; i++) {
-      if (!factory.isPair(_pairs[i])) revert InvalidPairAddress();
-      _watchedPairs.add(_pairs[i]);
-    }
-    emit WatchingNewPairs(_pairs);
-  }
-
-  function stopWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
-    for (uint256 i; i < _pairs.length; i++) {
-      _watchedPairs.remove(_pairs[i]);
-    }
-    emit StoppedWatchingPairs(_pairs);
-  }
-
-  function watchedPairs() external view override returns (address[] memory _pairs) {
-    uint256 _length = _watchedPairs.length();
-    _pairs = new address[](_length);
-    for (uint256 i; i < _length; i++) {
-      _pairs[i] = _watchedPairs.at(i);
-    }
   }
 
   /**
@@ -62,27 +31,24 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
    * DO NOT call this method on-chain, it is for off-chain purposes only.
    */
   function getPairsToSwap() external override returns (PairToSwap[] memory _pairs) {
-    uint256 _count;
-
-    // Count how many pairs can be swapped
-    uint256 _length = _watchedPairs.length();
-    for (uint256 i; i < _length; i++) {
-      if (bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
-        _count++;
-      }
-    }
-
-    // Create result array with correct size
-    _pairs = new PairToSwap[](_count);
-
-    // Fill result array
-    for (uint256 i; i < _length; i++) {
-      IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
-      uint24 _feeTier = bestFeeTierForSwap(_pair);
-      if (_feeTier > 0) {
-        _pairs[--_count] = PairToSwap({pair: _pair, bestFeeTier: _feeTier});
-      }
-    }
+    // uint256 _count;
+    // // Count how many pairs can be swapped
+    // uint256 _length = _watchedPairs.length();
+    // for (uint256 i; i < _length; i++) {
+    //   if (bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
+    //     _count++;
+    //   }
+    // }
+    // // Create result array with correct size
+    // _pairs = new PairToSwap[](_count);
+    // // Fill result array
+    // for (uint256 i; i < _length; i++) {
+    //   IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
+    //   uint24 _feeTier = bestFeeTierForSwap(_pair);
+    //   if (_feeTier > 0) {
+    //     _pairs[--_count] = PairToSwap({pair: _pair, bestFeeTier: _feeTier});
+    //   }
+    // }
   }
 
   function swapPairs(PairToSwap[] calldata _pairsToSwap) external override whenNotPaused returns (uint256 _amountSwapped) {

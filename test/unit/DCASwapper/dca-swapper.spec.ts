@@ -13,16 +13,15 @@ describe('DCASwapper', () => {
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
 
   let owner: SignerWithAddress, swapperCaller: SignerWithAddress;
-  let DCASwapperContract: ContractFactory, DCAFactoryContract: ContractFactory;
+  let DCASwapperContract: ContractFactory;
   let UniswapRouterContract: ContractFactory, UniswapQuoterContract: ContractFactory;
   let UniswapFactoryContract: ContractFactory;
-  let DCASwapper: Contract, DCAFactory: Contract;
+  let DCASwapper: Contract;
   let UniswapRouter: Contract, UniswapQuoter: Contract, UniswapFactory: Contract;
 
   before('Setup accounts and contracts', async () => {
     [owner, swapperCaller] = await ethers.getSigners();
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCASwapper.sol:DCASwapperMock');
-    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAFactoryMock.sol:DCAFactoryMock');
     UniswapRouterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/SwapRouterMock.sol:SwapRouterMock');
     UniswapQuoterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/QuoterMock.sol:QuoterMock');
     UniswapFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/UniswapFactoryMock.sol:UniswapFactoryMock');
@@ -30,27 +29,17 @@ describe('DCASwapper', () => {
 
   beforeEach('Deploy and configure', async () => {
     UniswapFactory = await UniswapFactoryContract.deploy();
-    DCAFactory = await DCAFactoryContract.deploy();
     UniswapRouter = await UniswapRouterContract.deploy();
     UniswapQuoter = await UniswapQuoterContract.deploy(UniswapFactory.address);
-    DCASwapper = await DCASwapperContract.deploy(owner.address, DCAFactory.address, UniswapRouter.address, UniswapQuoter.address);
+    DCASwapper = await DCASwapperContract.deploy(owner.address, UniswapRouter.address, UniswapQuoter.address);
   });
 
   describe('constructor', () => {
-    when('factory is zero address', () => {
-      then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCASwapperContract,
-          args: [owner.address, constants.ZERO_ADDRESS, UniswapRouter.address, UniswapQuoter.address],
-          message: 'ZeroAddress',
-        });
-      });
-    });
     when('router is zero address', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCASwapperContract,
-          args: [owner.address, DCAFactory.address, constants.ZERO_ADDRESS, UniswapQuoter.address],
+          args: [owner.address, constants.ZERO_ADDRESS, UniswapQuoter.address],
           message: 'ZeroAddress',
         });
       });
@@ -59,16 +48,12 @@ describe('DCASwapper', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCASwapperContract,
-          args: [owner.address, DCAFactory.address, UniswapRouter.address, constants.ZERO_ADDRESS],
+          args: [owner.address, UniswapRouter.address, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
     });
     when('all arguments are valid', () => {
-      then('factory is set correctly', async () => {
-        const factory = await DCASwapper.factory();
-        expect(factory).to.equal(DCAFactory.address);
-      });
       then('router is set correctly', async () => {
         const router = await DCASwapper.swapRouter();
         expect(router).to.equal(UniswapRouter.address);
@@ -80,76 +65,6 @@ describe('DCASwapper', () => {
     });
   });
 
-  describe('startWatchingPairs', () => {
-    when('one of the pairs is not a DCA pair', () => {
-      given(async () => {
-        await DCAFactory.setAsPair(ADDRESS_1);
-      });
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCASwapper,
-          func: 'startWatchingPairs',
-          args: [[ADDRESS_1, ADDRESS_2]],
-          message: 'InvalidPairAddress',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCASwapper,
-          func: 'startWatchingPairs',
-          args: [[ADDRESS_2, ADDRESS_1]],
-          message: 'InvalidPairAddress',
-        });
-      });
-    });
-    when('addresses are valid pairs', () => {
-      let tx: TransactionResponse;
-
-      given(async () => {
-        await DCAFactory.setAsPair(ADDRESS_1);
-        await DCAFactory.setAsPair(ADDRESS_2);
-        tx = await DCASwapper.startWatchingPairs([ADDRESS_1, ADDRESS_2]);
-      });
-
-      then('pairs are added', async () => {
-        expect(await DCASwapper.watchedPairs()).to.eql([ADDRESS_1, ADDRESS_2]);
-      });
-
-      then('event is emmitted', async () => {
-        await expect(tx).to.emit(DCASwapper, 'WatchingNewPairs').withArgs([ADDRESS_1, ADDRESS_2]);
-      });
-    });
-    behaviours.shouldBeExecutableOnlyByGovernor({
-      contract: () => DCASwapper,
-      funcAndSignature: 'startWatchingPairs(address[])',
-      params: [[ADDRESS_1]],
-      governor: () => owner,
-    });
-  });
-  describe('stopWatchingPairs', () => {
-    given(async () => {
-      await DCAFactory.setAsPair(ADDRESS_1);
-      await DCASwapper.startWatchingPairs([ADDRESS_1]);
-    });
-    when('address being watch is removed', () => {
-      let tx: TransactionResponse;
-
-      given(async () => {
-        tx = await DCASwapper.stopWatchingPairs([ADDRESS_1]);
-      });
-
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(DCASwapper, 'StoppedWatchingPairs').withArgs([ADDRESS_1]);
-      });
-      then('pair is no longer watched', async () => {
-        expect(await DCASwapper.watchedPairs()).to.be.empty;
-      });
-    });
-    behaviours.shouldBeExecutableOnlyByGovernor({
-      contract: () => DCASwapper,
-      funcAndSignature: 'stopWatchingPairs(address[])',
-      params: [[ADDRESS_1]],
-      governor: () => owner,
-    });
-  });
   describe('DCAPairSwapCall', () => {
     let tokenA: TokenContract, tokenB: TokenContract;
     let rewardAmount: BigNumber;
@@ -441,13 +356,13 @@ describe('DCASwapper', () => {
     });
   });
 
-  describe('getPairsToSwap', () => {
+  describe.skip('getPairsToSwap', () => {
     const ADDRESS_3 = '0x0000000000000000000000000000000000000003';
 
     given(async () => {
-      await DCAFactory.setAsPair(ADDRESS_1);
-      await DCAFactory.setAsPair(ADDRESS_2);
-      await DCAFactory.setAsPair(ADDRESS_3);
+      // await DCAFactory.setAsPair(ADDRESS_1);
+      // await DCAFactory.setAsPair(ADDRESS_2);
+      // await DCAFactory.setAsPair(ADDRESS_3);
     });
 
     when('there are no pairs being watched', () => {

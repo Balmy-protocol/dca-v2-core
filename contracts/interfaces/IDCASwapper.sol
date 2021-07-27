@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol';
-import '../interfaces/IDCAFactory.sol';
+import '../interfaces/IDCAPair.sol';
 import '../utils/CollectableDust.sol';
 
 interface ICustomQuoter is IQuoter, IPeripheryImmutableState {}
@@ -15,18 +15,11 @@ interface IDCASwapper is ICollectableDust {
     uint24 bestFeeTier;
   }
 
-  event WatchingNewPairs(address[] _pairs);
-  event StoppedWatchingPairs(address[] _pairs);
   event Swapped(PairToSwap[] _pairsToSwap, uint256 _amountSwapped);
 
-  error InvalidPairAddress();
   error ZeroPairsToSwap();
 
   /* Public getters */
-  function watchedPairs() external view returns (address[] memory);
-
-  function factory() external view returns (IDCAFactory);
-
   function swapRouter() external view returns (ISwapRouter);
 
   function quoter() external view returns (ICustomQuoter);
@@ -47,10 +40,6 @@ interface IDCASwapper is ICollectableDust {
   function bestFeeTierForSwap(IDCAPair _pair) external returns (uint24 _feeTier);
 
   /* Public setters */
-  function startWatchingPairs(address[] calldata) external;
-
-  function stopWatchingPairs(address[] calldata) external;
-
   /**
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
    */

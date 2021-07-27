@@ -2,21 +2,17 @@
 
 pragma solidity 0.8.4;
 
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '../../DCASwapper/DCASwapper.sol';
 
 contract DCASwapperMock is DCASwapper {
-  using EnumerableSet for EnumerableSet.AddressSet;
-
   mapping(address => uint24) internal _pairsToSwap;
   bool private _pairsToSwapSet = false;
 
   constructor(
     address _governor,
-    IDCAFactory _factory,
     ISwapRouter _router,
     ICustomQuoter _quoter
-  ) DCASwapper(_governor, _factory, _router, _quoter) {}
+  ) DCASwapper(_governor, _router, _quoter) {}
 
   function bestFeeTierForSwap(IDCAPair _pair) public override returns (uint24 _feeTier) {
     if (_pairsToSwapSet) {
