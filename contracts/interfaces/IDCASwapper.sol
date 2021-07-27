@@ -56,8 +56,6 @@ interface IDCASwapper is ICollectableDust {
    */
   function swapPairs(PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
 
-  function die(address _to) external;
-
   function pause() external;
 
   function unpause() external;

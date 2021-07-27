@@ -118,10 +118,6 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
     _unpause();
   }
 
-  function die(address _to) external override onlyGovernor {
-    selfdestruct(payable(_to));
-  }
-
   /**
    * This method isn't a view because the Uniswap quoter doesn't support view quotes.
    * Therefore, we highly recommend that this method is not called on-chain.
