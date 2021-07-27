@@ -97,7 +97,7 @@ contract('DCASwapper', () => {
         const bestFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
 
         expect(bestFeeTier).to.equal(BigNumber.from(2).pow(24).sub(1));
-      });
+      }).retries(5);
       describe('swap', () => {
         given(async () => {
           await DCASwapper.swapPairs([[DCAPair.address, 3000]]);

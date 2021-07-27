@@ -9,6 +9,7 @@ interface IDCAKeep3rJob {
   event StoppedWatchingPairs(address[] _pairs);
 
   error InvalidPairAddress();
+  error PairNotBeingWatched();
 
   /* Public getters */
   function watchedPairs() external view returns (address[] memory);
@@ -27,4 +28,9 @@ interface IDCAKeep3rJob {
   function startWatchingPairs(address[] calldata) external;
 
   function stopWatchingPairs(address[] calldata) external;
+
+  /**
+   * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
+   */
+  function swapPairs(IDCASwapper.PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped);
 }

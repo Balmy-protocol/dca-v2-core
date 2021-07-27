@@ -172,4 +172,38 @@ describe('DCAKeep3rJob', () => {
       });
     });
   });
+
+  describe('swapPairs', () => {
+    when('pair is not being watched', () => {
+      then('calling swapPairs will revert', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAKeep3rJob,
+          func: 'swapPairs',
+          args: [[[ADDRESS_1, 500]]],
+          message: 'PairNotBeingWatched',
+        });
+      });
+    });
+    when('pair is being watched', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        await DCAFactory.setAsPair(ADDRESS_1);
+        await DCAFactory.setAsPair(ADDRESS_2);
+        await DCAKeep3rJob.startWatchingPairs([ADDRESS_1, ADDRESS_2]);
+
+        tx = await DCAKeep3rJob.swapPairs([
+          [ADDRESS_1, 500],
+          [ADDRESS_2, 3000],
+        ]);
+      });
+
+      then('job will call the swapper', async () => {
+        const lastCalled = await DCASwapper.lastCalled();
+        expect(lastCalled).to.eql([
+          [ADDRESS_1, 500],
+          [ADDRESS_2, 3000],
+        ]);
+      });
+    });
+  });
 });
