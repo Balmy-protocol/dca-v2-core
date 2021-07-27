@@ -26,31 +26,6 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
     quoter = _quoter;
   }
 
-  /**
-   * This method isn't a view and it is extremelly expensive and inefficient.
-   * DO NOT call this method on-chain, it is for off-chain purposes only.
-   */
-  function getPairsToSwap() external override returns (PairToSwap[] memory _pairs) {
-    // uint256 _count;
-    // // Count how many pairs can be swapped
-    // uint256 _length = _watchedPairs.length();
-    // for (uint256 i; i < _length; i++) {
-    //   if (bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
-    //     _count++;
-    //   }
-    // }
-    // // Create result array with correct size
-    // _pairs = new PairToSwap[](_count);
-    // // Fill result array
-    // for (uint256 i; i < _length; i++) {
-    //   IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
-    //   uint24 _feeTier = bestFeeTierForSwap(_pair);
-    //   if (_feeTier > 0) {
-    //     _pairs[--_count] = PairToSwap({pair: _pair, bestFeeTier: _feeTier});
-    //   }
-    // }
-  }
-
   function swapPairs(PairToSwap[] calldata _pairsToSwap) external override whenNotPaused returns (uint256 _amountSwapped) {
     if (_pairsToSwap.length == 0) revert ZeroPairsToSwap();
 
@@ -89,7 +64,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
    * Therefore, we highly recommend that this method is not called on-chain.
    * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap
    */
-  function bestFeeTierForSwap(IDCAPair _pair) public virtual override returns (uint24 _feeTier) {
+  function bestFeeTierForSwap(IDCAPair _pair) external override returns (uint24 _feeTier) {
     IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
     if (_nextSwapInformation.amountOfSwaps == 0) {
       return 0;

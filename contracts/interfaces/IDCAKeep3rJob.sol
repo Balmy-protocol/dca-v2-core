@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.4;
 
-import '../interfaces/IDCAFactory.sol';
+import './IDCAFactory.sol';
+import './IDCASwapper.sol';
 
 interface IDCAKeep3rJob {
   event WatchingNewPairs(address[] _pairs);
@@ -13,6 +14,14 @@ interface IDCAKeep3rJob {
   function watchedPairs() external view returns (address[] memory);
 
   function factory() external view returns (IDCAFactory);
+
+  function swapper() external view returns (IDCASwapper);
+
+  /**
+   * This method isn't a view and it is extremelly expensive and inefficient.
+   * DO NOT call this method on-chain, it is for off-chain purposes only.
+   */
+  function getPairsToSwap() external returns (IDCASwapper.PairToSwap[] memory _pairs);
 
   /* Public setters */
   function startWatchingPairs(address[] calldata) external;
