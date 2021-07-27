@@ -5,10 +5,11 @@ import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
 import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol';
 import '../interfaces/IDCAFactory.sol';
+import '../utils/CollectableDust.sol';
 
 interface ICustomQuoter is IQuoter, IPeripheryImmutableState {}
 
-interface IDCASwapper {
+interface IDCASwapper is ICollectableDust {
   struct PairToSwap {
     IDCAPair pair;
     uint24 bestFeeTier;
