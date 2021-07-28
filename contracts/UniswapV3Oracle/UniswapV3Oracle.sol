@@ -14,6 +14,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
 
   uint16 public constant override MINIMUM_PERIOD = 1 minutes;
   uint16 public constant override MAXIMUM_PERIOD = 20 minutes;
+  uint16 public constant override MINIMUM_LIQUIDITY_THRESHOLD = 1;
   uint8 private constant _AVERAGE_BLOCK_INTERVAL = 15 seconds;
   IUniswapV3Factory public immutable override factory;
   uint16 public override period = 5 minutes;
@@ -28,8 +29,9 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   function canSupportPair(address _tokenA, address _tokenB) external view override returns (bool) {
     uint256 _length = _supportedFeeTiers.length();
     for (uint256 i; i < _length; i++) {
-      if (factory.getPool(_tokenA, _tokenB, uint24(_supportedFeeTiers.at(i))) != address(0)) {
-        return true;
+      address _pool = factory.getPool(_tokenA, _tokenB, uint24(_supportedFeeTiers.at(i)));
+      if (_pool != address(0)) {
+        return IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD;
       }
     }
     return false;
@@ -64,7 +66,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     uint16 _cardinality = uint16(period / _AVERAGE_BLOCK_INTERVAL) + 10; // We add 10 just to be on the safe side
     for (uint256 i; i < _length; i++) {
       address _pool = factory.getPool(__tokenA, __tokenB, uint24(_supportedFeeTiers.at(i)));
-      if (_pool != address(0) && !_pools.contains(_pool)) {
+      if (_pool != address(0) && !_pools.contains(_pool) && IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD) {
         _pools.add(_pool);
         IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_cardinality);
       }

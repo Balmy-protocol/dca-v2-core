@@ -42,6 +42,9 @@ interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
   // solhint-disable-next-line func-name-mixedcase
   function MAXIMUM_PERIOD() external view returns (uint16);
 
+  // solhint-disable-next-line func-name-mixedcase
+  function MINIMUM_LIQUIDITY_THRESHOLD() external view returns (uint16);
+
   /* Public setters */
   function addFeeTier(uint24) external;
 
