@@ -15,9 +15,9 @@ abstract contract DCAPairParameters is IDCAPairParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
-  uint112 internal immutable _magnitudeA;
-  uint112 internal immutable _magnitudeB;
-  uint24 internal immutable _feePrecision;
+  uint112 internal _magnitudeA;
+  uint112 internal _magnitudeB;
+  uint24 internal _feePrecision;
 
   // Basic setup
   IDCAGlobalParameters public override globalParameters;

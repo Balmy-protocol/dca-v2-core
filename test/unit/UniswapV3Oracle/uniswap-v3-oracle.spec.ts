@@ -91,8 +91,12 @@ describe('UniswapV3Oracle', () => {
   describe('canSupportPair', () => {
     const TOKEN_A = '0x0000000000000000000000000000000000000001';
     const TOKEN_B = '0x0000000000000000000000000000000000000002';
-    const POOL = '0x0000000000000000000000000000000000000003';
     const FEE = 1000;
+    let UniswapV3Pool: Contract;
+
+    given(async () => {
+      UniswapV3Pool = await UniswapV3PoolContract.deploy();
+    });
 
     when('no pool exists for pair', () => {
       then('pair is not supported', async () => {
@@ -102,7 +106,7 @@ describe('UniswapV3Oracle', () => {
 
     when('pool exists for pair on unsupported fie tier', () => {
       given(async () => {
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, POOL);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
       });
       then('pair is not supported', async () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
@@ -112,10 +116,20 @@ describe('UniswapV3Oracle', () => {
     when('pool exists for pair on supported fie tier', () => {
       given(async () => {
         await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, POOL);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
       });
       then('pair is marked as supported', async () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
+    when('pool exists for pair on supported fie tier, but liquidity is not enough', () => {
+      given(async () => {
+        await supportFieTier(FEE);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        await UniswapV3Pool.setLiquidity(0);
+      });
+      then('pair is not supported', async () => {
+        expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
       });
     });
   });
@@ -191,6 +205,21 @@ describe('UniswapV3Oracle', () => {
         await supportFieTier(FEE);
       });
 
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'addSupportForPair',
+          args: [TOKEN_A, TOKEN_B],
+          message: 'PairNotSupported',
+        });
+      });
+    });
+    when('only pool for the pair does not  have liquidity', () => {
+      given(async () => {
+        await supportFieTier(FEE);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        await UniswapV3Pool.setLiquidity(0);
+      });
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: UniswapV3Oracle,

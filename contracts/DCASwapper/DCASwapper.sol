@@ -1,89 +1,32 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.4;
 
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts/security/Pausable.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
+import '../utils/CollectableDust.sol';
 import '../interfaces/IDCASwapper.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
-  using EnumerableSet for EnumerableSet.AddressSet;
-
+contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
   // solhint-disable-next-line var-name-mixedcase
   uint24[] private _FEE_TIERS = [500, 3000, 10000];
-  IDCAFactory public immutable override factory;
   ISwapRouter public immutable override swapRouter;
   ICustomQuoter public immutable override quoter;
-  EnumerableSet.AddressSet internal _watchedPairs;
 
   constructor(
     address _governor,
-    IDCAFactory _factory,
     ISwapRouter _swapRouter,
     ICustomQuoter _quoter
   ) Governable(_governor) {
-    if (address(_factory) == address(0) || address(_swapRouter) == address(0) || address(_quoter) == address(0))
-      revert CommonErrors.ZeroAddress();
-    factory = _factory;
+    if (address(_swapRouter) == address(0) || address(_quoter) == address(0)) revert CommonErrors.ZeroAddress();
     swapRouter = _swapRouter;
     quoter = _quoter;
   }
 
-  function startWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
-    for (uint256 i; i < _pairs.length; i++) {
-      if (!factory.isPair(_pairs[i])) revert InvalidPairAddress();
-      _watchedPairs.add(_pairs[i]);
-    }
-    emit WatchingNewPairs(_pairs);
-  }
-
-  function stopWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
-    for (uint256 i; i < _pairs.length; i++) {
-      _watchedPairs.remove(_pairs[i]);
-    }
-    emit StoppedWatchingPairs(_pairs);
-  }
-
-  function watchedPairs() external view override returns (address[] memory _pairs) {
-    uint256 _length = _watchedPairs.length();
-    _pairs = new address[](_length);
-    for (uint256 i; i < _length; i++) {
-      _pairs[i] = _watchedPairs.at(i);
-    }
-  }
-
-  /**
-   * This method isn't a view and it is extremelly expensive and inefficient.
-   * DO NOT call this method on-chain, it is for off-chain purposes only.
-   */
-  function getPairsToSwap() external override returns (PairToSwap[] memory _pairs) {
-    uint256 _count;
-
-    // Count how many pairs can be swapped
-    uint256 _length = _watchedPairs.length();
-    for (uint256 i; i < _length; i++) {
-      if (_bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
-        _count++;
-      }
-    }
-
-    // Create result array with correct size
-    _pairs = new PairToSwap[](_count);
-
-    // Fill result array
-    for (uint256 i; i < _length; i++) {
-      IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
-      uint24 _feeTier = _bestFeeTierForSwap(_pair);
-      if (_feeTier > 0) {
-        _pairs[--_count] = PairToSwap({pair: _pair, bestFeeTier: _feeTier});
-      }
-    }
-  }
-
-  function swapPairs(PairToSwap[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
+  function swapPairs(PairToSwap[] calldata _pairsToSwap) external override whenNotPaused returns (uint256 _amountSwapped) {
     if (_pairsToSwap.length == 0) revert ZeroPairsToSwap();
 
     uint256 _maxGasSpent;
@@ -104,8 +47,16 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
     emit Swapped(_pairsToSwap, _amountSwapped);
   }
 
-  function die(address _to) external override onlyGovernor {
-    selfdestruct(payable(_to));
+  function paused() public view override(IDCASwapper, Pausable) returns (bool) {
+    return super.paused();
+  }
+
+  function pause() external override onlyGovernor {
+    _pause();
+  }
+
+  function unpause() external override onlyGovernor {
+    _unpause();
   }
 
   /**
@@ -113,7 +64,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
    * Therefore, we highly recommend that this method is not called on-chain.
    * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap
    */
-  function _bestFeeTierForSwap(IDCAPair _pair) internal virtual returns (uint24 _feeTier) {
+  function bestFeeTierForSwap(IDCAPair _pair) external override returns (uint24 _feeTier) {
     IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
     if (_nextSwapInformation.amountOfSwaps == 0) {
       return 0;
@@ -151,6 +102,14 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee {
   function _swap(PairToSwap memory _pair) internal {
     // Execute the swap, making myself the callee so that the `DCAPairSwapCall` function is called
     _pair.pair.swap(0, 0, address(this), abi.encode(_pair.bestFeeTier));
+  }
+
+  function sendDust(
+    address _to,
+    address _token,
+    uint256 _amount
+  ) external override onlyGovernor {
+    _sendDust(_to, _token, _amount);
   }
 
   // solhint-disable-next-line func-name-mixedcase
