@@ -102,4 +102,4 @@ jobs:
       - name: Run integration tests
         run: yarn test:integration
         env:
-          ETH_NODE_URI_MAINNET: https://eth-mainnet.alchemyapi.io/v2/7nnYxLueSEiMAv5tdd7ALUlSTp_q6l_U
+          ETH_NODE_URI_MAINNET: https://eth-mainnet.alchemyapi.io/v2/${{ secrets.ALCHEMY_API_KEY }}
