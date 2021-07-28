@@ -8,6 +8,7 @@ contract DCAKeep3rJobMock is DCAKeep3rJob {
   constructor(
     address _governor,
     IDCAFactory _factory,
+    IKeep3rV1 _keep3rV1,
     IDCASwapper _swapper
-  ) DCAKeep3rJob(_governor, _factory, _swapper) {}
+  ) DCAKeep3rJob(_governor, _factory, _keep3rV1, _swapper) {}
 }
