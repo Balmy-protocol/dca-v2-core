@@ -60,7 +60,7 @@ describe('DCAKeep3rJob', () => {
     });
   });
 
-  describe('startWatchingPairs', () => {
+  describe('startSubsidizingPairs', () => {
     when('one of the pairs is not a DCA pair', () => {
       given(async () => {
         await DCAFactory.setAsPair(ADDRESS_1);
@@ -68,13 +68,13 @@ describe('DCAKeep3rJob', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAKeep3rJob,
-          func: 'startWatchingPairs',
+          func: 'startSubsidizingPairs',
           args: [[ADDRESS_1, ADDRESS_2]],
           message: 'InvalidPairAddress',
         });
         await behaviours.txShouldRevertWithMessage({
           contract: DCAKeep3rJob,
-          func: 'startWatchingPairs',
+          func: 'startSubsidizingPairs',
           args: [[ADDRESS_2, ADDRESS_1]],
           message: 'InvalidPairAddress',
         });
@@ -86,46 +86,46 @@ describe('DCAKeep3rJob', () => {
       given(async () => {
         await DCAFactory.setAsPair(ADDRESS_1);
         await DCAFactory.setAsPair(ADDRESS_2);
-        tx = await DCAKeep3rJob.startWatchingPairs([ADDRESS_1, ADDRESS_2]);
+        tx = await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
       });
 
       then('pairs are added', async () => {
-        expect(await DCAKeep3rJob.watchedPairs()).to.eql([ADDRESS_1, ADDRESS_2]);
+        expect(await DCAKeep3rJob.subsidizedPairs()).to.eql([ADDRESS_1, ADDRESS_2]);
       });
 
       then('event is emmitted', async () => {
-        await expect(tx).to.emit(DCAKeep3rJob, 'WatchingNewPairs').withArgs([ADDRESS_1, ADDRESS_2]);
+        await expect(tx).to.emit(DCAKeep3rJob, 'SubsidizingNewPairs').withArgs([ADDRESS_1, ADDRESS_2]);
       });
     });
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAKeep3rJob,
-      funcAndSignature: 'startWatchingPairs(address[])',
+      funcAndSignature: 'startSubsidizingPairs(address[])',
       params: [[ADDRESS_1]],
       governor: () => owner,
     });
   });
-  describe('stopWatchingPairs', () => {
+  describe('stopSubsidizingPairs', () => {
     given(async () => {
       await DCAFactory.setAsPair(ADDRESS_1);
-      await DCAKeep3rJob.startWatchingPairs([ADDRESS_1]);
+      await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1]);
     });
     when('address being watch is removed', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await DCAKeep3rJob.stopWatchingPairs([ADDRESS_1]);
+        tx = await DCAKeep3rJob.stopSubsidizingPairs([ADDRESS_1]);
       });
 
       then('event is emitted', async () => {
-        await expect(tx).to.emit(DCAKeep3rJob, 'StoppedWatchingPairs').withArgs([ADDRESS_1]);
+        await expect(tx).to.emit(DCAKeep3rJob, 'StoppedSubsidizingPairs').withArgs([ADDRESS_1]);
       });
       then('pair is no longer watched', async () => {
-        expect(await DCAKeep3rJob.watchedPairs()).to.be.empty;
+        expect(await DCAKeep3rJob.subsidizedPairs()).to.be.empty;
       });
     });
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => DCAKeep3rJob,
-      funcAndSignature: 'stopWatchingPairs(address[])',
+      funcAndSignature: 'stopSubsidizingPairs(address[])',
       params: [[ADDRESS_1]],
       governor: () => owner,
     });
@@ -149,7 +149,7 @@ describe('DCAKeep3rJob', () => {
 
     when('pairs being watched should not be swaped', () => {
       given(async () => {
-        await DCAKeep3rJob.startWatchingPairs([ADDRESS_1, ADDRESS_2]);
+        await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
         await DCASwapper.setPairsToSwap([], []);
       });
 
@@ -161,7 +161,7 @@ describe('DCAKeep3rJob', () => {
 
     when('some of the pairs being watched should be swapped', () => {
       given(async () => {
-        await DCAKeep3rJob.startWatchingPairs([ADDRESS_1, ADDRESS_2, ADDRESS_3]);
+        await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2, ADDRESS_3]);
         await DCASwapper.setPairsToSwap([ADDRESS_1, ADDRESS_3], [3000, 10000]);
       });
 
@@ -180,7 +180,7 @@ describe('DCAKeep3rJob', () => {
           contract: DCAKeep3rJob,
           func: 'swapPairs',
           args: [[[ADDRESS_1, 500]]],
-          message: 'PairNotBeingWatched',
+          message: 'PairNotSubsidized',
         });
       });
     });
@@ -189,7 +189,7 @@ describe('DCAKeep3rJob', () => {
       given(async () => {
         await DCAFactory.setAsPair(ADDRESS_1);
         await DCAFactory.setAsPair(ADDRESS_2);
-        await DCAKeep3rJob.startWatchingPairs([ADDRESS_1, ADDRESS_2]);
+        await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
 
         tx = await DCAKeep3rJob.swapPairs([
           [ADDRESS_1, 500],

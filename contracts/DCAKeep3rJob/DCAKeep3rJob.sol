@@ -11,7 +11,7 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
 
   IDCAFactory public immutable override factory;
   IDCASwapper public immutable override swapper;
-  EnumerableSet.AddressSet internal _watchedPairs;
+  EnumerableSet.AddressSet internal _subsidizedPairs;
 
   constructor(
     address _governor,
@@ -30,9 +30,9 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
   function getPairsToSwap() external override returns (IDCASwapper.PairToSwap[] memory _pairs) {
     uint256 _count;
     // Count how many pairs can be swapped
-    uint256 _length = _watchedPairs.length();
+    uint256 _length = _subsidizedPairs.length();
     for (uint256 i; i < _length; i++) {
-      if (swapper.bestFeeTierForSwap(IDCAPair(_watchedPairs.at(i))) > 0) {
+      if (swapper.bestFeeTierForSwap(IDCAPair(_subsidizedPairs.at(i))) > 0) {
         _count++;
       }
     }
@@ -40,7 +40,7 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     _pairs = new IDCASwapper.PairToSwap[](_count);
     // Fill result array
     for (uint256 i; i < _length; i++) {
-      IDCAPair _pair = IDCAPair(_watchedPairs.at(i));
+      IDCAPair _pair = IDCAPair(_subsidizedPairs.at(i));
       uint24 _feeTier = swapper.bestFeeTierForSwap(_pair);
       if (_feeTier > 0) {
         _pairs[--_count] = IDCASwapper.PairToSwap({pair: _pair, bestFeeTier: _feeTier});
@@ -48,26 +48,26 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     }
   }
 
-  function startWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
+  function startSubsidizingPairs(address[] calldata _pairs) external override onlyGovernor {
     for (uint256 i; i < _pairs.length; i++) {
       if (!factory.isPair(_pairs[i])) revert InvalidPairAddress();
-      _watchedPairs.add(_pairs[i]);
+      _subsidizedPairs.add(_pairs[i]);
     }
-    emit WatchingNewPairs(_pairs);
+    emit SubsidizingNewPairs(_pairs);
   }
 
-  function stopWatchingPairs(address[] calldata _pairs) external override onlyGovernor {
+  function stopSubsidizingPairs(address[] calldata _pairs) external override onlyGovernor {
     for (uint256 i; i < _pairs.length; i++) {
-      _watchedPairs.remove(_pairs[i]);
+      _subsidizedPairs.remove(_pairs[i]);
     }
-    emit StoppedWatchingPairs(_pairs);
+    emit StoppedSubsidizingPairs(_pairs);
   }
 
-  function watchedPairs() external view override returns (address[] memory _pairs) {
-    uint256 _length = _watchedPairs.length();
+  function subsidizedPairs() external view override returns (address[] memory _pairs) {
+    uint256 _length = _subsidizedPairs.length();
     _pairs = new address[](_length);
     for (uint256 i; i < _length; i++) {
-      _pairs[i] = _watchedPairs.at(i);
+      _pairs[i] = _subsidizedPairs.at(i);
     }
   }
 
@@ -76,8 +76,8 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
    */
   function swapPairs(IDCASwapper.PairToSwap[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
     for (uint256 i; i < _pairsToSwap.length; i++) {
-      if (!_watchedPairs.contains(address(_pairsToSwap[i].pair))) {
-        revert PairNotBeingWatched();
+      if (!_subsidizedPairs.contains(address(_pairsToSwap[i].pair))) {
+        revert PairNotSubsidized();
       }
     }
     _amountSwapped = swapper.swapPairs(_pairsToSwap);

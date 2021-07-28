@@ -5,14 +5,14 @@ import './IDCAFactory.sol';
 import './IDCASwapper.sol';
 
 interface IDCAKeep3rJob {
-  event WatchingNewPairs(address[] _pairs);
-  event StoppedWatchingPairs(address[] _pairs);
+  event SubsidizingNewPairs(address[] _pairs);
+  event StoppedSubsidizingPairs(address[] _pairs);
 
   error InvalidPairAddress();
-  error PairNotBeingWatched();
+  error PairNotSubsidized();
 
   /* Public getters */
-  function watchedPairs() external view returns (address[] memory);
+  function subsidizedPairs() external view returns (address[] memory);
 
   function factory() external view returns (IDCAFactory);
 
@@ -25,9 +25,9 @@ interface IDCAKeep3rJob {
   function getPairsToSwap() external returns (IDCASwapper.PairToSwap[] memory _pairs);
 
   /* Public setters */
-  function startWatchingPairs(address[] calldata) external;
+  function startSubsidizingPairs(address[] calldata) external;
 
-  function stopWatchingPairs(address[] calldata) external;
+  function stopSubsidizingPairs(address[] calldata) external;
 
   /**
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
