@@ -21,7 +21,7 @@ describe('DCAUniswapV3Swapper', () => {
 
   before('Setup accounts and contracts', async () => {
     [owner, swapperCaller] = await ethers.getSigners();
-    DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCASwapper.sol:DCASwapperMock');
+    DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAUniswapV3Swapper.sol:DCAUniswapV3SwapperMock');
     UniswapRouterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/SwapRouterMock.sol:SwapRouterMock');
     UniswapQuoterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/QuoterMock.sol:QuoterMock');
     UniswapFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/UniswapFactoryMock.sol:UniswapFactoryMock');
