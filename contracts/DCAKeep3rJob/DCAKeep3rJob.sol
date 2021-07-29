@@ -103,5 +103,6 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     }
     _amountSwapped = swapper.swapPairs(_pairsToSwap);
     keep3rV1.worked(msg.sender);
+    emit Worked(_amountSwapped);
   }
 }

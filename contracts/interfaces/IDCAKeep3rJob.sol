@@ -10,6 +10,7 @@ interface IDCAKeep3rJob {
   event StoppedSubsidizingPairs(address[] _pairs);
   event SwapperSet(IDCASwapper _swapper);
   event Keep3rV1Set(IKeep3rV1 _keep3rV1);
+  event Worked(uint256 _amountSwapped);
 
   error InvalidPairAddress();
   error PairNotSubsidized();
