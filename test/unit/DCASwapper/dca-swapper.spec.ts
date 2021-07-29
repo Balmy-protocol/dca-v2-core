@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory } from 'ethers';
+import { BigNumber, BytesLike, Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
 import { behaviours, constants } from '../../utils';
@@ -126,7 +126,7 @@ describe('DCASwapper', () => {
           true,
           rewardAmount,
           amountToProvide,
-          ethers.utils.defaultAbiCoder.encode(['uint24'], [10000])
+          encodeFeeTier(10000)
         );
       });
 
@@ -167,7 +167,7 @@ describe('DCASwapper', () => {
           true,
           rewardAmount,
           amountToProvide,
-          ethers.utils.defaultAbiCoder.encode(['uint24'], [500])
+          encodeFeeTier(500)
         );
       });
 
@@ -194,7 +194,7 @@ describe('DCASwapper', () => {
       });
     });
   });
-  describe('bestFeeTierForSwap', () => {
+  describe('findBestSwap', () => {
     const REWARD_AMOUNT = BigNumber.from(1000);
     const AMOUNT_TO_PROVIDE = BigNumber.from(2000);
     let DCAPair: Contract;
@@ -205,16 +205,16 @@ describe('DCASwapper', () => {
     });
 
     when('amount of swaps is zero', () => {
-      let feeTier: number;
+      let result: string;
 
       given(async () => {
         await DCAPair.setNextSwapInfo(0, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
         await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, 3000);
-        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+        result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
       });
 
-      then('returned fee tier is 0', async () => {
-        expect(feeTier).to.equal(0);
+      then('result is empty', async () => {
+        expect(result).to.equal('0x');
       });
     });
 
@@ -223,7 +223,8 @@ describe('DCASwapper', () => {
 
       given(async () => {
         await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, constants.ZERO, REWARD_AMOUNT);
-        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        feeTier = decodeFeeTier(result);
       });
 
       then('returned fee tier is max(uint24)', async () => {
@@ -265,34 +266,34 @@ describe('DCASwapper', () => {
     }) {
       when(title, () => {
         const FEE_TIER = 3000;
-        let returnedFeeTier: number;
+        let returnedResult: string;
 
         given(async () => {
           await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, rewardAmount);
           await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER);
           await UniswapQuoter.setAmountNecessary(FEE_TIER, amountNeededByQuoter);
-          returnedFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+          returnedResult = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
         });
 
-        then('bestFeeTierForSwap returns as expected', async () => {
+        then('findBestSwap returns as expected', async () => {
           if (shouldBeSwapped) {
-            expect(returnedFeeTier).to.be.equal(FEE_TIER);
+            expect(decodeFeeTier(returnedResult)).to.be.equal(FEE_TIER);
           } else {
-            expect(returnedFeeTier).to.equal(0);
+            expect(returnedResult).to.equal('0x');
           }
         });
       });
     }
     when(`no pools exist for fee tier`, () => {
-      let feeTier: number;
+      let result: string;
 
       given(async () => {
         await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
-        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+        result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
       });
 
-      then('returned fee tier is 0', async () => {
-        expect(feeTier).to.equal(0);
+      then('result is empty', async () => {
+        expect(result).to.equal('0x');
       });
     });
 
@@ -308,7 +309,8 @@ describe('DCASwapper', () => {
         await UniswapQuoter.setAmountNecessary(FEE_TIER_1, REWARD_AMOUNT.sub(1));
         await UniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT.sub(2));
 
-        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        feeTier = decodeFeeTier(result);
       });
       then('the one that requires less input is returned', () => {
         expect(feeTier).to.equal(FEE_TIER_2);
@@ -327,7 +329,8 @@ describe('DCASwapper', () => {
         await UniswapQuoter.revertOn(FEE_TIER_1);
         await UniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT);
 
-        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        feeTier = decodeFeeTier(result);
       });
 
       then('another fee is used without any problems', async () => {
@@ -339,7 +342,7 @@ describe('DCASwapper', () => {
       const FEE_TIER_1 = 3000;
       const FEE_TIER_2 = 10000;
 
-      let feeTier: BigNumber;
+      let result: string;
       given(async () => {
         await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
         await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
@@ -347,11 +350,11 @@ describe('DCASwapper', () => {
         await UniswapQuoter.revertOn(FEE_TIER_1);
         await UniswapQuoter.revertOn(FEE_TIER_2);
 
-        feeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
+        result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
       });
 
-      then('returned fee tier is 0', async () => {
-        expect(feeTier).to.equal(0);
+      then('result is empty', async () => {
+        expect(result).to.equal('0x');
       });
     });
   });
@@ -382,7 +385,7 @@ describe('DCASwapper', () => {
     });
 
     when('gas limit is enough', () => {
-      let pairsToSwap: [string, number][];
+      let pairsToSwap: [string, string][];
       let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
       let tx: TransactionResponse;
 
@@ -393,9 +396,9 @@ describe('DCASwapper', () => {
         DCAPair3 = await DCAPairMockContract.deploy();
 
         pairsToSwap = [
-          [DCAPair1.address, 500],
-          [DCAPair2.address, 3000],
-          [DCAPair3.address, 10000],
+          [DCAPair1.address, encodeFeeTier(500)],
+          [DCAPair2.address, encodeFeeTier(3000)],
+          [DCAPair3.address, encodeFeeTier(10000)],
         ];
         tx = await DCASwapper.swapPairs(pairsToSwap);
       });
@@ -415,7 +418,7 @@ describe('DCASwapper', () => {
     });
 
     when('gas limit is not enough', () => {
-      let pairsToSwap: [string, number][];
+      let pairsToSwap: [string, string][];
       let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
       let tx: TransactionResponse;
 
@@ -429,9 +432,9 @@ describe('DCASwapper', () => {
         await DCAPair2.setGasToConsumeInSwap(200000);
 
         pairsToSwap = [
-          [DCAPair1.address, 10000],
-          [DCAPair2.address, 500],
-          [DCAPair3.address, 3000],
+          [DCAPair1.address, encodeFeeTier(10000)],
+          [DCAPair2.address, encodeFeeTier(500)],
+          [DCAPair3.address, encodeFeeTier(3000)],
         ];
         tx = await DCASwapper.swapPairs(pairsToSwap, { gasLimit: 500000 });
       });
@@ -537,4 +540,12 @@ describe('DCASwapper', () => {
       governor: () => owner,
     });
   });
+
+  function encodeFeeTier(feeTier: number) {
+    return ethers.utils.defaultAbiCoder.encode(['uint24'], [feeTier]);
+  }
+
+  function decodeFeeTier<T>(data: BytesLike): T {
+    return ethers.utils.defaultAbiCoder.decode(['uint24'], data)[0];
+  }
 });

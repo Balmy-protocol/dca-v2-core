@@ -75,7 +75,7 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     // Count how many pairs can be swapped
     uint256 _length = _subsidizedPairs.length();
     for (uint256 i; i < _length; i++) {
-      if (swapper.bestFeeTierForSwap(IDCAPair(_subsidizedPairs.at(i))) > 0) {
+      if (swapper.findBestSwap(IDCAPair(_subsidizedPairs.at(i))).length > 0) {
         _count++;
       }
     }
@@ -84,9 +84,9 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     // Fill result array
     for (uint256 i; i < _length; i++) {
       IDCAPair _pair = IDCAPair(_subsidizedPairs.at(i));
-      uint24 _feeTier = swapper.bestFeeTierForSwap(_pair);
-      if (_feeTier > 0) {
-        _pairs[--_count] = IDCASwapper.PairToSwap({pair: _pair, bestFeeTier: _feeTier});
+      bytes memory _encodedFeeTier = swapper.findBestSwap(_pair);
+      if (_encodedFeeTier.length > 0) {
+        _pairs[--_count] = IDCASwapper.PairToSwap({pair: _pair, swapPath: _encodedFeeTier});
       }
     }
   }
