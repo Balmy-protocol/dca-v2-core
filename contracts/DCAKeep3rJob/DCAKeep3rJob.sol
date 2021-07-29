@@ -95,13 +95,14 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
    */
   function work(IDCASwapper.PairToSwap[] calldata _pairsToSwap) external override returns (uint256 _amountSwapped) {
+    if (!keep3rV1.isKeeper(msg.sender)) revert NotAKeeper();
     for (uint256 i; i < _pairsToSwap.length; i++) {
       if (!_subsidizedPairs.contains(address(_pairsToSwap[i].pair))) {
         revert PairNotSubsidized();
       }
     }
     _amountSwapped = swapper.swapPairs(_pairsToSwap);
-
-    // TODO: Integrate with keep3r and emit event
+    keep3rV1.worked(msg.sender);
+    emit Worked(_amountSwapped);
   }
 }

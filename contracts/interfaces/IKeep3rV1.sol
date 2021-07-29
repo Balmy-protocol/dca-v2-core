@@ -11,6 +11,8 @@ interface IKeep3rV1 is IERC20 {
 
   function isKeeper(address _keeper) external returns (bool);
 
+  function governance() external view returns (address);
+
   function isMinKeeper(
     address _keeper,
     uint256 _minBond,
