@@ -8,7 +8,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { smockit, MockContract } from '@eth-optimism/smock';
 import { abi as KEEP3R_ABI } from '../../../artifacts/contracts/interfaces/IKeep3rV1.sol/IKeep3rV1.json';
 
-describe.only('DCAKeep3rJob', () => {
+describe('DCAKeep3rJob', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
 
