@@ -2,12 +2,12 @@
 
 pragma solidity 0.8.4;
 
-import '../../DCASwapper/DCASwapper.sol';
+import '../../DCASwapper/DCAUniswapV3Swapper.sol';
 
-contract DCASwapperMock is DCASwapper {
+contract DCAUniswapV3SwapperMock is DCAUniswapV3Swapper {
   constructor(
     address _governor,
     ISwapRouter _router,
     ICustomQuoter _quoter
-  ) DCASwapper(_governor, _router, _quoter) {}
+  ) DCAUniswapV3Swapper(_governor, _router, _quoter) {}
 }

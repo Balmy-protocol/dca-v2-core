@@ -8,7 +8,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import erc20, { TokenContract } from '../../utils/erc20';
 import { readArgFromEvent } from '../../utils/event-utils';
 
-describe('DCASwapper', () => {
+describe('DCAUniswapV3Swapper', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
 

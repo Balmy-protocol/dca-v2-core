@@ -10,7 +10,7 @@ import '../interfaces/IDCASwapper.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
+contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
   // solhint-disable-next-line var-name-mixedcase
   uint24[] private _FEE_TIERS = [500, 3000, 10000];
   ISwapRouter public immutable swapRouter;
