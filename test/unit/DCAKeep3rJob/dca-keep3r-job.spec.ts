@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory, Wallet } from 'ethers';
+import { Contract, ContractFactory, Wallet, utils } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
 import { behaviours, constants, wallet } from '../../utils';
@@ -11,8 +11,10 @@ import { abi as KEEP3R_ABI } from '../../../artifacts/contracts/interfaces/IKeep
 describe('DCAKeep3rJob', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
+  const BYTES_1 = ethers.utils.randomBytes(5);
+  const BYTES_2 = ethers.utils.randomBytes(5);
 
-  let owner: SignerWithAddress, swapperCaller: SignerWithAddress;
+  let owner: SignerWithAddress;
   let DCAKeep3rJobContract: ContractFactory, DCAFactoryContract: ContractFactory;
   let DCASwapperContract: ContractFactory;
   let DCAKeep3rJob: Contract, DCAFactory: Contract;
@@ -20,7 +22,7 @@ describe('DCAKeep3rJob', () => {
   let keep3r: MockContract;
 
   before('Setup accounts and contracts', async () => {
-    [owner, swapperCaller] = await ethers.getSigners();
+    [owner] = await ethers.getSigners();
     DCAKeep3rJobContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAKeep3rJob.sol:DCAKeep3rJobMock');
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCASwapperMock.sol:DCASwapperMock');
     DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAFactoryMock.sol:DCAFactoryMock');
@@ -239,13 +241,13 @@ describe('DCAKeep3rJob', () => {
     when('some of the pairs being subsidized should be swapped', () => {
       given(async () => {
         await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2, ADDRESS_3]);
-        await DCASwapper.setPairsToSwap([ADDRESS_1, ADDRESS_3], [3000, 10000]);
+        await DCASwapper.setPairsToSwap([ADDRESS_1, ADDRESS_3], [BYTES_1, BYTES_2]);
       });
 
       then('then they are returned', async () => {
-        const pairsToSwap: { pair: string; bestFeeTier: number }[] = await DCAKeep3rJob.callStatic.workable();
+        const pairsToSwap: { pair: string; swapPath: string }[] = await DCAKeep3rJob.callStatic.workable();
         expect(pairsToSwap.map(({ pair }) => pair)).to.eql([ADDRESS_3, ADDRESS_1]);
-        expect(pairsToSwap.map(({ bestFeeTier }) => bestFeeTier)).to.eql([10000, 3000]);
+        expect(pairsToSwap.map(({ swapPath }) => swapPath)).to.eql([utils.hexlify(BYTES_2), utils.hexlify(BYTES_1)]);
       });
     });
   });
@@ -278,7 +280,6 @@ describe('DCAKeep3rJob', () => {
       });
     });
     when('pair is being subsidized', () => {
-      let tx: TransactionResponse;
       let keeper: Wallet;
       given(async () => {
         keeper = await wallet.generateRandom();
@@ -286,10 +287,10 @@ describe('DCAKeep3rJob', () => {
         await DCAFactory.setAsPair(ADDRESS_2);
         await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
 
-        tx = await DCAKeep3rJob.connect(keeper).work(
+        await DCAKeep3rJob.connect(keeper).work(
           [
-            [ADDRESS_1, 500],
-            [ADDRESS_2, 3000],
+            [ADDRESS_1, BYTES_1],
+            [ADDRESS_2, BYTES_2],
           ],
           { gasPrice: 0 }
         );
@@ -298,8 +299,8 @@ describe('DCAKeep3rJob', () => {
       then('job will call the swapper', async () => {
         const lastCalled = await DCASwapper.lastCalled();
         expect(lastCalled).to.eql([
-          [ADDRESS_1, 500],
-          [ADDRESS_2, 3000],
+          [ADDRESS_1, utils.hexlify(BYTES_1)],
+          [ADDRESS_2, utils.hexlify(BYTES_2)],
         ]);
       });
 

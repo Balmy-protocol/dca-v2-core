@@ -5,7 +5,7 @@ import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { abi as IERC20_ABI } from '@openzeppelin/contracts/build/contracts/IERC20.json';
 import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
 import { getNodeUrl } from '../../../utils/network';
-import { bn, constants, evm, wallet } from '../../utils';
+import { evm, wallet } from '../../utils';
 import { contract, given, then, when } from '../../utils/bdd';
 import globalParametersDeployFunction from '../../../deploy/004_global_parameters';
 import moment from 'moment';
@@ -99,7 +99,7 @@ contract('DCAKeep3rJob', () => {
     when("job doesn't have credits", () => {
       let workTx: Promise<TransactionResponse>;
       given(() => {
-        workTx = DCAKeep3rJob.connect(keeper).work([[DCAPair.address, 3000]]);
+        workTx = DCAKeep3rJob.connect(keeper).work([[DCAPair.address, encodeFeeTier(3000)]]);
       });
       then('tx is reverted with reason', async () => {
         await expect(workTx).to.be.revertedWith('workReceipt: insuffient funds');
@@ -113,7 +113,7 @@ contract('DCAKeep3rJob', () => {
       given(async () => {
         await keep3rV1.connect(keep3rGovernance).addKPRCredit(DCAKeep3rJob.address, initialCredits, { gasPrice: 0 });
         initialBonds = await keep3rV1.bonds(KEEPER_ADDRESS, KEEP3R_V1);
-        workTx = await DCAKeep3rJob.connect(keeper).work([[DCAPair.address, 3000]]);
+        workTx = await DCAKeep3rJob.connect(keeper).work([[DCAPair.address, encodeFeeTier(3000)]]);
       });
       then('credits of job get reduced', async () => {
         expect(await keep3rV1.credits(DCAKeep3rJob.address, KEEP3R_V1)).to.be.lt(initialCredits);
@@ -152,5 +152,9 @@ contract('DCAKeep3rJob', () => {
     await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, utils.parseEther('1'), { gasPrice: 0 });
     const currentPrice = await uniswapSwapRouter.connect(wethWhale).callStatic.exactInput(currentPriceParams, { gasPrice: 0 });
     return currentPrice;
+  }
+
+  function encodeFeeTier(feeTier: number) {
+    return ethers.utils.defaultAbiCoder.encode(['uint24'], [feeTier]);
   }
 });
