@@ -9,13 +9,13 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const factory = await hre.deployments.get('Factory');
   const swapper = await hre.deployments.get('Swapper');
 
-  await hre.deployments.deploy('Job', {
+  await hre.deployments.deploy('Keep3rJob', {
     contract: 'contracts/DCAKeep3rJob/DCAKeep3rJob.sol:DCAKeep3rJob',
     from: deployer,
     args: [governor, factory.address, KEEP3R_V1, swapper.address],
     log: true,
   });
 };
-deployFunction.tags = ['Job'];
+deployFunction.tags = ['Keep3rJob'];
 deployFunction.dependencies = ['Swapper'];
 export default deployFunction;
