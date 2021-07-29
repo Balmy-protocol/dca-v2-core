@@ -1,5 +1,7 @@
 import { Wallet } from 'ethers';
+import { getAddress } from 'ethers/lib/utils';
 import { ethers, network } from 'hardhat';
+import { randomHex } from 'web3-utils';
 import { JsonRpcSigner } from '@ethersproject/providers';
 
 const impersonate = async (address: string): Promise<JsonRpcSigner> => {
@@ -14,9 +16,8 @@ const generateRandom = async () => {
   return wallet;
 };
 
-const generateRandomAddress = async () => {
-  const wallet = await Wallet.createRandom();
-  return wallet.address;
+export const generateRandomAddress = () => {
+  return getAddress(randomHex(20));
 };
 
 export default {
