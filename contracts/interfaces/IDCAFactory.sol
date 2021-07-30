@@ -29,7 +29,7 @@ interface IDCAFactoryPairsHandler {
   function globalParameters() external view returns (IDCAGlobalParameters);
 
   /// @notice Gets a pair by a set of tokens
-  /// @dev There will only exists one pair per token combination.
+  /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
   /// @param _tokenA first token of the pair
   /// @param _tokenB second token of the pair
   /// @return _pair Address of the pair if found
