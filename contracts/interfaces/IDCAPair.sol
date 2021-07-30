@@ -40,7 +40,7 @@ interface IDCAPairParameters {
 
   /// @notice Returns the amount of swaps executed for a certain interval
   /// @param _swapInterval The swap interval to check
-  /// @return _swaps The amount of performed swaps on the given interval
+  /// @return _swaps The amount of swaps performed on the given interval
   function performedSwaps(uint32 _swapInterval) external view returns (uint32 _swaps);
 }
 
@@ -165,13 +165,13 @@ interface IDCAPairSwapHandler {
 }
 
 /// @title The interface for all loan related matters in a DCA pair
-/// @notice These methods allow users to ask get how much is available for loans, and also to then execute them
+/// @notice These methods allow users to ask how much is available for loans, and also to execute them
 interface IDCAPairLoanHandler {
   /// @notice Emitted when a flash loan is executed
-  /// @param _sender The address the user that initiated the loan
+  /// @param _sender The address of the user that initiated the loan
   /// @param _to The address that received the loan
   /// @param _amountBorrowedTokenA How much was borrowed in token A
-  /// @param _amountBorrowedTokenB How much was borrowed in token A
+  /// @param _amountBorrowedTokenB How much was borrowed in token B
   /// @param _loanFee How much was charged as a fee
   event Loaned(address indexed _sender, address indexed _to, uint256 _amountBorrowedTokenA, uint256 _amountBorrowedTokenB, uint32 _loanFee);
 
