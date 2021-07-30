@@ -189,7 +189,7 @@ interface IDCAPairLoanHandler {
   /// @dev Will revert with InsufficientLiquidity if asked for more that reserves
   /// @param _amountToBorrowTokenA The amount to borrow in token A
   /// @param _amountToBorrowTokenB The amount to borrow in token B
-  /// @param _to Address that will receive the loan
+  /// @param _to Address that will receive the loan. This address should be a contract that implements IDCAPairLoanCallee
   /// @param _data Any data that should be passed through to the callback
   function loan(
     uint256 _amountToBorrowTokenA,
