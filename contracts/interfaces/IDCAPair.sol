@@ -4,23 +4,44 @@ pragma solidity 0.8.4;
 import './IDCAGlobalParameters.sol';
 import './IERC20Detailed.sol';
 
+/// @title The interface for all state related queries
+/// @notice These methods allow users to read the pair's current values
 interface IDCAPairParameters {
-  /* Public getters */
+  /// @notice Returns the global parameters contract
+  /// @dev Global parameters has information about swaps and pairs, like swap intervals, fees charged, etc.
+  /// @return The Global Parameters contract
   function globalParameters() external view returns (IDCAGlobalParameters);
 
+  /// @notice Returns the token A contract
+  /// @return The contract for token A
   function tokenA() external view returns (IERC20Detailed);
 
+  /// @notice Returns the token B contract
+  /// @return The contract for token B
   function tokenB() external view returns (IERC20Detailed);
 
+  /// @notice Returns how much will the amount to swap differ from the previous swap
+  /// @dev f.e. if the returned value is -100, then the amount to swap will be 100 less than the swap just before it
+  /// @param _swapInterval The swap interval to check
+  /// @param _from The 'from' token of the deposits
+  /// @param _swap The swap number to check
+  /// @return _delta How much will the amount to swap differ, when compared to the swap just before this one
   function swapAmountDelta(
-    uint32,
-    address,
-    uint32
-  ) external view returns (int256);
+    uint32 _swapInterval,
+    address _from,
+    uint32 _swap
+  ) external view returns (int256 _delta);
 
-  function isSwapIntervalActive(uint32) external view returns (bool);
+  /// @notice Returns if a certain swap interval is active or not
+  /// @dev We consider a swap interval to be active if there is at least one active position on that interval
+  /// @param _swapInterval The swap interval to check
+  /// @return _isActive Whether the given swap interval is currently active
+  function isSwapIntervalActive(uint32 _swapInterval) external view returns (bool _isActive);
 
-  function performedSwaps(uint32) external view returns (uint32);
+  /// @notice Returns the amount of swaps executed for a certain interval
+  /// @param _swapInterval The swap interval to check
+  /// @return _swaps The amount of performed swaps on the given interval
+  function performedSwaps(uint32 _swapInterval) external view returns (uint32 _swaps);
 }
 
 interface IDCAPairPositionHandler is IDCAPairParameters {
@@ -143,13 +164,33 @@ interface IDCAPairSwapHandler {
   function secondsUntilNextSwap() external view returns (uint32);
 }
 
+/// @title The interface for all loan related matters in a DCA pair
+/// @notice These methods allow users to ask get how much is available for loans, and also to then execute them
 interface IDCAPairLoanHandler {
+  /// @notice Emitted when a flash loan is executed
+  /// @param _sender The address the user that initiated the loan
+  /// @param _to The address that received the loan
+  /// @param _amountBorrowedTokenA How much was borrowed in token A
+  /// @param _amountBorrowedTokenB How much was borrowed in token A
+  /// @param _loanFee How much was charged as a fee
   event Loaned(address indexed _sender, address indexed _to, uint256 _amountBorrowedTokenA, uint256 _amountBorrowedTokenB, uint32 _loanFee);
 
+  // @notice Thrown when trying to execute a flash loan but without actually asking for tokens
   error ZeroLoan();
 
+  /// @notice Returns the amount of tokens that can be asked for during a flash loan
+  /// @return _amountToBorrowTokenA The amount of token A that is available for borrowing
+  /// @return _amountToBorrowTokenB The amount of token B that is available for borrowing
   function availableToBorrow() external view returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB);
 
+  /// @notice Executes a flash loan, sending the required amounts to the specified loan recipient
+  /// @dev Will revert with ZeroLoan if both _amountToBorrowTokenA & _amountToBorrowTokenB are 0
+  /// @dev Will revert with Paused if loans are paused by protocol
+  /// @dev Will revert with InsufficientLiquidity if asked for more that reserves
+  /// @param _amountToBorrowTokenA The amount to borrow in token A
+  /// @param _amountToBorrowTokenB The amount to borrow in token B
+  /// @param _to Address that will receive the loan
+  /// @param _data Any data that should be passed through to the callback
   function loan(
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
