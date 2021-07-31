@@ -6,15 +6,15 @@ import '../../interfaces/IDCASwapper.sol';
 
 contract DCASwapperMock {
   IDCASwapper.PairToSwap[] internal _lastCalled;
-  mapping(address => uint24) internal _bestFeeTiers;
+  mapping(address => bytes) internal _paths;
 
-  function bestFeeTierForSwap(address _pair) public view returns (uint24 _feeTier) {
-    _feeTier = _bestFeeTiers[address(_pair)];
+  function findBestSwap(address _pair) public view returns (bytes memory _path) {
+    _path = _paths[address(_pair)];
   }
 
-  function setPairsToSwap(address[] calldata _pairs, uint24[] calldata _feeTiers) external {
+  function setPairsToSwap(address[] calldata _pairs, bytes[] calldata __paths) external {
     for (uint256 i; i < _pairs.length; i++) {
-      _bestFeeTiers[_pairs[i]] = _feeTiers[i];
+      _paths[_pairs[i]] = __paths[i];
     }
   }
 
