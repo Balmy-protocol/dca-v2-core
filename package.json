@@ -10,9 +10,12 @@
     "dca"
   ],
   "homepage": "https://mean.finance",
+  "bugs": {
+    "url": "https://github.com/Mean-Finance/dca-v1/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mean-Finance/dca.git"
+    "url": "git+https://github.com/Mean-Finance/dca-v1.git"
   },
   "license": "BUSL-1.1",
   "files": [
@@ -93,6 +96,9 @@
     "ts-node": "10.1.0",
     "typescript": "4.3.5"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "authors": [
     {
       "name": "Alejo Amiras",
@@ -100,7 +106,8 @@
     },
     {
       "name": "Nicolás Chamo",
-      "url": "https://github.com/nchamo"
+      "url": "https://github.com/nchamo",
+      "email": "nchamo@mean.finance"
     }
   ]
 }
