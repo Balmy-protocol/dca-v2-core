@@ -210,6 +210,48 @@ describe('DCAKeep3rJob', () => {
     });
   });
 
+  describe('setDelay', () => {
+    const SWAP_INTERVAL = 10;
+    when('delay is set', () => {
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await DCAKeep3rJob.setDelay(SWAP_INTERVAL, 50);
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCAKeep3rJob, 'DelaySet').withArgs(SWAP_INTERVAL, 50);
+      });
+      then('the contract reports it so', async () => {
+        expect(await DCAKeep3rJob.delay(SWAP_INTERVAL)).to.equal(50);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAKeep3rJob,
+      funcAndSignature: 'setDelay',
+      params: [SWAP_INTERVAL, 50],
+      governor: () => owner,
+    });
+  });
+
+  describe('delay', () => {
+    const SWAP_INTERVAL = 10;
+    when('delay is set', () => {
+      given(async () => {
+        await DCAKeep3rJob.setDelay(SWAP_INTERVAL, 50);
+      });
+
+      then('the set value is reported correctly', async () => {
+        expect(await DCAKeep3rJob.delay(SWAP_INTERVAL)).to.equal(50);
+      });
+    });
+    when('no delay is set', () => {
+      then('the returned value is half of the interval', async () => {
+        expect(await DCAKeep3rJob.delay(SWAP_INTERVAL)).to.equal(SWAP_INTERVAL / 2);
+      });
+    });
+  });
+
   describe('workable', () => {
     const ADDRESS_3 = '0x0000000000000000000000000000000000000003';
 

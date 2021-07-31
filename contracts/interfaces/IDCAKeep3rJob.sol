@@ -11,6 +11,7 @@ interface IDCAKeep3rJob {
   event SwapperSet(IDCASwapper _swapper);
   event Keep3rV1Set(IKeep3rV1 _keep3rV1);
   event Worked(uint256 _amountSwapped);
+  event DelaySet(uint32 _swapInterval, uint32 _delay);
 
   error InvalidPairAddress();
   error PairNotSubsidized();
@@ -26,6 +27,8 @@ interface IDCAKeep3rJob {
 
   function swapper() external view returns (IDCASwapper);
 
+  function delay(uint32 _swapInterval) external view returns (uint32 _delay);
+
   /**
    * This method isn't a view and it is extremelly expensive and inefficient.
    * DO NOT call this method on-chain, it is for off-chain purposes only.
@@ -40,6 +43,8 @@ interface IDCAKeep3rJob {
   function startSubsidizingPairs(address[] calldata) external;
 
   function stopSubsidizingPairs(address[] calldata) external;
+
+  function setDelay(uint32 _swapInterval, uint32 _delay) external;
 
   /**
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped

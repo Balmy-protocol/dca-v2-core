@@ -16,6 +16,7 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
   IDCAFactory public immutable override factory;
   IDCASwapper public override swapper;
   IKeep3rV1 public override keep3rV1;
+  mapping(uint32 => uint32) internal _delay; // swap interval => delay
   EnumerableSet.AddressSet internal _subsidizedPairs;
 
   constructor(
@@ -63,6 +64,18 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     _pairs = new address[](_length);
     for (uint256 i; i < _length; i++) {
       _pairs[i] = _subsidizedPairs.at(i);
+    }
+  }
+
+  function setDelay(uint32 _swapInterval, uint32 __delay) external override onlyGovernor {
+    _delay[_swapInterval] = __delay;
+    emit DelaySet(_swapInterval, __delay);
+  }
+
+  function delay(uint32 _swapInterval) external view override returns (uint32 __delay) {
+    __delay = _delay[_swapInterval];
+    if (__delay == 0) {
+      __delay = _swapInterval / 2;
     }
   }
 
