@@ -286,30 +286,50 @@ describe('DCAKeep3rJob', () => {
         await DCAFactory.setAsPair(ADDRESS_1);
         await DCAFactory.setAsPair(ADDRESS_2);
         await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
-
-        await DCAKeep3rJob.connect(keeper).work(
-          [
-            [ADDRESS_1, BYTES_1],
-            [ADDRESS_2, BYTES_2],
-          ],
-          { gasPrice: 0 }
-        );
       });
 
-      then('job will call the swapper', async () => {
-        const lastCalled = await DCASwapper.lastCalled();
-        expect(lastCalled).to.eql([
-          [ADDRESS_1, utils.hexlify(BYTES_1)],
-          [ADDRESS_2, utils.hexlify(BYTES_2)],
-        ]);
+      context('but no pair was swapped', () => {
+        then('tx is reverted with reason error', async () => {
+          await behaviours.txShouldRevertWithMessage({
+            contract: DCAKeep3rJob,
+            func: 'work',
+            args: [
+              [
+                [ADDRESS_1, BYTES_1],
+                [ADDRESS_2, BYTES_2],
+              ],
+            ],
+            message: 'NotWorked',
+          });
+        });
       });
 
-      then('keep3r protocol gets consulted if worker is a keeper', () => {
-        expect(keep3r.smocked.isKeeper.calls[0]).to.eql([keeper.address]);
-      });
+      context('and pair were swapped', () => {
+        given(async () => {
+          await DCASwapper.setAmountSwapped(2);
+          await DCAKeep3rJob.connect(keeper).work(
+            [
+              [ADDRESS_1, BYTES_1],
+              [ADDRESS_2, BYTES_2],
+            ],
+            { gasPrice: 0 }
+          );
+        });
+        then('job will call the swapper', async () => {
+          const lastCalled = await DCASwapper.lastCalled();
+          expect(lastCalled).to.eql([
+            [ADDRESS_1, utils.hexlify(BYTES_1)],
+            [ADDRESS_2, utils.hexlify(BYTES_2)],
+          ]);
+        });
 
-      then('keep3r protocol gets notice of the work done by keeper', async () => {
-        expect(keep3r.smocked.worked.calls[0]).to.eql([keeper.address]);
+        then('keep3r protocol gets consulted if worker is a keeper', () => {
+          expect(keep3r.smocked.isKeeper.calls[0]).to.eql([keeper.address]);
+        });
+
+        then('keep3r protocol gets notice of the work done by keeper', async () => {
+          expect(keep3r.smocked.worked.calls[0]).to.eql([keeper.address]);
+        });
       });
     });
   });
