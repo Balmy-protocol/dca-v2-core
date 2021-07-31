@@ -84,9 +84,9 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     // Fill result array
     for (uint256 i; i < _length; i++) {
       IDCAPair _pair = IDCAPair(_subsidizedPairs.at(i));
-      bytes memory _encodedFeeTier = swapper.findBestSwap(_pair);
-      if (_encodedFeeTier.length > 0) {
-        _pairs[--_count] = IDCASwapper.PairToSwap({pair: _pair, swapPath: _encodedFeeTier});
+      bytes memory _swapPath = swapper.findBestSwap(_pair);
+      if (_swapPath.length > 0) {
+        _pairs[--_count] = IDCASwapper.PairToSwap({pair: _pair, swapPath: _swapPath});
       }
     }
   }
