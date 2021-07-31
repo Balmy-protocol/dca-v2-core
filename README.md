@@ -12,7 +12,7 @@ These contracts have not been audited yet, use at your own risk.
 
 ## 💰 Bug bounty
 
-This repository is subject to the DCA V1 bug bounty program, per the terms defined [here](./bug-bounty.md).
+This repository is subject to the DCA V1 bug bounty program, per the terms defined [here](./BUG_BOUNTY.md).
 
 # 📖 Docs
 
@@ -26,7 +26,13 @@ Documentations live under [docs.mean.finance](https://docs.mean.finance)
 cp .env.example .env
 ```
 
-- Fill with your network data
+- Enter your environment variables
+
+```bash
+nano .env
+```
+
+- Use `hardhat-deploy` plugin to deploy the contracts
 
 ```bash
 yarn deploy --network [network]
