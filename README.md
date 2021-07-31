@@ -6,11 +6,19 @@
 
 This repository contains all the smart contracts pertaining to DCA V1 Protocol.
 
-# Docs
+## ⚠️ Audit
 
-Documentations live under (docs.mean.finance)[https://docs.mean.finance]
+These contracts have not been audited yet, use at your own risk.
 
-# Remote deployment
+## 💰 Bug bounty
+
+This repository is subject to the DCA V1 bug bounty program, per the terms defined [here](./bug-bounty.md).
+
+# 📖 Docs
+
+Documentations live under [docs.mean.finance](https://docs.mean.finance)
+
+# 👨‍💻 Deployment
 
 - Copy environment file
 
