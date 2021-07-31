@@ -7,6 +7,7 @@ import { given, then, when } from '../../utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { smockit, MockContract } from '@eth-optimism/smock';
 import { abi as KEEP3R_ABI } from '../../../artifacts/contracts/interfaces/IKeep3rV1.sol/IKeep3rV1.json';
+import moment from 'moment';
 
 describe('DCAKeep3rJob', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
@@ -16,7 +17,7 @@ describe('DCAKeep3rJob', () => {
 
   let owner: SignerWithAddress;
   let DCAKeep3rJobContract: ContractFactory, DCAFactoryContract: ContractFactory;
-  let DCASwapperContract: ContractFactory;
+  let DCASwapperContract: ContractFactory, DCAPairContract: ContractFactory;
   let DCAKeep3rJob: Contract, DCAFactory: Contract;
   let DCASwapper: Contract;
   let keep3r: MockContract;
@@ -26,6 +27,7 @@ describe('DCAKeep3rJob', () => {
     DCAKeep3rJobContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAKeep3rJob.sol:DCAKeep3rJobMock');
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCASwapperMock.sol:DCASwapperMock');
     DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAFactoryMock.sol:DCAFactoryMock');
+    DCAPairContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAPairMock.sol:DCAPairMock');
     keep3r = await smockit(KEEP3R_ABI);
   });
 
@@ -253,43 +255,72 @@ describe('DCAKeep3rJob', () => {
   });
 
   describe('workable', () => {
-    const ADDRESS_3 = '0x0000000000000000000000000000000000000003';
+    let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
 
     given(async () => {
-      await DCAFactory.setAsPair(ADDRESS_1);
-      await DCAFactory.setAsPair(ADDRESS_2);
-      await DCAFactory.setAsPair(ADDRESS_3);
+      DCAPair1 = await DCAPairContract.deploy();
+      DCAPair2 = await DCAPairContract.deploy();
+      DCAPair3 = await DCAPairContract.deploy();
+      await DCAFactory.setAsPair(DCAPair1.address);
+      await DCAFactory.setAsPair(DCAPair2.address);
+      await DCAFactory.setAsPair(DCAPair3.address);
     });
 
     when('there are no pairs being subsidized', () => {
       then('empty list is returned', async () => {
-        const pairsToSwap = await DCAKeep3rJob.callStatic.workable();
+        const [pairsToSwap, intervals] = await DCAKeep3rJob.callStatic.workable();
         expect(pairsToSwap).to.be.empty;
+        expect(intervals).to.be.empty;
       });
     });
 
     when('pairs being subsidized should not be swaped', () => {
       given(async () => {
-        await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address, DCAPair2.address]);
         await DCASwapper.setPairsToSwap([], []);
       });
 
       then('empty list is returned', async () => {
-        const pairsToSwap = await DCAKeep3rJob.callStatic.workable();
+        const [pairsToSwap, intervals] = await DCAKeep3rJob.callStatic.workable();
         expect(pairsToSwap).to.be.empty;
+        expect(intervals).to.be.empty;
+      });
+    });
+
+    when('pairs being subsidized could be swapped but delay has not passed', () => {
+      const SWAP_INTERVAL = 60;
+      const TIMESTAMP = moment().unix();
+
+      given(async () => {
+        await DCAPair1.setNextSwapAvailable(SWAP_INTERVAL, TIMESTAMP);
+        await DCAPair1.setNextSwapInfo([SWAP_INTERVAL, SWAP_INTERVAL * 2]);
+        await DCASwapper.setPairsToSwap([DCAPair1.address], [BYTES_1]);
+        await DCAKeep3rJob.setBlockTimestamp(TIMESTAMP);
+        await DCAKeep3rJob.setDelay(SWAP_INTERVAL, 1);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address]);
+      });
+
+      then('empty list is returned', async () => {
+        const [pairsToSwap, intervals] = await DCAKeep3rJob.callStatic.workable();
+        expect(pairsToSwap).to.be.empty;
+        expect(intervals).to.be.empty;
       });
     });
 
     when('some of the pairs being subsidized should be swapped', () => {
+      const [SWAP_INTERVAL, SWAP_INTERVAL_2] = [60, 120];
       given(async () => {
-        await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2, ADDRESS_3]);
-        await DCASwapper.setPairsToSwap([ADDRESS_1, ADDRESS_3], [BYTES_1, BYTES_2]);
+        await DCAPair1.setNextSwapInfo([SWAP_INTERVAL, SWAP_INTERVAL_2]);
+        await DCAPair3.setNextSwapInfo([SWAP_INTERVAL_2]);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address]);
+        await DCASwapper.setPairsToSwap([DCAPair1.address, DCAPair3.address], [BYTES_1, BYTES_2]);
       });
 
       then('then they are returned', async () => {
-        const pairsToSwap: { pair: string; swapPath: string }[] = await DCAKeep3rJob.callStatic.workable();
-        expect(pairsToSwap.map(({ pair }) => pair)).to.eql([ADDRESS_3, ADDRESS_1]);
+        const [pairsToSwap, smallestIntervals]: [{ pair: string; swapPath: string }[], number[]] = await DCAKeep3rJob.callStatic.workable();
+        expect(pairsToSwap.map(({ pair }) => pair)).to.eql([DCAPair3.address, DCAPair1.address]);
         expect(pairsToSwap.map(({ swapPath }) => swapPath)).to.eql([utils.hexlify(BYTES_2), utils.hexlify(BYTES_1)]);
+        expect(smallestIntervals).to.eql([SWAP_INTERVAL_2, SWAP_INTERVAL]);
       });
     });
   });

@@ -33,7 +33,7 @@ interface IDCAKeep3rJob {
    * This method isn't a view and it is extremelly expensive and inefficient.
    * DO NOT call this method on-chain, it is for off-chain purposes only.
    */
-  function workable() external returns (IDCASwapper.PairToSwap[] memory);
+  function workable() external returns (IDCASwapper.PairToSwap[] memory, uint32[] memory);
 
   /* Public setters */
   function setKeep3rV1(IKeep3rV1 _keep3rV1) external;
@@ -49,6 +49,5 @@ interface IDCAKeep3rJob {
   /**
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
    */
-
   function work(IDCASwapper.PairToSwap[] calldata _pairs) external returns (uint256 _amountSwapped);
 }

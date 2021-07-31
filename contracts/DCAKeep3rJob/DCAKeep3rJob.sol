@@ -83,23 +83,30 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
    * This method isn't a view and it is extremelly expensive and inefficient.
    * DO NOT call this method on-chain, it is for off-chain purposes only.
    */
-  function workable() external override returns (IDCASwapper.PairToSwap[] memory _pairs) {
+  function workable() external override returns (IDCASwapper.PairToSwap[] memory _pairs, uint32[] memory _smallestIntervals) {
     uint256 _count;
     // Count how many pairs can be swapped
     uint256 _length = _subsidizedPairs.length();
     for (uint256 i; i < _length; i++) {
-      if (swapper.findBestSwap(IDCAPair(_subsidizedPairs.at(i))).length > 0) {
+      IDCAPair _pair = IDCAPair(_subsidizedPairs.at(i));
+      bytes memory _swapPath = swapper.findBestSwap(_pair);
+      uint32 _swapInterval = _getSmallestSwapInterval(_pair);
+      if (_swapPath.length > 0 && _hasDelayPassedAlready(_pair, _swapInterval)) {
         _count++;
       }
     }
     // Create result array with correct size
     _pairs = new IDCASwapper.PairToSwap[](_count);
+    _smallestIntervals = new uint32[](_count);
+
     // Fill result array
     for (uint256 i; i < _length; i++) {
       IDCAPair _pair = IDCAPair(_subsidizedPairs.at(i));
       bytes memory _swapPath = swapper.findBestSwap(_pair);
-      if (_swapPath.length > 0) {
+      uint32 _swapInterval = _getSmallestSwapInterval(_pair);
+      if (_swapPath.length > 0 && _hasDelayPassedAlready(_pair, _swapInterval)) {
         _pairs[--_count] = IDCASwapper.PairToSwap({pair: _pair, swapPath: _swapPath});
+        _smallestIntervals[_count] = _swapInterval;
       }
     }
   }
@@ -118,5 +125,23 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     if (_amountSwapped == 0) revert NotWorked();
     keep3rV1.worked(msg.sender);
     emit Worked(_amountSwapped);
+  }
+
+  function _hasDelayPassedAlready(IDCAPair _pair, uint32 _swapInterval) internal view returns (bool) {
+    uint32 _nextAvailable = _pair.nextSwapAvailable(_swapInterval);
+    return _getTimestamp() >= _nextAvailable + this.delay(_swapInterval);
+  }
+
+  function _getSmallestSwapInterval(IDCAPair _pair) internal view returns (uint32 _minSwapInterval) {
+    IDCAPair.NextSwapInformation memory _nextSwapInfo = _pair.getNextSwapInfo();
+    for (uint256 i; i < _nextSwapInfo.amountOfSwaps; i++) {
+      if (_minSwapInterval == 0 || _nextSwapInfo.swapsToPerform[i].interval < _minSwapInterval) {
+        _minSwapInterval = _nextSwapInfo.swapsToPerform[i].interval;
+      }
+    }
+  }
+
+  function _getTimestamp() internal view virtual returns (uint32) {
+    return uint32(block.timestamp);
   }
 }
