@@ -15,6 +15,7 @@ interface IDCAKeep3rJob {
   error InvalidPairAddress();
   error PairNotSubsidized();
   error NotAKeeper();
+  error NotWorked();
 
   /* Public getters */
   function subsidizedPairs() external view returns (address[] memory);
