@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 
 import './IDCAGlobalParameters.sol';
 import './IERC20Detailed.sol';
