@@ -1,12 +1,32 @@
-# DCA Pairs
+# DCA V1
 
-# TODO
+[![Lint](https://github.com/Mean-Finance/dca-v1/actions/workflows/lint.yml/badge.svg)](https://github.com/Mean-Finance/dca-v1/actions/workflows/lint.yml)
+[![Tests (unit, integration, e2e)](https://github.com/Mean-Finance/dca-v1/actions/workflows/tests.yml/badge.svg)](https://github.com/Mean-Finance/dca-v1/actions/workflows/tests.yml)
+[![npm version](https://img.shields.io/npm/v/@mean-finance/dca-v1/latest.svg)](https://www.npmjs.com/package/@mean-finance/dca-v1/v/latest)
 
-Improve README
+This repository contains all the smart contracts pertaining to DCA V1 Protocol.
+
+# Docs
+
+Documentations live under (docs.mean.finance)[https://docs.mean.finance]
+
+# Remote deployment
+
+- Copy environment file
+
+```bash
+cp .env.example .env
+```
+
+- Fill with your network data
+
+```bash
+yarn deploy --network [network]
+```
 
 ## Licensing
 
-The primary license for DCA Pairs is the Business Source License 1.1 (`BUSL-1.1`), see [`LICENSE`](./LICENSE).
+The primary license for DCA V1 is the Business Source License 1.1 (`BUSL-1.1`), see [`LICENSE`](./LICENSE).
 
 ### Exceptions
 
