@@ -17,6 +17,7 @@ interface IDCAKeep3rJob {
   error PairNotSubsidized();
   error NotAKeeper();
   error NotWorked();
+  error MustWaitDelay();
 
   /* Public getters */
   function subsidizedPairs() external view returns (address[] memory);
@@ -49,5 +50,5 @@ interface IDCAKeep3rJob {
   /**
    * Takes an array of swaps, and executes as many as possible, returning the amount that was swapped
    */
-  function work(IDCASwapper.PairToSwap[] calldata _pairs) external returns (uint256 _amountSwapped);
+  function work(IDCASwapper.PairToSwap[] calldata _pairs, uint32[] calldata _smallestIntervals) external returns (uint256 _amountSwapped);
 }

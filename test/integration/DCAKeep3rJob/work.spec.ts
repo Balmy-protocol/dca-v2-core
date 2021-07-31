@@ -98,8 +98,9 @@ contract('DCAKeep3rJob', () => {
   describe('work', () => {
     when("job doesn't have credits", () => {
       let workTx: Promise<TransactionResponse>;
-      given(() => {
-        workTx = DCAKeep3rJob.connect(keeper).work([[DCAPair.address, encodeFeeTier(3000)]]);
+      given(async () => {
+        const parameters = await DCAKeep3rJob.callStatic.workable();
+        workTx = DCAKeep3rJob.connect(keeper).work(...parameters);
       });
       then('tx is reverted with reason', async () => {
         await expect(workTx).to.be.revertedWith('workReceipt: insuffient funds');
@@ -113,7 +114,8 @@ contract('DCAKeep3rJob', () => {
       given(async () => {
         await keep3rV1.connect(keep3rGovernance).addKPRCredit(DCAKeep3rJob.address, initialCredits, { gasPrice: 0 });
         initialBonds = await keep3rV1.bonds(KEEPER_ADDRESS, KEEP3R_V1);
-        workTx = await DCAKeep3rJob.connect(keeper).work([[DCAPair.address, encodeFeeTier(3000)]]);
+        const parameters = await DCAKeep3rJob.callStatic.workable();
+        workTx = await DCAKeep3rJob.connect(keeper).work(...parameters);
       });
       then('credits of job get reduced', async () => {
         expect(await keep3rV1.credits(DCAKeep3rJob.address, KEEP3R_V1)).to.be.lt(initialCredits);
@@ -152,9 +154,5 @@ contract('DCAKeep3rJob', () => {
     await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, utils.parseEther('1'), { gasPrice: 0 });
     const currentPrice = await uniswapSwapRouter.connect(wethWhale).callStatic.exactInput(currentPriceParams, { gasPrice: 0 });
     return currentPrice;
-  }
-
-  function encodeFeeTier(feeTier: number) {
-    return ethers.utils.defaultAbiCoder.encode(['uint24'], [feeTier]);
   }
 });

@@ -326,7 +326,12 @@ describe('DCAKeep3rJob', () => {
   });
 
   describe('work', () => {
+    const SWAP_INTERVAL = 60;
+    let DCAPair1: Contract, DCAPair2: Contract;
+
     given(async () => {
+      DCAPair1 = await DCAPairContract.deploy();
+      DCAPair2 = await DCAPairContract.deploy();
       await keep3r.smocked.isKeeper.will.return.with(true);
     });
     when('not being called from a keeper', () => {
@@ -337,7 +342,7 @@ describe('DCAKeep3rJob', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAKeep3rJob,
           func: 'work',
-          args: [[[wallet.generateRandomAddress(), 1]]],
+          args: [[[wallet.generateRandomAddress(), 1]], [SWAP_INTERVAL]],
           message: 'NotAKeeper',
         });
       });
@@ -347,7 +352,7 @@ describe('DCAKeep3rJob', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAKeep3rJob,
           func: 'work',
-          args: [[[ADDRESS_1, 500]]],
+          args: [[[DCAPair1.address, 500]], [SWAP_INTERVAL]],
           message: 'PairNotSubsidized',
         });
       });
@@ -356,9 +361,9 @@ describe('DCAKeep3rJob', () => {
       let keeper: Wallet;
       given(async () => {
         keeper = await wallet.generateRandom();
-        await DCAFactory.setAsPair(ADDRESS_1);
-        await DCAFactory.setAsPair(ADDRESS_2);
-        await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
+        await DCAFactory.setAsPair(DCAPair1.address);
+        await DCAFactory.setAsPair(DCAPair2.address);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address, DCAPair2.address]);
       });
 
       context('but no pair was swapped', () => {
@@ -368,11 +373,30 @@ describe('DCAKeep3rJob', () => {
             func: 'work',
             args: [
               [
-                [ADDRESS_1, BYTES_1],
-                [ADDRESS_2, BYTES_2],
+                [DCAPair1.address, BYTES_1],
+                [DCAPair2.address, BYTES_2],
               ],
+              [SWAP_INTERVAL, SWAP_INTERVAL],
             ],
             message: 'NotWorked',
+          });
+        });
+      });
+
+      context('but delay has not passed', () => {
+        const TIMESTAMP = moment().unix();
+        given(async () => {
+          await DCAPair1.setNextSwapAvailable(SWAP_INTERVAL, TIMESTAMP);
+          await DCAKeep3rJob.setBlockTimestamp(TIMESTAMP);
+          await DCAKeep3rJob.setDelay(SWAP_INTERVAL, 1);
+        });
+
+        then('tx is reverted with reason error', async () => {
+          await behaviours.txShouldRevertWithMessage({
+            contract: DCAKeep3rJob,
+            func: 'work',
+            args: [[[DCAPair1.address, BYTES_1]], [SWAP_INTERVAL]],
+            message: 'MustWaitDelay',
           });
         });
       });
@@ -382,17 +406,18 @@ describe('DCAKeep3rJob', () => {
           await DCASwapper.setAmountSwapped(2);
           await DCAKeep3rJob.connect(keeper).work(
             [
-              [ADDRESS_1, BYTES_1],
-              [ADDRESS_2, BYTES_2],
+              [DCAPair1.address, BYTES_1],
+              [DCAPair2.address, BYTES_2],
             ],
+            [SWAP_INTERVAL, SWAP_INTERVAL],
             { gasPrice: 0 }
           );
         });
         then('job will call the swapper', async () => {
           const lastCalled = await DCASwapper.lastCalled();
           expect(lastCalled).to.eql([
-            [ADDRESS_1, utils.hexlify(BYTES_1)],
-            [ADDRESS_2, utils.hexlify(BYTES_2)],
+            [DCAPair1.address, utils.hexlify(BYTES_1)],
+            [DCAPair2.address, utils.hexlify(BYTES_2)],
           ]);
         });
 
