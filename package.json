@@ -1,20 +1,29 @@
 {
-  "name": "dca",
+  "name": "@mean-finance/dca-v1",
   "version": "0.0.0",
-  "description": "Decentralized cost averaging",
+  "description": "💱 Core smart contracts of DCA V1 by mean.finance",
   "keywords": [
     "ethereum",
     "smart",
     "contracts",
-    "test",
-    "solidity",
-    "hardhat"
+    "mean",
+    "dca"
   ],
+  "homepage": "https://mean.finance",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alejoamiras/dca-ts.git"
+    "url": "git+https://github.com/Mean-Finance/dca.git"
   },
   "license": "BUSL-1.1",
+  "files": [
+    "contracts",
+    "!contracts/mocks",
+    "artifacts/contracts/**/**/*.json",
+    "!artifacts/contracts/mocks/**/*.json",
+    "!artifacts/contracts/**/**/*.dbg.json",
+    "deployments",
+    "!deployments/localhost"
+  ],
   "scripts": {
     "compile": "npx hardhat compile",
     "sizer": "TEST=true hardhat compile && TEST=true npx hardhat size-contracts",
