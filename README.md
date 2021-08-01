@@ -14,11 +14,11 @@ These contracts have not been audited yet, use at your own risk.
 
 This repository is subject to the DCA V1 bug bounty program, per the terms defined [here](./BUG_BOUNTY.md).
 
-# 📖 Docs
+## 📖 Docs
 
 Documentations live under [docs.mean.finance](https://docs.mean.finance)
 
-# 👨‍💻 Deployment
+## 👨‍💻 Development environment
 
 - Copy environment file
 
@@ -26,17 +26,49 @@ Documentations live under [docs.mean.finance](https://docs.mean.finance)
 cp .env.example .env
 ```
 
-- Enter your environment variables
+- Fill environment file with your information
 
 ```bash
 nano .env
 ```
 
-- Use `hardhat-deploy` plugin to deploy the contracts
+## 🧪 Testing
+
+### Unit
+
+```bash
+yarn test:unit
+```
+
+Will run all tests under [/test/unit](./test/unit)
+
+### E2E
+
+```bash
+yarn test:e2e
+```
+
+Will run all tests under [/test/e2e](./test/e2e)
+
+### Integration
+
+You will need to set up the development environment first, please refer to the [development environment](#-development-environment) section.
+
+```bash
+yarn test:integration
+```
+
+Will run all tests under [/test/integration](./test/integration)
+
+## 🚢 Deployment
+
+You will need to set up the development environment first, please refer to the [development environment](#-development-environment) section.
 
 ```bash
 yarn deploy --network [network]
 ```
+
+The plugin `hardhat-deploy` is used to deploy contracts.
 
 ## Licensing
 
