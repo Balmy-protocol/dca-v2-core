@@ -119,8 +119,8 @@ contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, Col
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairSwapCall(
     address,
-    IERC20Detailed _tokenA,
-    IERC20Detailed _tokenB,
+    IERC20Metadata _tokenA,
+    IERC20Metadata _tokenB,
     uint256,
     uint256,
     bool _isRewardTokenA,

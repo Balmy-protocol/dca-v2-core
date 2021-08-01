@@ -10,8 +10,8 @@ contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
   struct LoanCall {
     address pair;
     address sender;
-    IERC20Detailed tokenA;
-    IERC20Detailed tokenB;
+    IERC20Metadata tokenA;
+    IERC20Metadata tokenB;
     uint256 amountBorrowedTokenA;
     uint256 amountBorrowedTokenB;
     uint256 feeTokenA;
@@ -34,8 +34,8 @@ contract DCAPairLoanCalleeMock is IDCAPairLoanCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairLoanCall(
     address _sender,
-    IERC20Detailed _tokenA,
-    IERC20Detailed _tokenB,
+    IERC20Metadata _tokenA,
+    IERC20Metadata _tokenB,
     uint256 _amountBorrowedTokenA,
     uint256 _amountBorrowedTokenB,
     uint256 _feeTokenA,
@@ -83,8 +83,8 @@ contract ReentrantDCAPairLoanCalleeMock is IDCAPairLoanCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairLoanCall(
     address,
-    IERC20Detailed,
-    IERC20Detailed,
+    IERC20Metadata,
+    IERC20Metadata,
     uint256,
     uint256,
     uint256,

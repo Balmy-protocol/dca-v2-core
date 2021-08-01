@@ -2,17 +2,17 @@
 pragma solidity ^0.8.6;
 pragma abicoder v2;
 
+import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
 import '../interfaces/IDCAPair.sol';
-import '../interfaces/IERC20Detailed.sol';
 import '../libraries/NFTDescriptor.sol';
 
 /// @title Describes NFT token positions
 /// @notice Produces a string containing the data URI for a JSON metadata string
 contract DCATokenDescriptor is IDCATokenDescriptor {
   function tokenURI(IDCAPairPositionHandler _positionHandler, uint256 _tokenId) external view override returns (string memory) {
-    IERC20Detailed _tokenA = _positionHandler.tokenA();
-    IERC20Detailed _tokenB = _positionHandler.tokenB();
+    IERC20Metadata _tokenA = _positionHandler.tokenA();
+    IERC20Metadata _tokenB = _positionHandler.tokenB();
     IDCAGlobalParameters _globalParameters = _positionHandler.globalParameters();
     IDCAPairPositionHandler.UserPosition memory _userPosition = _positionHandler.userPosition(_tokenId);
 

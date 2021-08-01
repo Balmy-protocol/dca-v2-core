@@ -37,8 +37,8 @@ contract DCAPairMock {
 
   function setNextSwapInfo(
     uint8 _amountOfSwaps,
-    IERC20Detailed _tokenToRewardSwapperWith,
-    IERC20Detailed _tokenToBeProvidedBySwapper,
+    IERC20Metadata _tokenToRewardSwapperWith,
+    IERC20Metadata _tokenToBeProvidedBySwapper,
     uint256 _amountToBeProvidedBySwapper,
     uint256 _amountToRewardSwapperWith
   ) external {

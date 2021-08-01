@@ -2,7 +2,6 @@
 pragma solidity ^0.8.6;
 
 import '@uniswap/v3-periphery/contracts/interfaces/IQuoterV2.sol';
-import '../../interfaces/IERC20Detailed.sol';
 
 contract QuoterMock {
   address public immutable factory;

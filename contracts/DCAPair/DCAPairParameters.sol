@@ -3,9 +3,9 @@ pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '../interfaces/IDCAGlobalParameters.sol';
-import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAPair.sol';
 import '../libraries/CommonErrors.sol';
 
@@ -21,8 +21,8 @@ abstract contract DCAPairParameters is IDCAPairParameters {
 
   // Basic setup
   IDCAGlobalParameters public override globalParameters;
-  IERC20Detailed public override tokenA;
-  IERC20Detailed public override tokenB;
+  IERC20Metadata public override tokenA;
+  IERC20Metadata public override tokenB;
 
   // Tracking
   mapping(uint32 => mapping(address => mapping(uint32 => int256))) public override swapAmountDelta; // swap interval => from token => swap number => delta
@@ -33,8 +33,8 @@ abstract contract DCAPairParameters is IDCAPairParameters {
 
   constructor(
     IDCAGlobalParameters _globalParameters,
-    IERC20Detailed _tokenA,
-    IERC20Detailed _tokenB
+    IERC20Metadata _tokenA,
+    IERC20Metadata _tokenB
   ) {
     if (address(_globalParameters) == address(0) || address(_tokenA) == address(0) || address(_tokenB) == address(0))
       revert CommonErrors.ZeroAddress();

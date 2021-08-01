@@ -2,8 +2,8 @@
 pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '../DCAPair/DCAPair.sol';
-import '../interfaces/IERC20Detailed.sol';
 import '../interfaces/IDCAFactory.sol';
 import '../interfaces/IDCAGlobalParameters.sol';
 import '../libraries/CommonErrors.sol';
@@ -47,7 +47,7 @@ abstract contract DCAFactoryPairsHandler is IDCAFactoryPairsHandler {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     if (_pairByTokens[__tokenA][__tokenB] != address(0)) revert PairAlreadyExists();
     globalParameters.oracle().addSupportForPair(__tokenA, __tokenB); // Note: this call will revert if the oracle doesn't support this particular pair
-    _pair = address(new DCAPair(globalParameters, IERC20Detailed(__tokenA), IERC20Detailed(__tokenB)));
+    _pair = address(new DCAPair(globalParameters, IERC20Metadata(__tokenA), IERC20Metadata(__tokenB)));
     _pairByTokens[__tokenA][__tokenB] = _pair;
     _allPairs.add(_pair);
     emit PairCreated(__tokenA, __tokenB, _pair);

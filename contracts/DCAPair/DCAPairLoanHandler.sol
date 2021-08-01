@@ -9,7 +9,7 @@ import '../libraries/CommonErrors.sol';
 import './DCAPairParameters.sol';
 
 abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCAPairLoanHandler {
-  using SafeERC20 for IERC20Detailed;
+  using SafeERC20 for IERC20Metadata;
 
   function availableToBorrow() external view override returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB) {
     _amountToBorrowTokenA = _balances[address(tokenA)];

@@ -10,8 +10,8 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
   struct SwapCall {
     address pair;
     address sender;
-    IERC20Detailed tokenA;
-    IERC20Detailed tokenB;
+    IERC20Metadata tokenA;
+    IERC20Metadata tokenB;
     uint256 amountBorrowedTokenA;
     uint256 amountBorrowedTokenB;
     bool isRewardTokenA;
@@ -36,8 +36,8 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairSwapCall(
     address _sender,
-    IERC20Detailed _tokenA,
-    IERC20Detailed _tokenB,
+    IERC20Metadata _tokenA,
+    IERC20Metadata _tokenB,
     uint256 _amountBorrowedTokenA,
     uint256 _amountBorrowedTokenB,
     bool _isRewardTokenA,
@@ -103,8 +103,8 @@ contract ReentrantDCAPairSwapCalleeMock is IDCAPairSwapCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairSwapCall(
     address,
-    IERC20Detailed,
-    IERC20Detailed,
+    IERC20Metadata,
+    IERC20Metadata,
     uint256,
     uint256,
     bool,

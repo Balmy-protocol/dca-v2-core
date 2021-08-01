@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.6;
 
+import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import './IDCAGlobalParameters.sol';
-import './IERC20Detailed.sol';
 
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the pair's current values
@@ -14,11 +14,11 @@ interface IDCAPairParameters {
 
   /// @notice Returns the token A contract
   /// @return The contract for token A
-  function tokenA() external view returns (IERC20Detailed);
+  function tokenA() external view returns (IERC20Metadata);
 
   /// @notice Returns the token B contract
   /// @return The contract for token B
-  function tokenB() external view returns (IERC20Detailed);
+  function tokenB() external view returns (IERC20Metadata);
 
   /// @notice Returns how much will the amount to swap differ from the previous swap
   /// @dev f.e. if the returned value is -100, then the amount to swap will be 100 less than the swap just before it
@@ -46,8 +46,8 @@ interface IDCAPairParameters {
 
 interface IDCAPairPositionHandler is IDCAPairParameters {
   struct UserPosition {
-    IERC20Detailed from;
-    IERC20Detailed to;
+    IERC20Metadata from;
+    IERC20Metadata to;
     uint32 swapInterval;
     uint32 swapsExecuted; // Since deposit or last withdraw
     uint256 swapped; // Since deposit or last withdraw
@@ -131,8 +131,8 @@ interface IDCAPairSwapHandler {
     uint256 platformFeeTokenB;
     uint256 amountToBeProvidedBySwapper;
     uint256 amountToRewardSwapperWith;
-    IERC20Detailed tokenToBeProvidedBySwapper;
-    IERC20Detailed tokenToRewardSwapperWith;
+    IERC20Metadata tokenToBeProvidedBySwapper;
+    IERC20Metadata tokenToRewardSwapperWith;
   }
 
   event Swapped(
