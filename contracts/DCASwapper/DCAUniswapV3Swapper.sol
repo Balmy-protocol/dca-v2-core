@@ -2,6 +2,9 @@
 pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/security/Pausable.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
@@ -9,6 +12,8 @@ import '../utils/CollectableDust.sol';
 import '../interfaces/IDCASwapper.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
+
+interface ICustomQuoter is IQuoter, IPeripheryImmutableState {}
 
 contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
   // solhint-disable-next-line var-name-mixedcase
