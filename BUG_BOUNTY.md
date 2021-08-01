@@ -8,7 +8,7 @@ We are limiting the scope of the Program to critical and high severity bugs, and
 
 ## Scope
 
-The scope of the Program is limited to bugs that result in the draining of contract funds.
+The scope of the Program is limited to bugs that result in the draining or locking of contract or user funds.
 
 The following are not within the scope of the Program:
 
