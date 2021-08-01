@@ -29,6 +29,7 @@
   ],
   "scripts": {
     "compile": "npx hardhat compile",
+    "deploy": "npx hardhat deploy",
     "sizer": "TEST=true hardhat compile && TEST=true npx hardhat size-contracts",
     "coverage": "npx hardhat coverage",
     "fork": "FORK=true npx hardhat node",
