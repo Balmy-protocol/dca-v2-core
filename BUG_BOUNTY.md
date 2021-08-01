@@ -31,7 +31,11 @@ Vulnerabilities contingent upon the occurrence of any of the following also are 
 DCA V1 was developed with the following assumptions, and thus any bug must also adhere to the following assumptions
 to be eligible for the bug bounty:
 
-- [ADD OUR ASSUMPTIONS]
+- `_getFeeFromAmount` in [DCAPairParameters.sol](./contracts/DCAPair/DCAPairParameters.sol) assumes an overflow can happen. Based on sample data we think the possibility of this happening is almost impossible (on normal usage).
+- `_calculateSwapped` in [DCAPairPositionHandler.sol](./contracts/DCAPair/DCAPairPositionHandler.sol) assumes an overflow can happen and will try to fail gracefully, saving the maximum amount of information.
+- `_addNewRatePerUnit` in [DCAPairSwapHandler.sol](./contracts/DCAPair/DCAPairSwapHandler.sol) assumes an overflow can happen. Based on sample data we think the possibility of this happening (before a protocol update) is almost impossible (on normal usage).
+- `_getAmountToSwap` in [DCAPairSwapHandler.sol](./contracts/DCAPair/DCAPairSwapHandler.sol) assumes an overflow can happen. Based on sample data we think the possibility of this happening (before a protocol update) is almost impossible (on normal usage).
+- `_convertTo` in [DCAPairSwapHandler.sol](./contracts/DCAPair/DCAPairSwapHandler.sol) assumes an overflow can happen. Based on sample data we think the possibility of this happening is almost impossible (on normal usage).
 - The `transfer` and `transferFrom` methods of any token strictly decrease the balance of the token sender by the transfer amount and increases the balance of token recipient by the transfer amount, i.e. fee on transfer tokens are excluded.
 - The token balance of an address can only change due to a call to `transfer` by the sender or `transferFrom` by an approved address, i.e. rebase tokens and interest bearing tokens are excluded.
 
