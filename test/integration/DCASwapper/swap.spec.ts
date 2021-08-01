@@ -58,14 +58,14 @@ contract('DCAUniswapV3Swapper', () => {
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);
 
-    await deployments.fixture(['Factory', 'Swapper']);
+    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper']);
 
     const namedAccounts = await getNamedAccounts();
     feeRecipient = namedAccounts.feeRecipient;
     const governorAddress = namedAccounts.governor;
     governor = await wallet.impersonate(governorAddress);
 
-    DCASwapper = await ethers.getContract('Swapper', governor);
+    DCASwapper = await ethers.getContract('DCAUniswapV3Swapper', governor);
     DCAFactory = await ethers.getContract('Factory');
     oracle = await ethers.getContract('UniswapOracle');
 

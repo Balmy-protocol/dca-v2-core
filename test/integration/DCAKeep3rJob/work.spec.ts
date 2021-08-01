@@ -61,14 +61,14 @@ contract('DCAKeep3rJob', () => {
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);
 
-    await deployments.fixture(['Factory', 'Swapper', 'Keep3rJob']);
+    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper', 'Keep3rJob']);
 
     const namedAccounts = await getNamedAccounts();
     feeRecipient = namedAccounts.feeRecipient;
     const governorAddress = namedAccounts.governor;
     governor = await wallet.impersonate(governorAddress);
 
-    DCASwapper = await ethers.getContract('Swapper', governor);
+    DCASwapper = await ethers.getContract('DCAUniswapV3Swapper', governor);
     DCAFactory = await ethers.getContract('Factory');
     DCAKeep3rJob = await ethers.getContract('Keep3rJob');
     keep3rV1 = await ethers.getContractAt('contracts/interfaces/IKeep3rV1.sol:IKeep3rV1', KEEP3R_V1);
