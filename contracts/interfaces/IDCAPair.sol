@@ -246,29 +246,56 @@ interface IDCAPairPositionHandler is IDCAPairParameters {
   function terminate(uint256 _dcaId) external;
 }
 
+/// @title The interface for all swap related matters in a DCA pair
+/// @notice These methods allow users to get information about the next swap, and how to execute it
 interface IDCAPairSwapHandler {
+  /// @notice Information about an available swap for a specific swap interval
   struct SwapInformation {
+    // The affected swap interval
     uint32 interval;
+    // The number of the swap that will be performed
     uint32 swapToPerform;
+    // The amount of token A that needs swapping
     uint256 amountToSwapTokenA;
+    // The amount of token B that needs swapping
     uint256 amountToSwapTokenB;
   }
 
+  /// @notice All information about the next swap
   struct NextSwapInformation {
+    // All swaps that can be executed
     SwapInformation[] swapsToPerform;
+    // How many entries of the swapsToPerform array are valid
     uint8 amountOfSwaps;
+    // How much can be borrowed in token A during a flash swap
     uint256 availableToBorrowTokenA;
+    // How much can be borrowed in token B during a flash swap
     uint256 availableToBorrowTokenB;
+    // How much 10**decimals(tokenB) is when converted to token A
     uint256 ratePerUnitBToA;
+    // How much 10**decimals(tokenA) is when converted to token B
     uint256 ratePerUnitAToB;
+    // How much token A will be sent to the platform in terms of fee
     uint256 platformFeeTokenA;
+    // How much token B will be sent to the platform in terms of fee
     uint256 platformFeeTokenB;
+    // The amount of tokens that need to be provided by the swapper
     uint256 amountToBeProvidedBySwapper;
+    // The amount of tokens that will be sent to the swapper optimistically
     uint256 amountToRewardSwapperWith;
+    // The token that needs to be provided by the swapper
     IERC20Metadata tokenToBeProvidedBySwapper;
+    // The token that will be sent to the swapper optimistically
     IERC20Metadata tokenToRewardSwapperWith;
   }
 
+  /// @notice Emitted when a swap is executed
+  /// @param _sender The address of the user that initiated the swap
+  /// @param _to The address that received the reward + loan
+  /// @param _amountBorrowedTokenA How much was borrowed in token A
+  /// @param _amountBorrowedTokenB How much was borrowed in token B
+  /// @param _fee How much was charged as a swap fee to position owners
+  /// @param _nextSwapInformation All information related to the swap
   event Swapped(
     address indexed _sender,
     address indexed _to,
@@ -278,16 +305,42 @@ interface IDCAPairSwapHandler {
     NextSwapInformation _nextSwapInformation
   );
 
+  /// @notice Thrown when trying to execute a swap, but none is available
   error NoSwapsToExecute();
 
-  function nextSwapAvailable(uint32) external view returns (uint32);
+  /// @notice Returns when the next swap will be available for a given swap interval
+  /// @param _swapInterval The swap interval to check
+  /// @return _when The moment when the next swap will be available. Take into account that if the swap is already available, this result could
+  /// be in the past
+  function nextSwapAvailable(uint32 _swapInterval) external view returns (uint32 _when);
 
-  function swapAmountAccumulator(uint32, address) external view returns (uint256);
+  /// @notice Returns the amount of tokens that needed swapping in the last swap, for all positions in the given swap interval that were deposited in the given token
+  /// @param _swapInterval The swap interval to check
+  /// @param _from The address of the token that all positions used to deposit
+  /// @return _amount The amount that needed swapping in the last swap
+  function swapAmountAccumulator(uint32 _swapInterval, address _from) external view returns (uint256);
 
+  /// @notice Returns all information related to the next swap
+  /// @return _nextSwapInformation The information about the next swap
   function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 
+  /// @notice Executes a swap
+  /// @dev This method assumes that the required amount has already been sent. Will revert with:
+  /// Paused if swaps are paused by protocol
+  /// NoSwapsToExecute if there are no swaps to execute
+  /// LiquidityNotReturned if the required tokens were not sent before calling the function
   function swap() external;
 
+  /// @notice Executes a flash swap
+  /// @dev Will revert with:
+  /// Paused if swaps are paused by protocol
+  /// NoSwapsToExecute if there are no swaps to execute
+  /// InsufficientLiquidity if asked to borrow more than the actual reserves
+  /// LiquidityNotReturned if the required tokens were not back during the callback
+  /// @param _amountToBorrowTokenA How much to borrow in token A
+  /// @param _amountToBorrowTokenB How much to borrow in token B
+  /// @param _to Address to send the reward + the borrowed tokens
+  /// @param _data Bytes to send to the caller during the callback. If this parameter is empty, the callback won't be executed
   function swap(
     uint256 _amountToBorrowTokenA,
     uint256 _amountToBorrowTokenB,
@@ -295,7 +348,9 @@ interface IDCAPairSwapHandler {
     bytes calldata _data
   ) external;
 
-  function secondsUntilNextSwap() external view returns (uint32);
+  /// @notice Returns how many seconds left until the next swap is available
+  /// @return _secondsUntilNextSwap The amount of seconds until next swap. Returns 0 if a swap can already be executed
+  function secondsUntilNextSwap() external view returns (uint32 _secondsUntilNextSwap);
 }
 
 /// @title The interface for all loan related matters in a DCA pair
