@@ -22,7 +22,7 @@ const FORK_BLOCK_NUMBER = 12851228;
 
 const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 
-const CALCULATE_FEE = (bn: BigNumber) => bn.mul(3).div(1000);
+const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
 contract('DCAUniswapV3Swapper', () => {
@@ -135,6 +135,7 @@ contract('DCAUniswapV3Swapper', () => {
         currentUniswapPrice = await pushPriceOfWETHUp();
         twapPrice = await oracle.quote(WETH.address, RATE, USDC.address);
         expect(twapPrice).to.be.lt(currentUniswapPrice, 'Didnt push the price of WETH up enough');
+        const { amountToBeProvidedBySwapper } = await DCAPair.getNextSwapInfo();
         await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, constants.MAX_UINT_256, { gasPrice: 0 });
         // This is approx since our call static is made in block T-1 and swap uses block T, so using quote is not accurate.
         // That is why also amountOut is hardcoded, and we are not using twapPrice
@@ -145,7 +146,7 @@ contract('DCAUniswapV3Swapper', () => {
             fee: 3000,
             recipient: wallet.generateRandomAddress(),
             deadline: moment().unix(),
-            amountOut: '190992690',
+            amountOut: amountToBeProvidedBySwapper,
             amountInMaximum: RATE,
             sqrtPriceLimitX96: 0,
           },

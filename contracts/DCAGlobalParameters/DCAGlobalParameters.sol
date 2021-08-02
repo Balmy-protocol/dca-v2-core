@@ -17,7 +17,7 @@ contract DCAGlobalParameters is IDCAGlobalParameters, AccessControl, Pausable {
   address public override feeRecipient;
   IDCATokenDescriptor public override nftDescriptor;
   ITimeWeightedOracle public override oracle;
-  uint32 public override swapFee = 3000; // 0.3%
+  uint32 public override swapFee = 6000; // 0.6%
   uint32 public override loanFee = 1000; // 0.1%
   uint24 public constant override FEE_PRECISION = 10000;
   uint32 public constant override MAX_FEE = 10 * FEE_PRECISION; // 10%

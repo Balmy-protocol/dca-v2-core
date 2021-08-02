@@ -68,6 +68,7 @@ contract('DCAPair', () => {
       await setInitialBalance(swapper1, { tokenA: 2000, tokenB: 2000 });
       await setInitialBalance(DCAPairSwapCallee, { tokenA: 500, tokenB: 500 });
       await setInitialBalance(DCAPairLoanCallee, { tokenA: 20, tokenB: 20 });
+      await setSwapFee(swapFee1);
     });
 
     it('Execute happy path', async () => {
