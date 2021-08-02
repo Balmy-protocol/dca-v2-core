@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import '../../interfaces/IERC20Detailed.sol';
 
 contract UniswapFactoryMock {
   mapping(address => mapping(address => mapping(uint24 => bool))) private _supportedPairs;

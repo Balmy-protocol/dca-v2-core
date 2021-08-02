@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/security/Pausable.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol';
+import '@uniswap/v3-periphery/contracts/interfaces/IPeripheryImmutableState.sol';
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
@@ -10,11 +13,13 @@ import '../interfaces/IDCASwapper.sol';
 import '../interfaces/IDCAPairSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
+interface ICustomQuoter is IQuoter, IPeripheryImmutableState {}
+
+contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
   // solhint-disable-next-line var-name-mixedcase
   uint24[] private _FEE_TIERS = [500, 3000, 10000];
-  ISwapRouter public immutable override swapRouter;
-  ICustomQuoter public immutable override quoter;
+  ISwapRouter public immutable swapRouter;
+  ICustomQuoter public immutable quoter;
 
   constructor(
     address _governor,
@@ -62,38 +67,42 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
   /**
    * This method isn't a view because the Uniswap quoter doesn't support view quotes.
    * Therefore, we highly recommend that this method is not called on-chain.
-   * This method will return 0 if the pair should not be swapped, and max(uint24) if there is no need to go to Uniswap
+   * This method will return an empty set of bytes if the pair should not be swapped, and encode(max(uint24)) if there is no need to go to Uniswap
    */
-  function bestFeeTierForSwap(IDCAPair _pair) external override returns (uint24 _feeTier) {
+  function findBestSwap(IDCAPair _pair) external override returns (bytes memory _swapPath) {
     IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
-    if (_nextSwapInformation.amountOfSwaps == 0) {
-      return 0;
-    } else if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
-      return type(uint24).max;
-    } else {
-      uint256 _minNecessary = 0;
-      for (uint256 i; i < _FEE_TIERS.length; i++) {
-        address _factory = quoter.factory();
-        address _pool = IUniswapV3Factory(_factory).getPool(
-          address(_nextSwapInformation.tokenToRewardSwapperWith),
-          address(_nextSwapInformation.tokenToBeProvidedBySwapper),
-          _FEE_TIERS[i]
-        );
-        if (_pool != address(0)) {
-          try
-            quoter.quoteExactOutputSingle(
-              address(_nextSwapInformation.tokenToRewardSwapperWith),
-              address(_nextSwapInformation.tokenToBeProvidedBySwapper),
-              _FEE_TIERS[i],
-              _nextSwapInformation.amountToBeProvidedBySwapper,
-              0
-            )
-          returns (uint256 _inputNecessary) {
-            if (_nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary && (_minNecessary == 0 || _inputNecessary < _minNecessary)) {
-              _minNecessary = _inputNecessary;
-              _feeTier = _FEE_TIERS[i];
-            }
-          } catch {}
+    if (_nextSwapInformation.amountOfSwaps > 0) {
+      if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
+        return abi.encode(type(uint24).max);
+      } else {
+        uint256 _minNecessary;
+        uint24 _feeTier;
+        for (uint256 i; i < _FEE_TIERS.length; i++) {
+          address _factory = quoter.factory();
+          address _pool = IUniswapV3Factory(_factory).getPool(
+            address(_nextSwapInformation.tokenToRewardSwapperWith),
+            address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+            _FEE_TIERS[i]
+          );
+          if (_pool != address(0)) {
+            try
+              quoter.quoteExactOutputSingle(
+                address(_nextSwapInformation.tokenToRewardSwapperWith),
+                address(_nextSwapInformation.tokenToBeProvidedBySwapper),
+                _FEE_TIERS[i],
+                _nextSwapInformation.amountToBeProvidedBySwapper,
+                0
+              )
+            returns (uint256 _inputNecessary) {
+              if (_nextSwapInformation.amountToRewardSwapperWith >= _inputNecessary && (_minNecessary == 0 || _inputNecessary < _minNecessary)) {
+                _minNecessary = _inputNecessary;
+                _feeTier = _FEE_TIERS[i];
+              }
+            } catch {}
+          }
+        }
+        if (_feeTier > 0) {
+          _swapPath = abi.encode(_feeTier);
         }
       }
     }
@@ -101,7 +110,7 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
 
   function _swap(PairToSwap memory _pair) internal {
     // Execute the swap, making myself the callee so that the `DCAPairSwapCall` function is called
-    _pair.pair.swap(0, 0, address(this), abi.encode(_pair.bestFeeTier));
+    _pair.pair.swap(0, 0, address(this), _pair.swapPath);
   }
 
   function sendDust(
@@ -115,8 +124,8 @@ contract DCASwapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableD
   // solhint-disable-next-line func-name-mixedcase
   function DCAPairSwapCall(
     address,
-    IERC20Detailed _tokenA,
-    IERC20Detailed _tokenB,
+    IERC20Metadata _tokenA,
+    IERC20Metadata _tokenB,
     uint256,
     uint256,
     bool _isRewardTokenA,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 pragma abicoder v2;
 
 import '../../DCAPair/DCAPairSwapHandler.sol';
@@ -14,8 +14,8 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
   uint8 private _swapsToPerformLength;
 
   constructor(
-    IERC20Detailed _tokenA,
-    IERC20Detailed _tokenB,
+    IERC20Metadata _tokenA,
+    IERC20Metadata _tokenB,
     IDCAGlobalParameters _globalParameters
   ) DCAPairParametersMock(_globalParameters, _tokenA, _tokenB) DCAPairSwapHandler() {
     /* */

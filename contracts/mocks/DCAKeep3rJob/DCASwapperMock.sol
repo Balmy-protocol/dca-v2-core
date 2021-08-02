@@ -1,28 +1,33 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 
 import '../../interfaces/IDCASwapper.sol';
 
 contract DCASwapperMock {
   IDCASwapper.PairToSwap[] internal _lastCalled;
-  mapping(address => uint24) internal _bestFeeTiers;
+  mapping(address => bytes) internal _paths;
+  uint256 internal _amountSwapped;
 
-  function bestFeeTierForSwap(address _pair) public view returns (uint24 _feeTier) {
-    _feeTier = _bestFeeTiers[address(_pair)];
+  function findBestSwap(address _pair) public view returns (bytes memory _path) {
+    _path = _paths[address(_pair)];
   }
 
-  function setPairsToSwap(address[] calldata _pairs, uint24[] calldata _feeTiers) external {
+  function setPairsToSwap(address[] calldata _pairs, bytes[] calldata __paths) external {
     for (uint256 i; i < _pairs.length; i++) {
-      _bestFeeTiers[_pairs[i]] = _feeTiers[i];
+      _paths[_pairs[i]] = __paths[i];
     }
   }
 
-  function swapPairs(IDCASwapper.PairToSwap[] calldata _pairsToSwap) external returns (uint256 _amountSwapped) {
+  function setAmountSwapped(uint256 __amountSwapped) external {
+    _amountSwapped = __amountSwapped;
+  }
+
+  function swapPairs(IDCASwapper.PairToSwap[] calldata _pairsToSwap) external returns (uint256 __amountSwapped) {
     for (uint256 i; i < _pairsToSwap.length; i++) {
       _lastCalled.push(_pairsToSwap[i]);
     }
-    _amountSwapped = 20;
+    __amountSwapped = _amountSwapped;
   }
 
   function lastCalled() external view returns (IDCASwapper.PairToSwap[] memory __lastCalled) {

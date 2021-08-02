@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 
 import '../../DCAPair/DCAPairParameters.sol';
 
@@ -9,8 +9,8 @@ contract DCAPairParametersMock is DCAPairParameters {
 
   constructor(
     IDCAGlobalParameters _globalParameters,
-    IERC20Detailed _tokenA,
-    IERC20Detailed _tokenB
+    IERC20Metadata _tokenA,
+    IERC20Metadata _tokenB
   ) DCAPairParameters(_globalParameters, _tokenA, _tokenB) {}
 
   // Mocks setters

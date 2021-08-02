@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 pragma abicoder v2;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
@@ -10,7 +10,7 @@ import '../libraries/CommonErrors.sol';
 import './DCAPairParameters.sol';
 
 abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCAPairSwapHandler {
-  using SafeERC20 for IERC20Detailed;
+  using SafeERC20 for IERC20Metadata;
   using EnumerableSet for EnumerableSet.UintSet;
 
   mapping(uint32 => mapping(address => uint256)) public override swapAmountAccumulator; // swap interval => from token => swap amount accum

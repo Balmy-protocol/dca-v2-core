@@ -65,12 +65,12 @@ abstract contract Governable is IGovernable {
     return _account == _pendingGovernor;
   }
 
-  modifier onlyGovernor {
+  modifier onlyGovernor() {
     require(isGovernor(msg.sender), 'Governable: only governor');
     _;
   }
 
-  modifier onlyPendingGovernor {
+  modifier onlyPendingGovernor() {
     require(isPendingGovernor(msg.sender), 'Governable: only pending governor');
     _;
   }

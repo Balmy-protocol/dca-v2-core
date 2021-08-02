@@ -9,6 +9,7 @@ import 'hardhat-deploy';
 import 'solidity-coverage';
 import { HardhatUserConfig, NetworksUserConfig } from 'hardhat/types';
 import { getNodeUrl, accounts } from './utils/network';
+import { utils } from 'ethers';
 
 const networks: NetworksUserConfig = process.env.TEST
   ? {}
@@ -35,7 +36,7 @@ const networks: NetworksUserConfig = process.env.TEST
       rinkeby: {
         url: getNodeUrl('rinkeby'),
         accounts: accounts('rinkeby'),
-        gasPrice: 'auto',
+        gasPrice: utils.parseUnits('1.5', 'gwei').toNumber(),
         tags: ['staging'],
       },
       mainnet: {
@@ -57,11 +58,16 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.4',
+        version: '0.8.6',
         settings: {
           optimizer: {
             enabled: true,
             runs: 200,
+          },
+          outputSelection: {
+            '*': {
+              '*': ['storageLayout'],
+            },
           },
         },
       },

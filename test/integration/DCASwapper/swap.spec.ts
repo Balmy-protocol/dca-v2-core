@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { JsonRpcSigner } from '@ethersproject/providers';
-import { BigNumber, Contract, utils } from 'ethers';
+import { BigNumber, BytesLike, Contract, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { abi as IERC20_ABI } from '@openzeppelin/contracts/build/contracts/IERC20.json';
 import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
@@ -22,10 +22,10 @@ const FORK_BLOCK_NUMBER = 12851228;
 
 const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 
-const CALCULATE_FEE = (bn: BigNumber) => bn.mul(3).div(1000);
+const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
-contract('DCASwapper', () => {
+contract('DCAUniswapV3Swapper', () => {
   let DCASwapper: Contract;
   let DCAFactory: Contract;
   let DCAPair: Contract;
@@ -58,14 +58,14 @@ contract('DCASwapper', () => {
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);
 
-    await deployments.fixture(['Factory', 'Swapper']);
+    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper']);
 
     const namedAccounts = await getNamedAccounts();
     feeRecipient = namedAccounts.feeRecipient;
     const governorAddress = namedAccounts.governor;
     governor = await wallet.impersonate(governorAddress);
 
-    DCASwapper = await ethers.getContract('Swapper', governor);
+    DCASwapper = await ethers.getContract('DCAUniswapV3Swapper', governor);
     DCAFactory = await ethers.getContract('Factory');
     oracle = await ethers.getContract('UniswapOracle');
 
@@ -93,14 +93,13 @@ contract('DCASwapper', () => {
         await USDC.connect(alice).approve(DCAPair.address, usdcNeeded);
         await DCAPair.connect(alice).deposit(USDC.address, usdcNeeded, 1, INTERVAL);
       });
-      then('bestFeeTier returns max(uint24)', async () => {
-        const bestFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
-
-        expect(bestFeeTier).to.equal(BigNumber.from(2).pow(24).sub(1));
+      then('findBestSwap returns max(uint24)', async () => {
+        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        expect(decodeFeeTier(result)).to.equal(BigNumber.from(2).pow(24).sub(1));
       }).retries(5);
       describe('swap', () => {
         given(async () => {
-          await DCASwapper.swapPairs([[DCAPair.address, 3000]]);
+          await DCASwapper.swapPairs([[DCAPair.address, encodeFeeTier(3000)]]);
         });
         then('swap is executed', async () => {
           expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
@@ -118,13 +117,12 @@ contract('DCASwapper', () => {
         await pushPriceOfWETHDown(3000);
         await pushPriceOfWETHDown(10000);
       });
-      then('bestFeeTier returns 0', async () => {
-        const bestFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
-
-        expect(bestFeeTier).to.equal(0);
+      then('findBestSwap returns empty', async () => {
+        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        expect(result).to.equal('0x');
       });
       then('swap gets reverted', async () => {
-        const swapPairsTx = DCASwapper.connect(governor).swapPairs([[DCAPair.address, 3000]], { gasPrice: 0 });
+        const swapPairsTx = DCASwapper.connect(governor).swapPairs([[DCAPair.address, encodeFeeTier(3000)]], { gasPrice: 0 });
         await expect(swapPairsTx).to.be.reverted;
       });
     });
@@ -137,6 +135,7 @@ contract('DCASwapper', () => {
         currentUniswapPrice = await pushPriceOfWETHUp();
         twapPrice = await oracle.quote(WETH.address, RATE, USDC.address);
         expect(twapPrice).to.be.lt(currentUniswapPrice, 'Didnt push the price of WETH up enough');
+        const { amountToBeProvidedBySwapper } = await DCAPair.getNextSwapInfo();
         await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, constants.MAX_UINT_256, { gasPrice: 0 });
         // This is approx since our call static is made in block T-1 and swap uses block T, so using quote is not accurate.
         // That is why also amountOut is hardcoded, and we are not using twapPrice
@@ -147,20 +146,20 @@ contract('DCASwapper', () => {
             fee: 3000,
             recipient: wallet.generateRandomAddress(),
             deadline: moment().unix(),
-            amountOut: '190992690',
+            amountOut: amountToBeProvidedBySwapper,
             amountInMaximum: RATE,
             sqrtPriceLimitX96: 0,
           },
           { gasPrice: 0 }
         );
       });
-      then('best fee tier is 3000', async () => {
-        const bestFeeTier = await DCASwapper.callStatic.bestFeeTierForSwap(DCAPair.address);
-        expect(bestFeeTier).to.equal(3000);
+      then('findBestSwap returns 3000', async () => {
+        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        expect(decodeFeeTier(result)).to.equal(3000);
       });
       describe('swap', () => {
         given(async () => {
-          await DCASwapper.connect(governor).swapPairs([[DCAPair.address, 3000]], { gasPrice: 0 });
+          await DCASwapper.connect(governor).swapPairs([[DCAPair.address, encodeFeeTier(3000)]], { gasPrice: 0 });
         });
         then('swap is executed', async () => {
           expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
@@ -227,5 +226,13 @@ contract('DCASwapper', () => {
     };
     await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, utils.parseEther('1'), { gasPrice: 0 });
     return uniswapSwapRouter.connect(wethWhale).callStatic.exactInput(currentPriceParams, { gasPrice: 0 });
+  }
+
+  function encodeFeeTier(feeTier: number) {
+    return ethers.utils.defaultAbiCoder.encode(['uint24'], [feeTier]);
+  }
+
+  function decodeFeeTier<T>(data: BytesLike): T {
+    return ethers.utils.defaultAbiCoder.decode(['uint24'], data)[0];
   }
 });

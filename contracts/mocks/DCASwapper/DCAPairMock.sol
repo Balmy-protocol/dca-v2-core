@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.4;
+pragma solidity ^0.8.6;
 
 import '../../interfaces/IDCAPair.sol';
 
@@ -37,8 +37,8 @@ contract DCAPairMock {
 
   function setNextSwapInfo(
     uint8 _amountOfSwaps,
-    IERC20Detailed _tokenToRewardSwapperWith,
-    IERC20Detailed _tokenToBeProvidedBySwapper,
+    IERC20Metadata _tokenToRewardSwapperWith,
+    IERC20Metadata _tokenToBeProvidedBySwapper,
     uint256 _amountToBeProvidedBySwapper,
     uint256 _amountToRewardSwapperWith
   ) external {
