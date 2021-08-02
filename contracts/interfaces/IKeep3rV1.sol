@@ -3,6 +3,7 @@ pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
+/// @title The interface for Keep3r network
 interface IKeep3rV1 is IERC20 {
   function name() external returns (string memory);
 
