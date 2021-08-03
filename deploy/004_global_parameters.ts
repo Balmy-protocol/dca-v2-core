@@ -12,7 +12,7 @@ const INTERVALS = [
   moment.duration('1', 'week').as('seconds'),
   moment.duration('1', 'month').as('seconds'),
 ];
-const DESCRIPTIONS = ['daily', 'weekly', 'monthly'];
+const DESCRIPTIONS = ['Daily', 'Weekly', 'Monthly'];
 
 const deployFunction: GlobalParametersDeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor, feeRecipient } = await hre.getNamedAccounts();
