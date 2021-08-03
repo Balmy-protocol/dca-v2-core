@@ -19,13 +19,14 @@
   },
   "license": "BUSL-1.1",
   "files": [
-    "contracts",
-    "!contracts/mocks",
-    "artifacts/contracts/**/**/*.json",
-    "!artifacts/contracts/mocks/**/*.json",
+    "contracts/libraries",
+    "contracts/interfaces",
+    "artifacts/contracts/interfaces/**/*.json",
+    "artifacts/contracts/libraries/**/*.json",
     "!artifacts/contracts/**/**/*.dbg.json",
     "deployments",
-    "!deployments/localhost"
+    "!deployments/localhost",
+    "!.env"
   ],
   "scripts": {
     "compile": "npx hardhat compile",
