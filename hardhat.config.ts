@@ -30,7 +30,6 @@ const networks: NetworksUserConfig = process.env.TEST
       kovan: {
         url: getNodeUrl('kovan'),
         accounts: accounts('kovan'),
-        gasPrice: 'auto',
         tags: ['staging'],
       },
       rinkeby: {
