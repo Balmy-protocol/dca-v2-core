@@ -1,5 +1,6 @@
 # General
 workspace.code-workspace
+CHANGELOG.md
 .DS_STORE
 .prettierignore
 .solhintignore
