@@ -18,6 +18,20 @@ This repository is subject to the DCA V1 bug bounty program, per the terms defin
 
 Documentations live under [docs.mean.finance](https://docs.mean.finance)
 
+## 📦 NPM/YARN Package
+
+- NPM Installation
+
+```bash
+npm --save-dev --save-exact @mean-finance/dca-v1
+```
+
+- Yarn installation
+
+```bash
+yarn add --dev --exact @mean-finance/dca-v1
+```
+
 ## 👨‍💻 Development environment
 
 - Copy environment file
