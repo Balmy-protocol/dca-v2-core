@@ -27,11 +27,6 @@ const networks: NetworksUserConfig = process.env.TEST
         accounts: accounts('localhost'),
         tags: ['local'],
       },
-      kovan: {
-        url: getNodeUrl('kovan'),
-        accounts: accounts('kovan'),
-        tags: ['staging'],
-      },
       rinkeby: {
         url: getNodeUrl('rinkeby'),
         accounts: accounts('rinkeby'),
@@ -40,6 +35,16 @@ const networks: NetworksUserConfig = process.env.TEST
       ropsten: {
         url: getNodeUrl('ropsten'),
         accounts: accounts('ropsten'),
+        tags: ['staging'],
+      },
+      kovan: {
+        url: getNodeUrl('kovan'),
+        accounts: accounts('kovan'),
+        tags: ['staging'],
+      },
+      goerli: {
+        url: getNodeUrl('goerli'),
+        accounts: accounts('goerli'),
         tags: ['staging'],
       },
       mainnet: {
