@@ -50,7 +50,6 @@ const networks: NetworksUserConfig = process.env.TEST
       mainnet: {
         url: getNodeUrl('mainnet'),
         accounts: accounts('mainnet'),
-        gasPrice: 'auto',
         tags: ['production'],
       },
     };
