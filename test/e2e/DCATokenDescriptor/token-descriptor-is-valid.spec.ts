@@ -60,7 +60,7 @@ contract('DCATokenDescriptor', () => {
 
   it('Validate tokenURI result', async () => {
     // Deposit
-    const response = await DCAPair.deposit(tokenA.address, tokenA.asUnits(10), 20, swapInterval);
+    const response = await DCAPair.deposit(tokenA.address, tokenA.asUnits(10), 2, swapInterval);
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
 
     // Execute one swap
@@ -68,14 +68,28 @@ contract('DCATokenDescriptor', () => {
     await DCAPair['swap()']();
 
     // Get token uri
-    const result = await DCAPair.tokenURI(tokenId);
-    const { name, description, image } = extractJSONFromURI(result);
+    const result1 = await DCAPair.tokenURI(tokenId);
+    const { name: name1, description: description1, image: image1 } = extractJSONFromURI(result1);
 
-    expect(name).to.equal('Mean Finance DCA - Daily - TKNA/TKNB');
-    expect(description).to.equal(
+    expect(name1).to.equal('Mean Finance DCA - Daily - TKNA/TKNB');
+    expect(description1).to.equal(
       `This NFT represents a position in a Mean Finance DCA TKNA-TKNB pair. The owner of this NFT can modify or redeem the position.\n\nPair Address: ${DCAPair.address.toLowerCase()}\nTKNA Address: ${tokenA.address.toLowerCase()}\nTKNB Address: ${tokenB.address.toLowerCase()}\nSwap interval: Daily\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
     );
-    expect(isValidSvgImage(image)).to.be.true;
+    expect(isValidSvgImage(image1)).to.be.true;
+
+    // Execute the last swap and withdraw
+    await evm.advanceTimeAndBlock(swapInterval);
+    await tokenB.transfer(DCAPair.address, tokenB.asUnits(20));
+    await DCAPair['swap()']();
+    await DCAPair.withdrawSwapped(tokenId);
+
+    // Get token uri
+    const result2 = await DCAPair.tokenURI(tokenId);
+    const { name: name2, description: description2, image: image2 } = extractJSONFromURI(result2);
+
+    expect(name2).to.equal(name1);
+    expect(description2).to.equal(description1);
+    expect(isValidSvgImage(image2)).to.be.true;
   });
 
   function isValidSvgImage(base64: string) {

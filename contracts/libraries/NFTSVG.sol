@@ -104,7 +104,7 @@ library NFTSVG {
   }
 
   function _generageSVGProgressArea(uint32 _swapsExecuted, uint32 _swapsLeft) private pure returns (string memory svg) {
-    uint256 _positionNow = 170 + ((314 - 170) / (_swapsExecuted + _swapsLeft)) * _swapsExecuted;
+    uint256 _positionNow = _swapsExecuted + _swapsLeft > 0 ? 170 + ((314 - 170) / (_swapsExecuted + _swapsLeft)) * _swapsExecuted : 170;
     svg = string(
       abi.encodePacked(
         '<rect x="16" y="16" width="258" height="528" rx="26" ry="26" fill="rgba(0,0,0,0)" stroke="rgba(255,255,255,0.2)" />',
