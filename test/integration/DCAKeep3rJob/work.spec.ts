@@ -61,7 +61,7 @@ contract('DCAKeep3rJob', () => {
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);
 
-    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper', 'Keep3rJob']);
+    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper', 'Keep3rJob'], { keepExistingDeployments: false });
 
     const namedAccounts = await getNamedAccounts();
     feeRecipient = namedAccounts.feeRecipient;
