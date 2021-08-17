@@ -50,16 +50,7 @@ library NFTDescriptor {
           'data:application/json;base64,',
           Base64.encode(
             bytes(
-              abi.encodePacked(
-                '{"name":"',
-                _name,
-                '", "description":"',
-                _description,
-                '", "image": "',
-                'data:image/svg+xml;base64,',
-                _image,
-                '"}'
-              )
+              abi.encodePacked('{"name":"', _name, '", "description":"', _description, '", "image": "data:image/svg+xml;base64,', _image, '"}')
             )
           )
         )
@@ -69,7 +60,7 @@ library NFTDescriptor {
   function _escapeQuotes(string memory _symbol) private pure returns (string memory) {
     bytes memory symbolBytes = bytes(_symbol);
     uint8 quotesCount = 0;
-    for (uint8 i = 0; i < symbolBytes.length; i++) {
+    for (uint256 i = 0; i < symbolBytes.length; i++) {
       if (symbolBytes[i] == '"') {
         quotesCount++;
       }
@@ -77,7 +68,7 @@ library NFTDescriptor {
     if (quotesCount > 0) {
       bytes memory escapedBytes = new bytes(symbolBytes.length + (quotesCount));
       uint256 index;
-      for (uint8 i = 0; i < symbolBytes.length; i++) {
+      for (uint256 i = 0; i < symbolBytes.length; i++) {
         if (symbolBytes[i] == '"') {
           escapedBytes[index++] = '\\';
         }
@@ -103,9 +94,7 @@ library NFTDescriptor {
         _escapeQuotes(_tokenASymbol),
         '-',
         _escapeQuotes(_tokenBSymbol),
-        ' pair. ',
-        'The owner of this NFT can modify or redeem the position.\\n',
-        '\\nPair Address: ',
+        ' pair. The owner of this NFT can modify or redeem the position.\\n\\nPair Address: ',
         _pairAddress,
         '\\n',
         _escapeQuotes(_tokenASymbol)
@@ -231,21 +220,21 @@ library NFTDescriptor {
     DecimalStringParams memory params;
     if (priceBelow1) {
       // 7 bytes ( "0." and 5 sigfigs) + leading 0's bytes
-      params.bufferLength = uint8(digits >= 5 ? decimals - digits + 6 : decimals + 2);
+      params.bufferLength = digits >= 5 ? decimals - digits + 6 : decimals + 2;
       params.zerosStartIndex = 2;
-      params.zerosEndIndex = uint8(decimals - digits + 1);
-      params.sigfigIndex = uint8(params.bufferLength - 1);
+      params.zerosEndIndex = decimals - digits + 1;
+      params.sigfigIndex = params.bufferLength - 1;
     } else if (digits >= decimals + 4) {
       // no decimal in price string
-      params.bufferLength = uint8(digits - decimals + 1);
+      params.bufferLength = digits - decimals + 1;
       params.zerosStartIndex = 5;
-      params.zerosEndIndex = uint8(params.bufferLength - 1);
+      params.zerosEndIndex = params.bufferLength - 1;
       params.sigfigIndex = 4;
     } else {
       // 5 sigfigs surround decimal
       params.bufferLength = 6;
       params.sigfigIndex = 5;
-      params.decimalIndex = uint8(digits - decimals + 1);
+      params.decimalIndex = digits - decimals + 1;
     }
     params.sigfigs = sigfigs;
     params.isLessThanOne = priceBelow1;
