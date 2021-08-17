@@ -24,6 +24,7 @@
     "artifacts/contracts/interfaces/**/*.json",
     "artifacts/contracts/libraries/**/*.json",
     "!artifacts/contracts/**/**/*.dbg.json",
+    "typechained",
     "deployments",
     "!deployments/localhost",
     "!.env"
