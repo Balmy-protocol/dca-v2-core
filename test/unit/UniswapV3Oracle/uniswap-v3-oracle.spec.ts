@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours, constants } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { behaviours, constants } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('UniswapV3Oracle', () => {

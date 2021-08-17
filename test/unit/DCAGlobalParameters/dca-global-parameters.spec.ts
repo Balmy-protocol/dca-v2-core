@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { constants, behaviours, bn, contracts } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { constants, behaviours, bn, contracts } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAGlobalParameters', () => {

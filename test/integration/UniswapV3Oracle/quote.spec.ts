@@ -1,11 +1,11 @@
 import { Contract, utils } from 'ethers';
 import { deployments, ethers } from 'hardhat';
-import { getNodeUrl } from '../../../utils/network';
-import { evm } from '../../utils';
-import { contract, given, then } from '../../utils/bdd';
+import { getNodeUrl } from '@utils/network';
+import { evm } from '@test-utils';
+import { contract, given, then } from '@test-utils/bdd';
 import moment from 'moment';
 import { expect } from 'chai';
-import { getLastPrice, convertPriceToNumberWithDecimals } from '../../utils/coingecko';
+import { getLastPrice, convertPriceToNumberWithDecimals } from '@test-utils/coingecko';
 
 let oracle: Contract;
 let startingTime: number;

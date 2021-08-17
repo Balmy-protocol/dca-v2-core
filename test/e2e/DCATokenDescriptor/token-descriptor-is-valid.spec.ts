@@ -1,11 +1,11 @@
 import moment from 'moment';
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, erc20, evm } from '../../utils';
-import { contract } from '../../utils/bdd';
+import { constants, erc20, evm } from '@test-utils';
+import { contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { TokenContract } from '../../utils/erc20';
-import { readArgFromEventOrFail } from '../../utils/event-utils';
+import { TokenContract } from '@test-utils/erc20';
+import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import isSvg from 'is-svg';
 import { expect } from 'chai';
 

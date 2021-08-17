@@ -2,8 +2,8 @@ import { expect } from 'chai';
 import { Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { constants, erc20, behaviours } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAFactoryPairsHandler', function () {

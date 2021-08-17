@@ -9,7 +9,7 @@ import 'hardhat-deploy';
 import 'solidity-coverage';
 import { HardhatUserConfig, NetworksUserConfig } from 'hardhat/types';
 import { getNodeUrl, accounts } from './utils/network';
-import { utils } from 'ethers';
+import 'tsconfig-paths/register';
 
 const networks: NetworksUserConfig = process.env.TEST
   ? {}
