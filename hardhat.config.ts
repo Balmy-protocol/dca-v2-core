@@ -2,6 +2,8 @@ import 'dotenv/config';
 import '@nomiclabs/hardhat-waffle';
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
+import '@typechain/hardhat';
+import '@typechain/hardhat/dist/type-extensions';
 import { removeConsoleLog } from 'hardhat-preprocessor';
 import 'hardhat-gas-reporter';
 import 'hardhat-contract-sizer';
@@ -9,7 +11,6 @@ import 'hardhat-deploy';
 import 'solidity-coverage';
 import { HardhatUserConfig, NetworksUserConfig } from 'hardhat/types';
 import { getNodeUrl, accounts } from './utils/network';
-import { utils } from 'ethers';
 
 const networks: NetworksUserConfig = process.env.TEST
   ? {}
@@ -110,6 +111,10 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  typechain: {
+    outDir: 'typechained',
+    target: 'ethers-v5',
   },
 };
 
