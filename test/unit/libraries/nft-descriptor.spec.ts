@@ -1,10 +1,11 @@
+import { NFTDescriptorMock, NFTDescriptorMock__factory } from '@typechained';
 import { expect } from 'chai';
-import { BigNumber, BigNumberish, Contract, ContractFactory } from 'ethers';
+import { BigNumber, BigNumberish } from 'ethers';
 import { ethers } from 'hardhat';
 
 describe('NFTDescriptor', () => {
-  let NFTDescriptorContract: ContractFactory;
-  let NFTDescriptor: Contract;
+  let NFTDescriptorContract: NFTDescriptorMock__factory;
+  let NFTDescriptor: NFTDescriptorMock;
 
   before('Setup accounts and contracts', async () => {
     NFTDescriptorContract = await ethers.getContractFactory('contracts/mocks/NFTDescriptor.sol:NFTDescriptorMock');

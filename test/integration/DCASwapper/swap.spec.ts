@@ -2,6 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { JsonRpcSigner } from '@ethersproject/providers';
 import { BigNumber, BytesLike, Contract, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
+import { DCAPair, ERC20, DCAFactory, DCAUniswapV3Swapper, UniswapV3Oracle } from '@typechained';
 import { abi as IERC20_ABI } from '@openzeppelin/contracts/build/contracts/IERC20.json';
 import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
 import { getNodeUrl } from '@utils/network';
@@ -26,12 +27,12 @@ const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
 contract('DCAUniswapV3Swapper', () => {
-  let DCASwapper: Contract;
-  let DCAFactory: Contract;
-  let DCAPair: Contract;
-  let WETH: Contract;
-  let USDC: Contract;
-  let oracle: Contract;
+  let DCASwapper: DCAUniswapV3Swapper;
+  let DCAFactory: DCAFactory;
+  let DCAPair: DCAPair;
+  let WETH: ERC20;
+  let USDC: ERC20;
+  let oracle: UniswapV3Oracle;
 
   let uniswapSwapRouter: Contract;
 
@@ -58,7 +59,7 @@ contract('DCAUniswapV3Swapper', () => {
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);
 
-    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper']);
+    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper'], { keepExistingDeployments: false });
 
     const namedAccounts = await getNamedAccounts();
     feeRecipient = namedAccounts.feeRecipient;
@@ -99,7 +100,7 @@ contract('DCAUniswapV3Swapper', () => {
       }).retries(5);
       describe('swap', () => {
         given(async () => {
-          await DCASwapper.swapPairs([[DCAPair.address, encodeFeeTier(3000)]]);
+          await DCASwapper.swapPairs([{ pair: DCAPair.address, swapPath: encodeFeeTier(3000) }]);
         });
         then('swap is executed', async () => {
           expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
@@ -122,7 +123,7 @@ contract('DCAUniswapV3Swapper', () => {
         expect(result).to.equal('0x');
       });
       then('swap gets reverted', async () => {
-        const swapPairsTx = DCASwapper.connect(governor).swapPairs([[DCAPair.address, encodeFeeTier(3000)]], { gasPrice: 0 });
+        const swapPairsTx = DCASwapper.connect(governor).swapPairs([{ pair: DCAPair.address, swapPath: encodeFeeTier(3000) }], { gasPrice: 0 });
         await expect(swapPairsTx).to.be.reverted;
       });
     });
@@ -159,7 +160,7 @@ contract('DCAUniswapV3Swapper', () => {
       });
       describe('swap', () => {
         given(async () => {
-          await DCASwapper.connect(governor).swapPairs([[DCAPair.address, encodeFeeTier(3000)]], { gasPrice: 0 });
+          await DCASwapper.connect(governor).swapPairs([{ pair: DCAPair.address, swapPath: encodeFeeTier(3000) }], { gasPrice: 0 });
         });
         then('swap is executed', async () => {
           expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
@@ -228,7 +229,7 @@ contract('DCAUniswapV3Swapper', () => {
     return uniswapSwapRouter.connect(wethWhale).callStatic.exactInput(currentPriceParams, { gasPrice: 0 });
   }
 
-  function encodeFeeTier(feeTier: number) {
+  function encodeFeeTier(feeTier: number): BytesLike {
     return ethers.utils.defaultAbiCoder.encode(['uint24'], [feeTier]);
   }
 

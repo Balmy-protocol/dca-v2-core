@@ -3,6 +3,18 @@ import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
+import {
+  DCAGlobalParameters,
+  DCAGlobalParameters__factory,
+  DCAPair,
+  DCAPair__factory,
+  TimeWeightedOracleMock,
+  TimeWeightedOracleMock__factory,
+  ReentrantDCAPairSwapCalleeMock,
+  ReentrantDCAPairSwapCalleeMock__factory,
+  ReentrantDCAPairLoanCalleeMock,
+  ReentrantDCAPairLoanCalleeMock__factory,
+} from '@typechained';
 import { constants, erc20, evm } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -15,14 +27,14 @@ contract('DCAPair', () => {
     let dude: SignerWithAddress;
     let feeRecipient: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
-    let DCAPairFactory: ContractFactory;
-    let DCAPair: Contract;
-    let DCAGlobalParametersFactory: ContractFactory;
-    let DCAGlobalParameters: Contract;
-    let reentrantDCAPairLoanCalleeFactory: ContractFactory;
-    let reentrantDCAPairSwapCalleeFactory: ContractFactory;
-    let TimeWeightedOracleFactory: ContractFactory;
-    let TimeWeightedOracle: Contract;
+    let DCAPairFactory: DCAPair__factory;
+    let DCAPair: DCAPair;
+    let DCAGlobalParametersFactory: DCAGlobalParameters__factory;
+    let DCAGlobalParameters: DCAGlobalParameters;
+    let reentrantDCAPairSwapCalleeFactory: ReentrantDCAPairSwapCalleeMock__factory;
+    let reentrantDCAPairLoanCalleeFactory: ReentrantDCAPairLoanCalleeMock__factory;
+    let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
+    let TimeWeightedOracle: TimeWeightedOracleMock;
     const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
     before('Setup accounts and contracts', async () => {
@@ -66,7 +78,7 @@ contract('DCAPair', () => {
       const rateTokenA = 50;
       const swapsTokenA = 13;
       let totalTokenA: BigNumber;
-      let reentrantDCAPairLoanCallee: Contract;
+      let reentrantDCAPairLoanCallee: ReentrantDCAPairLoanCalleeMock;
       given(async () => {
         totalTokenA = tokenA.asUnits(rateTokenA).mul(swapsTokenA);
         await deposit({
@@ -89,7 +101,7 @@ contract('DCAPair', () => {
       const rateTokenA = 50;
       const swapsTokenA = 13;
       let totalTokenA: BigNumber;
-      let reentrantDCAPairSwapCallee: Contract;
+      let reentrantDCAPairSwapCallee: ReentrantDCAPairSwapCalleeMock;
       given(async () => {
         await TimeWeightedOracle.setRate(tokenA.asUnits('1'), 18);
         totalTokenA = tokenA.asUnits(rateTokenA).mul(swapsTokenA);
@@ -126,7 +138,7 @@ contract('DCAPair', () => {
         let reentrantTx: Promise<TransactionResponse>;
         given(async () => {
           await attackerContract().setAttack(await attack());
-          reentrantTx = DCAPair[funcAndSignature](...args());
+          reentrantTx = (DCAPair as any)[funcAndSignature](...args());
         });
         then('tx is reverted', async () => {
           await expect(reentrantTx).to.be.revertedWith('ReentrancyGuard: reentrant call');

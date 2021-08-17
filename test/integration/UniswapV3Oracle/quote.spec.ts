@@ -1,5 +1,6 @@
 import { Contract, utils } from 'ethers';
 import { deployments, ethers } from 'hardhat';
+import { UniswapV3Oracle } from '@typechained';
 import { getNodeUrl } from '@utils/network';
 import { evm } from '@test-utils';
 import { contract, given, then } from '@test-utils/bdd';
@@ -7,7 +8,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { getLastPrice, convertPriceToNumberWithDecimals } from '@test-utils/coingecko';
 
-let oracle: Contract;
+let oracle: UniswapV3Oracle;
 let startingTime: number;
 let oraclePeriod: number = moment.duration('7', 'minutes').as('seconds');
 
@@ -26,7 +27,7 @@ contract('UniswapV3Oracle', () => {
     await evm.reset({
       jsonRpcUrl: getNodeUrl('mainnet'),
     });
-    await deployments.fixture('UniswapOracle');
+    await deployments.fixture('UniswapOracle', { keepExistingDeployments: false });
     oracle = await ethers.getContract('UniswapOracle');
     await oracle.addSupportForPair(WETH, USDC);
   });

@@ -12,6 +12,8 @@
     "paths": {
       "@artifacts/*": ["artifacts/*"],
       "@deploy/*": ["deploy/*"],
+      "@typechained": ["typechained"],
+      "@typechained/*": ["typechained/*"],
       "@utils/*": ["utils/*"],
       "@test-utils": ["test/utils/index"],
       "@test-utils/*": ["test/utils/*"],

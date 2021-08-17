@@ -5,12 +5,13 @@ import { constants, erc20, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { CollectableDustMock, CollectableDustMock__factory, ERC20Mock } from '@typechained';
 
 describe('CollectableDust', function () {
   let owner: SignerWithAddress;
-  let someToken: Contract;
-  let collectableDustContract: ContractFactory;
-  let collectableDust: Contract;
+  let someToken: ERC20Mock;
+  let collectableDustContract: CollectableDustMock__factory;
+  let collectableDust: CollectableDustMock;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();

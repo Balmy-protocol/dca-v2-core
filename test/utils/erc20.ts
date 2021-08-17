@@ -1,4 +1,5 @@
-import { BigNumber, Contract, utils, constants } from 'ethers';
+import { ERC20Mock, ERC20Mock__factory } from '@typechained';
+import { BigNumber, utils, constants } from 'ethers';
 import { ethers } from 'hardhat';
 
 const deploy = async ({
@@ -14,7 +15,7 @@ const deploy = async ({
   initialAccount?: string;
   initialAmount?: BigNumber | number;
 }): Promise<TokenContract> => {
-  const erc20MockContract = await ethers.getContractFactory('contracts/mocks/ERC20Mock.sol:ERC20Mock');
+  const erc20MockContract = (await ethers.getContractFactory('contracts/mocks/ERC20Mock.sol:ERC20Mock')) as ERC20Mock__factory;
   const deployedContract = await erc20MockContract.deploy(
     name,
     symbol,
@@ -25,7 +26,7 @@ const deploy = async ({
   return addExtra(deployedContract);
 };
 
-async function addExtra(tokenContract: Contract): Promise<TokenContract> {
+async function addExtra(tokenContract: ERC20Mock): Promise<TokenContract> {
   const decimals = await tokenContract.decimals();
   // @ts-ignore
   tokenContract.asUnits = (toParse: string | number) => utils.parseUnits(`${toParse}`, decimals);
@@ -37,7 +38,7 @@ async function addExtra(tokenContract: Contract): Promise<TokenContract> {
   return tokenContract;
 }
 
-export type TokenContract = Contract & {
+export type TokenContract = ERC20Mock & {
   asUnits: (toParse: string | number) => BigNumber;
   amountOfDecimals: number;
   magnitude: BigNumber;

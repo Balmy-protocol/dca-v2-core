@@ -2,6 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { JsonRpcSigner, TransactionResponse } from '@ethersproject/providers';
 import { BigNumber, Contract, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
+import { DCAPair, DCAKeep3rJob, ERC20, DCAFactory, DCAUniswapV3Swapper } from '@typechained';
 import { abi as IERC20_ABI } from '@openzeppelin/contracts/build/contracts/IERC20.json';
 import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
 import { getNodeUrl } from '@utils/network';
@@ -26,12 +27,12 @@ const KEEP3R_V1 = '0x1ceb5cb57c4d4e2b2433641b95dd330a33185a44';
 const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 
 contract('DCAKeep3rJob', () => {
-  let DCASwapper: Contract;
-  let DCAFactory: Contract;
-  let DCAPair: Contract;
-  let WETH: Contract;
-  let USDC: Contract;
-  let DCAKeep3rJob: Contract;
+  let DCASwapper: DCAUniswapV3Swapper;
+  let DCAFactory: DCAFactory;
+  let DCAPair: DCAPair;
+  let WETH: ERC20;
+  let USDC: ERC20;
+  let DCAKeep3rJob: DCAKeep3rJob;
   let keep3rV1: Contract;
 
   let uniswapSwapRouter: Contract;
@@ -42,7 +43,6 @@ contract('DCAKeep3rJob', () => {
   let keep3rGovernance: JsonRpcSigner;
   let keeper: JsonRpcSigner;
   let cindy: SignerWithAddress;
-  let alice: SignerWithAddress;
   let feeRecipient: string;
 
   const RATE = utils.parseEther('0.1');
@@ -50,7 +50,7 @@ contract('DCAKeep3rJob', () => {
   const INTERVAL = globalParametersDeployFunction.intervals[0];
 
   before(async () => {
-    [cindy, alice] = await ethers.getSigners();
+    [cindy] = await ethers.getSigners();
   });
 
   beforeEach(async () => {
@@ -61,7 +61,7 @@ contract('DCAKeep3rJob', () => {
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);
 
-    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper', 'Keep3rJob']);
+    await deployments.fixture(['Factory', 'DCAUniswapV3Swapper', 'Keep3rJob'], { keepExistingDeployments: false });
 
     const namedAccounts = await getNamedAccounts();
     feeRecipient = namedAccounts.feeRecipient;
@@ -100,7 +100,7 @@ contract('DCAKeep3rJob', () => {
       let workTx: Promise<TransactionResponse>;
       given(async () => {
         const parameters = await DCAKeep3rJob.callStatic.workable();
-        workTx = DCAKeep3rJob.connect(keeper).work(...parameters);
+        workTx = DCAKeep3rJob.connect(keeper).work.apply(DCAKeep3rJob, parameters);
       });
       then('tx is reverted with reason', async () => {
         await expect(workTx).to.be.revertedWith('workReceipt: insuffient funds');
@@ -115,7 +115,7 @@ contract('DCAKeep3rJob', () => {
         await keep3rV1.connect(keep3rGovernance).addKPRCredit(DCAKeep3rJob.address, initialCredits, { gasPrice: 0 });
         initialBonds = await keep3rV1.bonds(KEEPER_ADDRESS, KEEP3R_V1);
         const parameters = await DCAKeep3rJob.callStatic.workable();
-        workTx = await DCAKeep3rJob.connect(keeper).work(...parameters);
+        workTx = await DCAKeep3rJob.connect(keeper).work.apply(DCAKeep3rJob, parameters);
       });
       then('credits of job get reduced', async () => {
         expect(await keep3rV1.credits(DCAKeep3rJob.address, KEEP3R_V1)).to.be.lt(initialCredits);

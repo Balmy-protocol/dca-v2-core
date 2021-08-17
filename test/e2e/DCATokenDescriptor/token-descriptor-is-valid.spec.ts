@@ -6,6 +6,16 @@ import { contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import {
+  DCAGlobalParameters,
+  DCAGlobalParameters__factory,
+  DCAPair,
+  DCAPair__factory,
+  DCATokenDescriptor,
+  DCATokenDescriptor__factory,
+  TimeWeightedOracleMock,
+  TimeWeightedOracleMock__factory,
+} from '@typechained';
 import isSvg from 'is-svg';
 import { expect } from 'chai';
 
@@ -13,14 +23,14 @@ contract('DCATokenDescriptor', () => {
   let governor: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
-  let DCAPairContract: ContractFactory;
-  let DCAPair: Contract;
-  let DCAGlobalParametersContract: ContractFactory;
-  let DCAGlobalParameters: Contract;
-  let DCATokenDescriptorContract: ContractFactory;
-  let DCATokenDescriptor: Contract;
-  let TimeWeightedOracleFactory: ContractFactory;
-  let TimeWeightedOracle: Contract;
+  let DCAPairContract: DCAPair__factory;
+  let DCAPair: DCAPair;
+  let DCAGlobalParametersContract: DCAGlobalParameters__factory;
+  let DCAGlobalParameters: DCAGlobalParameters;
+  let DCATokenDescriptorContract: DCATokenDescriptor__factory;
+  let DCATokenDescriptor: DCATokenDescriptor;
+  let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
+  let TimeWeightedOracle: TimeWeightedOracleMock;
   const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
   before('Setup accounts and contracts', async () => {

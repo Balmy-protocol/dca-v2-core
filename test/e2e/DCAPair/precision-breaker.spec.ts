@@ -2,11 +2,12 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { abi as IUniswapV3OracleAggregatorABI } from '../../../artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
-import { constants, erc20, evm } from '../../utils';
-import { contract, given, then, when } from '../../utils/bdd';
+import { DCAGlobalParameters, DCAGlobalParameters__factory, DCAPair, DCAPair__factory, IUniswapV3OracleAggregator } from '@typechained';
+import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
+import { constants, erc20, evm } from '@test-utils';
+import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { TokenContract } from '../../utils/erc20';
+import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 
 contract('DCAPair', () => {
@@ -16,9 +17,9 @@ contract('DCAPair', () => {
     let governor: SignerWithAddress, feeRecipient: SignerWithAddress;
     let alice: SignerWithAddress, john: SignerWithAddress, swapper1: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
-    let DCAPairFactory: ContractFactory, DCAPair: Contract;
-    let DCAGlobalParametersFactory: ContractFactory, DCAGlobalParameters: Contract;
-    let timeWeightedOracle: FakeContract<any>;
+    let DCAPairFactory: DCAPair__factory, DCAPair: DCAPair;
+    let DCAGlobalParametersFactory: DCAGlobalParameters__factory, DCAGlobalParameters: DCAGlobalParameters;
+    let timeWeightedOracle: FakeContract<IUniswapV3OracleAggregator>;
 
     // Global variables
     const swapFee: number = 0.6;

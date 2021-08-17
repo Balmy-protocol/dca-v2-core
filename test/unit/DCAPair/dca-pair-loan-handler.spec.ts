@@ -1,8 +1,14 @@
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
+import {
+  DCAGlobalParametersMock__factory,
+  DCAGlobalParametersMock,
+  DCAPairLoanHandlerMock__factory,
+  DCAPairLoanHandlerMock,
+} from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours, evm, bn } from '@test-utils';
+import { constants, erc20, behaviours, evm } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
@@ -14,10 +20,10 @@ describe('DCAPairLoanHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
-  let DCAPairLoanHandlerContract: ContractFactory;
-  let DCAPairLoanHandler: Contract;
-  let DCAGlobalParametersContract: ContractFactory;
-  let DCAGlobalParameters: Contract;
+  let DCAPairLoanHandlerContract: DCAPairLoanHandlerMock__factory;
+  let DCAPairLoanHandler: DCAPairLoanHandlerMock;
+  let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
+  let DCAGlobalParameters: DCAGlobalParametersMock;
 
   before('Setup accounts and contracts', async () => {
     [owner, feeRecipient] = await ethers.getSigners();
@@ -141,12 +147,7 @@ describe('DCAPairLoanHandler', () => {
             )
           ).data
         );
-        tx = DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
-          PAIR_TOKEN_A_INITIAL_BALANCE,
-          PAIR_TOKEN_B_INITIAL_BALANCE,
-          reentrantDCAPairSwapCallee.address,
-          BYTES
-        );
+        tx = DCAPairLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, reentrantDCAPairSwapCallee.address, BYTES);
       });
       then('tx is reverted', async () => {
         await expect(tx).to.be.revertedWith('ReentrancyGuard: reentrant call');
@@ -159,12 +160,7 @@ describe('DCAPairLoanHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
-          PAIR_TOKEN_A_INITIAL_BALANCE,
-          PAIR_TOKEN_B_INITIAL_BALANCE,
-          DCAPairLoanCallee.address,
-          BYTES
-        );
+        tx = await DCAPairLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAPairLoanCallee.address, BYTES);
       });
 
       then('callee is called', async () => {
@@ -233,12 +229,7 @@ describe('DCAPairLoanHandler', () => {
           PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee).add(1),
           PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee).add(1)
         );
-        tx = await DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
-          PAIR_TOKEN_A_INITIAL_BALANCE,
-          PAIR_TOKEN_B_INITIAL_BALANCE,
-          DCAPairLoanCallee.address,
-          BYTES
-        );
+        tx = await DCAPairLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAPairLoanCallee.address, BYTES);
       });
 
       then('pair balance stays the same', async () => {
@@ -270,7 +261,7 @@ describe('DCAPairLoanHandler', () => {
       context,
     }: {
       title: string;
-      context?: () => Promise<void>;
+      context?: () => Promise<any>;
       amountToBorrowTokenA: () => BigNumber;
       amountToBorrowTokenB: () => BigNumber;
       amountToReturnTokenA?: () => BigNumber;
@@ -287,12 +278,7 @@ describe('DCAPairLoanHandler', () => {
           if (amountToReturnTokenA && amountToReturnTokenB) {
             await DCAPairLoanCallee.returnSpecificAmounts(amountToReturnTokenA(), amountToReturnTokenB());
           }
-          tx = DCAPairLoanHandler['loan(uint256,uint256,address,bytes)'](
-            amountToBorrowTokenA(),
-            amountToBorrowTokenB(),
-            DCAPairLoanCallee.address,
-            BYTES
-          );
+          tx = DCAPairLoanHandler.loan(amountToBorrowTokenA(), amountToBorrowTokenB(), DCAPairLoanCallee.address, BYTES);
           await behaviours.waitForTxAndNotThrow(tx);
         });
 

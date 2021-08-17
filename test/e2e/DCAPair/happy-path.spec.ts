@@ -2,6 +2,18 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
+import {
+  DCAGlobalParameters,
+  DCAGlobalParameters__factory,
+  DCAPair,
+  DCAPair__factory,
+  TimeWeightedOracleMock,
+  TimeWeightedOracleMock__factory,
+  DCAPairSwapCalleeMock,
+  DCAPairSwapCalleeMock__factory,
+  DCAPairLoanCalleeMock,
+  DCAPairLoanCalleeMock__factory,
+} from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
 import { contract } from '@test-utils/bdd';
@@ -19,11 +31,11 @@ contract('DCAPair', () => {
     let swapper1: SignerWithAddress;
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
-    let DCAPairFactory: ContractFactory, DCAPair: Contract;
-    let DCAGlobalParametersFactory: ContractFactory, DCAGlobalParameters: Contract;
-    let timeWeightedOracleFactory: ContractFactory, timeWeightedOracle: Contract;
-    let DCAPairSwapCalleeFactory: ContractFactory, DCAPairSwapCallee: Contract;
-    let DCAPairLoanCalleeFactory: ContractFactory, DCAPairLoanCallee: Contract;
+    let DCAPairFactory: DCAPair__factory, DCAPair: DCAPair;
+    let DCAGlobalParametersFactory: DCAGlobalParameters__factory, DCAGlobalParameters: DCAGlobalParameters;
+    let timeWeightedOracleFactory: TimeWeightedOracleMock__factory, timeWeightedOracle: TimeWeightedOracleMock;
+    let DCAPairSwapCalleeFactory: DCAPairSwapCalleeMock__factory, DCAPairSwapCallee: DCAPairSwapCalleeMock;
+    let DCAPairLoanCalleeFactory: DCAPairLoanCalleeMock__factory, DCAPairLoanCallee: DCAPairLoanCalleeMock;
 
     // Global variables
     const swapFee1: number = 0.3;
@@ -532,15 +544,15 @@ contract('DCAPair', () => {
       amountOfSwaps: BigNumber;
     };
 
-    type OngoingUserPosition = {
+    type OngoingUserPosition = [string, string, number, number, BigNumber, number, BigNumber, BigNumber] & {
       from: string;
       to: string;
-      swapInterval: BigNumber;
-      rate: BigNumber;
+      swapInterval: number;
       swapsExecuted: number;
       swapped: BigNumber;
       swapsLeft: number;
       remaining: BigNumber;
+      rate: BigNumber;
     };
 
     type HasAddress = {

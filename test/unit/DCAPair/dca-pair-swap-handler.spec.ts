@@ -2,6 +2,14 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
+import {
+  DCAGlobalParametersMock__factory,
+  DCAGlobalParametersMock,
+  DCAPairSwapHandlerMock,
+  DCAPairSwapHandlerMock__factory,
+  TimeWeightedOracleMock,
+  TimeWeightedOracleMock__factory,
+} from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, evm, bn, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
@@ -16,12 +24,12 @@ describe('DCAPairSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
-  let DCAPairSwapHandlerContract: ContractFactory;
-  let DCAPairSwapHandler: Contract;
-  let timeWeightedOracleContract: ContractFactory;
-  let timeWeightedOracle: Contract;
-  let DCAGlobalParametersContract: ContractFactory;
-  let DCAGlobalParameters: Contract;
+  let DCAPairSwapHandlerContract: DCAPairSwapHandlerMock__factory;
+  let DCAPairSwapHandler: DCAPairSwapHandlerMock;
+  let timeWeightedOracleContract: TimeWeightedOracleMock__factory;
+  let timeWeightedOracle: TimeWeightedOracleMock;
+  let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
+  let DCAGlobalParameters: DCAGlobalParametersMock;
   const SWAP_INTERVAL = moment.duration(1, 'days').as('seconds');
   const SWAP_INTERVAL_2 = moment.duration(2, 'days').as('seconds');
 
@@ -293,21 +301,19 @@ describe('DCAPairSwapHandler', () => {
   };
 
   type NextSwapInfo = {
-    swapsToPerform: {
-      interval: BigNumber;
-      swapToPerform: BigNumber;
+    swapsToPerform: ([number, number, BigNumber, BigNumber] & {
+      interval: number;
+      swapToPerform: number;
       amountToSwapTokenA: BigNumber;
       amountToSwapTokenB: BigNumber;
-    }[];
+    })[];
     amountOfSwaps: number;
-    amountToSwapTokenA: BigNumber;
-    amountToSwapTokenB: BigNumber;
+    availableToBorrowTokenA: BigNumber;
+    availableToBorrowTokenB: BigNumber;
     ratePerUnitBToA: BigNumber;
     ratePerUnitAToB: BigNumber;
     platformFeeTokenA: BigNumber;
     platformFeeTokenB: BigNumber;
-    availableToBorrowTokenA: BigNumber;
-    availableToBorrowTokenB: BigNumber;
     amountToBeProvidedBySwapper: BigNumber;
     amountToRewardSwapperWith: BigNumber;
     tokenToBeProvidedBySwapper: string;
@@ -334,7 +340,7 @@ describe('DCAPairSwapHandler', () => {
     nextSwapContext,
   }: {
     title: string;
-    context?: () => Promise<void>;
+    context?: () => Promise<any>;
     blockTimestamp?: number;
     nextSwapContext: NextSwapInformationContextWithNextSwapAvailableAt[];
   }) {
@@ -497,7 +503,7 @@ describe('DCAPairSwapHandler', () => {
     threshold,
   }: {
     title: string;
-    context?: () => Promise<void>;
+    context?: () => Promise<any>;
     nextSwapContext: NextSwapInformationContext[];
     ratePerUnitBToA: BigNumber | number | string;
     threshold?: BigNumber | number;
@@ -802,7 +808,7 @@ describe('DCAPairSwapHandler', () => {
     reason,
   }: {
     title: string;
-    context?: () => Promise<void>;
+    context?: () => Promise<any>;
     nextSwapContext: NextSwapInformationContext[];
     addedSwapIntervals?: number[];
     blockTimestamp?: number;
