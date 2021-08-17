@@ -1,9 +1,9 @@
+import { DCAGlobalParameters, DCAGlobalParameters__factory } from '@typechained';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { wallet } from '../../utils';
-import { contract, given, then, when } from '../../utils/bdd';
+import { wallet } from '@test-utils';
+import { contract, given, then, when } from '@test-utils/bdd';
 import Web3 from 'web3';
 import { expect } from 'chai';
 
@@ -12,8 +12,8 @@ contract('DCAGlobalParameters', () => {
   let timeLockedGovernor: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
 
-  let globalParametersFactory: ContractFactory;
-  let globalParameters: Contract;
+  let globalParametersFactory: DCAGlobalParameters__factory;
+  let globalParameters: DCAGlobalParameters;
 
   const IMMEDIATE_ROLE: string = new Web3().utils.soliditySha3('IMMEDIATE_ROLE') as string;
   const TIME_LOCKED_ROLE: string = new Web3().utils.soliditySha3('TIME_LOCKED_ROLE') as string;

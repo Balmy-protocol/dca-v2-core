@@ -2,15 +2,22 @@ import { expect } from 'chai';
 import { Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours, constants } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { behaviours, constants } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import {
+  UniswapV3FactoryMock,
+  UniswapV3FactoryMock__factory,
+  UniswapV3OracleMock,
+  UniswapV3OracleMock__factory,
+  UniswapV3PoolMock__factory,
+} from '@typechained';
 
 describe('UniswapV3Oracle', () => {
   let owner: SignerWithAddress;
-  let UniswapV3OracleContract: ContractFactory, UniswapV3FactoryContract: ContractFactory;
-  let UniswapV3PoolContract: ContractFactory;
-  let UniswapV3Oracle: Contract, UniswapV3Factory: Contract;
+  let UniswapV3OracleContract: UniswapV3OracleMock__factory, UniswapV3FactoryContract: UniswapV3FactoryMock__factory;
+  let UniswapV3PoolContract: UniswapV3PoolMock__factory;
+  let UniswapV3Oracle: UniswapV3OracleMock, UniswapV3Factory: UniswapV3FactoryMock;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();

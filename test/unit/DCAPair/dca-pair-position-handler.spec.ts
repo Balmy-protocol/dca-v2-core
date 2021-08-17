@@ -1,11 +1,17 @@
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
-import { erc20, behaviours, constants } from '../../utils';
+import {
+  DCAGlobalParametersMock__factory,
+  DCAGlobalParametersMock,
+  DCAPairPositionHandlerMock__factory,
+  DCAPairPositionHandlerMock,
+} from '@typechained';
+import { erc20, behaviours, constants } from '@test-utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { readArgFromEventOrFail } from '../../utils/event-utils';
-import { when, then, given } from '../../utils/bdd';
-import { TokenContract } from '../../utils/erc20';
+import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import { when, then, given } from '@test-utils/bdd';
+import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 
@@ -24,10 +30,10 @@ describe('DCAPositionHandler', () => {
 
   let owner: SignerWithAddress, approved: SignerWithAddress, stranger: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
-  let DCAPositionHandlerContract: ContractFactory;
-  let DCAPositionHandler: Contract;
-  let DCAGlobalParametersContract: ContractFactory;
-  let DCAGlobalParameters: Contract;
+  let DCAPositionHandlerContract: DCAPairPositionHandlerMock__factory;
+  let DCAPositionHandler: DCAPairPositionHandlerMock;
+  let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
+  let DCAGlobalParameters: DCAGlobalParametersMock;
 
   before('Setup accounts and contracts', async () => {
     [owner, approved, stranger] = await ethers.getSigners();
@@ -906,7 +912,7 @@ describe('DCAPositionHandler', () => {
         accumRate,
         onSwap: PERFORMED_SWAPS_10 + 1,
       });
-      const tx = DCAPositionHandler.userPosition(dcaId);
+      const tx = DCAPositionHandler.userPosition(dcaId) as any as Promise<TransactionResponse>;
 
       return behaviours.checkTxRevertedWithMessage({
         tx,
@@ -1179,14 +1185,14 @@ describe('DCAPositionHandler', () => {
       swapsLeft: positionSwapsLeft,
       remaining: positionRemaining,
       rate: positionRate,
-    }: {
+    }: [string, string, number, number, BigNumber, number, BigNumber, BigNumber] & {
       from: string;
       to: string;
       swapInterval: number;
       swapsExecuted: number;
       swapped: BigNumber;
       swapsLeft: number;
-      remaining: number;
+      remaining: BigNumber;
       rate: BigNumber;
     } = await DCAPositionHandler.userPosition(dcaId);
     const fromAddress = typeof from === 'string' ? from : from.address;

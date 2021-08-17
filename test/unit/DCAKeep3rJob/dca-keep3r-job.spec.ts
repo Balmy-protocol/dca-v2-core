@@ -1,12 +1,21 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory, Wallet, utils } from 'ethers';
+import { Contract, Wallet, utils } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours, constants, wallet } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import {
+  DCAFactoryMock,
+  DCAFactoryMock__factory,
+  DCAKeep3rJobMock,
+  DCAKeep3rJobMock__factory,
+  DCAPairMock__factory,
+  DCASwapperMock,
+  DCASwapperMock__factory,
+} from '@typechained';
+import { behaviours, constants, wallet } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { smockit, MockContract } from '@eth-optimism/smock';
-import { abi as KEEP3R_ABI } from '../../../artifacts/contracts/interfaces/IKeep3rV1.sol/IKeep3rV1.json';
+import { abi as KEEP3R_ABI } from '@artifacts/contracts/interfaces/IKeep3rV1.sol/IKeep3rV1.json';
 import moment from 'moment';
 
 describe('DCAKeep3rJob', () => {
@@ -16,10 +25,10 @@ describe('DCAKeep3rJob', () => {
   const BYTES_2 = ethers.utils.randomBytes(5);
 
   let owner: SignerWithAddress;
-  let DCAKeep3rJobContract: ContractFactory, DCAFactoryContract: ContractFactory;
-  let DCASwapperContract: ContractFactory, DCAPairContract: ContractFactory;
-  let DCAKeep3rJob: Contract, DCAFactory: Contract;
-  let DCASwapper: Contract;
+  let DCAKeep3rJobContract: DCAKeep3rJobMock__factory, DCAFactoryContract: DCAFactoryMock__factory;
+  let DCASwapperContract: DCASwapperMock__factory, DCAPairContract: DCAPairMock__factory;
+  let DCAKeep3rJob: DCAKeep3rJobMock, DCAFactory: DCAFactoryMock;
+  let DCASwapper: DCASwapperMock;
   let keep3r: MockContract;
 
   before('Setup accounts and contracts', async () => {
@@ -406,8 +415,8 @@ describe('DCAKeep3rJob', () => {
           await DCASwapper.setAmountSwapped(2);
           await DCAKeep3rJob.connect(keeper).work(
             [
-              [DCAPair1.address, BYTES_1],
-              [DCAPair2.address, BYTES_2],
+              { pair: DCAPair1.address, swapPath: BYTES_1 },
+              { pair: DCAPair2.address, swapPath: BYTES_2 },
             ],
             [SWAP_INTERVAL, SWAP_INTERVAL],
             { gasPrice: 0 }

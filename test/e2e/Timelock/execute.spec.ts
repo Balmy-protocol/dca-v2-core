@@ -1,10 +1,11 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { Contract, ContractFactory, PopulatedTransaction, utils } from 'ethers';
+import { Contract, ContractFactory, PopulatedTransaction } from 'ethers';
 import { ethers } from 'hardhat';
 import TIMELOCK from '@openzeppelin/contracts/build/contracts/TimelockController.json';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, evm, wallet } from '../../utils';
-import { contract, given, then, when } from '../../utils/bdd';
+import { constants, evm, wallet } from '@test-utils';
+import { contract, given, then, when } from '@test-utils/bdd';
+import { DCAGlobalParameters, DCAGlobalParameters__factory } from '@typechained';
 import moment from 'moment';
 import { expect } from 'chai';
 import { hexZeroPad } from 'ethers/lib/utils';
@@ -17,9 +18,8 @@ contract('Timelock', () => {
   let immediateGovernor: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
 
-  let globalParametersFactory: ContractFactory;
-
-  let globalParameters: Contract;
+  let globalParametersFactory: DCAGlobalParameters__factory;
+  let globalParameters: DCAGlobalParameters;
   let timelock: Contract;
 
   const nftDescriptor = wallet.generateRandomAddress();

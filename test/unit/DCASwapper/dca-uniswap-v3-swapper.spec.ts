@@ -2,36 +2,45 @@ import { expect } from 'chai';
 import { BigNumber, BytesLike, Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours, constants } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { behaviours, constants } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import erc20, { TokenContract } from '../../utils/erc20';
-import { readArgFromEvent } from '../../utils/event-utils';
+import erc20, { TokenContract } from '@test-utils/erc20';
+import { readArgFromEvent } from '@test-utils/event-utils';
+import {
+  DCAUniswapV3SwapperMock__factory,
+  QuoterMock,
+  QuoterMock__factory,
+  SwapRouterMock,
+  SwapRouterMock__factory,
+  UniswapFactoryMock,
+  UniswapFactoryMock__factory,
+} from '@typechained';
 
 describe('DCAUniswapV3Swapper', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
 
   let owner: SignerWithAddress, swapperCaller: SignerWithAddress;
-  let DCASwapperContract: ContractFactory;
-  let UniswapRouterContract: ContractFactory, UniswapQuoterContract: ContractFactory;
-  let UniswapFactoryContract: ContractFactory;
+  let DCASwapperContract: DCAUniswapV3SwapperMock__factory;
+  let uniswapRouterContract: SwapRouterMock__factory, uniswapQuoterContract: QuoterMock__factory;
+  let uniswapFactoryContract: UniswapFactoryMock__factory;
   let DCASwapper: Contract;
-  let UniswapRouter: Contract, UniswapQuoter: Contract, UniswapFactory: Contract;
+  let uniswapRouter: SwapRouterMock, uniswapQuoter: QuoterMock, uniswapFactory: UniswapFactoryMock;
 
   before('Setup accounts and contracts', async () => {
     [owner, swapperCaller] = await ethers.getSigners();
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAUniswapV3Swapper.sol:DCAUniswapV3SwapperMock');
-    UniswapRouterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/SwapRouterMock.sol:SwapRouterMock');
-    UniswapQuoterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/QuoterMock.sol:QuoterMock');
-    UniswapFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/UniswapFactoryMock.sol:UniswapFactoryMock');
+    uniswapRouterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/SwapRouterMock.sol:SwapRouterMock');
+    uniswapQuoterContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/QuoterMock.sol:QuoterMock');
+    uniswapFactoryContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/UniswapFactoryMock.sol:UniswapFactoryMock');
   });
 
   beforeEach('Deploy and configure', async () => {
-    UniswapFactory = await UniswapFactoryContract.deploy();
-    UniswapRouter = await UniswapRouterContract.deploy();
-    UniswapQuoter = await UniswapQuoterContract.deploy(UniswapFactory.address);
-    DCASwapper = await DCASwapperContract.deploy(owner.address, UniswapRouter.address, UniswapQuoter.address);
+    uniswapFactory = await uniswapFactoryContract.deploy();
+    uniswapRouter = await uniswapRouterContract.deploy();
+    uniswapQuoter = await uniswapQuoterContract.deploy(uniswapFactory.address);
+    DCASwapper = await DCASwapperContract.deploy(owner.address, uniswapRouter.address, uniswapQuoter.address);
   });
 
   describe('constructor', () => {
@@ -39,7 +48,7 @@ describe('DCAUniswapV3Swapper', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCASwapperContract,
-          args: [owner.address, constants.ZERO_ADDRESS, UniswapQuoter.address],
+          args: [owner.address, constants.ZERO_ADDRESS, uniswapQuoter.address],
           message: 'ZeroAddress',
         });
       });
@@ -48,7 +57,7 @@ describe('DCAUniswapV3Swapper', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCASwapperContract,
-          args: [owner.address, UniswapRouter.address, constants.ZERO_ADDRESS],
+          args: [owner.address, uniswapRouter.address, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -56,11 +65,11 @@ describe('DCAUniswapV3Swapper', () => {
     when('all arguments are valid', () => {
       then('router is set correctly', async () => {
         const router = await DCASwapper.swapRouter();
-        expect(router).to.equal(UniswapRouter.address);
+        expect(router).to.equal(uniswapRouter.address);
       });
       then('quoter is set correctly', async () => {
         const quoter = await DCASwapper.quoter();
-        expect(quoter).to.equal(UniswapQuoter.address);
+        expect(quoter).to.equal(uniswapQuoter.address);
       });
     });
   });
@@ -102,7 +111,7 @@ describe('DCAUniswapV3Swapper', () => {
       });
 
       then('the router is not called', async () => {
-        const { fee } = await UniswapRouter.lastCall();
+        const { fee } = await uniswapRouter.lastCall();
         expect(fee).to.equal(0);
       });
 
@@ -115,7 +124,7 @@ describe('DCAUniswapV3Swapper', () => {
     when('callback is called and all reward is used', () => {
       given(async () => {
         // Prepare swapper to that it says it used the whole reward
-        await UniswapRouter.setAmountIn(rewardAmount);
+        await uniswapRouter.setAmountIn(rewardAmount);
 
         await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
           constants.ZERO_ADDRESS, // Not used
@@ -131,7 +140,7 @@ describe('DCAUniswapV3Swapper', () => {
       });
 
       then('the router is called', async () => {
-        const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
+        const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await uniswapRouter.lastCall();
         expect(tokenIn).to.equal(tokenA.address);
         expect(tokenOut).to.equal(tokenB.address);
         expect(fee).to.equal(10000);
@@ -143,7 +152,7 @@ describe('DCAUniswapV3Swapper', () => {
       });
 
       then('allowance is not modified', async () => {
-        const allowance = await tokenA.allowance(DCASwapper.address, UniswapRouter.address);
+        const allowance = await tokenA.allowance(DCASwapper.address, uniswapRouter.address);
         expect(allowance).to.equal(rewardAmount);
       });
 
@@ -156,7 +165,7 @@ describe('DCAUniswapV3Swapper', () => {
     when(`callback is called and router doesn't use all reward`, () => {
       given(async () => {
         // Prepare swapper to that it says it didn't use the whole reward
-        await UniswapRouter.setAmountIn(rewardAmount.sub(1));
+        await uniswapRouter.setAmountIn(rewardAmount.sub(1));
 
         await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
           constants.ZERO_ADDRESS, // Not used
@@ -172,7 +181,7 @@ describe('DCAUniswapV3Swapper', () => {
       });
 
       then('the router is called', async () => {
-        const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await UniswapRouter.lastCall();
+        const { tokenIn, tokenOut, fee, recipient, deadline, amountOut, amountInMaximum, sqrtPriceLimitX96 } = await uniswapRouter.lastCall();
         expect(tokenIn).to.equal(tokenA.address);
         expect(tokenOut).to.equal(tokenB.address);
         expect(fee).to.equal(500);
@@ -184,7 +193,7 @@ describe('DCAUniswapV3Swapper', () => {
       });
 
       then('allowance is set to zero', async () => {
-        const allowance = await tokenA.allowance(DCASwapper.address, UniswapRouter.address);
+        const allowance = await tokenA.allowance(DCASwapper.address, uniswapRouter.address);
         expect(allowance).to.equal(constants.ZERO);
       });
 
@@ -209,7 +218,7 @@ describe('DCAUniswapV3Swapper', () => {
 
       given(async () => {
         await DCAPair.setNextSwapInfo(0, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
-        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, 3000);
+        await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, 3000);
         result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
       });
 
@@ -270,8 +279,8 @@ describe('DCAUniswapV3Swapper', () => {
 
         given(async () => {
           await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, rewardAmount);
-          await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER);
-          await UniswapQuoter.setAmountNecessary(FEE_TIER, amountNeededByQuoter);
+          await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER);
+          await uniswapQuoter.setAmountNecessary(FEE_TIER, amountNeededByQuoter);
           returnedResult = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
         });
 
@@ -304,10 +313,10 @@ describe('DCAUniswapV3Swapper', () => {
       let feeTier: BigNumber;
       given(async () => {
         await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
-        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
-        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
-        await UniswapQuoter.setAmountNecessary(FEE_TIER_1, REWARD_AMOUNT.sub(1));
-        await UniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT.sub(2));
+        await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await uniswapQuoter.setAmountNecessary(FEE_TIER_1, REWARD_AMOUNT.sub(1));
+        await uniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT.sub(2));
 
         const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
         feeTier = decodeFeeTier(result);
@@ -324,10 +333,10 @@ describe('DCAUniswapV3Swapper', () => {
       let feeTier: BigNumber;
       given(async () => {
         await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
-        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
-        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
-        await UniswapQuoter.revertOn(FEE_TIER_1);
-        await UniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT);
+        await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await uniswapQuoter.revertOn(FEE_TIER_1);
+        await uniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT);
 
         const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
         feeTier = decodeFeeTier(result);
@@ -345,10 +354,10 @@ describe('DCAUniswapV3Swapper', () => {
       let result: string;
       given(async () => {
         await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
-        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
-        await UniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
-        await UniswapQuoter.revertOn(FEE_TIER_1);
-        await UniswapQuoter.revertOn(FEE_TIER_2);
+        await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
+        await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
+        await uniswapQuoter.revertOn(FEE_TIER_1);
+        await uniswapQuoter.revertOn(FEE_TIER_2);
 
         result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
       });

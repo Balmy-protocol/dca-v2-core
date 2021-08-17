@@ -7,7 +7,20 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@artifacts/*": ["artifacts/*"],
+      "@deploy/*": ["deploy/*"],
+      "@typechained": ["typechained"],
+      "@typechained/*": ["typechained/*"],
+      "@utils/*": ["utils/*"],
+      "@test-utils": ["test/utils/index"],
+      "@test-utils/*": ["test/utils/*"],
+      "@e2e/*": ["test/e2e/*"],
+      "@integration/*": ["test/integration/*"],
+      "@unit/*": ["test/unit/*"]
+    }
   },
   "include": ["hardhat.config.ts", "./scripts", "./deploy", "./test"]
 }

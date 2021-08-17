@@ -1,15 +1,16 @@
 import { Contract, ContractFactory, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, behaviours, wallet, contracts } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { constants, behaviours, wallet, contracts } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { GovernableMock, GovernableMock__factory } from '@typechained';
 
 describe('Governable', function () {
   let governor: SignerWithAddress;
-  let governableContract: ContractFactory;
-  let governable: Contract;
+  let governableContract: GovernableMock__factory;
+  let governable: GovernableMock;
 
   before('Setup accounts and contracts', async () => {
     [governor] = await ethers.getSigners();

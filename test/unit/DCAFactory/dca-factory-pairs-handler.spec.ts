@@ -1,18 +1,28 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory, utils } from 'ethers';
+import { utils } from 'ethers';
 import { ethers } from 'hardhat';
+import {
+  DCAGlobalParameters,
+  DCAGlobalParameters__factory,
+  TimeWeightedOracleMock,
+  TimeWeightedOracleMock__factory,
+  ERC20Mock,
+  DCAFactory__factory,
+  DCAFactory,
+} from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { constants, erc20, behaviours } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAFactoryPairsHandler', function () {
   let owner: SignerWithAddress;
-  let tokenAContract: Contract, tokenBContract: Contract;
-  let DCAGlobalParametersContract: ContractFactory, DCAFactoryPairsHandlerContract: ContractFactory;
-  let timeWeightedOracleContract: ContractFactory;
-  let DCAGlobalParameters: Contract, DCAFactoryPairsHandler: Contract;
-  let timeWeightedOracle: Contract;
+  let tokenAContract: ERC20Mock, tokenBContract: ERC20Mock;
+  let DCAGlobalParametersContract: DCAGlobalParameters__factory;
+  let DCAFactoryPairsHandlerContract: DCAFactory__factory;
+  let timeWeightedOracleContract: TimeWeightedOracleMock__factory;
+  let DCAGlobalParameters: DCAGlobalParameters, DCAFactoryPairsHandler: DCAFactory;
+  let timeWeightedOracle: TimeWeightedOracleMock;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
@@ -26,18 +36,18 @@ describe('DCAFactoryPairsHandler', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    tokenAContract = await erc20.deploy({
+    tokenAContract = (await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
-    });
-    tokenBContract = await erc20.deploy({
+    })) as ERC20Mock;
+    tokenBContract = (await erc20.deploy({
       name: 'DAI2',
       symbol: 'DAI2',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
-    });
+    })) as ERC20Mock;
     timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,

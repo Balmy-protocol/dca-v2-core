@@ -9,8 +9,9 @@ import 'hardhat-gas-reporter';
 import 'hardhat-contract-sizer';
 import 'hardhat-deploy';
 import 'solidity-coverage';
-import { HardhatUserConfig, NetworksUserConfig } from 'hardhat/types';
+import { HardhatUserConfig, MultiSolcUserConfig, NetworksUserConfig } from 'hardhat/types';
 import { getNodeUrl, accounts } from './utils/network';
+import 'tsconfig-paths/register';
 
 const networks: NetworksUserConfig = process.env.TEST
   ? {}
@@ -72,11 +73,6 @@ const config: HardhatUserConfig = {
             enabled: true,
             runs: 200,
           },
-          outputSelection: {
-            '*': {
-              '*': ['storageLayout'],
-            },
-          },
         },
       },
       {
@@ -117,5 +113,20 @@ const config: HardhatUserConfig = {
     target: 'ethers-v5',
   },
 };
+
+if (process.env.TEST) {
+  const solidity = config.solidity as MultiSolcUserConfig;
+  solidity.compilers.forEach((_, i) => {
+    solidity.compilers[i].settings! = {
+      ...solidity.compilers[i].settings!,
+      outputSelection: {
+        '*': {
+          '*': ['storageLayout'],
+        },
+      },
+    };
+  });
+  config.solidity = solidity;
+}
 
 export default config;

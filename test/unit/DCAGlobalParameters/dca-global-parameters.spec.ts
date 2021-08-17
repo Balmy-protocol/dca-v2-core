@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 import { Contract, ContractFactory } from 'ethers';
-import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { constants, behaviours, bn, contracts } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { DCAGlobalParameters, DCAGlobalParameters__factory } from '@typechained';
+import { TransactionResponse } from '@ethersproject/abstract-provider';
+import { constants, behaviours, bn, contracts } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAGlobalParameters', () => {
@@ -12,8 +13,8 @@ describe('DCAGlobalParameters', () => {
     feeRecipient: SignerWithAddress,
     nftDescriptor: SignerWithAddress,
     oracle: SignerWithAddress;
-  let DCAGlobalParametersContract: ContractFactory;
-  let DCAGlobalParameters: Contract;
+  let DCAGlobalParametersContract: DCAGlobalParameters__factory;
+  let DCAGlobalParameters: DCAGlobalParameters;
   let immediateRole: string, timeLockedRole: string;
 
   before('Setup accounts and contracts', async () => {

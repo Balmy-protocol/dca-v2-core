@@ -1,18 +1,25 @@
 import { BigNumber, BigNumberish, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
+import {
+  DCAGlobalParametersMock__factory,
+  DCAGlobalParametersMock,
+  ERC20Mock,
+  DCAPairParametersMock__factory,
+  DCAPairParametersMock,
+} from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours, bn, wallet, contracts } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { constants, erc20, behaviours, bn, wallet, contracts } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('DCAPairParameters', function () {
   let owner: SignerWithAddress;
-  let tokenA: Contract, tokenB: Contract;
-  let DCAPairParametersContract: ContractFactory;
-  let DCAPairParameters: Contract;
-  let DCAGlobalParametersContract: ContractFactory;
-  let DCAGlobalParameters: Contract;
+  let tokenA: ERC20Mock, tokenB: ERC20Mock;
+  let DCAPairParametersContract: DCAPairParametersMock__factory;
+  let DCAPairParameters: DCAPairParametersMock;
+  let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
+  let DCAGlobalParameters: DCAGlobalParametersMock;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
@@ -23,18 +30,18 @@ describe('DCAPairParameters', function () {
   });
 
   beforeEach('Deploy and configure', async () => {
-    tokenA = await erc20.deploy({
+    tokenA = (await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
-    });
-    tokenB = await erc20.deploy({
+    })) as ERC20Mock;
+    tokenB = (await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
-    });
+    })) as ERC20Mock;
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
       owner.address,
