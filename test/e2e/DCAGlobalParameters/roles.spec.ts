@@ -2,8 +2,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { wallet } from '../../utils';
-import { contract, given, then, when } from '../../utils/bdd';
+import { wallet } from '@test-utils';
+import { contract, given, then, when } from '@test-utils/bdd';
 import Web3 from 'web3';
 import { expect } from 'chai';
 

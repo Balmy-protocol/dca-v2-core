@@ -2,11 +2,11 @@ import { expect } from 'chai';
 import { BigNumber, BytesLike, Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours, constants } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { behaviours, constants } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import erc20, { TokenContract } from '../../utils/erc20';
-import { readArgFromEvent } from '../../utils/event-utils';
+import erc20, { TokenContract } from '@test-utils/erc20';
+import { readArgFromEvent } from '@test-utils/event-utils';
 
 describe('DCAUniswapV3Swapper', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';

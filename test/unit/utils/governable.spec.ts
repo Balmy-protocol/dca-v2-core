@@ -1,8 +1,8 @@
 import { Contract, ContractFactory, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, behaviours, wallet, contracts } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { constants, behaviours, wallet, contracts } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 

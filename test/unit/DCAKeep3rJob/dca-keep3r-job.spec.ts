@@ -2,11 +2,11 @@ import { expect } from 'chai';
 import { Contract, ContractFactory, Wallet, utils } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours, constants, wallet } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { behaviours, constants, wallet } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { smockit, MockContract } from '@eth-optimism/smock';
-import { abi as KEEP3R_ABI } from '../../../artifacts/contracts/interfaces/IKeep3rV1.sol/IKeep3rV1.json';
+import { abi as KEEP3R_ABI } from '@artifacts/contracts/interfaces/IKeep3rV1.sol/IKeep3rV1.json';
 import moment from 'moment';
 
 describe('DCAKeep3rJob', () => {

@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours, evm, bn } from '../../utils';
-import { given, then, when } from '../../utils/bdd';
+import { constants, erc20, behaviours, evm, bn } from '@test-utils';
+import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { TokenContract } from '../../utils/erc20';
+import { TokenContract } from '@test-utils/erc20';
 
 const WITH_FEE = (bn: BigNumber) => bn.add(CALCULATE_FEE(bn));
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(1).div(1000);

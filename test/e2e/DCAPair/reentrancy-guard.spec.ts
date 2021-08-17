@@ -3,11 +3,11 @@ import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours, evm, bn } from '../../utils';
-import { given, then, when, contract } from '../../utils/bdd';
+import { constants, erc20, evm } from '@test-utils';
+import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { TokenContract } from '../../utils/erc20';
-import { readArgFromEventOrFail } from '../../utils/event-utils';
+import { TokenContract } from '@test-utils/erc20';
+import { readArgFromEventOrFail } from '@test-utils/event-utils';
 
 contract('DCAPair', () => {
   describe('Reentrancy Guard', () => {

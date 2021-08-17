@@ -1,11 +1,11 @@
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
-import { erc20, behaviours, constants } from '../../utils';
+import { erc20, behaviours, constants } from '@test-utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { readArgFromEventOrFail } from '../../utils/event-utils';
-import { when, then, given } from '../../utils/bdd';
-import { TokenContract } from '../../utils/erc20';
+import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import { when, then, given } from '@test-utils/bdd';
+import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 
