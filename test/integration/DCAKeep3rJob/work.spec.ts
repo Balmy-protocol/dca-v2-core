@@ -12,6 +12,7 @@ import globalParametersDeployFunction from '@deploy/004_global_parameters';
 import moment from 'moment';
 import { expect } from 'chai';
 import { pack } from '@ethersproject/solidity';
+import forkBlockNumber from '@integration/fork-block-numbers';
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const WETH_WHALE_ADDRESS = '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
@@ -20,14 +21,10 @@ const USDC_WHALE_ADDRESS = '0x0a59649758aa4d66e25f08dd01271e891fe52199';
 const KEEP3R_GOVERNANCE_ADDRESS = '0x0D5Dc686d0a2ABBfDaFDFb4D0533E886517d4E83';
 const KEEPER_ADDRESS = '0x9f6fdc2565cfc9ab8e184753bafc8e94c0f985a0';
 
-// We set a fixed block number so tests can cache blockchain state
-const FORK_BLOCK_NUMBER = 12851228;
-
 const KEEP3R_V1 = '0x1ceb5cb57c4d4e2b2433641b95dd330a33185a44';
 const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 
 contract('DCAKeep3rJob', () => {
-  let DCASwapper: DCAUniswapV3Swapper;
   let DCAFactory: DCAFactory;
   let DCAPair: DCAPair;
   let WETH: ERC20;
@@ -56,7 +53,7 @@ contract('DCAKeep3rJob', () => {
   beforeEach(async () => {
     await evm.reset({
       jsonRpcUrl: getNodeUrl('mainnet'),
-      blockNumber: FORK_BLOCK_NUMBER,
+      blockNumber: forkBlockNumber['DCAKeep3rJob-work'],
     });
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);
@@ -68,7 +65,6 @@ contract('DCAKeep3rJob', () => {
     const governorAddress = namedAccounts.governor;
     governor = await wallet.impersonate(governorAddress);
 
-    DCASwapper = await ethers.getContract('DCAUniswapV3Swapper', governor);
     DCAFactory = await ethers.getContract('Factory');
     DCAKeep3rJob = await ethers.getContract('Keep3rJob');
     keep3rV1 = await ethers.getContractAt('contracts/interfaces/IKeep3rV1.sol:IKeep3rV1', KEEP3R_V1);
