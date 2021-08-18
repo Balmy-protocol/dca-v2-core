@@ -12,14 +12,12 @@ import globalParametersDeployFunction from '@deploy/004_global_parameters';
 import moment from 'moment';
 import { expect } from 'chai';
 import { pack } from '@ethersproject/solidity';
+import forkBlockNumber from '@integration/fork-block-numbers';
 
 const WETH_ADDRESS = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const WETH_WHALE_ADDRESS = '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
 const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const USDC_WHALE_ADDRESS = '0x0a59649758aa4d66e25f08dd01271e891fe52199';
-
-// We set a fixed block number so tests can cache blockchain state
-const FORK_BLOCK_NUMBER = 12851228;
 
 const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 
@@ -54,7 +52,7 @@ contract('DCAUniswapV3Swapper', () => {
   beforeEach(async () => {
     await evm.reset({
       jsonRpcUrl: getNodeUrl('mainnet'),
-      blockNumber: FORK_BLOCK_NUMBER,
+      blockNumber: forkBlockNumber['DCASwapper-swap'],
     });
 
     uniswapSwapRouter = await ethers.getContractAt(SWAP_ROUTER_ABI, UNISWAP_SWAP_ROUTER_ADDRESS);

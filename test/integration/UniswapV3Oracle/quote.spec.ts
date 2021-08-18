@@ -1,4 +1,4 @@
-import { Contract, utils } from 'ethers';
+import { utils } from 'ethers';
 import { deployments, ethers } from 'hardhat';
 import { UniswapV3Oracle } from '@typechained';
 import { getNodeUrl } from '@utils/network';
