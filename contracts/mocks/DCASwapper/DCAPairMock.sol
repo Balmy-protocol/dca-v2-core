@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.6;
 
-import '../../interfaces/IDCAPair.sol';
+import '../../interfaces/IDCAHub.sol';
 
-contract DCAPairMock {
+contract DCAHubMock {
   uint24 private _swappedFee;
-  IDCAPairSwapHandler.NextSwapInformation private _nextSwapInfo;
+  IDCAHubSwapHandler.NextSwapInformation private _nextSwapInfo;
   uint256 private _gasToConsume;
 
   function swap(
@@ -31,7 +31,7 @@ contract DCAPairMock {
     _gasToConsume = __gasToConsume;
   }
 
-  function getNextSwapInfo() external view returns (IDCAPairSwapHandler.NextSwapInformation memory) {
+  function getNextSwapInfo() external view returns (IDCAHubSwapHandler.NextSwapInformation memory) {
     return _nextSwapInfo;
   }
 

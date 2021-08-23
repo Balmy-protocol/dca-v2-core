@@ -5,14 +5,14 @@ import { ethers } from 'hardhat';
 import {
   DCAGlobalParameters,
   DCAGlobalParameters__factory,
-  DCAPair,
-  DCAPair__factory,
+  DCAHub,
+  DCAHub__factory,
   TimeWeightedOracleMock,
   TimeWeightedOracleMock__factory,
-  DCAPairSwapCalleeMock,
-  DCAPairSwapCalleeMock__factory,
-  DCAPairLoanCalleeMock,
-  DCAPairLoanCalleeMock__factory,
+  DCAHubSwapCalleeMock,
+  DCAHubSwapCalleeMock__factory,
+  DCAHubLoanCalleeMock,
+  DCAHubLoanCalleeMock__factory,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
@@ -21,7 +21,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 
-contract('DCAPair', () => {
+contract('DCAHub', () => {
   describe('Full e2e test', () => {
     const SWAP_INTERVAL_10_MINUTES = moment.duration(10, 'minutes').as('seconds');
     const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
@@ -31,11 +31,11 @@ contract('DCAPair', () => {
     let swapper1: SignerWithAddress;
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
-    let DCAPairFactory: DCAPair__factory, DCAPair: DCAPair;
+    let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
     let DCAGlobalParametersFactory: DCAGlobalParameters__factory, DCAGlobalParameters: DCAGlobalParameters;
     let timeWeightedOracleFactory: TimeWeightedOracleMock__factory, timeWeightedOracle: TimeWeightedOracleMock;
-    let DCAPairSwapCalleeFactory: DCAPairSwapCalleeMock__factory, DCAPairSwapCallee: DCAPairSwapCalleeMock;
-    let DCAPairLoanCalleeFactory: DCAPairLoanCalleeMock__factory, DCAPairLoanCallee: DCAPairLoanCalleeMock;
+    let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
+    let DCAHubLoanCalleeFactory: DCAHubLoanCalleeMock__factory, DCAHubLoanCallee: DCAHubLoanCalleeMock;
 
     // Global variables
     const swapFee1: number = 0.3;
@@ -44,10 +44,10 @@ contract('DCAPair', () => {
     before('Setup accounts and contracts', async () => {
       [governor, feeRecipient, swapper1, john, lucy, sarah] = await ethers.getSigners();
       DCAGlobalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
-      DCAPairFactory = await ethers.getContractFactory('contracts/DCAPair/DCAPair.sol:DCAPair');
-      timeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
-      DCAPairSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAPairSwapCallee.sol:DCAPairSwapCalleeMock');
-      DCAPairLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAPairLoanCallee.sol:DCAPairLoanCalleeMock');
+      DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
+      timeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
+      DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
+      DCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:DCAHubLoanCalleeMock');
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -72,14 +72,14 @@ contract('DCAPair', () => {
         constants.NOT_ZERO_ADDRESS,
         timeWeightedOracle.address
       );
-      DCAPair = await DCAPairFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+      DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
-      DCAPairSwapCallee = await DCAPairSwapCalleeFactory.deploy(tokenA.asUnits(500), tokenB.asUnits(500));
-      DCAPairLoanCallee = await DCAPairLoanCalleeFactory.deploy(tokenA.asUnits(20), tokenB.asUnits(20));
+      DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy(tokenA.asUnits(500), tokenB.asUnits(500));
+      DCAHubLoanCallee = await DCAHubLoanCalleeFactory.deploy(tokenA.asUnits(20), tokenB.asUnits(20));
 
       await setInitialBalance(swapper1, { tokenA: 2000, tokenB: 2000 });
-      await setInitialBalance(DCAPairSwapCallee, { tokenA: 500, tokenB: 500 });
-      await setInitialBalance(DCAPairLoanCallee, { tokenA: 20, tokenB: 20 });
+      await setInitialBalance(DCAHubSwapCallee, { tokenA: 500, tokenB: 500 });
+      await setInitialBalance(DCAHubLoanCallee, { tokenA: 20, tokenB: 20 });
       await setSwapFee(swapFee1);
     });
 
@@ -169,7 +169,7 @@ contract('DCAPair', () => {
       await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR);
       await assertAmountsToSwapAre({ tokenA: 550, tokenB: 300 });
 
-      await flashSwap({ callee: DCAPairSwapCallee });
+      await flashSwap({ callee: DCAHubSwapCallee });
 
       await assertNoSwapsCanBeExecutedNow();
       await assertPositionIsConsistent(johnsPosition, {
@@ -185,7 +185,7 @@ contract('DCAPair', () => {
       await assertPositionIsConsistent(sarahsPosition1, { expectedSwapped: swapped({ rate: 500, ratio: swapRatio2, fee: swapFee1 }) });
       await assertPositionIsConsistent(sarahsPosition2, { expectedSwapped: swapped({ rate: 100, ratio: swapRatio2, fee: swapFee1 }) });
       await assertPairBalanceDifferencesAre({ tokenA: -250.9, tokenB: +248.35 });
-      await assertBalanceDifferencesAre(DCAPairSwapCallee, { tokenA: +250, tokenB: -249.25 });
+      await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +250, tokenB: -249.25 });
       await assertBalanceDifferencesAre(feeRecipient, { tokenA: +0.9, tokenB: +0.9 });
 
       const availableForWithdraw = calculateSwapped(
@@ -201,11 +201,11 @@ contract('DCAPair', () => {
       await assertBalanceDifferencesAre(john, { tokenB: availableForWithdraw });
 
       await assertAvailableToBorrowIs({ tokenA: 1848.5, tokenB: 798.5 }); // Calculated by summing all balance differences
-      await loan({ callee: DCAPairLoanCallee, tokenA: 1848.5, tokenB: 798.5 });
+      await loan({ callee: DCAHubLoanCallee, tokenA: 1848.5, tokenB: 798.5 });
 
       await assertPairBalanceDifferencesAre({ tokenA: 0, tokenB: 0 });
       await assertBalanceDifferencesAre(feeRecipient, { tokenA: +1.8485, tokenB: +0.7985 });
-      await assertBalanceDifferencesAre(DCAPairLoanCallee, { tokenA: -1.8485, tokenB: -0.7985 });
+      await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: -1.8485, tokenB: -0.7985 });
 
       await addFundsToPosition(johnsPosition, { newSwaps: 10, tokenA: 100 });
 
@@ -278,7 +278,7 @@ contract('DCAPair', () => {
     });
 
     async function withdrawMany(position1: UserPositionDefinition, ...otherPositions: UserPositionDefinition[]) {
-      await DCAPair.connect(position1.owner).withdrawSwappedMany([position1.id].concat(otherPositions.map(({ id }) => id)));
+      await DCAHub.connect(position1.owner).withdrawSwappedMany([position1.id].concat(otherPositions.map(({ id }) => id)));
 
       // Since the position is "resetted" with a withdraw, we need to reduce the amount of swaps
       for (const position of [position1].concat(otherPositions)) {
@@ -288,7 +288,7 @@ contract('DCAPair', () => {
     }
 
     async function terminate(position: UserPositionDefinition) {
-      await DCAPair.connect(position.owner).terminate(position.id);
+      await DCAHub.connect(position.owner).terminate(position.id);
     }
 
     async function setSwapFee(fee: number) {
@@ -298,11 +298,11 @@ contract('DCAPair', () => {
     async function addFundsToPosition(position: UserPositionDefinition, args: { newSwaps: number } & ({ tokenA: number } | { tokenB: number })) {
       let response: TransactionResponse;
       if (position.from.address === tokenA.address && 'tokenA' in args) {
-        await tokenA.connect(position.owner).approve(DCAPair.address, tokenA.asUnits(args.tokenA).mul(args.newSwaps));
-        response = await DCAPair.connect(position.owner).addFundsToPosition(position.id, tokenA.asUnits(args.tokenA), args.newSwaps);
+        await tokenA.connect(position.owner).approve(DCAHub.address, tokenA.asUnits(args.tokenA).mul(args.newSwaps));
+        response = await DCAHub.connect(position.owner).addFundsToPosition(position.id, tokenA.asUnits(args.tokenA), args.newSwaps);
       } else if (position.from.address === tokenB.address && 'tokenB' in args) {
-        await tokenB.connect(position.owner).approve(DCAPair.address, tokenB.asUnits(args.tokenB).mul(args.newSwaps));
-        response = await DCAPair.connect(position.owner).addFundsToPosition(position.id, tokenB.asUnits(args.tokenB), args.newSwaps);
+        await tokenB.connect(position.owner).approve(DCAHub.address, tokenB.asUnits(args.tokenB).mul(args.newSwaps));
+        response = await DCAHub.connect(position.owner).addFundsToPosition(position.id, tokenB.asUnits(args.tokenB), args.newSwaps);
       } else {
         throw new Error('WTF u doing man?');
       }
@@ -315,7 +315,7 @@ contract('DCAPair', () => {
     }
 
     async function withdraw(position: UserPositionDefinition): Promise<void> {
-      await DCAPair.connect(position.owner).withdrawSwapped(position.id);
+      await DCAHub.connect(position.owner).withdrawSwapped(position.id);
 
       // Since the position is "resetted" with a withdraw, we need to reduce the amount of swaps
       const { swapsLeft } = await getPosition(position);
@@ -325,24 +325,24 @@ contract('DCAPair', () => {
     async function swap({ swapper }: { swapper: SignerWithAddress }) {
       const nextSwapInfo = await getNextSwapInfo();
       const tokenToProvide = nextSwapInfo.tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB;
-      await tokenToProvide.connect(swapper).transfer(DCAPair.address, nextSwapInfo.amountToBeProvidedBySwapper);
-      await DCAPair.connect(swapper)['swap()']();
+      await tokenToProvide.connect(swapper).transfer(DCAHub.address, nextSwapInfo.amountToBeProvidedBySwapper);
+      await DCAHub.connect(swapper)['swap()']();
     }
 
     async function flashSwap({ callee }: { callee: HasAddress }) {
-      await DCAPair['swap(uint256,uint256,address,bytes)'](0, 0, callee.address, ethers.utils.randomBytes(5));
+      await DCAHub['swap(uint256,uint256,address,bytes)'](0, 0, callee.address, ethers.utils.randomBytes(5));
     }
 
     async function loan({ callee, tokenA: amountTokenA, tokenB: amountTokenB }: { callee: HasAddress; tokenA: number; tokenB: number }) {
-      await DCAPair.loan(tokenA.asUnits(amountTokenA), tokenB.asUnits(amountTokenB), callee.address, ethers.utils.randomBytes(5));
+      await DCAHub.loan(tokenA.asUnits(amountTokenA), tokenB.asUnits(amountTokenB), callee.address, ethers.utils.randomBytes(5));
     }
 
     function getPosition(position: UserPositionDefinition): Promise<OngoingUserPosition> {
-      return DCAPair.userPosition(position.id);
+      return DCAHub.userPosition(position.id);
     }
 
     async function getNextSwapInfo(): Promise<NextSwapInformation> {
-      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAPair.getNextSwapInfo();
+      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAHub.getNextSwapInfo();
       return {
         ...nextSwapInfo,
         // Remove zeroed positions in array
@@ -351,7 +351,7 @@ contract('DCAPair', () => {
     }
 
     async function modifyRate(position: UserPositionDefinition, rate: number): Promise<void> {
-      const response = await DCAPair.connect(position.owner).modifyRate(position.id, position.from.asUnits(rate));
+      const response = await DCAHub.connect(position.owner).modifyRate(position.id, position.from.asUnits(rate));
       const newRate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', '_rate');
       const lastSwap = await readArgFromEventOrFail<number>(response, 'Modified', '_lastSwap');
       const startingSwap = await readArgFromEventOrFail<number>(response, 'Modified', '_startingSwap');
@@ -373,8 +373,8 @@ contract('DCAPair', () => {
       swaps: number;
     }): Promise<UserPositionDefinition> {
       await token.mint(depositor.address, token.asUnits(rate).mul(swaps));
-      await token.connect(depositor).approve(DCAPair.address, token.asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAPair.connect(depositor).deposit(token.address, token.asUnits(rate), swaps, swapInterval);
+      await token.connect(depositor).approve(DCAHub.address, token.asUnits(rate).mul(swaps));
+      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(token.address, token.asUnits(rate), swaps, swapInterval);
       const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
       return {
         id: positionId,
@@ -404,12 +404,12 @@ contract('DCAPair', () => {
     }
 
     async function assertNoSwapsCanBeExecutedNow() {
-      const secondsUntilNext = await DCAPair.secondsUntilNextSwap();
+      const secondsUntilNext = await DCAHub.secondsUntilNextSwap();
       expect(secondsUntilNext).to.be.greaterThan(0);
     }
 
     async function assertThereAreNoSwapsAvailable() {
-      const secondsUntilNext = await DCAPair.secondsUntilNextSwap();
+      const secondsUntilNext = await DCAHub.secondsUntilNextSwap();
       expect(secondsUntilNext).to.equal(MAX_UINT_32);
       await assertIntervalsToSwapNowAre();
     }
@@ -427,7 +427,7 @@ contract('DCAPair', () => {
       const intervals = nextSwapInfo.swapsToPerform.map(({ interval }) => interval);
       expect(intervals).to.eql(swapIntervals);
       if (swapIntervals.length > 0) {
-        const secondsUntilNext = await DCAPair.secondsUntilNextSwap();
+        const secondsUntilNext = await DCAHub.secondsUntilNextSwap();
         expect(secondsUntilNext).to.equal(0);
       }
     }
@@ -443,7 +443,7 @@ contract('DCAPair', () => {
       tokenA: number | BigNumber;
       tokenB: number | BigNumber;
     }) {
-      const [availableToBorrowA, availableToBorrowB] = await DCAPair.availableToBorrow();
+      const [availableToBorrowA, availableToBorrowB] = await DCAHub.availableToBorrow();
       expect(availableToBorrowA).to.equal(BigNumber.isBigNumber(amountTokenA) ? amountTokenA : tokenA.asUnits(amountTokenA));
       expect(availableToBorrowB).to.equal(BigNumber.isBigNumber(amountTokenB) ? amountTokenB : tokenB.asUnits(amountTokenB));
     }
@@ -470,7 +470,7 @@ contract('DCAPair', () => {
     async function assertPairBalanceDifferencesAre(
       args: { tokenA: number | BigNumber; tokenB?: number | BigNumber } | { tokenA?: number | BigNumber; tokenB: number | BigNumber }
     ) {
-      const { expectedBalanceTokenA, expectedBalanceTokenB } = await assertBalanceDifferencesAre(DCAPair, args);
+      const { expectedBalanceTokenA, expectedBalanceTokenB } = await assertBalanceDifferencesAre(DCAHub, args);
       await assertAvailableToBorrowIs({ tokenA: expectedBalanceTokenA, tokenB: expectedBalanceTokenB });
     }
 

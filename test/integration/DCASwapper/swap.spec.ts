@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { JsonRpcSigner } from '@ethersproject/providers';
 import { BigNumber, BytesLike, Contract, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
-import { DCAPair, ERC20, DCAFactory, DCAUniswapV3Swapper, UniswapV3Oracle } from '@typechained';
+import { DCAHub, ERC20, DCAFactory, DCAUniswapV3Swapper, UniswapV3Oracle } from '@typechained';
 import { abi as IERC20_ABI } from '@openzeppelin/contracts/build/contracts/IERC20.json';
 import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
 import { getNodeUrl } from '@utils/network';
@@ -27,7 +27,7 @@ const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 contract('DCAUniswapV3Swapper', () => {
   let DCASwapper: DCAUniswapV3Swapper;
   let DCAFactory: DCAFactory;
-  let DCAPair: DCAPair;
+  let DCAHub: DCAHub;
   let WETH: ERC20;
   let USDC: ERC20;
   let oracle: UniswapV3Oracle;
@@ -70,7 +70,7 @@ contract('DCAUniswapV3Swapper', () => {
 
     const pairAddress = await DCAFactory.callStatic.createPair(WETH_ADDRESS, USDC_ADDRESS);
     await DCAFactory.createPair(WETH_ADDRESS, USDC_ADDRESS);
-    DCAPair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', pairAddress);
+    DCAHub = await ethers.getContractAt('contracts/DCAHub/DCAHub.sol:DCAHub', pairAddress);
 
     WETH = await ethers.getContractAt(IERC20_ABI, WETH_ADDRESS);
     USDC = await ethers.getContractAt(IERC20_ABI, USDC_ADDRESS);
@@ -80,8 +80,8 @@ contract('DCAUniswapV3Swapper', () => {
     await WETH.connect(wethWhale).transfer(cindy.address, utils.parseEther('100000'), { gasPrice: 0 });
     await USDC.connect(usdcWhale).transfer(alice.address, utils.parseUnits('100000', 6), { gasPrice: 0 });
 
-    await WETH.connect(cindy).approve(DCAPair.address, RATE.mul(AMOUNT_OF_SWAPS));
-    await DCAPair.connect(cindy).deposit(WETH.address, RATE, AMOUNT_OF_SWAPS, INTERVAL);
+    await WETH.connect(cindy).approve(DCAHub.address, RATE.mul(AMOUNT_OF_SWAPS));
+    await DCAHub.connect(cindy).deposit(WETH.address, RATE, AMOUNT_OF_SWAPS, INTERVAL);
   });
 
   describe('swap', () => {
@@ -89,19 +89,19 @@ contract('DCAUniswapV3Swapper', () => {
       let usdcNeeded: BigNumber;
       given(async () => {
         usdcNeeded = await oracle.quote(WETH.address, RATE, USDC.address);
-        await USDC.connect(alice).approve(DCAPair.address, usdcNeeded);
-        await DCAPair.connect(alice).deposit(USDC.address, usdcNeeded, 1, INTERVAL);
+        await USDC.connect(alice).approve(DCAHub.address, usdcNeeded);
+        await DCAHub.connect(alice).deposit(USDC.address, usdcNeeded, 1, INTERVAL);
       });
       then('findBestSwap returns max(uint24)', async () => {
-        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
         expect(decodeFeeTier(result)).to.equal(BigNumber.from(2).pow(24).sub(1));
       }).retries(5);
       describe('swap', () => {
         given(async () => {
-          await DCASwapper.swapPairs([{ pair: DCAPair.address, swapPath: encodeFeeTier(3000) }]);
+          await DCASwapper.swapPairs([{ pair: DCAHub.address, swapPath: encodeFeeTier(3000) }]);
         });
         then('swap is executed', async () => {
-          expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
+          expect(await DCAHub.performedSwaps(INTERVAL)).to.equal(1);
         });
         then('fee is sent', async () => {
           expect(await USDC.balanceOf(feeRecipient)).to.equal(CALCULATE_FEE(usdcNeeded));
@@ -117,11 +117,11 @@ contract('DCAUniswapV3Swapper', () => {
         await pushPriceOfWETHDown(10000);
       });
       then('findBestSwap returns empty', async () => {
-        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
         expect(result).to.equal('0x');
       });
       then('swap gets reverted', async () => {
-        const swapPairsTx = DCASwapper.connect(governor).swapPairs([{ pair: DCAPair.address, swapPath: encodeFeeTier(3000) }], { gasPrice: 0 });
+        const swapPairsTx = DCASwapper.connect(governor).swapPairs([{ pair: DCAHub.address, swapPath: encodeFeeTier(3000) }], { gasPrice: 0 });
         await expect(swapPairsTx).to.be.reverted;
       });
     });
@@ -134,7 +134,7 @@ contract('DCAUniswapV3Swapper', () => {
         currentUniswapPrice = await pushPriceOfWETHUp();
         twapPrice = await oracle.quote(WETH.address, RATE, USDC.address);
         expect(twapPrice).to.be.lt(currentUniswapPrice, 'Didnt push the price of WETH up enough');
-        const { amountToBeProvidedBySwapper } = await DCAPair.getNextSwapInfo();
+        const { amountToBeProvidedBySwapper } = await DCAHub.getNextSwapInfo();
         await WETH.connect(wethWhale).approve(uniswapSwapRouter.address, constants.MAX_UINT_256, { gasPrice: 0 });
         // This is approx since our call static is made in block T-1 and swap uses block T, so using quote is not accurate.
         // That is why also amountOut is hardcoded, and we are not using twapPrice
@@ -153,19 +153,19 @@ contract('DCAUniswapV3Swapper', () => {
         );
       });
       then('findBestSwap returns 3000', async () => {
-        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
         expect(decodeFeeTier(result)).to.equal(3000);
       });
       describe('swap', () => {
         given(async () => {
-          await DCASwapper.connect(governor).swapPairs([{ pair: DCAPair.address, swapPath: encodeFeeTier(3000) }], { gasPrice: 0 });
+          await DCASwapper.connect(governor).swapPairs([{ pair: DCAHub.address, swapPath: encodeFeeTier(3000) }], { gasPrice: 0 });
         });
         then('swap is executed', async () => {
-          expect(await DCAPair.performedSwaps(INTERVAL)).to.equal(1);
+          expect(await DCAHub.performedSwaps(INTERVAL)).to.equal(1);
         });
         then('pair balance is correct', async () => {
-          expect(await WETH.balanceOf(DCAPair.address)).to.equal(RATE.mul(AMOUNT_OF_SWAPS - 1));
-          expect(await USDC.balanceOf(DCAPair.address)).to.be.gte(APPLY_FEE(twapPrice));
+          expect(await WETH.balanceOf(DCAHub.address)).to.equal(RATE.mul(AMOUNT_OF_SWAPS - 1));
+          expect(await USDC.balanceOf(DCAHub.address)).to.be.gte(APPLY_FEE(twapPrice));
         });
         then('fee + change is sent to fee recipient', async () => {
           const feeToGet = RATE.sub(amountOfETHNeededToGetUSDC);

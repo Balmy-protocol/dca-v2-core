@@ -88,7 +88,7 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     // Count how many pairs can be swapped
     uint256 _length = _subsidizedPairs.length();
     for (uint256 i; i < _length; i++) {
-      IDCAPair _pair = IDCAPair(_subsidizedPairs.at(i));
+      IDCAHub _pair = IDCAHub(_subsidizedPairs.at(i));
       bytes memory _swapPath = swapper.findBestSwap(_pair);
       uint32 _swapInterval = _getSmallestSwapInterval(_pair);
       if (_swapPath.length > 0 && _hasDelayPassedAlready(_pair, _swapInterval)) {
@@ -101,7 +101,7 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
 
     // Fill result array
     for (uint256 i; i < _length; i++) {
-      IDCAPair _pair = IDCAPair(_subsidizedPairs.at(i));
+      IDCAHub _pair = IDCAHub(_subsidizedPairs.at(i));
       bytes memory _swapPath = swapper.findBestSwap(_pair);
       uint32 _swapInterval = _getSmallestSwapInterval(_pair);
       if (_swapPath.length > 0 && _hasDelayPassedAlready(_pair, _swapInterval)) {
@@ -121,7 +121,7 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
   {
     if (!keep3rV1.isKeeper(msg.sender)) revert NotAKeeper();
     for (uint256 i; i < _pairsToSwap.length; i++) {
-      IDCAPair _pair = _pairsToSwap[i].pair;
+      IDCAHub _pair = _pairsToSwap[i].pair;
       if (!_subsidizedPairs.contains(address(_pair))) {
         revert PairNotSubsidized();
       }
@@ -135,13 +135,13 @@ contract DCAKeep3rJob is IDCAKeep3rJob, Governable {
     emit Worked(_amountSwapped);
   }
 
-  function _hasDelayPassedAlready(IDCAPair _pair, uint32 _swapInterval) internal view returns (bool) {
+  function _hasDelayPassedAlready(IDCAHub _pair, uint32 _swapInterval) internal view returns (bool) {
     uint32 _nextAvailable = _pair.nextSwapAvailable(_swapInterval);
     return _getTimestamp() >= _nextAvailable + this.delay(_swapInterval);
   }
 
-  function _getSmallestSwapInterval(IDCAPair _pair) internal view returns (uint32 _minSwapInterval) {
-    IDCAPair.NextSwapInformation memory _nextSwapInfo = _pair.getNextSwapInfo();
+  function _getSmallestSwapInterval(IDCAHub _pair) internal view returns (uint32 _minSwapInterval) {
+    IDCAHub.NextSwapInformation memory _nextSwapInfo = _pair.getNextSwapInfo();
     for (uint256 i; i < _nextSwapInfo.amountOfSwaps; i++) {
       if (_minSwapInterval == 0 || _nextSwapInfo.swapsToPerform[i].interval < _minSwapInterval) {
         _minSwapInterval = _nextSwapInfo.swapsToPerform[i].interval;

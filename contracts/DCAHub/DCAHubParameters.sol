@@ -6,12 +6,12 @@ import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '../interfaces/IDCAGlobalParameters.sol';
-import '../interfaces/IDCAPair.sol';
+import '../interfaces/IDCAHub.sol';
 import '../libraries/CommonErrors.sol';
 
 import './utils/Math.sol';
 
-abstract contract DCAPairParameters is IDCAPairParameters {
+abstract contract DCAHubParameters is IDCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
