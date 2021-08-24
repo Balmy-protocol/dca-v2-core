@@ -3,8 +3,8 @@ import { ethers } from 'hardhat';
 import {
   DCAGlobalParametersMock__factory,
   DCAGlobalParametersMock,
-  DCAPairPositionHandlerMock__factory,
-  DCAPairPositionHandlerMock,
+  DCAHubPositionHandlerMock__factory,
+  DCAHubPositionHandlerMock,
 } from '@typechained';
 import { erc20, behaviours, constants } from '@test-utils';
 import { expect } from 'chai';
@@ -30,16 +30,14 @@ describe('DCAPositionHandler', () => {
 
   let owner: SignerWithAddress, approved: SignerWithAddress, stranger: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
-  let DCAPositionHandlerContract: DCAPairPositionHandlerMock__factory;
-  let DCAPositionHandler: DCAPairPositionHandlerMock;
+  let DCAPositionHandlerContract: DCAHubPositionHandlerMock__factory;
+  let DCAPositionHandler: DCAHubPositionHandlerMock;
   let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
   let DCAGlobalParameters: DCAGlobalParametersMock;
 
   before('Setup accounts and contracts', async () => {
     [owner, approved, stranger] = await ethers.getSigners();
-    DCAPositionHandlerContract = await ethers.getContractFactory(
-      'contracts/mocks/DCAPair/DCAPairPositionHandler.sol:DCAPairPositionHandlerMock'
-    );
+    DCAPositionHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubPositionHandler.sol:DCAHubPositionHandlerMock');
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );

@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat';
-import { abi as IDCAPairABI } from '../artifacts/contracts/interfaces/IDCAPair.sol/IDCAPair.json';
+import { abi as IDCAHubABI } from '../artifacts/contracts/interfaces/IDCAHub.sol/IDCAHub.json';
 
 const txHashes = [
   '0xb4ad839b93de62d64666365d56744344a84fcf541dfbd4665ca0f0c16f9a9292',
@@ -15,7 +15,7 @@ const txHashes = [
 const WBTC_DAI = '0x9a2789dd698d010f3d6bb5bf865369a734d43f83';
 
 async function main() {
-  const pair = await ethers.getContractAt(IDCAPairABI, WBTC_DAI);
+  const pair = await ethers.getContractAt(IDCAHubABI, WBTC_DAI);
   for (let y = 0; y < txHashes.length; y++) {
     const txReceipt = await ethers.provider.getTransactionReceipt(txHashes[y]);
     for (let i = 0; i < txReceipt.logs.length; i++) {

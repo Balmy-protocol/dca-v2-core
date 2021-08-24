@@ -4,12 +4,12 @@ pragma abicoder v2;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-import '../interfaces/IDCAPairSwapCallee.sol';
+import '../interfaces/IDCAHubSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-import './DCAPairParameters.sol';
+import './DCAHubParameters.sol';
 
-abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCAPairSwapHandler {
+abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHubSwapHandler {
   using SafeERC20 for IERC20Metadata;
   using EnumerableSet for EnumerableSet.UintSet;
 
@@ -238,7 +238,7 @@ abstract contract DCAPairSwapHandler is ReentrancyGuard, DCAPairParameters, IDCA
 
     if (_data.length > 0) {
       // Make call
-      IDCAPairSwapCallee(_to).DCAPairSwapCall(
+      IDCAHubSwapCallee(_to).DCAHubSwapCall(
         msg.sender,
         tokenA,
         tokenB,

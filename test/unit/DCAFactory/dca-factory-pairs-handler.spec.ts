@@ -26,7 +26,7 @@ describe('DCAFactoryPairsHandler', function () {
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
+    timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
@@ -141,7 +141,7 @@ describe('DCAFactoryPairsHandler', function () {
         createPairTx = await DCAFactoryPairsHandler.createPair(tokenAContract.address, tokenBContract.address);
       });
       then('creates pair with correct information', async () => {
-        const dcaPair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', hipotheticPairAddress);
+        const dcaPair = await ethers.getContractAt('contracts/DCAHub/DCAHub.sol:DCAHub', hipotheticPairAddress);
         expect(await dcaPair.globalParameters()).to.equal(DCAGlobalParameters.address);
       });
       then('adds it to the registry', async () => {

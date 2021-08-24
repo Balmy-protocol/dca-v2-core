@@ -2,10 +2,10 @@
 pragma solidity ^0.8.6;
 pragma abicoder v2;
 
-import '../../DCAPair/DCAPairSwapHandler.sol';
-import './DCAPairParameters.sol';
+import '../../DCAHub/DCAHubSwapHandler.sol';
+import './DCAHubParameters.sol';
 
-contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
+contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   uint32 private _customTimestamp;
 
   // Used to mock _getNextSwapsToPerform
@@ -17,7 +17,7 @@ contract DCAPairSwapHandlerMock is DCAPairSwapHandler, DCAPairParametersMock {
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB,
     IDCAGlobalParameters _globalParameters
-  ) DCAPairParametersMock(_globalParameters, _tokenA, _tokenB) DCAPairSwapHandler() {
+  ) DCAHubParametersMock(_globalParameters, _tokenA, _tokenB) DCAHubSwapHandler() {
     /* */
   }
 

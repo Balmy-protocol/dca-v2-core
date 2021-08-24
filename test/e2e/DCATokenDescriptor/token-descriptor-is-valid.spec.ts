@@ -9,8 +9,8 @@ import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import {
   DCAGlobalParameters,
   DCAGlobalParameters__factory,
-  DCAPair,
-  DCAPair__factory,
+  DCAHub,
+  DCAHub__factory,
   DCATokenDescriptor,
   DCATokenDescriptor__factory,
   TimeWeightedOracleMock,
@@ -23,8 +23,8 @@ contract('DCATokenDescriptor', () => {
   let governor: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
-  let DCAPairContract: DCAPair__factory;
-  let DCAPair: DCAPair;
+  let DCAHubContract: DCAHub__factory;
+  let DCAHub: DCAHub;
   let DCAGlobalParametersContract: DCAGlobalParameters__factory;
   let DCAGlobalParameters: DCAGlobalParameters;
   let DCATokenDescriptorContract: DCATokenDescriptor__factory;
@@ -36,9 +36,9 @@ contract('DCATokenDescriptor', () => {
   before('Setup accounts and contracts', async () => {
     [governor, feeRecipient] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
-    DCAPairContract = await ethers.getContractFactory('contracts/DCAPair/DCAPair.sol:DCAPair');
+    DCAHubContract = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     DCATokenDescriptorContract = await ethers.getContractFactory('contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor');
-    TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
+    TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -60,41 +60,41 @@ contract('DCATokenDescriptor', () => {
       DCATokenDescriptor.address,
       TimeWeightedOracle.address
     );
-    DCAPair = await DCAPairContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+    DCAHub = await DCAHubContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
-    await tokenA.approveInternal(governor.address, DCAPair.address, tokenA.asUnits(1000));
+    await tokenA.approveInternal(governor.address, DCAHub.address, tokenA.asUnits(1000));
     await tokenB.mint(governor.address, tokenB.asUnits(1000));
   });
 
   it('Validate tokenURI result', async () => {
     // Deposit
-    const response = await DCAPair.deposit(tokenA.address, tokenA.asUnits(10), 2, swapInterval);
+    const response = await DCAHub.deposit(tokenA.address, tokenA.asUnits(10), 2, swapInterval);
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
 
     // Execute one swap
-    await tokenB.transfer(DCAPair.address, tokenB.asUnits(20));
-    await DCAPair['swap()']();
+    await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
+    await DCAHub['swap()']();
 
     // Get token uri
-    const result1 = await DCAPair.tokenURI(tokenId);
+    const result1 = await DCAHub.tokenURI(tokenId);
     const { name: name1, description: description1, image: image1 } = extractJSONFromURI(result1);
 
     expect(name1).to.equal('Mean Finance DCA - Daily - TKNA/TKNB');
     expect(description1).to.equal(
-      `This NFT represents a position in a Mean Finance DCA TKNA-TKNB pair. The owner of this NFT can modify or redeem the position.\n\nPair Address: ${DCAPair.address.toLowerCase()}\nTKNA Address: ${tokenA.address.toLowerCase()}\nTKNB Address: ${tokenB.address.toLowerCase()}\nSwap interval: Daily\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
+      `This NFT represents a position in a Mean Finance DCA TKNA-TKNB pair. The owner of this NFT can modify or redeem the position.\n\nPair Address: ${DCAHub.address.toLowerCase()}\nTKNA Address: ${tokenA.address.toLowerCase()}\nTKNB Address: ${tokenB.address.toLowerCase()}\nSwap interval: Daily\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
     );
     expect(isValidSvgImage(image1)).to.be.true;
 
     // Execute the last swap and withdraw
     await evm.advanceTimeAndBlock(swapInterval);
-    await tokenB.transfer(DCAPair.address, tokenB.asUnits(20));
-    await DCAPair['swap()']();
-    await DCAPair.withdrawSwapped(tokenId);
+    await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
+    await DCAHub['swap()']();
+    await DCAHub.withdrawSwapped(tokenId);
 
     // Get token uri
-    const result2 = await DCAPair.tokenURI(tokenId);
+    const result2 = await DCAHub.tokenURI(tokenId);
     const { name: name2, description: description2, image: image2 } = extractJSONFromURI(result2);
 
     expect(name2).to.equal(name1);
