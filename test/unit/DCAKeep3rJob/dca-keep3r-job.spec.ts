@@ -40,15 +40,13 @@ describe('DCAKeep3rJob', () => {
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCASwapperMock.sol:DCASwapperMock');
     DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
     DCAHubContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAHubMock.sol:DCAHubMock');
-    keep3r = await smock.fake(KEEP3R_ABI);
   });
 
   beforeEach('Deploy and configure', async () => {
     DCAFactory = await smock.fake(DCAFactoryContract);
+    keep3r = await smock.fake(KEEP3R_ABI);
     DCASwapper = await DCASwapperContract.deploy();
     DCAKeep3rJob = await DCAKeep3rJobContract.deploy(owner.address, DCAFactory.address, keep3r.address, DCASwapper.address);
-    keep3r.worked.reset();
-    keep3r.isKeeper.reset();
   });
 
   describe('constructor', () => {
