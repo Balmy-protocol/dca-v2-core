@@ -28,4 +28,8 @@ contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairParameters
   ) external {
     _modifyPosition(_dcaId, _totalNecessary, _unswapped, _newRate, _newAmountOfSwaps);
   }
+
+  function internalWithdrawSwapped(uint256 _dcaId, address _recipient) external returns (uint256 _amount) {
+    _amount = _withdrawSwapped(_dcaId, _recipient);
+  }
 }

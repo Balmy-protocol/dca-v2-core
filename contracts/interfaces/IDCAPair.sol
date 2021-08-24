@@ -94,18 +94,19 @@ interface IDCAPairPositionHandler is IERC721, IDCAPairParameters {
   );
 
   /// @notice Emitted when a user withdraws all swapped tokens from a position
-  /// @param _user The address of the user that executed the withdraw
+  /// @param _withdrawer The address of the user that executed the withdraw
+  /// @param _recipient The address of the user that will receive the withdrawn tokens
   /// @param _dcaId The id of the position that was affected
   /// @param _token The address of the withdrawn tokens. It's the same as the position's "to" token
   /// @param _amount The amount that was withdrawn
-  event Withdrew(address indexed _user, uint256 _dcaId, address _token, uint256 _amount);
+  event Withdrew(address indexed _withdrawer, address indexed _recipient, uint256 _dcaId, address _token, uint256 _amount);
 
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
-  /// @param _user The address of the user that executed the withdraw
+  /// @param _withdrawer The address of the user that executed the withdraw
   /// @param _dcaIds The ids of the positions that were affected
   /// @param _swappedTokenA The total amount that was withdrawn in token A
   /// @param _swappedTokenB The total amount that was withdrawn in token B
-  event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
+  event WithdrewMany(address indexed _withdrawer, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
 
   /// @notice Emitted when a position is modified
   /// @param _user The address of the user that modified the position
@@ -174,6 +175,15 @@ interface IDCAPairPositionHandler is IERC721, IDCAPairParameters {
   /// @param _dcaId The position's id
   /// @return _swapped How much was withdrawn
   function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
+
+  /// @notice Withdraws all swapped tokens from a position to a recipient
+  /// @dev Will revert:
+  /// With InvalidPosition if _dcaId is invalid
+  /// With UnauthorizedCaller if the caller doesn't have access to the position
+  /// @param _dcaId The position's id
+  /// @param _recipient The address to withdraw swapped tokens to
+  /// @return _swapped How much was withdrawn
+  function withdrawSwapped(uint256 _dcaId, address _recipient) external returns (uint256 _swapped);
 
   /// @notice Withdraws all swapped tokens from many positions
   /// @dev Will revert:

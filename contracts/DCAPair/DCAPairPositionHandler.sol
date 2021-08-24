@@ -62,6 +62,15 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
   }
 
   function withdrawSwapped(uint256 _dcaId) external override nonReentrant returns (uint256 _swapped) {
+    _swapped = _withdrawSwapped(_dcaId, msg.sender);
+  }
+
+  function withdrawSwapped(uint256 _dcaId, address _recipient) external override nonReentrant returns (uint256 _swapped) {
+    if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
+    _swapped = _withdrawSwapped(_dcaId, _recipient);
+  }
+
+  function _withdrawSwapped(uint256 _dcaId, address _recipient) internal returns (uint256 _swapped) {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     _swapped = _calculateSwapped(_dcaId);
@@ -71,9 +80,9 @@ abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, 
 
     IERC20Metadata _to = _getTo(_dcaId);
     _balances[address(_to)] -= _swapped;
-    _to.safeTransfer(msg.sender, _swapped);
+    _to.safeTransfer(_recipient, _swapped);
 
-    emit Withdrew(msg.sender, _dcaId, address(_to), _swapped);
+    emit Withdrew(msg.sender, _recipient, _dcaId, address(_to), _swapped);
   }
 
   function withdrawSwappedMany(uint256[] calldata _dcaIds)

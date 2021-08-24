@@ -6,7 +6,7 @@ import {
   DCAPairPositionHandlerMock__factory,
   DCAPairPositionHandlerMock,
 } from '@typechained';
-import { erc20, behaviours, constants } from '@test-utils';
+import { erc20, behaviours, constants, wallet } from '@test-utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
@@ -237,18 +237,24 @@ describe('DCAPositionHandler', () => {
   });
 
   describe('withdrawSwapped', () => {
+    let recipient: string;
+
+    given(() => {
+      recipient = owner.address;
+    });
+
     when('withdrawing swapped with invalid id', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'withdrawSwapped',
-          args: [100],
+          func: 'internalWithdrawSwapped(uint256,address)',
+          args: [100, recipient],
           message: 'InvalidPosition',
         });
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwapped(dcaId));
+    erc721PermissionTest(({ contract, dcaId }) => contract.internalWithdrawSwapped(dcaId, recipient));
 
     when(`withdrawing swapped with position that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -256,15 +262,15 @@ describe('DCAPositionHandler', () => {
 
       given(async () => {
         ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
-        response = await withdrawSwapped(dcaId);
+        response = await internalWithdrawSwapped(dcaId, recipient);
       });
 
       then('event is emitted', async () => {
-        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, dcaId, tokenB.address, 0);
+        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, recipient, dcaId, tokenB.address, 0);
       });
 
       then('no token transfer was made', async () => {
-        await expectBalanceToBe(tokenA, owner.address, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
+        await expectBalanceToBe(tokenA, recipient, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
         await expectBalanceToBe(
           tokenA,
           DCAPositionHandler.address,
@@ -297,32 +303,79 @@ describe('DCAPositionHandler', () => {
           ratePerUnit: RATE_PER_UNIT_5,
           amount: POSITION_RATE_5,
         });
-        response = await withdrawSwapped(dcaId);
       });
 
-      then('swapped tokens are sent to the user', async () => {
-        const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-        expect(await tokenB.balanceOf(owner.address)).to.equal(tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER).add(swapped));
-        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
+      when('withdrawing without recipient', () => {
+        given(async () => {
+          response = await withdrawSwapped(dcaId);
+        });
+
+        then('swapped tokens are sent to the user', async () => {
+          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+          expect(await tokenB.balanceOf(owner.address)).to.equal(tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER).add(swapped));
+          await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
+        });
+
+        then('position is updated', async () => {
+          await expectPositionToBe(dcaId, {
+            from: tokenA,
+            rate: POSITION_RATE_5,
+            swapsExecuted: 0,
+            swapsLeft: POSITION_SWAPS_TO_PERFORM_10 - 1,
+            swapped: 0,
+            remaining: POSITION_RATE_5 * (POSITION_SWAPS_TO_PERFORM_10 - 1),
+          });
+        });
+
+        then('event is emitted', async () => {
+          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+          await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, owner.address, dcaId, tokenB.address, swapped);
+        });
+
+        thenInternalBalancesAreTheSameAsTokenBalances();
       });
 
-      then('position is updated', async () => {
-        await expectPositionToBe(dcaId, {
-          from: tokenA,
-          rate: POSITION_RATE_5,
-          swapsExecuted: 0,
-          swapsLeft: POSITION_SWAPS_TO_PERFORM_10 - 1,
-          swapped: 0,
-          remaining: POSITION_RATE_5 * (POSITION_SWAPS_TO_PERFORM_10 - 1),
+      when('withdrawing with zero address recipient', () => {
+        then('tx is reverted with message', async () => {
+          await behaviours.txShouldRevertWithMessage({
+            contract: DCAPositionHandler,
+            func: 'withdrawSwapped(uint256,address)',
+            args: [dcaId, constants.ZERO_ADDRESS],
+            message: 'ZeroAddress()',
+          });
         });
       });
 
-      then('event is emitted', async () => {
-        const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, dcaId, tokenB.address, swapped);
-      });
+      when('withdrawing with recipient', () => {
+        given(async () => {
+          recipient = wallet.generateRandomAddress();
+          response = await withdrawSwapped(dcaId, recipient);
+        });
 
-      thenInternalBalancesAreTheSameAsTokenBalances();
+        then('swapped tokens are sent to the user', async () => {
+          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+          expect(await tokenB.balanceOf(recipient)).to.equal(swapped);
+          await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
+        });
+
+        then('position is updated', async () => {
+          await expectPositionToBe(dcaId, {
+            from: tokenA,
+            rate: POSITION_RATE_5,
+            swapsExecuted: 0,
+            swapsLeft: POSITION_SWAPS_TO_PERFORM_10 - 1,
+            swapped: 0,
+            remaining: POSITION_RATE_5 * (POSITION_SWAPS_TO_PERFORM_10 - 1),
+          });
+        });
+
+        then('event is emitted', async () => {
+          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+          await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, recipient, dcaId, tokenB.address, swapped);
+        });
+
+        thenInternalBalancesAreTheSameAsTokenBalances();
+      });
     });
   });
 
@@ -1114,8 +1167,16 @@ describe('DCAPositionHandler', () => {
     return DCAPositionHandler.addFundsToPosition(dcaId, token.asUnits(amount), swaps);
   }
 
-  function withdrawSwapped(dcaId: BigNumber): Promise<TransactionResponse> {
-    return DCAPositionHandler.withdrawSwapped(dcaId);
+  function withdrawSwapped(dcaId: BigNumber, recipient?: string): Promise<TransactionResponse> {
+    if (!recipient) {
+      return DCAPositionHandler['withdrawSwapped(uint256)'](dcaId);
+    } else {
+      return DCAPositionHandler['withdrawSwapped(uint256,address)'](dcaId, recipient);
+    }
+  }
+
+  function internalWithdrawSwapped(dcaId: BigNumber, recipient: string): Promise<TransactionResponse> {
+    return DCAPositionHandler.internalWithdrawSwapped(dcaId, recipient);
   }
 
   function withdrawSwappedMany(...dcaIds: BigNumber[]): Promise<TransactionResponse> {
