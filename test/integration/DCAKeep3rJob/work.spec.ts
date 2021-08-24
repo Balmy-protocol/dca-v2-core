@@ -24,7 +24,7 @@ const KEEPER_ADDRESS = '0x9f6fdc2565cfc9ab8e184753bafc8e94c0f985a0';
 const KEEP3R_V1 = '0x1ceb5cb57c4d4e2b2433641b95dd330a33185a44';
 const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
 
-contract('DCAKeep3rJob', () => {
+contract.skip('DCAKeep3rJob', () => {
   let DCAFactory: DCAFactory;
   let DCAHub: DCAHub;
   let WETH: ERC20;

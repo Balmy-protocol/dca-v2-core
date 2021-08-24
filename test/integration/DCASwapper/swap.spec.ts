@@ -24,7 +24,7 @@ const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
-contract('DCAUniswapV3Swapper', () => {
+contract.skip('DCAUniswapV3Swapper', () => {
   let DCASwapper: DCAUniswapV3Swapper;
   let DCAFactory: DCAFactory;
   let DCAHub: DCAHub;

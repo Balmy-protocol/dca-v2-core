@@ -25,8 +25,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   IERC20Metadata public override tokenB;
 
   // Tracking
-  mapping(uint32 => mapping(address => mapping(uint32 => int256))) public override swapAmountDelta; // swap interval => from token => swap number => delta
-  mapping(uint32 => uint32) public override performedSwaps; // swap interval => performed swaps
+  mapping(uint32 => mapping(address => mapping(uint32 => int256))) public swapAmountDelta; // swap interval => from token => swap number => delta
+  mapping(uint32 => uint32) public performedSwaps; // swap interval => performed swaps
   mapping(uint32 => mapping(address => mapping(uint32 => uint256))) internal _accumRatesPerUnit; // swap interval => from token => swap number => accum
   mapping(address => uint256) internal _balances;
   EnumerableSet.UintSet internal _activeSwapIntervals;

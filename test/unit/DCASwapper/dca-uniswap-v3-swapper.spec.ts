@@ -17,7 +17,7 @@ import {
   UniswapFactoryMock__factory,
 } from '@typechained';
 
-describe('DCAUniswapV3Swapper', () => {
+describe.skip('DCAUniswapV3Swapper', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
 

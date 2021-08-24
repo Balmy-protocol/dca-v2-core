@@ -21,7 +21,7 @@ import moment from 'moment';
 
 chai.use(smock.matchers);
 
-describe('DCAKeep3rJob', () => {
+describe.skip('DCAKeep3rJob', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
   const ADDRESS_2 = '0x0000000000000000000000000000000000000002';
   const BYTES_1 = ethers.utils.randomBytes(5);
