@@ -2,15 +2,15 @@
 
 pragma solidity ^0.8.6;
 
-import '../../DCAPair/DCAPairPositionHandler.sol';
-import './DCAPairParameters.sol';
+import '../../DCAHub/DCAHubPositionHandler.sol';
+import './DCAHubParameters.sol';
 
-contract DCAPairPositionHandlerMock is DCAPairPositionHandler, DCAPairParametersMock {
+contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubParametersMock {
   constructor(
     IDCAGlobalParameters _globalParameters,
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB
-  ) DCAPairParametersMock(_globalParameters, _tokenA, _tokenB) DCAPairPositionHandler(_tokenA, _tokenB) {
+  ) DCAHubParametersMock(_globalParameters, _tokenA, _tokenB) DCAHubPositionHandler(_tokenA, _tokenB) {
     /* */
   }
 

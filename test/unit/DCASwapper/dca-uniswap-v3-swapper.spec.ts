@@ -74,7 +74,7 @@ describe('DCAUniswapV3Swapper', () => {
     });
   });
 
-  describe('DCAPairSwapCall', () => {
+  describe('DCAHubSwapCall', () => {
     let tokenA: TokenContract, tokenB: TokenContract;
     let rewardAmount: BigNumber;
     let amountToProvide: BigNumber;
@@ -97,7 +97,7 @@ describe('DCAUniswapV3Swapper', () => {
 
     when('callback is called but there is no need to provide tokens', () => {
       given(async () => {
-        await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
+        await DCASwapper.connect(swapperCaller).DCAHubSwapCall(
           constants.ZERO_ADDRESS, // Not used
           tokenA.address,
           tokenB.address,
@@ -126,7 +126,7 @@ describe('DCAUniswapV3Swapper', () => {
         // Prepare swapper to that it says it used the whole reward
         await uniswapRouter.setAmountIn(rewardAmount);
 
-        await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
+        await DCASwapper.connect(swapperCaller).DCAHubSwapCall(
           constants.ZERO_ADDRESS, // Not used
           tokenA.address,
           tokenB.address,
@@ -167,7 +167,7 @@ describe('DCAUniswapV3Swapper', () => {
         // Prepare swapper to that it says it didn't use the whole reward
         await uniswapRouter.setAmountIn(rewardAmount.sub(1));
 
-        await DCASwapper.connect(swapperCaller).DCAPairSwapCall(
+        await DCASwapper.connect(swapperCaller).DCAHubSwapCall(
           constants.ZERO_ADDRESS, // Not used
           tokenA.address,
           tokenB.address,
@@ -206,20 +206,20 @@ describe('DCAUniswapV3Swapper', () => {
   describe('findBestSwap', () => {
     const REWARD_AMOUNT = BigNumber.from(1000);
     const AMOUNT_TO_PROVIDE = BigNumber.from(2000);
-    let DCAPair: Contract;
+    let DCAHub: Contract;
 
     given(async () => {
-      const DCAPairMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAPairMock.sol:DCAPairMock');
-      DCAPair = await DCAPairMockContract.deploy();
+      const DCAHubMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAHubMock.sol:DCAHubMock');
+      DCAHub = await DCAHubMockContract.deploy();
     });
 
     when('amount of swaps is zero', () => {
       let result: string;
 
       given(async () => {
-        await DCAPair.setNextSwapInfo(0, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await DCAHub.setNextSwapInfo(0, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
         await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, 3000);
-        result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
       });
 
       then('result is empty', async () => {
@@ -231,8 +231,8 @@ describe('DCAUniswapV3Swapper', () => {
       let feeTier: BigNumber;
 
       given(async () => {
-        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, constants.ZERO, REWARD_AMOUNT);
-        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        await DCAHub.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, constants.ZERO, REWARD_AMOUNT);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
         feeTier = decodeFeeTier(result);
       });
 
@@ -278,10 +278,10 @@ describe('DCAUniswapV3Swapper', () => {
         let returnedResult: string;
 
         given(async () => {
-          await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, rewardAmount);
+          await DCAHub.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, rewardAmount);
           await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER);
           await uniswapQuoter.setAmountNecessary(FEE_TIER, amountNeededByQuoter);
-          returnedResult = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+          returnedResult = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
         });
 
         then('findBestSwap returns as expected', async () => {
@@ -297,8 +297,8 @@ describe('DCAUniswapV3Swapper', () => {
       let result: string;
 
       given(async () => {
-        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
-        result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        await DCAHub.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
       });
 
       then('result is empty', async () => {
@@ -312,13 +312,13 @@ describe('DCAUniswapV3Swapper', () => {
 
       let feeTier: BigNumber;
       given(async () => {
-        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await DCAHub.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
         await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
         await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
         await uniswapQuoter.setAmountNecessary(FEE_TIER_1, REWARD_AMOUNT.sub(1));
         await uniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT.sub(2));
 
-        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
         feeTier = decodeFeeTier(result);
       });
       then('the one that requires less input is returned', () => {
@@ -332,13 +332,13 @@ describe('DCAUniswapV3Swapper', () => {
 
       let feeTier: BigNumber;
       given(async () => {
-        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await DCAHub.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
         await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
         await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
         await uniswapQuoter.revertOn(FEE_TIER_1);
         await uniswapQuoter.setAmountNecessary(FEE_TIER_2, REWARD_AMOUNT);
 
-        const result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        const result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
         feeTier = decodeFeeTier(result);
       });
 
@@ -353,13 +353,13 @@ describe('DCAUniswapV3Swapper', () => {
 
       let result: string;
       given(async () => {
-        await DCAPair.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
+        await DCAHub.setNextSwapInfo(1, ADDRESS_1, ADDRESS_2, AMOUNT_TO_PROVIDE, REWARD_AMOUNT);
         await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_1);
         await uniswapFactory.supportPair(ADDRESS_1, ADDRESS_2, FEE_TIER_2);
         await uniswapQuoter.revertOn(FEE_TIER_1);
         await uniswapQuoter.revertOn(FEE_TIER_2);
 
-        result = await DCASwapper.callStatic.findBestSwap(DCAPair.address);
+        result = await DCASwapper.callStatic.findBestSwap(DCAHub.address);
       });
 
       then('result is empty', async () => {
@@ -395,27 +395,27 @@ describe('DCAUniswapV3Swapper', () => {
 
     when('gas limit is enough', () => {
       let pairsToSwap: [string, string][];
-      let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
+      let DCAHub1: Contract, DCAHub2: Contract, DCAHub3: Contract;
       let tx: TransactionResponse;
 
       given(async () => {
-        const DCAPairMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAPairMock.sol:DCAPairMock');
-        DCAPair1 = await DCAPairMockContract.deploy();
-        DCAPair2 = await DCAPairMockContract.deploy();
-        DCAPair3 = await DCAPairMockContract.deploy();
+        const DCAHubMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAHubMock.sol:DCAHubMock');
+        DCAHub1 = await DCAHubMockContract.deploy();
+        DCAHub2 = await DCAHubMockContract.deploy();
+        DCAHub3 = await DCAHubMockContract.deploy();
 
         pairsToSwap = [
-          [DCAPair1.address, encodeFeeTier(500)],
-          [DCAPair2.address, encodeFeeTier(3000)],
-          [DCAPair3.address, encodeFeeTier(10000)],
+          [DCAHub1.address, encodeFeeTier(500)],
+          [DCAHub2.address, encodeFeeTier(3000)],
+          [DCAHub3.address, encodeFeeTier(10000)],
         ];
         tx = await DCASwapper.swapPairs(pairsToSwap);
       });
 
       then('all pairs are swapped', async () => {
-        expect(await DCAPair1.swappedWithFee(500)).to.be.true;
-        expect(await DCAPair2.swappedWithFee(3000)).to.be.true;
-        expect(await DCAPair3.swappedWithFee(10000)).to.be.true;
+        expect(await DCAHub1.swappedWithFee(500)).to.be.true;
+        expect(await DCAHub2.swappedWithFee(3000)).to.be.true;
+        expect(await DCAHub3.swappedWithFee(10000)).to.be.true;
       });
 
       then('event is emitted', async () => {
@@ -428,30 +428,30 @@ describe('DCAUniswapV3Swapper', () => {
 
     when('gas limit is not enough', () => {
       let pairsToSwap: [string, string][];
-      let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
+      let DCAHub1: Contract, DCAHub2: Contract, DCAHub3: Contract;
       let tx: TransactionResponse;
 
       given(async () => {
-        const DCAPairMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAPairMock.sol:DCAPairMock');
-        DCAPair1 = await DCAPairMockContract.deploy();
-        DCAPair2 = await DCAPairMockContract.deploy();
-        DCAPair3 = await DCAPairMockContract.deploy();
+        const DCAHubMockContract = await ethers.getContractFactory('contracts/mocks/DCASwapper/DCAHubMock.sol:DCAHubMock');
+        DCAHub1 = await DCAHubMockContract.deploy();
+        DCAHub2 = await DCAHubMockContract.deploy();
+        DCAHub3 = await DCAHubMockContract.deploy();
 
-        await DCAPair1.setGasToConsumeInSwap(100000);
-        await DCAPair2.setGasToConsumeInSwap(200000);
+        await DCAHub1.setGasToConsumeInSwap(100000);
+        await DCAHub2.setGasToConsumeInSwap(200000);
 
         pairsToSwap = [
-          [DCAPair1.address, encodeFeeTier(10000)],
-          [DCAPair2.address, encodeFeeTier(500)],
-          [DCAPair3.address, encodeFeeTier(3000)],
+          [DCAHub1.address, encodeFeeTier(10000)],
+          [DCAHub2.address, encodeFeeTier(500)],
+          [DCAHub3.address, encodeFeeTier(3000)],
         ];
         tx = await DCASwapper.swapPairs(pairsToSwap, { gasLimit: 500000 });
       });
 
       then('some pairs are not swapped', async () => {
-        expect(await DCAPair1.swappedWithFee(10000)).to.be.true;
-        expect(await DCAPair2.swappedWithFee(500)).to.be.true;
-        expect(await DCAPair3.swapped()).to.be.false;
+        expect(await DCAHub1.swappedWithFee(10000)).to.be.true;
+        expect(await DCAHub2.swappedWithFee(500)).to.be.true;
+        expect(await DCAHub3.swapped()).to.be.false;
       });
 
       then('event is still emitted', async () => {

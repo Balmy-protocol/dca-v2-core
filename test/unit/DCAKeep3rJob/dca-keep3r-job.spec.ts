@@ -7,7 +7,7 @@ import {
   DCAFactoryMock__factory,
   DCAKeep3rJobMock,
   DCAKeep3rJobMock__factory,
-  DCAPairMock__factory,
+  DCAHubMock__factory,
   DCASwapperMock,
   DCASwapperMock__factory,
   IKeep3rV1,
@@ -29,7 +29,7 @@ describe('DCAKeep3rJob', () => {
 
   let owner: SignerWithAddress;
   let DCAKeep3rJobContract: DCAKeep3rJobMock__factory, DCAFactoryContract: DCAFactoryMock__factory;
-  let DCASwapperContract: DCASwapperMock__factory, DCAPairContract: DCAPairMock__factory;
+  let DCASwapperContract: DCASwapperMock__factory, DCAHubContract: DCAHubMock__factory;
   let DCAKeep3rJob: DCAKeep3rJobMock, DCAFactory: FakeContract<DCAFactoryMock>;
   let DCASwapper: DCASwapperMock;
   let keep3r: FakeContract<IKeep3rV1>;
@@ -39,7 +39,7 @@ describe('DCAKeep3rJob', () => {
     DCAKeep3rJobContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAKeep3rJob.sol:DCAKeep3rJobMock');
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCASwapperMock.sol:DCASwapperMock');
     DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
-    DCAPairContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAPairMock.sol:DCAPairMock');
+    DCAHubContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAHubMock.sol:DCAHubMock');
     keep3r = await smock.fake(KEEP3R_ABI);
   });
 
@@ -269,12 +269,12 @@ describe('DCAKeep3rJob', () => {
   });
 
   describe('workable', () => {
-    let DCAPair1: Contract, DCAPair2: Contract, DCAPair3: Contract;
+    let DCAHub1: Contract, DCAHub2: Contract, DCAHub3: Contract;
 
     given(async () => {
-      DCAPair1 = await DCAPairContract.deploy();
-      DCAPair2 = await DCAPairContract.deploy();
-      DCAPair3 = await DCAPairContract.deploy();
+      DCAHub1 = await DCAHubContract.deploy();
+      DCAHub2 = await DCAHubContract.deploy();
+      DCAHub3 = await DCAHubContract.deploy();
       DCAFactory.isPair.returns(true);
     });
 
@@ -288,7 +288,7 @@ describe('DCAKeep3rJob', () => {
 
     when('pairs being subsidized should not be swaped', () => {
       given(async () => {
-        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address, DCAPair2.address]);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAHub1.address, DCAHub2.address]);
         await DCASwapper.setPairsToSwap([], []);
       });
 
@@ -304,12 +304,12 @@ describe('DCAKeep3rJob', () => {
       const TIMESTAMP = moment().unix();
 
       given(async () => {
-        await DCAPair1.setNextSwapAvailable(SWAP_INTERVAL, TIMESTAMP);
-        await DCAPair1.setNextSwapInfo([SWAP_INTERVAL, SWAP_INTERVAL * 2]);
-        await DCASwapper.setPairsToSwap([DCAPair1.address], [BYTES_1]);
+        await DCAHub1.setNextSwapAvailable(SWAP_INTERVAL, TIMESTAMP);
+        await DCAHub1.setNextSwapInfo([SWAP_INTERVAL, SWAP_INTERVAL * 2]);
+        await DCASwapper.setPairsToSwap([DCAHub1.address], [BYTES_1]);
         await DCAKeep3rJob.setBlockTimestamp(TIMESTAMP);
         await DCAKeep3rJob.setDelay(SWAP_INTERVAL, 1);
-        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address]);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAHub1.address]);
       });
 
       then('empty list is returned', async () => {
@@ -322,15 +322,15 @@ describe('DCAKeep3rJob', () => {
     when('some of the pairs being subsidized should be swapped', () => {
       const [SWAP_INTERVAL, SWAP_INTERVAL_2] = [60, 120];
       given(async () => {
-        await DCAPair1.setNextSwapInfo([SWAP_INTERVAL, SWAP_INTERVAL_2]);
-        await DCAPair3.setNextSwapInfo([SWAP_INTERVAL_2]);
-        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address, DCAPair2.address, DCAPair3.address]);
-        await DCASwapper.setPairsToSwap([DCAPair1.address, DCAPair3.address], [BYTES_1, BYTES_2]);
+        await DCAHub1.setNextSwapInfo([SWAP_INTERVAL, SWAP_INTERVAL_2]);
+        await DCAHub3.setNextSwapInfo([SWAP_INTERVAL_2]);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAHub1.address, DCAHub2.address, DCAHub3.address]);
+        await DCASwapper.setPairsToSwap([DCAHub1.address, DCAHub3.address], [BYTES_1, BYTES_2]);
       });
 
       then('then they are returned', async () => {
         const [pairsToSwap, smallestIntervals]: [{ pair: string; swapPath: string }[], number[]] = await DCAKeep3rJob.callStatic.workable();
-        expect(pairsToSwap.map(({ pair }) => pair)).to.eql([DCAPair3.address, DCAPair1.address]);
+        expect(pairsToSwap.map(({ pair }) => pair)).to.eql([DCAHub3.address, DCAHub1.address]);
         expect(pairsToSwap.map(({ swapPath }) => swapPath)).to.eql([utils.hexlify(BYTES_2), utils.hexlify(BYTES_1)]);
         expect(smallestIntervals).to.eql([SWAP_INTERVAL_2, SWAP_INTERVAL]);
       });
@@ -339,11 +339,11 @@ describe('DCAKeep3rJob', () => {
 
   describe('work', () => {
     const SWAP_INTERVAL = 60;
-    let DCAPair1: Contract, DCAPair2: Contract;
+    let DCAHub1: Contract, DCAHub2: Contract;
 
     given(async () => {
-      DCAPair1 = await DCAPairContract.deploy();
-      DCAPair2 = await DCAPairContract.deploy();
+      DCAHub1 = await DCAHubContract.deploy();
+      DCAHub2 = await DCAHubContract.deploy();
       await keep3r.isKeeper.returns(true);
     });
     when('not being called from a keeper', () => {
@@ -364,7 +364,7 @@ describe('DCAKeep3rJob', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAKeep3rJob,
           func: 'work',
-          args: [[[DCAPair1.address, 500]], [SWAP_INTERVAL]],
+          args: [[[DCAHub1.address, 500]], [SWAP_INTERVAL]],
           message: 'PairNotSubsidized',
         });
       });
@@ -374,7 +374,7 @@ describe('DCAKeep3rJob', () => {
       given(async () => {
         keeper = await wallet.generateRandom();
         DCAFactory.isPair.returns(true);
-        await DCAKeep3rJob.startSubsidizingPairs([DCAPair1.address, DCAPair2.address]);
+        await DCAKeep3rJob.startSubsidizingPairs([DCAHub1.address, DCAHub2.address]);
       });
 
       context('but no pair was swapped', () => {
@@ -384,8 +384,8 @@ describe('DCAKeep3rJob', () => {
             func: 'work',
             args: [
               [
-                [DCAPair1.address, BYTES_1],
-                [DCAPair2.address, BYTES_2],
+                [DCAHub1.address, BYTES_1],
+                [DCAHub2.address, BYTES_2],
               ],
               [SWAP_INTERVAL, SWAP_INTERVAL],
             ],
@@ -397,7 +397,7 @@ describe('DCAKeep3rJob', () => {
       context('but delay has not passed', () => {
         const TIMESTAMP = moment().unix();
         given(async () => {
-          await DCAPair1.setNextSwapAvailable(SWAP_INTERVAL, TIMESTAMP);
+          await DCAHub1.setNextSwapAvailable(SWAP_INTERVAL, TIMESTAMP);
           await DCAKeep3rJob.setBlockTimestamp(TIMESTAMP);
           await DCAKeep3rJob.setDelay(SWAP_INTERVAL, 1);
         });
@@ -406,7 +406,7 @@ describe('DCAKeep3rJob', () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAKeep3rJob,
             func: 'work',
-            args: [[[DCAPair1.address, BYTES_1]], [SWAP_INTERVAL]],
+            args: [[[DCAHub1.address, BYTES_1]], [SWAP_INTERVAL]],
             message: 'MustWaitDelay',
           });
         });
@@ -417,8 +417,8 @@ describe('DCAKeep3rJob', () => {
           await DCASwapper.setAmountSwapped(2);
           await DCAKeep3rJob.connect(keeper).work(
             [
-              { pair: DCAPair1.address, swapPath: BYTES_1 },
-              { pair: DCAPair2.address, swapPath: BYTES_2 },
+              { pair: DCAHub1.address, swapPath: BYTES_1 },
+              { pair: DCAHub2.address, swapPath: BYTES_2 },
             ],
             [SWAP_INTERVAL, SWAP_INTERVAL],
             { gasPrice: 0 }
@@ -427,8 +427,8 @@ describe('DCAKeep3rJob', () => {
         then('job will call the swapper', async () => {
           const lastCalled = await DCASwapper.lastCalled();
           expect(lastCalled).to.eql([
-            [DCAPair1.address, utils.hexlify(BYTES_1)],
-            [DCAPair2.address, utils.hexlify(BYTES_2)],
+            [DCAHub1.address, utils.hexlify(BYTES_1)],
+            [DCAHub2.address, utils.hexlify(BYTES_2)],
           ]);
         });
 

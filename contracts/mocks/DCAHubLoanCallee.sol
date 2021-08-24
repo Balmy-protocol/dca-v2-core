@@ -3,27 +3,25 @@ pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/utils/Address.sol';
 
-import '../interfaces/IDCAPairSwapCallee.sol';
-import '../interfaces/IDCAPair.sol';
+import '../interfaces/IDCAHubLoanCallee.sol';
+import '../interfaces/IDCAHub.sol';
 
-contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
-  struct SwapCall {
+contract DCAHubLoanCalleeMock is IDCAHubLoanCallee {
+  struct LoanCall {
     address pair;
     address sender;
     IERC20Metadata tokenA;
     IERC20Metadata tokenB;
     uint256 amountBorrowedTokenA;
     uint256 amountBorrowedTokenB;
-    bool isRewardTokenA;
-    uint256 rewardAmount;
-    uint256 amountToProvide;
+    uint256 feeTokenA;
+    uint256 feeTokenB;
     bytes data;
   }
 
-  // solhint-disable-next-line var-name-mixedcase
   uint256 private _initialBalanceA;
   uint256 private _initialBalanceB;
-  SwapCall private _lastCall;
+  LoanCall private _lastCall;
   bool private _returnAsExpected = true;
   uint256 private _amountToReturnTokenA;
   uint256 private _amountToReturnTokenB;
@@ -34,42 +32,24 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function DCAPairSwapCall(
+  function DCAHubLoanCall(
     address _sender,
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB,
     uint256 _amountBorrowedTokenA,
     uint256 _amountBorrowedTokenB,
-    bool _isRewardTokenA,
-    uint256 _rewardAmount,
-    uint256 _amountToProvide,
+    uint256 _feeTokenA,
+    uint256 _feeTokenB,
     bytes calldata _data
   ) external override {
-    require(
-      _tokenA.balanceOf(address(this)) == _initialBalanceA + _amountBorrowedTokenA + (_isRewardTokenA ? _rewardAmount : 0),
-      'DCAPairSwapCallee: token A not sent optimistically'
-    );
-    require(
-      _tokenB.balanceOf(address(this)) == _initialBalanceB + _amountBorrowedTokenB + (_isRewardTokenA ? 0 : _rewardAmount),
-      'DCAPairSwapCallee: token B not sent optimistically'
-    );
+    require(_tokenA.balanceOf(address(this)) == _initialBalanceA + _amountBorrowedTokenA, 'DCAHubLoanCallee: token A not sent optimistically');
+    require(_tokenB.balanceOf(address(this)) == _initialBalanceB + _amountBorrowedTokenB, 'DCAHubLoanCallee: token B not sent optimistically');
 
-    _lastCall = SwapCall(
-      msg.sender,
-      _sender,
-      _tokenA,
-      _tokenB,
-      _amountBorrowedTokenA,
-      _amountBorrowedTokenB,
-      _isRewardTokenA,
-      _rewardAmount,
-      _amountToProvide,
-      _data
-    );
+    _lastCall = LoanCall(msg.sender, _sender, _tokenA, _tokenB, _amountBorrowedTokenA, _amountBorrowedTokenB, _feeTokenA, _feeTokenB, _data);
 
     if (_returnAsExpected) {
-      _tokenA.transfer(msg.sender, _amountBorrowedTokenA + (_isRewardTokenA ? 0 : _amountToProvide));
-      _tokenB.transfer(msg.sender, _amountBorrowedTokenB + (_isRewardTokenA ? _amountToProvide : 0));
+      _tokenA.transfer(msg.sender, _amountBorrowedTokenA + _feeTokenA);
+      _tokenB.transfer(msg.sender, _amountBorrowedTokenB + _feeTokenB);
     } else {
       _tokenA.transfer(msg.sender, _amountToReturnTokenA);
       _tokenB.transfer(msg.sender, _amountToReturnTokenB);
@@ -86,12 +66,12 @@ contract DCAPairSwapCalleeMock is IDCAPairSwapCallee {
     return _lastCall.pair != address(0);
   }
 
-  function getLastCall() external view returns (SwapCall memory __lastCall) {
+  function getLastCall() external view returns (LoanCall memory __lastCall) {
     __lastCall = _lastCall;
   }
 }
 
-contract ReentrantDCAPairSwapCalleeMock is IDCAPairSwapCallee {
+contract ReentrantDCAHubLoanCalleeMock is IDCAHubLoanCallee {
   using Address for address;
 
   bytes internal _attack;
@@ -101,13 +81,12 @@ contract ReentrantDCAPairSwapCalleeMock is IDCAPairSwapCallee {
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function DCAPairSwapCall(
+  function DCAHubLoanCall(
     address,
     IERC20Metadata,
     IERC20Metadata,
     uint256,
     uint256,
-    bool,
     uint256,
     uint256,
     bytes calldata

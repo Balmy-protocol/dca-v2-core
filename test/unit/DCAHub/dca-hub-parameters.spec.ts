@@ -4,8 +4,8 @@ import {
   DCAGlobalParametersMock__factory,
   DCAGlobalParametersMock,
   ERC20Mock,
-  DCAPairParametersMock__factory,
-  DCAPairParametersMock,
+  DCAHubParametersMock__factory,
+  DCAHubParametersMock,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, bn, wallet, contracts } from '@test-utils';
@@ -13,11 +13,11 @@ import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
-describe('DCAPairParameters', function () {
+describe('DCAHubParameters', function () {
   let owner: SignerWithAddress;
   let tokenA: ERC20Mock, tokenB: ERC20Mock;
-  let DCAPairParametersContract: DCAPairParametersMock__factory;
-  let DCAPairParameters: DCAPairParametersMock;
+  let DCAHubParametersContract: DCAHubParametersMock__factory;
+  let DCAHubParameters: DCAHubParametersMock;
   let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
   let DCAGlobalParameters: DCAGlobalParametersMock;
 
@@ -26,7 +26,7 @@ describe('DCAPairParameters', function () {
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
-    DCAPairParametersContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairParameters.sol:DCAPairParametersMock');
+    DCAHubParametersContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubParameters.sol:DCAHubParametersMock');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -49,14 +49,14 @@ describe('DCAPairParameters', function () {
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
-    DCAPairParameters = await DCAPairParametersContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+    DCAHubParameters = await DCAHubParametersContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
   });
 
   describe('constructor', () => {
     when('global parameters is zero address', () => {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
-          contract: DCAPairParametersContract,
+          contract: DCAHubParametersContract,
           args: [constants.ZERO_ADDRESS, tokenA.address, tokenB.address],
           message: 'ZeroAddress',
         });
@@ -65,7 +65,7 @@ describe('DCAPairParameters', function () {
     when('token A is zero address', () => {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
-          contract: DCAPairParametersContract,
+          contract: DCAHubParametersContract,
           args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, tokenB.address],
           message: 'ZeroAddress',
         });
@@ -74,7 +74,7 @@ describe('DCAPairParameters', function () {
     when('token B is zero address', () => {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
-          contract: DCAPairParametersContract,
+          contract: DCAHubParametersContract,
           args: [constants.NOT_ZERO_ADDRESS, tokenA.address, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
@@ -84,7 +84,7 @@ describe('DCAPairParameters', function () {
       let deploymentTx: TransactionResponse;
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAPairParametersContract, [DCAGlobalParameters.address, tokenA.address, tokenB.address]);
+        const deployment = await contracts.deploy(DCAHubParametersContract, [DCAGlobalParameters.address, tokenA.address, tokenB.address]);
         deploymentTx = deployment.tx;
         deployedContract = deployment.contract;
       });
@@ -118,7 +118,7 @@ describe('DCAPairParameters', function () {
   const getFeeFromAmountTest = async ({ title, amount, fee }: { title: string; amount: BigNumber | number | string; fee: BigNumberish }) => {
     when(title, () => {
       then('fee from amount is correct', async () => {
-        expect(await DCAPairParameters.getFeeFromAmount(fee, amount)).to.equal(await getFeeFrom(fee, amount));
+        expect(await DCAHubParameters.getFeeFromAmount(fee, amount)).to.equal(await getFeeFrom(fee, amount));
       });
     });
   };
