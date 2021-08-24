@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
+import { BigNumber, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { DCAGlobalParameters, DCAGlobalParameters__factory, DCAHub, DCAHub__factory, IUniswapV3OracleAggregator } from '@typechained';
 import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
@@ -76,7 +76,7 @@ contract('DCAHub', () => {
         await timeWeightedOracle.quote.returns(BigNumber.from('2190'));
         await swap({ swapper: swapper1 });
 
-        await DCAHub.connect(alice).withdrawSwapped(1);
+        await DCAHub.connect(alice)['withdrawSwapped(uint256)'](1);
 
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
         await timeWeightedOracle.quote.returns(BigNumber.from('2175'));
@@ -87,7 +87,7 @@ contract('DCAHub', () => {
       });
 
       then("doesnt match the balance of contract with user's swapped amount", async () => {
-        await expect(DCAHub.connect(john).withdrawSwapped(2)).to.be.reverted;
+        await expect(DCAHub.connect(john)['withdrawSwapped(uint256)'](2)).to.be.reverted;
       });
     });
 

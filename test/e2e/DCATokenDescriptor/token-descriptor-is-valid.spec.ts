@@ -91,7 +91,7 @@ contract('DCATokenDescriptor', () => {
     await evm.advanceTimeAndBlock(swapInterval);
     await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
     await DCAHub['swap()']();
-    await DCAHub.withdrawSwapped(tokenId);
+    await DCAHub['withdrawSwapped(uint256)'](tokenId);
 
     // Get token uri
     const result2 = await DCAHub.tokenURI(tokenId);

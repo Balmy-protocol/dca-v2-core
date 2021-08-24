@@ -102,11 +102,11 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   event Withdrew(address indexed _withdrawer, address indexed _recipient, uint256 _dcaId, address _token, uint256 _amount);
 
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
-  /// @param _withdrawer The address of the user that executed the withdraw
+  /// @param _user The address of the user that executed the withdraw
   /// @param _dcaIds The ids of the positions that were affected
   /// @param _swappedTokenA The total amount that was withdrawn in token A
   /// @param _swappedTokenB The total amount that was withdrawn in token B
-  event WithdrewMany(address indexed _withdrawer, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
+  event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
 
   /// @notice Emitted when a position is modified
   /// @param _user The address of the user that modified the position

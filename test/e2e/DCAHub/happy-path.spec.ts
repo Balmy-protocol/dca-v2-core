@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory } from 'ethers';
+import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import {
   DCAGlobalParameters,
@@ -314,8 +314,12 @@ contract('DCAHub', () => {
       await timeWeightedOracle.setRate(tokenA.asUnits(ratio.tokenA / ratio.tokenB), tokenB.amountOfDecimals);
     }
 
-    async function withdraw(position: UserPositionDefinition): Promise<void> {
-      await DCAHub.connect(position.owner).withdrawSwapped(position.id);
+    async function withdraw(position: UserPositionDefinition, recipient?: string): Promise<void> {
+      if (!recipient) {
+        await DCAHub.connect(position.owner)['withdrawSwapped(uint256)'](position.id);
+      } else {
+        await DCAHub.connect(position.owner)['withdrawSwapped(uint256,address)'](position.id, recipient);
+      }
 
       // Since the position is "resetted" with a withdraw, we need to reduce the amount of swaps
       const { swapsLeft } = await getPosition(position);
