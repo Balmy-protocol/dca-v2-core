@@ -42,41 +42,50 @@ contract DCAHubParametersMock is DCAHubParameters {
 
   function setSwapAmountDelta(
     uint32 _swapInterval,
-    address _tokenAddress,
+    address _from,
+    address _to,
     uint32 _swap,
     int256 _delta
   ) external {
-    swapAmountDelta[_swapInterval][_tokenAddress][_swap] = _delta;
+    swapAmountDelta[_from][_to][_swapInterval][_swap] = _delta;
   }
 
   function setAcummRatesPerUnit(
     uint32 _swapInterval,
-    address _tokenAddress,
+    address _from,
+    address _to,
     uint32 _swap,
     uint256 _accumRatePerUnit
   ) external {
-    _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap] = _accumRatePerUnit;
+    _accumRatesPerUnit[_from][_to][_swapInterval][_swap] = _accumRatePerUnit;
   }
 
   function accumRatesPerUnit(
     uint32 _swapInterval,
-    address _tokenAddress,
+    address _from,
+    address _to,
     uint32 _swap
   ) external view returns (uint256) {
-    return _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap];
+    return _accumRatesPerUnit[_from][_to][_swapInterval][_swap];
   }
 
   function setPerformedSwaps(uint32 _swapInterval, uint32 _performedSwaps) external {
-    performedSwaps[_swapInterval] = _performedSwaps;
+    // TODO: stop using tokenA & tokenB and receive as parameters
+    if (address(tokenA) < address(tokenB)) {
+      performedSwaps[address(tokenA)][address(tokenB)][_swapInterval] = _performedSwaps;
+    } else {
+      performedSwaps[address(tokenB)][address(tokenA)][_swapInterval] = _performedSwaps;
+    }
   }
 
   function setRatePerUnit(
     uint32 _swapInterval,
-    address _tokenAddress,
+    address _from,
+    address _to,
     uint32 _swap,
     uint256 _rate
   ) external {
-    _accumRatesPerUnit[_swapInterval][_tokenAddress][_swap] = _rate;
+    _accumRatesPerUnit[_from][_to][_swapInterval][_swap] = _rate;
   }
 
   function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external view returns (uint256) {
