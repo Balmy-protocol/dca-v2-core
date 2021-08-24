@@ -7,7 +7,7 @@ import './IDCAGlobalParameters.sol';
 
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the pair's current values
-interface IDCAPairParameters {
+interface IDCAHubParameters {
   /// @notice Returns the global parameters contract
   /// @dev Global parameters has information about swaps and pairs, like swap intervals, fees charged, etc.
   /// @return The Global Parameters contract
@@ -47,7 +47,7 @@ interface IDCAPairParameters {
 
 /// @title The interface for all position related matters in a DCA pair
 /// @notice These methods allow users to create, modify and terminate their positions
-interface IDCAPairPositionHandler is IERC721, IDCAPairParameters {
+interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   /// @notice The position of a certain user
   struct UserPosition {
     // The token that the user deposited and will be swapped in exchange for "to"
@@ -259,7 +259,7 @@ interface IDCAPairPositionHandler is IERC721, IDCAPairParameters {
 
 /// @title The interface for all swap related matters in a DCA pair
 /// @notice These methods allow users to get information about the next swap, and how to execute it
-interface IDCAPairSwapHandler {
+interface IDCAHubSwapHandler {
   /// @notice Information about an available swap for a specific swap interval
   struct SwapInformation {
     // The affected swap interval
@@ -366,7 +366,7 @@ interface IDCAPairSwapHandler {
 
 /// @title The interface for all loan related matters in a DCA pair
 /// @notice These methods allow users to ask how much is available for loans, and also to execute them
-interface IDCAPairLoanHandler {
+interface IDCAHubLoanHandler {
   /// @notice Emitted when a flash loan is executed
   /// @param _sender The address of the user that initiated the loan
   /// @param _to The address that received the loan
@@ -390,7 +390,7 @@ interface IDCAPairLoanHandler {
   /// With InsufficientLiquidity if asked for more that reserves
   /// @param _amountToBorrowTokenA The amount to borrow in token A
   /// @param _amountToBorrowTokenB The amount to borrow in token B
-  /// @param _to Address that will receive the loan. This address should be a contract that implements IDCAPairLoanCallee
+  /// @param _to Address that will receive the loan. This address should be a contract that implements IDCAHubLoanCallee
   /// @param _data Any data that should be passed through to the callback
   function loan(
     uint256 _amountToBorrowTokenA,
@@ -400,4 +400,4 @@ interface IDCAPairLoanHandler {
   ) external;
 }
 
-interface IDCAPair is IDCAPairParameters, IDCAPairSwapHandler, IDCAPairPositionHandler, IDCAPairLoanHandler {}
+interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler {}

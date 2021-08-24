@@ -2,7 +2,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAGlobalParameters, DCAGlobalParameters__factory, DCAPair, DCAPair__factory, IUniswapV3OracleAggregator } from '@typechained';
+import { DCAGlobalParameters, DCAGlobalParameters__factory, DCAHub, DCAHub__factory, IUniswapV3OracleAggregator } from '@typechained';
 import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
 import { constants, erc20, evm } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -10,14 +10,14 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 
-contract('DCAPair', () => {
+contract('DCAHub', () => {
   describe('Precision breaker', () => {
     const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
 
     let governor: SignerWithAddress, feeRecipient: SignerWithAddress;
     let alice: SignerWithAddress, john: SignerWithAddress, swapper1: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
-    let DCAPairFactory: DCAPair__factory, DCAPair: DCAPair;
+    let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
     let DCAGlobalParametersFactory: DCAGlobalParameters__factory, DCAGlobalParameters: DCAGlobalParameters;
     let timeWeightedOracle: FakeContract<IUniswapV3OracleAggregator>;
 
@@ -27,7 +27,7 @@ contract('DCAPair', () => {
     before('Setup accounts and contracts', async () => {
       [governor, feeRecipient, alice, john, swapper1] = await ethers.getSigners();
       DCAGlobalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
-      DCAPairFactory = await ethers.getContractFactory('contracts/DCAPair/DCAPair.sol:DCAPair');
+      DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -50,7 +50,7 @@ contract('DCAPair', () => {
         constants.NOT_ZERO_ADDRESS,
         timeWeightedOracle.address
       );
-      DCAPair = await DCAPairFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+      DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.setSwapFee(swapFee * 10000);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
@@ -60,11 +60,11 @@ contract('DCAPair', () => {
 
     when('all swaps are done', () => {
       given(async () => {
-        await tokenB.connect(alice).approve(DCAPair.address, constants.MAX_UINT_256);
-        await DCAPair.connect(alice).deposit(tokenB.address, BigNumber.from('89509558490300730500'), 3, SWAP_INTERVAL_1_HOUR);
+        await tokenB.connect(alice).approve(DCAHub.address, constants.MAX_UINT_256);
+        await DCAHub.connect(alice).deposit(tokenB.address, BigNumber.from('89509558490300730500'), 3, SWAP_INTERVAL_1_HOUR);
 
-        await tokenB.connect(john).approve(DCAPair.address, constants.MAX_UINT_256);
-        await DCAPair.connect(john).deposit(tokenB.address, utils.parseEther('200'), 5, SWAP_INTERVAL_1_HOUR);
+        await tokenB.connect(john).approve(DCAHub.address, constants.MAX_UINT_256);
+        await DCAHub.connect(john).deposit(tokenB.address, utils.parseEther('200'), 5, SWAP_INTERVAL_1_HOUR);
 
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
         await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
@@ -76,7 +76,7 @@ contract('DCAPair', () => {
         await timeWeightedOracle.quote.returns(BigNumber.from('2190'));
         await swap({ swapper: swapper1 });
 
-        await DCAPair.connect(alice).withdrawSwapped(1);
+        await DCAHub.connect(alice).withdrawSwapped(1);
 
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
         await timeWeightedOracle.quote.returns(BigNumber.from('2175'));
@@ -87,19 +87,19 @@ contract('DCAPair', () => {
       });
 
       then("doesnt match the balance of contract with user's swapped amount", async () => {
-        await expect(DCAPair.connect(john).withdrawSwapped(2)).to.be.reverted;
+        await expect(DCAHub.connect(john).withdrawSwapped(2)).to.be.reverted;
       });
     });
 
     async function swap({ swapper }: { swapper: SignerWithAddress }) {
       const nextSwapInfo = await getNextSwapInfo();
       const tokenToProvide = nextSwapInfo.tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB;
-      await tokenToProvide.connect(swapper).transfer(DCAPair.address, nextSwapInfo.amountToBeProvidedBySwapper);
-      await DCAPair.connect(swapper)['swap()']();
+      await tokenToProvide.connect(swapper).transfer(DCAHub.address, nextSwapInfo.amountToBeProvidedBySwapper);
+      await DCAHub.connect(swapper)['swap()']();
     }
 
     async function getNextSwapInfo(): Promise<NextSwapInformation> {
-      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAPair.getNextSwapInfo();
+      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAHub.getNextSwapInfo();
       return {
         ...nextSwapInfo,
         // Remove zeroed positions in array

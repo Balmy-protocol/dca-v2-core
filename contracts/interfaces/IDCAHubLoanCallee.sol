@@ -5,7 +5,7 @@ import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 /// @title The interface for handling flash loans
 /// @notice Users that want to execute flash loans must implement this interface
-interface IDCAPairLoanCallee {
+interface IDCAHubLoanCallee {
   /// @notice Handles the flash loan callback
   /// @param _sender The loan originator
   /// @param _tokenA Address for token A
@@ -16,7 +16,7 @@ interface IDCAPairLoanCallee {
   /// @param _feeTokenB How much extra to return in fees in token B
   /// @param _data Arbitrary bytes sent to the pair when initiating the loan
   // solhint-disable-next-line func-name-mixedcase
-  function DCAPairLoanCall(
+  function DCAHubLoanCall(
     address _sender,
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB,

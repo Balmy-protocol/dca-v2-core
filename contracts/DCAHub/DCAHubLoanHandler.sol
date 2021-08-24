@@ -3,12 +3,12 @@ pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-import '../interfaces/IDCAPairLoanCallee.sol';
+import '../interfaces/IDCAHubLoanCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-import './DCAPairParameters.sol';
+import './DCAHubParameters.sol';
 
-abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCAPairLoanHandler {
+abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubParameters, IDCAHubLoanHandler {
   using SafeERC20 for IERC20Metadata;
 
   function availableToBorrow() external view override returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB) {
@@ -42,7 +42,7 @@ abstract contract DCAPairLoanHandler is ReentrancyGuard, DCAPairParameters, IDCA
     if (_amountToBorrowTokenB > 0) tokenB.safeTransfer(_to, _amountToBorrowTokenB);
 
     // Make call
-    IDCAPairLoanCallee(_to).DCAPairLoanCall(
+    IDCAHubLoanCallee(_to).DCAHubLoanCall(
       msg.sender,
       tokenA,
       tokenB,

@@ -10,12 +10,12 @@ import '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 import '../utils/Governable.sol';
 import '../utils/CollectableDust.sol';
 import '../interfaces/IDCASwapper.sol';
-import '../interfaces/IDCAPairSwapCallee.sol';
+import '../interfaces/IDCAHubSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 
 interface ICustomQuoter is IQuoter, IPeripheryImmutableState {}
 
-contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, CollectableDust, Pausable {
+contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAHubSwapCallee, CollectableDust, Pausable {
   // solhint-disable-next-line var-name-mixedcase
   uint24[] private _FEE_TIERS = [500, 3000, 10000];
   ISwapRouter public immutable swapRouter;
@@ -69,8 +69,8 @@ contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, Col
    * Therefore, we highly recommend that this method is not called on-chain.
    * This method will return an empty set of bytes if the pair should not be swapped, and encode(max(uint24)) if there is no need to go to Uniswap
    */
-  function findBestSwap(IDCAPair _pair) external override returns (bytes memory _swapPath) {
-    IDCAPairSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
+  function findBestSwap(IDCAHub _pair) external override returns (bytes memory _swapPath) {
+    IDCAHubSwapHandler.NextSwapInformation memory _nextSwapInformation = _pair.getNextSwapInfo();
     if (_nextSwapInformation.amountOfSwaps > 0) {
       if (_nextSwapInformation.amountToBeProvidedBySwapper == 0) {
         return abi.encode(type(uint24).max);
@@ -109,7 +109,7 @@ contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, Col
   }
 
   function _swap(PairToSwap memory _pair) internal {
-    // Execute the swap, making myself the callee so that the `DCAPairSwapCall` function is called
+    // Execute the swap, making myself the callee so that the `DCAHubSwapCall` function is called
     _pair.pair.swap(0, 0, address(this), _pair.swapPath);
   }
 
@@ -122,7 +122,7 @@ contract DCAUniswapV3Swapper is IDCASwapper, Governable, IDCAPairSwapCallee, Col
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function DCAPairSwapCall(
+  function DCAHubSwapCall(
     address,
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity ^0.8.6;
 
-import '../interfaces/IDCAPair.sol';
+import '../interfaces/IDCAHub.sol';
 import '../utils/CollectableDust.sol';
 
 /// @title The interface for a contract that can execute DCA swaps
@@ -11,7 +11,7 @@ interface IDCASwapper is ICollectableDust {
   /// @notice A pair to swap
   struct PairToSwap {
     // The pair to swap
-    IDCAPair pair;
+    IDCAHub pair;
     // Path to execute the best swap possible
     bytes swapPath;
   }
@@ -33,7 +33,7 @@ interface IDCASwapper is ICollectableDust {
   /// @param _pair The pair to find the best swap for
   /// @return _swapPath The path to execute the best swap for the pair. Should be used when calling swapPairs.
   /// Will be empty (length = 0) if there is no path available and the pair can't be swapped.
-  function findBestSwap(IDCAPair _pair) external returns (bytes memory _swapPath);
+  function findBestSwap(IDCAHub _pair) external returns (bytes memory _swapPath);
 
   /// @notice Takes a list of pairs to swap, and tries to swap as many as possible
   /// @dev The method checks how much gas is left, and stops before reaching the limit. So the

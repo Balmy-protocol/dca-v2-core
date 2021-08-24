@@ -1,12 +1,7 @@
 import { expect } from 'chai';
 import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import {
-  DCAGlobalParametersMock__factory,
-  DCAGlobalParametersMock,
-  DCAPairLoanHandlerMock__factory,
-  DCAPairLoanHandlerMock,
-} from '@typechained';
+import { DCAGlobalParametersMock__factory, DCAGlobalParametersMock, DCAHubLoanHandlerMock__factory, DCAHubLoanHandlerMock } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, evm } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
@@ -16,12 +11,12 @@ import { TokenContract } from '@test-utils/erc20';
 const WITH_FEE = (bn: BigNumber) => bn.add(CALCULATE_FEE(bn));
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(1).div(1000);
 
-describe('DCAPairLoanHandler', () => {
+describe('DCAHubLoanHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
-  let DCAPairLoanHandlerContract: DCAPairLoanHandlerMock__factory;
-  let DCAPairLoanHandler: DCAPairLoanHandlerMock;
+  let DCAHubLoanHandlerContract: DCAHubLoanHandlerMock__factory;
+  let DCAHubLoanHandler: DCAHubLoanHandlerMock;
   let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
   let DCAGlobalParameters: DCAGlobalParametersMock;
 
@@ -30,7 +25,7 @@ describe('DCAPairLoanHandler', () => {
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
-    DCAPairLoanHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAPair/DCAPairLoanHandler.sol:DCAPairLoanHandlerMock');
+    DCAHubLoanHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubLoanHandler.sol:DCAHubLoanHandlerMock');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -50,19 +45,19 @@ describe('DCAPairLoanHandler', () => {
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
-    DCAPairLoanHandler = await DCAPairLoanHandlerContract.deploy(tokenA.address, tokenB.address, DCAGlobalParameters.address);
+    DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(tokenA.address, tokenB.address, DCAGlobalParameters.address);
   });
 
   describe('availableToBorrow', () => {
     let balanceTokenA: BigNumber, balanceTokenB: BigNumber;
     given(async () => {
       [balanceTokenA, balanceTokenB] = [tokenA.asUnits(10), tokenB.asUnits(100)];
-      await DCAPairLoanHandler.setInternalBalances(balanceTokenA, balanceTokenB);
+      await DCAHubLoanHandler.setInternalBalances(balanceTokenA, balanceTokenB);
     });
 
     when('checking how much is available to borrow', () => {
       then('the amounts are the internal balances', async () => {
-        const [availableToBorrowA, availableToBorrowB] = await DCAPairLoanHandler.availableToBorrow();
+        const [availableToBorrowA, availableToBorrowB] = await DCAHubLoanHandler.availableToBorrow();
         expect(availableToBorrowA).to.equal(balanceTokenA);
         expect(availableToBorrowB).to.equal(balanceTokenB);
       });
@@ -73,16 +68,16 @@ describe('DCAPairLoanHandler', () => {
     const BYTES = ethers.utils.randomBytes(5);
     const [CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE] = [utils.parseEther('2'), utils.parseEther('2')];
     const [PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE] = [utils.parseEther('2'), utils.parseEther('2')];
-    let DCAPairLoanCallee: Contract;
+    let DCAHubLoanCallee: Contract;
 
     given(async () => {
-      const DCAPairLoanCalleeContract = await ethers.getContractFactory('contracts/mocks/DCAPairLoanCallee.sol:DCAPairLoanCalleeMock');
-      DCAPairLoanCallee = await DCAPairLoanCalleeContract.deploy(CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE);
-      await tokenA.mint(DCAPairLoanCallee.address, CALLEE_TOKEN_A_INITIAL_BALANCE);
-      await tokenB.mint(DCAPairLoanCallee.address, CALLEE_TOKEN_B_INITIAL_BALANCE);
-      await tokenA.mint(DCAPairLoanHandler.address, PAIR_TOKEN_A_INITIAL_BALANCE);
-      await tokenB.mint(DCAPairLoanHandler.address, PAIR_TOKEN_B_INITIAL_BALANCE);
-      await DCAPairLoanHandler.setInternalBalances(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE);
+      const DCAHubLoanCalleeContract = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:DCAHubLoanCalleeMock');
+      DCAHubLoanCallee = await DCAHubLoanCalleeContract.deploy(CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE);
+      await tokenA.mint(DCAHubLoanCallee.address, CALLEE_TOKEN_A_INITIAL_BALANCE);
+      await tokenB.mint(DCAHubLoanCallee.address, CALLEE_TOKEN_B_INITIAL_BALANCE);
+      await tokenA.mint(DCAHubLoanHandler.address, PAIR_TOKEN_A_INITIAL_BALANCE);
+      await tokenB.mint(DCAHubLoanHandler.address, PAIR_TOKEN_B_INITIAL_BALANCE);
+      await DCAHubLoanHandler.setInternalBalances(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE);
     });
 
     flashLoanFailedTest({
@@ -133,21 +128,21 @@ describe('DCAPairLoanHandler', () => {
     when('doing a reentrant attack with loan', () => {
       let tx: Promise<TransactionResponse>;
       given(async () => {
-        const reentrantDCAPairLoanCalleFactory = await ethers.getContractFactory(
-          'contracts/mocks/DCAPairLoanCallee.sol:ReentrantDCAPairLoanCalleeMock'
+        const reentrantDCAHubLoanCalleFactory = await ethers.getContractFactory(
+          'contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock'
         );
-        const reentrantDCAPairSwapCallee = await reentrantDCAPairLoanCalleFactory.deploy();
-        await reentrantDCAPairSwapCallee.setAttack(
+        const reentrantDCAHubSwapCallee = await reentrantDCAHubLoanCalleFactory.deploy();
+        await reentrantDCAHubSwapCallee.setAttack(
           (
-            await DCAPairLoanHandler.populateTransaction.loan(
+            await DCAHubLoanHandler.populateTransaction.loan(
               PAIR_TOKEN_A_INITIAL_BALANCE,
               PAIR_TOKEN_B_INITIAL_BALANCE,
-              reentrantDCAPairSwapCallee.address,
+              reentrantDCAHubSwapCallee.address,
               BYTES
             )
           ).data
         );
-        tx = DCAPairLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, reentrantDCAPairSwapCallee.address, BYTES);
+        tx = DCAHubLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, reentrantDCAHubSwapCallee.address, BYTES);
       });
       then('tx is reverted', async () => {
         await expect(tx).to.be.revertedWith('ReentrancyGuard: reentrant call');
@@ -160,7 +155,7 @@ describe('DCAPairLoanHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await DCAPairLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAPairLoanCallee.address, BYTES);
+        tx = await DCAHubLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAHubLoanCallee.address, BYTES);
       });
 
       then('callee is called', async () => {
@@ -174,8 +169,8 @@ describe('DCAPairLoanHandler', () => {
           feeTokenA,
           feeTokenB,
           data,
-        } = await DCAPairLoanCallee.getLastCall();
-        expect(pair).to.equal(DCAPairLoanHandler.address);
+        } = await DCAHubLoanCallee.getLastCall();
+        expect(pair).to.equal(DCAHubLoanHandler.address);
         expect(sender).to.equal(owner.address);
         expect(tokenAParam).to.equal(tokenA.address);
         expect(tokenBParam).to.equal(tokenB.address);
@@ -187,16 +182,16 @@ describe('DCAPairLoanHandler', () => {
       });
 
       then('callee balance is modified correctly', async () => {
-        const calleeTokenABalance = await tokenA.balanceOf(DCAPairLoanCallee.address);
-        const calleeTokenBBalance = await tokenB.balanceOf(DCAPairLoanCallee.address);
+        const calleeTokenABalance = await tokenA.balanceOf(DCAHubLoanCallee.address);
+        const calleeTokenBBalance = await tokenB.balanceOf(DCAHubLoanCallee.address);
 
         expect(calleeTokenABalance).to.equal(CALLEE_TOKEN_A_INITIAL_BALANCE.sub(tokenAFee));
         expect(calleeTokenBBalance).to.equal(CALLEE_TOKEN_B_INITIAL_BALANCE.sub(tokenBFee));
       });
 
       then('pair balance stays the same', async () => {
-        const pairTokenABalance = await tokenA.balanceOf(DCAPairLoanHandler.address);
-        const pairTokenBBalance = await tokenB.balanceOf(DCAPairLoanHandler.address);
+        const pairTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
+        const pairTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
 
         expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
         expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
@@ -212,8 +207,8 @@ describe('DCAPairLoanHandler', () => {
 
       then('event is emitted', async () => {
         await expect(tx)
-          .to.emit(DCAPairLoanHandler, 'Loaned')
-          .withArgs(owner.address, DCAPairLoanCallee.address, PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, 1000);
+          .to.emit(DCAHubLoanHandler, 'Loaned')
+          .withArgs(owner.address, DCAHubLoanCallee.address, PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, 1000);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -225,16 +220,16 @@ describe('DCAPairLoanHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        await DCAPairLoanCallee.returnSpecificAmounts(
+        await DCAHubLoanCallee.returnSpecificAmounts(
           PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee).add(1),
           PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee).add(1)
         );
-        tx = await DCAPairLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAPairLoanCallee.address, BYTES);
+        tx = await DCAHubLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAHubLoanCallee.address, BYTES);
       });
 
       then('pair balance stays the same', async () => {
-        const pairTokenABalance = await tokenA.balanceOf(DCAPairLoanHandler.address);
-        const pairTokenBBalance = await tokenB.balanceOf(DCAPairLoanHandler.address);
+        const pairTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
+        const pairTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
 
         expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
         expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
@@ -276,9 +271,9 @@ describe('DCAPairLoanHandler', () => {
             await context();
           }
           if (amountToReturnTokenA && amountToReturnTokenB) {
-            await DCAPairLoanCallee.returnSpecificAmounts(amountToReturnTokenA(), amountToReturnTokenB());
+            await DCAHubLoanCallee.returnSpecificAmounts(amountToReturnTokenA(), amountToReturnTokenB());
           }
-          tx = DCAPairLoanHandler.loan(amountToBorrowTokenA(), amountToBorrowTokenB(), DCAPairLoanCallee.address, BYTES);
+          tx = DCAHubLoanHandler.loan(amountToBorrowTokenA(), amountToBorrowTokenB(), DCAHubLoanCallee.address, BYTES);
           await behaviours.waitForTxAndNotThrow(tx);
         });
 
@@ -287,21 +282,21 @@ describe('DCAPairLoanHandler', () => {
         });
 
         then('callee state is not modified', async () => {
-          const wasCalled = await DCAPairLoanCallee.wasThereACall();
+          const wasCalled = await DCAHubLoanCallee.wasThereACall();
           expect(wasCalled).to.be.false;
         });
 
         then('callee balance is not modified', async () => {
-          const calleeTokenABalance = await tokenA.balanceOf(DCAPairLoanCallee.address);
-          const calleeTokenBBalance = await tokenB.balanceOf(DCAPairLoanCallee.address);
+          const calleeTokenABalance = await tokenA.balanceOf(DCAHubLoanCallee.address);
+          const calleeTokenBBalance = await tokenB.balanceOf(DCAHubLoanCallee.address);
 
           expect(calleeTokenABalance).to.equal(CALLEE_TOKEN_A_INITIAL_BALANCE);
           expect(calleeTokenBBalance).to.equal(CALLEE_TOKEN_B_INITIAL_BALANCE);
         });
 
         then('pair balance is not modified', async () => {
-          const pairTokenABalance = await tokenA.balanceOf(DCAPairLoanHandler.address);
-          const pairTokenBBalance = await tokenB.balanceOf(DCAPairLoanHandler.address);
+          const pairTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
+          const pairTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
 
           expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
           expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
@@ -327,14 +322,14 @@ describe('DCAPairLoanHandler', () => {
 
   function thenInternalBalancesAreTheSameAsTokenBalances() {
     then('internal balance for token A is as expected', async () => {
-      const balance = await tokenA.balanceOf(DCAPairLoanHandler.address);
-      const internalBalance = await DCAPairLoanHandler.internalBalanceOf(tokenA.address);
+      const balance = await tokenA.balanceOf(DCAHubLoanHandler.address);
+      const internalBalance = await DCAHubLoanHandler.internalBalanceOf(tokenA.address);
       expect(internalBalance).to.equal(balance);
     });
 
     then('internal balance for token B is as expected', async () => {
-      const balance = await tokenB.balanceOf(DCAPairLoanHandler.address);
-      const internalBalance = await DCAPairLoanHandler.internalBalanceOf(tokenB.address);
+      const balance = await tokenB.balanceOf(DCAHubLoanHandler.address);
+      const internalBalance = await DCAHubLoanHandler.internalBalanceOf(tokenB.address);
       expect(internalBalance).to.equal(balance);
     });
   }

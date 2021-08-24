@@ -4,9 +4,9 @@ pragma solidity ^0.8.6;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-import './DCAPairParameters.sol';
+import './DCAHubParameters.sol';
 
-abstract contract DCAPairPositionHandler is ReentrancyGuard, DCAPairParameters, IDCAPairPositionHandler, ERC721 {
+abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, IDCAHubPositionHandler, ERC721 {
   struct DCA {
     uint32 lastWithdrawSwap;
     uint32 lastSwap;

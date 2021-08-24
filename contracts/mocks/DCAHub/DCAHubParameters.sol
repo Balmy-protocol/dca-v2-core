@@ -2,16 +2,16 @@
 
 pragma solidity ^0.8.6;
 
-import '../../DCAPair/DCAPairParameters.sol';
+import '../../DCAHub/DCAHubParameters.sol';
 
-contract DCAPairParametersMock is DCAPairParameters {
+contract DCAHubParametersMock is DCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   constructor(
     IDCAGlobalParameters _globalParameters,
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB
-  ) DCAPairParameters(_globalParameters, _tokenA, _tokenB) {}
+  ) DCAHubParameters(_globalParameters, _tokenA, _tokenB) {}
 
   // Mocks setters
 

@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { JsonRpcSigner, TransactionResponse } from '@ethersproject/providers';
 import { BigNumber, Contract, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
-import { DCAPair, DCAKeep3rJob, ERC20, DCAFactory, DCAUniswapV3Swapper } from '@typechained';
+import { DCAHub, DCAKeep3rJob, ERC20, DCAFactory, DCAUniswapV3Swapper } from '@typechained';
 import { abi as IERC20_ABI } from '@openzeppelin/contracts/build/contracts/IERC20.json';
 import { abi as SWAP_ROUTER_ABI } from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json';
 import { getNodeUrl } from '@utils/network';
@@ -26,7 +26,7 @@ const UNISWAP_SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
 
 contract('DCAKeep3rJob', () => {
   let DCAFactory: DCAFactory;
-  let DCAPair: DCAPair;
+  let DCAHub: DCAHub;
   let WETH: ERC20;
   let USDC: ERC20;
   let DCAKeep3rJob: DCAKeep3rJob;
@@ -74,7 +74,7 @@ contract('DCAKeep3rJob', () => {
 
     const pairAddress = await DCAFactory.callStatic.createPair(WETH_ADDRESS, USDC_ADDRESS);
     await DCAFactory.createPair(WETH_ADDRESS, USDC_ADDRESS);
-    DCAPair = await ethers.getContractAt('contracts/DCAPair/DCAPair.sol:DCAPair', pairAddress);
+    DCAHub = await ethers.getContractAt('contracts/DCAHub/DCAHub.sol:DCAHub', pairAddress);
 
     WETH = await ethers.getContractAt(IERC20_ABI, WETH_ADDRESS);
     USDC = await ethers.getContractAt(IERC20_ABI, USDC_ADDRESS);
@@ -82,10 +82,10 @@ contract('DCAKeep3rJob', () => {
     usdcWhale = await wallet.impersonate(USDC_WHALE_ADDRESS);
 
     await WETH.connect(wethWhale).transfer(cindy.address, utils.parseEther('100000'), { gasPrice: 0 });
-    await WETH.connect(cindy).approve(DCAPair.address, RATE.mul(AMOUNT_OF_SWAPS));
-    await DCAPair.connect(cindy).deposit(WETH.address, RATE, AMOUNT_OF_SWAPS, INTERVAL);
+    await WETH.connect(cindy).approve(DCAHub.address, RATE.mul(AMOUNT_OF_SWAPS));
+    await DCAHub.connect(cindy).deposit(WETH.address, RATE, AMOUNT_OF_SWAPS, INTERVAL);
 
-    await DCAKeep3rJob.connect(governor).startSubsidizingPairs([DCAPair.address], { gasPrice: 0 });
+    await DCAKeep3rJob.connect(governor).startSubsidizingPairs([DCAHub.address], { gasPrice: 0 });
     await keep3rV1.connect(keep3rGovernance).addJob(DCAKeep3rJob.address, { gasPrice: 0 });
 
     await pushPriceOfWETHUp();
@@ -120,7 +120,7 @@ contract('DCAKeep3rJob', () => {
         expect(await keep3rV1.bonds(KEEPER_ADDRESS, KEEP3R_V1)).to.be.gt(initialBonds);
       });
       then('pair gets swapped', async () => {
-        await expect(workTx).to.emit(DCAPair, 'Swapped');
+        await expect(workTx).to.emit(DCAHub, 'Swapped');
       });
       then('job gets worked', async () => {
         await expect(workTx).to.emit(DCAKeep3rJob, 'Worked').withArgs(1);

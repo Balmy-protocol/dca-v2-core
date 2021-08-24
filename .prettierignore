@@ -27,3 +27,4 @@ coverage.json
 
 # Solidity
 contracts/mock
+typechained

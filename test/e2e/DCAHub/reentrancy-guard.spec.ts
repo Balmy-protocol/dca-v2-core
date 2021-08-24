@@ -6,14 +6,14 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import {
   DCAGlobalParameters,
   DCAGlobalParameters__factory,
-  DCAPair,
-  DCAPair__factory,
+  DCAHub,
+  DCAHub__factory,
   TimeWeightedOracleMock,
   TimeWeightedOracleMock__factory,
-  ReentrantDCAPairSwapCalleeMock,
-  ReentrantDCAPairSwapCalleeMock__factory,
-  ReentrantDCAPairLoanCalleeMock,
-  ReentrantDCAPairLoanCalleeMock__factory,
+  ReentrantDCAHubSwapCalleeMock,
+  ReentrantDCAHubSwapCalleeMock__factory,
+  ReentrantDCAHubLoanCalleeMock,
+  ReentrantDCAHubLoanCalleeMock__factory,
 } from '@typechained';
 import { constants, erc20, evm } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
@@ -21,18 +21,18 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 
-contract('DCAPair', () => {
+contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
     let governor: SignerWithAddress;
     let dude: SignerWithAddress;
     let feeRecipient: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
-    let DCAPairFactory: DCAPair__factory;
-    let DCAPair: DCAPair;
+    let DCAHubFactory: DCAHub__factory;
+    let DCAHub: DCAHub;
     let DCAGlobalParametersFactory: DCAGlobalParameters__factory;
     let DCAGlobalParameters: DCAGlobalParameters;
-    let reentrantDCAPairSwapCalleeFactory: ReentrantDCAPairSwapCalleeMock__factory;
-    let reentrantDCAPairLoanCalleeFactory: ReentrantDCAPairLoanCalleeMock__factory;
+    let reentrantDCAHubSwapCalleeFactory: ReentrantDCAHubSwapCalleeMock__factory;
+    let reentrantDCAHubLoanCalleeFactory: ReentrantDCAHubLoanCalleeMock__factory;
     let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
     let TimeWeightedOracle: TimeWeightedOracleMock;
     const swapInterval = moment.duration(10, 'minutes').as('seconds');
@@ -42,14 +42,10 @@ contract('DCAPair', () => {
       DCAGlobalParametersFactory = await ethers.getContractFactory(
         'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
       );
-      DCAPairFactory = await ethers.getContractFactory('contracts/DCAPair/DCAPair.sol:DCAPair');
-      reentrantDCAPairLoanCalleeFactory = await ethers.getContractFactory(
-        'contracts/mocks/DCAPairLoanCallee.sol:ReentrantDCAPairLoanCalleeMock'
-      );
-      reentrantDCAPairSwapCalleeFactory = await ethers.getContractFactory(
-        'contracts/mocks/DCAPairSwapCallee.sol:ReentrantDCAPairSwapCalleeMock'
-      );
-      TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAPair/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
+      DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
+      reentrantDCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock');
+      reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');
+      TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -70,7 +66,7 @@ contract('DCAPair', () => {
         constants.NOT_ZERO_ADDRESS,
         TimeWeightedOracle.address
       );
-      DCAPair = await DCAPairFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+      DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
     });
 
@@ -78,7 +74,7 @@ contract('DCAPair', () => {
       const rateTokenA = 50;
       const swapsTokenA = 13;
       let totalTokenA: BigNumber;
-      let reentrantDCAPairLoanCallee: ReentrantDCAPairLoanCalleeMock;
+      let reentrantDCAHubLoanCallee: ReentrantDCAHubLoanCalleeMock;
       given(async () => {
         totalTokenA = tokenA.asUnits(rateTokenA).mul(swapsTokenA);
         await deposit({
@@ -87,13 +83,13 @@ contract('DCAPair', () => {
           rate: rateTokenA,
           swaps: swapsTokenA,
         });
-        reentrantDCAPairLoanCallee = await reentrantDCAPairLoanCalleeFactory.deploy();
+        reentrantDCAHubLoanCallee = await reentrantDCAHubLoanCalleeFactory.deploy();
       });
 
       testReentrantForFunction({
         funcAndSignature: 'loan(uint256,uint256,address,bytes)',
-        args: () => [totalTokenA.sub(1), 0, reentrantDCAPairLoanCallee.address, '0x'],
-        attackerContract: () => reentrantDCAPairLoanCallee,
+        args: () => [totalTokenA.sub(1), 0, reentrantDCAHubLoanCallee.address, '0x'],
+        attackerContract: () => reentrantDCAHubLoanCallee,
       });
     });
 
@@ -101,7 +97,7 @@ contract('DCAPair', () => {
       const rateTokenA = 50;
       const swapsTokenA = 13;
       let totalTokenA: BigNumber;
-      let reentrantDCAPairSwapCallee: ReentrantDCAPairSwapCalleeMock;
+      let reentrantDCAHubSwapCallee: ReentrantDCAHubSwapCalleeMock;
       given(async () => {
         await TimeWeightedOracle.setRate(tokenA.asUnits('1'), 18);
         totalTokenA = tokenA.asUnits(rateTokenA).mul(swapsTokenA);
@@ -111,13 +107,13 @@ contract('DCAPair', () => {
           rate: rateTokenA,
           swaps: swapsTokenA,
         });
-        reentrantDCAPairSwapCallee = await reentrantDCAPairSwapCalleeFactory.deploy();
+        reentrantDCAHubSwapCallee = await reentrantDCAHubSwapCalleeFactory.deploy();
       });
 
       testReentrantForFunction({
         funcAndSignature: 'swap(uint256,uint256,address,bytes)',
-        args: () => [0, 0, reentrantDCAPairSwapCallee.address, utils.formatBytes32String('')],
-        attackerContract: () => reentrantDCAPairSwapCallee,
+        args: () => [0, 0, reentrantDCAHubSwapCallee.address, utils.formatBytes32String('')],
+        attackerContract: () => reentrantDCAHubSwapCallee,
       });
     });
 
@@ -138,7 +134,7 @@ contract('DCAPair', () => {
         let reentrantTx: Promise<TransactionResponse>;
         given(async () => {
           await attackerContract().setAttack(await attack());
-          reentrantTx = (DCAPair as any)[funcAndSignature](...args());
+          reentrantTx = (DCAHub as any)[funcAndSignature](...args());
         });
         then('tx is reverted', async () => {
           await expect(reentrantTx).to.be.revertedWith('ReentrancyGuard: reentrant call');
@@ -160,7 +156,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0, 0)).data!,
       });
 
       testReentrantAttack({
@@ -168,7 +164,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.withdrawSwapped(0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.withdrawSwapped(0)).data!,
       });
 
       testReentrantAttack({
@@ -176,7 +172,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.withdrawSwappedMany([])).data!,
+        attack: async () => (await DCAHub.populateTransaction.withdrawSwappedMany([])).data!,
       });
 
       testReentrantAttack({
@@ -184,7 +180,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.terminate(0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.terminate(0)).data!,
       });
 
       testReentrantAttack({
@@ -192,7 +188,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.modifyRate(0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.modifyRate(0, 0)).data!,
       });
 
       testReentrantAttack({
@@ -200,7 +196,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.modifySwaps(0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.modifySwaps(0, 0)).data!,
       });
 
       testReentrantAttack({
@@ -208,7 +204,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.modifyRateAndSwaps(0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.modifyRateAndSwaps(0, 0, 0)).data!,
       });
 
       testReentrantAttack({
@@ -216,7 +212,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.addFundsToPosition(0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.addFundsToPosition(0, 0, 0)).data!,
       });
 
       testReentrantAttack({
@@ -224,7 +220,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction['swap()']()).data!,
+        attack: async () => (await DCAHub.populateTransaction['swap()']()).data!,
       });
 
       testReentrantAttack({
@@ -233,7 +229,7 @@ contract('DCAPair', () => {
         args,
         attackerContract,
         attack: async () =>
-          (await DCAPair.populateTransaction['swap(uint256,uint256,address,bytes)'](0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
+          (await DCAHub.populateTransaction['swap(uint256,uint256,address,bytes)'](0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
       });
 
       testReentrantAttack({
@@ -241,7 +237,7 @@ contract('DCAPair', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAPair.populateTransaction.loan(0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
+        attack: async () => (await DCAHub.populateTransaction.loan(0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
       });
     }
 
@@ -257,13 +253,8 @@ contract('DCAPair', () => {
       swaps: number;
     }) {
       await token().mint(depositor.address, token().asUnits(rate).mul(swaps));
-      await token().connect(depositor).approve(DCAPair.address, token().asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAPair.connect(depositor).deposit(
-        token().address,
-        token().asUnits(rate),
-        swaps,
-        swapInterval
-      );
+      await token().connect(depositor).approve(DCAHub.address, token().asUnits(rate).mul(swaps));
+      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(token().address, token().asUnits(rate), swaps, swapInterval);
       const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
       return { response, dcaId };
     }
