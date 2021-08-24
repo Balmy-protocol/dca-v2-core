@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
 import { Contract, Wallet, utils } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
@@ -10,13 +10,16 @@ import {
   DCAHubMock__factory,
   DCASwapperMock,
   DCASwapperMock__factory,
+  IKeep3rV1,
 } from '@typechained';
 import { behaviours, constants, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { smockit, MockContract } from '@eth-optimism/smock';
+import { FakeContract, smock } from '@defi-wonderland/smock';
 import { abi as KEEP3R_ABI } from '@artifacts/contracts/interfaces/IKeep3rV1.sol/IKeep3rV1.json';
 import moment from 'moment';
+
+chai.use(smock.matchers);
 
 describe('DCAKeep3rJob', () => {
   const ADDRESS_1 = '0x0000000000000000000000000000000000000001';
@@ -27,23 +30,25 @@ describe('DCAKeep3rJob', () => {
   let owner: SignerWithAddress;
   let DCAKeep3rJobContract: DCAKeep3rJobMock__factory, DCAFactoryContract: DCAFactoryMock__factory;
   let DCASwapperContract: DCASwapperMock__factory, DCAHubContract: DCAHubMock__factory;
-  let DCAKeep3rJob: DCAKeep3rJobMock, DCAFactory: DCAFactoryMock;
+  let DCAKeep3rJob: DCAKeep3rJobMock, DCAFactory: FakeContract<DCAFactoryMock>;
   let DCASwapper: DCASwapperMock;
-  let keep3r: MockContract;
+  let keep3r: FakeContract<IKeep3rV1>;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
     DCAKeep3rJobContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAKeep3rJob.sol:DCAKeep3rJobMock');
     DCASwapperContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCASwapperMock.sol:DCASwapperMock');
-    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAFactoryMock.sol:DCAFactoryMock');
+    DCAFactoryContract = await ethers.getContractFactory('contracts/mocks/DCAFactory/DCAFactory.sol:DCAFactoryMock');
     DCAHubContract = await ethers.getContractFactory('contracts/mocks/DCAKeep3rJob/DCAHubMock.sol:DCAHubMock');
-    keep3r = await smockit(KEEP3R_ABI);
+    keep3r = await smock.fake(KEEP3R_ABI);
   });
 
   beforeEach('Deploy and configure', async () => {
-    DCAFactory = await DCAFactoryContract.deploy();
+    DCAFactory = await smock.fake(DCAFactoryContract);
     DCASwapper = await DCASwapperContract.deploy();
     DCAKeep3rJob = await DCAKeep3rJobContract.deploy(owner.address, DCAFactory.address, keep3r.address, DCASwapper.address);
+    keep3r.worked.reset();
+    keep3r.isKeeper.reset();
   });
 
   describe('constructor', () => {
@@ -153,7 +158,8 @@ describe('DCAKeep3rJob', () => {
   describe('startSubsidizingPairs', () => {
     when('one of the pairs is not a DCA pair', () => {
       given(async () => {
-        await DCAFactory.setAsPair(ADDRESS_1);
+        DCAFactory.isPair.returnsAtCall(0, true);
+        DCAFactory.isPair.returnsAtCall(1, false);
       });
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -174,8 +180,7 @@ describe('DCAKeep3rJob', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        await DCAFactory.setAsPair(ADDRESS_1);
-        await DCAFactory.setAsPair(ADDRESS_2);
+        DCAFactory.isPair.returns(true);
         tx = await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1, ADDRESS_2]);
       });
 
@@ -196,7 +201,7 @@ describe('DCAKeep3rJob', () => {
   });
   describe('stopSubsidizingPairs', () => {
     given(async () => {
-      await DCAFactory.setAsPair(ADDRESS_1);
+      DCAFactory.isPair.returns(true);
       await DCAKeep3rJob.startSubsidizingPairs([ADDRESS_1]);
     });
     when('address being subsidized is removed', () => {
@@ -270,9 +275,7 @@ describe('DCAKeep3rJob', () => {
       DCAHub1 = await DCAHubContract.deploy();
       DCAHub2 = await DCAHubContract.deploy();
       DCAHub3 = await DCAHubContract.deploy();
-      await DCAFactory.setAsPair(DCAHub1.address);
-      await DCAFactory.setAsPair(DCAHub2.address);
-      await DCAFactory.setAsPair(DCAHub3.address);
+      DCAFactory.isPair.returns(true);
     });
 
     when('there are no pairs being subsidized', () => {
@@ -341,11 +344,11 @@ describe('DCAKeep3rJob', () => {
     given(async () => {
       DCAHub1 = await DCAHubContract.deploy();
       DCAHub2 = await DCAHubContract.deploy();
-      await keep3r.smocked.isKeeper.will.return.with(true);
+      await keep3r.isKeeper.returns(true);
     });
     when('not being called from a keeper', () => {
       given(async () => {
-        await keep3r.smocked.isKeeper.will.return.with(false);
+        await keep3r.isKeeper.returns(false);
       });
       then('tx is reverted with reason error', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -370,8 +373,7 @@ describe('DCAKeep3rJob', () => {
       let keeper: Wallet;
       given(async () => {
         keeper = await wallet.generateRandom();
-        await DCAFactory.setAsPair(DCAHub1.address);
-        await DCAFactory.setAsPair(DCAHub2.address);
+        DCAFactory.isPair.returns(true);
         await DCAKeep3rJob.startSubsidizingPairs([DCAHub1.address, DCAHub2.address]);
       });
 
@@ -431,11 +433,13 @@ describe('DCAKeep3rJob', () => {
         });
 
         then('keep3r protocol gets consulted if worker is a keeper', () => {
-          expect(keep3r.smocked.isKeeper.calls[0]).to.eql([keeper.address]);
+          expect(keep3r.isKeeper).to.have.been.calledOnce;
+          expect(keep3r.isKeeper).to.have.been.calledWith(keeper.address);
         });
 
         then('keep3r protocol gets notice of the work done by keeper', async () => {
-          expect(keep3r.smocked.worked.calls[0]).to.eql([keeper.address]);
+          expect(keep3r.worked).to.have.been.calledOnce;
+          expect(keep3r.worked).to.have.been.calledWith(keeper.address);
         });
       });
     });
