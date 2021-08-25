@@ -158,21 +158,12 @@ contract('DCAHub', () => {
         attackerContract,
         attack: async () => (await DCAHub.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0, 0)).data!,
       });
-
       testReentrantAttack({
         title: 'trying to do a reentrancy attack through withdrawing swapped',
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction['withdrawSwapped(uint256)'](0)).data!,
-      });
-
-      testReentrantAttack({
-        title: 'trying to do a reentrancy attack through withdrawing swapped with recipient',
-        funcAndSignature,
-        args,
-        attackerContract,
-        attack: async () => (await DCAHub.populateTransaction['withdrawSwapped(uint256,address)'](0, wallet.generateRandomAddress())).data!,
+        attack: async () => (await DCAHub.populateTransaction.withdrawSwapped(0, wallet.generateRandomAddress())).data!,
       });
 
       testReentrantAttack({

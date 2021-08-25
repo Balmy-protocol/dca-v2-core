@@ -168,14 +168,6 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
     uint32 _swapInterval
   ) external returns (uint256 _dcaId);
 
-  /// @notice Withdraws all swapped tokens from a position
-  /// @dev Will revert:
-  /// With InvalidPosition if _dcaId is invalid
-  /// With UnauthorizedCaller if the caller doesn't have access to the position
-  /// @param _dcaId The position's id
-  /// @return _swapped How much was withdrawn
-  function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
-
   /// @notice Withdraws all swapped tokens from a position to a recipient
   /// @dev Will revert:
   /// With InvalidPosition if _dcaId is invalid

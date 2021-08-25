@@ -1,7 +1,7 @@
 import moment from 'moment';
 import { BigNumber, Contract, ContractFactory } from 'ethers';
 import { ethers } from 'hardhat';
-import { constants, erc20, evm } from '@test-utils';
+import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
@@ -91,7 +91,7 @@ contract('DCATokenDescriptor', () => {
     await evm.advanceTimeAndBlock(swapInterval);
     await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
     await DCAHub['swap()']();
-    await DCAHub['withdrawSwapped(uint256)'](tokenId);
+    await DCAHub.withdrawSwapped(tokenId, wallet.generateRandomAddress());
 
     // Get token uri
     const result2 = await DCAHub.tokenURI(tokenId);

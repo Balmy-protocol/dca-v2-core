@@ -235,24 +235,31 @@ describe('DCAPositionHandler', () => {
   });
 
   describe('withdrawSwapped', () => {
-    let recipient: string;
+    const recipient: string = wallet.generateRandomAddress();
 
-    given(() => {
-      recipient = owner.address;
+    when('withdrawing with zero address recipient', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'withdrawSwapped(uint256,address)',
+          args: [0, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress()',
+        });
+      });
     });
 
     when('withdrawing swapped with invalid id', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'internalWithdrawSwapped(uint256,address)',
+          func: 'withdrawSwapped(uint256,address)',
           args: [100, recipient],
           message: 'InvalidPosition',
         });
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.internalWithdrawSwapped(dcaId, recipient));
+    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwapped(dcaId, recipient));
 
     when(`withdrawing swapped with position that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -260,15 +267,15 @@ describe('DCAPositionHandler', () => {
 
       given(async () => {
         ({ dcaId } = await deposit({ token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
-        response = await internalWithdrawSwapped(dcaId, recipient);
+        response = await withdrawSwapped(dcaId, owner.address);
       });
 
       then('event is emitted', async () => {
-        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, recipient, dcaId, tokenB.address, 0);
+        await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, owner.address, dcaId, tokenB.address, 0);
       });
 
       then('no token transfer was made', async () => {
-        await expectBalanceToBe(tokenA, recipient, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
+        await expectBalanceToBe(tokenA, owner.address, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
         await expectBalanceToBe(
           tokenA,
           DCAPositionHandler.address,
@@ -303,50 +310,8 @@ describe('DCAPositionHandler', () => {
         });
       });
 
-      when('withdrawing without recipient', () => {
-        given(async () => {
-          response = await withdrawSwapped(dcaId);
-        });
-
-        then('swapped tokens are sent to the user', async () => {
-          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-          expect(await tokenB.balanceOf(owner.address)).to.equal(tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER).add(swapped));
-          await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
-        });
-
-        then('position is updated', async () => {
-          await expectPositionToBe(dcaId, {
-            from: tokenA,
-            rate: POSITION_RATE_5,
-            swapsExecuted: 0,
-            swapsLeft: POSITION_SWAPS_TO_PERFORM_10 - 1,
-            swapped: 0,
-            remaining: POSITION_RATE_5 * (POSITION_SWAPS_TO_PERFORM_10 - 1),
-          });
-        });
-
-        then('event is emitted', async () => {
-          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-          await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, owner.address, dcaId, tokenB.address, swapped);
-        });
-
-        thenInternalBalancesAreTheSameAsTokenBalances();
-      });
-
-      when('withdrawing with zero address recipient', () => {
-        then('tx is reverted with message', async () => {
-          await behaviours.txShouldRevertWithMessage({
-            contract: DCAPositionHandler,
-            func: 'withdrawSwapped(uint256,address)',
-            args: [dcaId, constants.ZERO_ADDRESS],
-            message: 'ZeroAddress()',
-          });
-        });
-      });
-
       when('withdrawing with recipient', () => {
         given(async () => {
-          recipient = wallet.generateRandomAddress();
           response = await withdrawSwapped(dcaId, recipient);
         });
 
@@ -1165,16 +1130,8 @@ describe('DCAPositionHandler', () => {
     return DCAPositionHandler.addFundsToPosition(dcaId, token.asUnits(amount), swaps);
   }
 
-  function withdrawSwapped(dcaId: BigNumber, recipient?: string): Promise<TransactionResponse> {
-    if (!recipient) {
-      return DCAPositionHandler['withdrawSwapped(uint256)'](dcaId);
-    } else {
-      return DCAPositionHandler['withdrawSwapped(uint256,address)'](dcaId, recipient);
-    }
-  }
-
-  function internalWithdrawSwapped(dcaId: BigNumber, recipient: string): Promise<TransactionResponse> {
-    return DCAPositionHandler.internalWithdrawSwapped(dcaId, recipient);
+  function withdrawSwapped(dcaId: BigNumber, recipient: string): Promise<TransactionResponse> {
+    return DCAPositionHandler.withdrawSwapped(dcaId, recipient);
   }
 
   function withdrawSwappedMany(...dcaIds: BigNumber[]): Promise<TransactionResponse> {

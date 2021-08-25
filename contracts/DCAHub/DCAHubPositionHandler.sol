@@ -61,16 +61,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     return _idCounter;
   }
 
-  function withdrawSwapped(uint256 _dcaId) external override nonReentrant returns (uint256 _swapped) {
-    _swapped = _withdrawSwapped(_dcaId, msg.sender);
-  }
-
   function withdrawSwapped(uint256 _dcaId, address _recipient) external override nonReentrant returns (uint256 _swapped) {
     if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
-    _swapped = _withdrawSwapped(_dcaId, _recipient);
-  }
 
-  function _withdrawSwapped(uint256 _dcaId, address _recipient) internal returns (uint256 _swapped) {
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     _swapped = _calculateSwapped(_dcaId);
