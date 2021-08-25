@@ -11,6 +11,32 @@ import '../libraries/CommonErrors.sol';
 
 import './utils/Math.sol';
 
+// TODO: Move to another place or consider changing when we investigate joining mappings
+library PairSpecificConfig {
+  function getValue(
+    mapping(address => mapping(address => mapping(uint32 => uint32))) storage _mapping,
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval
+  ) internal view returns (uint32 _value) {
+    _value = (_tokenA < _tokenB) ? _mapping[_tokenA][_tokenB][_swapInterval] : _mapping[_tokenB][_tokenA][_swapInterval];
+  }
+
+  function setValue(
+    mapping(address => mapping(address => mapping(uint32 => uint32))) storage _mapping,
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval,
+    uint32 _value
+  ) internal {
+    if (_tokenA < _tokenB) {
+      _mapping[_tokenA][_tokenB][_swapInterval] = _value;
+    } else {
+      _mapping[_tokenB][_tokenA][_swapInterval] = _value;
+    }
+  }
+}
+
 abstract contract DCAHubParameters is IDCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
@@ -25,9 +51,14 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   IERC20Metadata public override tokenB;
 
   // Tracking
-  mapping(uint32 => mapping(address => mapping(uint32 => int256))) public swapAmountDelta; // swap interval => from token => swap number => delta
-  mapping(uint32 => uint32) public performedSwaps; // swap interval => performed swaps
-  mapping(uint32 => mapping(address => mapping(uint32 => uint256))) internal _accumRatesPerUnit; // swap interval => from token => swap number => accum
+  // TODO: See if there is a way to optimize all these mappings
+  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => int256)))) public swapAmountDelta; // from token => to token => swap interval => swap number => delta
+  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => uint256)))) internal _accumRatesPerUnit; // from token => to token => swap interval => swap number => accum
+  mapping(address => mapping(address => mapping(uint32 => uint256))) public swapAmountAccumulator; // from token => to token => swap interval => swap amount accum
+
+  mapping(address => mapping(address => mapping(uint32 => uint32))) public performedSwaps; // token A => token B => swap interval => performed swaps
+  mapping(address => mapping(address => mapping(uint32 => uint32))) public nextSwapAvailable; // token A => token B => swap interval => timestamp
+
   mapping(address => uint256) internal _balances;
   EnumerableSet.UintSet internal _activeSwapIntervals;
 
