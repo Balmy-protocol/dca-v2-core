@@ -21,28 +21,11 @@ interface IDCAHubParameters {
   /// @return The contract for token B
   function tokenB() external view returns (IERC20Metadata);
 
-  /// @notice Returns how much will the amount to swap differ from the previous swap
-  /// @dev f.e. if the returned value is -100, then the amount to swap will be 100 less than the swap just before it
-  /// @param _swapInterval The swap interval to check
-  /// @param _from The 'from' token of the deposits
-  /// @param _swap The swap number to check
-  /// @return _delta How much will the amount to swap differ, when compared to the swap just before this one
-  function swapAmountDelta(
-    uint32 _swapInterval,
-    address _from,
-    uint32 _swap
-  ) external view returns (int256 _delta);
-
   /// @notice Returns if a certain swap interval is active or not
   /// @dev We consider a swap interval to be active if there is at least one active position on that interval
   /// @param _swapInterval The swap interval to check
   /// @return _isActive Whether the given swap interval is currently active
   function isSwapIntervalActive(uint32 _swapInterval) external view returns (bool _isActive);
-
-  /// @notice Returns the amount of swaps executed for a certain interval
-  /// @param _swapInterval The swap interval to check
-  /// @return _swaps The amount of swaps performed on the given interval
-  function performedSwaps(uint32 _swapInterval) external view returns (uint32 _swaps);
 }
 
 /// @title The interface for all position related matters in a DCA pair
@@ -310,18 +293,6 @@ interface IDCAHubSwapHandler {
 
   /// @notice Thrown when trying to execute a swap, but none is available
   error NoSwapsToExecute();
-
-  /// @notice Returns when the next swap will be available for a given swap interval
-  /// @param _swapInterval The swap interval to check
-  /// @return _when The moment when the next swap will be available. Take into account that if the swap is already available, this result could
-  /// be in the past
-  function nextSwapAvailable(uint32 _swapInterval) external view returns (uint32 _when);
-
-  /// @notice Returns the amount of tokens that needed swapping in the last swap, for all positions in the given swap interval that were deposited in the given token
-  /// @param _swapInterval The swap interval to check
-  /// @param _from The address of the token that all positions used to deposit
-  /// @return _amount The amount that needed swapping in the last swap
-  function swapAmountAccumulator(uint32 _swapInterval, address _from) external view returns (uint256);
 
   /// @notice Returns all information related to the next swap
   /// @return _nextSwapInformation The information about the next swap

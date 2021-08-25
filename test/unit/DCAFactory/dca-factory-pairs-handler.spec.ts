@@ -15,7 +15,7 @@ import { constants, erc20, behaviours } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
-describe('DCAFactoryPairsHandler', function () {
+describe.skip('DCAFactoryPairsHandler', function () {
   let owner: SignerWithAddress;
   let tokenAContract: ERC20Mock, tokenBContract: ERC20Mock;
   let DCAGlobalParametersContract: DCAGlobalParameters__factory;

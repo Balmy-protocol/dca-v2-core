@@ -192,11 +192,12 @@ describe('DCAPositionHandler', () => {
       });
 
       then('trade is recorded', async () => {
-        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_10);
-        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_10 + 1);
+        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
+        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
-          SWAP_INTERVAL,
           tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL,
           PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10 + 1
         );
 
@@ -206,11 +207,17 @@ describe('DCAPositionHandler', () => {
       });
 
       then('other swap intervals remain unaffected', async () => {
-        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL_2, tokenA.address, PERFORMED_SWAPS_10);
-        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL_2, tokenA.address, PERFORMED_SWAPS_10 + 1);
-        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
-          SWAP_INTERVAL_2,
+        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL_2,
+          PERFORMED_SWAPS_10
+        );
+        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL_2, PERFORMED_SWAPS_10 + 1);
+        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL_2,
           PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10
         );
 
@@ -234,7 +241,7 @@ describe('DCAPositionHandler', () => {
     });
   });
 
-  describe('withdrawSwapped', () => {
+  describe.only('withdrawSwapped', () => {
     const recipient: string = wallet.generateRandomAddress();
 
     when('withdrawing with zero address recipient', () => {
@@ -941,6 +948,7 @@ describe('DCAPositionHandler', () => {
     await DCAPositionHandler.setRatePerUnit(
       SWAP_INTERVAL,
       tokenA.address,
+      tokenB.address,
       onSwap,
       BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate)
     );
@@ -1069,15 +1077,25 @@ describe('DCAPositionHandler', () => {
       then('previous trade is rolled back', async () => {
         // If it happens that this condition is true, then the new last swap will match the previous last swap, making the delta not 0
         if (PERFORMED_SWAPS_10 + initialSwaps + 1 !== PERFORMED_SWAPS_11 + newSwaps! + 1) {
-          const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_10 + initialSwaps + 1);
+          const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(
+            tokenA.address,
+            tokenB.address,
+            SWAP_INTERVAL,
+            PERFORMED_SWAPS_10 + initialSwaps + 1
+          );
 
           expect(deltaLastSwap).to.equal(0);
         }
       });
 
       then('new trade is recorded', async () => {
-        const deltaNextSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_11 + 1);
-        const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(SWAP_INTERVAL, tokenA.address, PERFORMED_SWAPS_11 + newSwaps! + 1);
+        const deltaNextSwap = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_11 + 1);
+        const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL,
+          PERFORMED_SWAPS_11 + newSwaps! + 1
+        );
 
         if (newSwaps! > 0) {
           expect(deltaNextSwap).to.equal(tokenA.asUnits((newRate! - initialRate).toFixed(2)));
@@ -1105,7 +1123,7 @@ describe('DCAPositionHandler', () => {
     const fromTokenReal = fromToken ?? tokenA;
     const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
     await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, swap);
-    await DCAPositionHandler.setRatePerUnit(SWAP_INTERVAL, fromTokenReal.address, swap, toToken.asUnits(ratePerUnit));
+    await DCAPositionHandler.setRatePerUnit(SWAP_INTERVAL, fromTokenReal.address, toToken.address, swap, toToken.asUnits(ratePerUnit));
     await fromTokenReal.burn(DCAPositionHandler.address, fromTokenReal.asUnits(amount));
     await toToken.mint(DCAPositionHandler.address, toToken.asUnits(amount * ratePerUnit));
     await DCAPositionHandler.setInternalBalances(
@@ -1215,8 +1233,10 @@ describe('DCAPositionHandler', () => {
     const fromToken = fromAddress === tokenA.address ? tokenA : tokenB;
     const toToken = fromAddress === tokenA.address ? tokenB : tokenA;
 
-    expect(positionFrom, 'Wrong from address in position').to.equal(fromToken.address);
-    expect(positionTo, 'Wrong to address in position').to.equal(toToken.address);
+    expect(positionFrom, 'Wrong from address in position').to.equal(fromAddress);
+    expect(positionTo, 'Wrong to address in position').to.equal(
+      fromAddress === constants.ZERO_ADDRESS ? constants.ZERO_ADDRESS : toToken.address
+    );
     expect(positionSwapInterval, 'Wrong swap interval in position').to.equal(swapInterval ?? SWAP_INTERVAL);
     expect(positionSwapsExecuted, 'Wrong swaps executed in position').to.equal(swapsExecuted);
     expect(positionSwapped, 'Wrong swapped amount in position').to.equal(toToken.asUnits(swapped));

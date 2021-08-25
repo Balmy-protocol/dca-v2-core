@@ -49,20 +49,22 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
 
   function registerSwap(
     uint32 _swapInterval,
-    address _token,
+    address _from,
+    address _to,
     uint256 _internalAmountUsedToSwap,
     uint256 _ratePerUnit,
     uint32 _swapToRegister
   ) external {
-    _registerSwap(_swapInterval, _token, _internalAmountUsedToSwap, _ratePerUnit, _swapToRegister);
+    _registerSwap(_swapInterval, _from, _to, _internalAmountUsedToSwap, _ratePerUnit, _swapToRegister);
   }
 
   function getAmountToSwap(
     uint32 _swapInterval,
-    address _tokenAddress,
+    address _from,
+    address _to,
     uint32 _swap
   ) external view returns (uint256) {
-    return _getAmountToSwap(_swapInterval, _tokenAddress, _swap);
+    return _getAmountToSwap(_swapInterval, _from, _to, _swap);
   }
 
   function setBlockTimestamp(uint32 _blockTimestamp) external {
@@ -77,22 +79,29 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
 
   function addNewRatePerUnit(
     uint32 _swapInterval,
-    address _tokenAddress,
+    address _from,
+    address _to,
     uint32 _swap,
     uint256 _ratePerUnit
   ) external {
-    _addNewRatePerUnit(_swapInterval, _tokenAddress, _swap, _ratePerUnit);
+    _addNewRatePerUnit(_swapInterval, _from, _to, _swap, _ratePerUnit);
   }
 
   function setSwapAmountAccumulator(
     uint32 _swapInterval,
-    address _tokenAddress,
+    address _from,
+    address _to,
     uint256 _swapAmountAccumulator
   ) external {
-    swapAmountAccumulator[_swapInterval][_tokenAddress] = _swapAmountAccumulator;
+    swapAmountAccumulator[_from][_to][_swapInterval] = _swapAmountAccumulator;
   }
 
   function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) external {
-    nextSwapAvailable[_swapInterval] = _nextSwapAvailable;
+    // TODO: stop using tokenA & tokenB and receive as parameters
+    if (address(tokenA) < address(tokenB)) {
+      nextSwapAvailable[address(tokenA)][address(tokenB)][_swapInterval] = _nextSwapAvailable;
+    } else {
+      nextSwapAvailable[address(tokenB)][address(tokenA)][_swapInterval] = _nextSwapAvailable;
+    }
   }
 }
