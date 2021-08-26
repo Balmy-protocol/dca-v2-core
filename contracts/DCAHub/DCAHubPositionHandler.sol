@@ -271,9 +271,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     uint32 _performedSwaps = performedSwaps.getValue(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
     uint32 _lastSwap = _performedSwaps < _userDCA.lastSwap ? _performedSwaps : _userDCA.lastSwap;
 
-    // If the last withdraw happened after the position's last swap, then there is no more swapped balance
+    // If the last withdraw happened after the position's last swap, then we can just return what left to withdraw before
     if (_userDCA.lastWithdrawSwap >= _lastSwap) {
-      return 0;
+      return _userDCA.swappedBeforeModified;
     }
 
     uint256 _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_lastSwap];
