@@ -15,7 +15,7 @@ import {
   ReentrantDCAHubLoanCalleeMock,
   ReentrantDCAHubLoanCalleeMock__factory,
 } from '@typechained';
-import { constants, erc20, evm } from '@test-utils';
+import { constants, erc20, evm, wallet } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
@@ -158,13 +158,12 @@ contract('DCAHub', () => {
         attackerContract,
         attack: async () => (await DCAHub.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0, 0)).data!,
       });
-
       testReentrantAttack({
         title: 'trying to do a reentrancy attack through withdrawing swapped',
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.withdrawSwapped(0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.withdrawSwapped(0, wallet.generateRandomAddress())).data!,
       });
 
       testReentrantAttack({
