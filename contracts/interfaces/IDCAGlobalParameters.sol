@@ -30,33 +30,33 @@ interface IDCAGlobalParameters {
   }
 
   /// @notice Emitted when a new fee recipient is set
-  /// @param _feeRecipient The address of the new fee recipient
-  event FeeRecipientSet(address _feeRecipient);
+  /// @param feeRecipient The address of the new fee recipient
+  event FeeRecipientSet(address feeRecipient);
 
   /// @notice Emitted when a new NFT descriptor is set
-  /// @param _descriptor The new NFT descriptor contract
-  event NFTDescriptorSet(IDCATokenDescriptor _descriptor);
+  /// @param descriptor The new NFT descriptor contract
+  event NFTDescriptorSet(IDCATokenDescriptor descriptor);
 
   /// @notice Emitted when a new oracle is set
-  /// @param _oracle The new oracle contract
-  event OracleSet(ITimeWeightedOracle _oracle);
+  /// @param oracle The new oracle contract
+  event OracleSet(ITimeWeightedOracle oracle);
 
   /// @notice Emitted when a new swap fee is set
-  /// @param _feeSet The new swap fee
-  event SwapFeeSet(uint32 _feeSet);
+  /// @param feeSet The new swap fee
+  event SwapFeeSet(uint32 feeSet);
 
   /// @notice Emitted when a new loan fee is set
-  /// @param _feeSet The new loan fee
-  event LoanFeeSet(uint32 _feeSet);
+  /// @param feeSet The new loan fee
+  event LoanFeeSet(uint32 feeSet);
 
   /// @notice Emitted when new swap intervals are allowed
-  /// @param _swapIntervals The new swap intervals
-  /// @param _descriptions The descriptions for each swap interval
-  event SwapIntervalsAllowed(uint32[] _swapIntervals, string[] _descriptions);
+  /// @param swapIntervals The new swap intervals
+  /// @param descriptions The descriptions for each swap interval
+  event SwapIntervalsAllowed(uint32[] swapIntervals, string[] descriptions);
 
   /// @notice Emitted when some swap intervals are no longer allowed
-  /// @param _swapIntervals The swap intervals that are no longer allowed
-  event SwapIntervalsForbidden(uint32[] _swapIntervals);
+  /// @param swapIntervals The swap intervals that are no longer allowed
+  event SwapIntervalsForbidden(uint32[] swapIntervals);
 
   /// @notice Thrown when trying to set a fee higher than the maximum allowed
   error HighFee();

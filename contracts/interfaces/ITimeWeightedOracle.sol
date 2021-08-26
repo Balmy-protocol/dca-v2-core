@@ -7,9 +7,9 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 /// @notice These methods allow users to add support for pairs, and then ask for quotes
 interface ITimeWeightedOracle {
   /// @notice Emitted when the oracle add supports for a new pair
-  /// @param _tokenA One of the pair's tokens
-  /// @param _tokenB The other of the pair's tokens
-  event AddedSupportForPair(address _tokenA, address _tokenB);
+  /// @param tokenA One of the pair's tokens
+  /// @param tokenB The other of the pair's tokens
+  event AddedSupportForPair(address tokenA, address tokenB);
 
   /// @notice Returns whether this oracle can support this pair of tokens
   /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
