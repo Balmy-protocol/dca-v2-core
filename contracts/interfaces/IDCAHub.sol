@@ -274,19 +274,19 @@ interface IDCAHubSwapHandler {
   }
 
   /// @notice Emitted when a swap is executed
-  /// @param _sender The address of the user that initiated the swap
-  /// @param _to The address that received the reward + loan
-  /// @param _amountBorrowedTokenA How much was borrowed in token A
-  /// @param _amountBorrowedTokenB How much was borrowed in token B
-  /// @param _fee How much was charged as a swap fee to position owners
-  /// @param _nextSwapInformation All information related to the swap
+  /// @param sender The address of the user that initiated the swap
+  /// @param to The address that received the reward + loan
+  /// @param amountBorrowedTokenA How much was borrowed in token A
+  /// @param amountBorrowedTokenB How much was borrowed in token B
+  /// @param fee How much was charged as a swap fee to position owners
+  /// @param nextSwapInformation All information related to the swap
   event Swapped(
-    address indexed _sender,
-    address indexed _to,
-    uint256 _amountBorrowedTokenA,
-    uint256 _amountBorrowedTokenB,
-    uint32 _fee,
-    NextSwapInformation _nextSwapInformation
+    address indexed sender,
+    address indexed to,
+    uint256 amountBorrowedTokenA,
+    uint256 amountBorrowedTokenB,
+    uint32 fee,
+    NextSwapInformation nextSwapInformation
   );
 
   /// @notice Thrown when trying to execute a swap, but none is available
@@ -329,12 +329,12 @@ interface IDCAHubSwapHandler {
 /// @notice These methods allow users to ask how much is available for loans, and also to execute them
 interface IDCAHubLoanHandler {
   /// @notice Emitted when a flash loan is executed
-  /// @param _sender The address of the user that initiated the loan
-  /// @param _to The address that received the loan
-  /// @param _amountBorrowedTokenA How much was borrowed in token A
-  /// @param _amountBorrowedTokenB How much was borrowed in token B
-  /// @param _loanFee How much was charged as a fee
-  event Loaned(address indexed _sender, address indexed _to, uint256 _amountBorrowedTokenA, uint256 _amountBorrowedTokenB, uint32 _loanFee);
+  /// @param sender The address of the user that initiated the loan
+  /// @param to The address that received the loan
+  /// @param amountBorrowedTokenA How much was borrowed in token A
+  /// @param amountBorrowedTokenB How much was borrowed in token B
+  /// @param loanFee How much was charged as a fee
+  event Loaned(address indexed sender, address indexed to, uint256 amountBorrowedTokenA, uint256 amountBorrowedTokenB, uint32 loanFee);
 
   // @notice Thrown when trying to execute a flash loan but without actually asking for tokens
   error ZeroLoan();

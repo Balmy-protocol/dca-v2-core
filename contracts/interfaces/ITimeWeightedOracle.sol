@@ -41,12 +41,12 @@ interface ITimeWeightedOracle {
 /// @notice This oracle will attempt to use all fee tiers of the same pair when calculating quotes
 interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
   /// @notice Emitted when a new fee tier is added
-  /// @return _feeTier The added fee tier
-  event AddedFeeTier(uint24 _feeTier);
+  /// @return feeTier The added fee tier
+  event AddedFeeTier(uint24 feeTier);
 
   /// @notice Emitted when a new period is set
-  /// @return _period The new period
-  event PeriodChanged(uint32 _period);
+  /// @return period The new period
+  event PeriodChanged(uint32 period);
 
   /// @notice Returns the Uniswap V3 Factory
   /// @return _factory The Uniswap V3 Factory
