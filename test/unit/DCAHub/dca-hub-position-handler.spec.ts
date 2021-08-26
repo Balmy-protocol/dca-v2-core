@@ -1167,7 +1167,7 @@ describe('DCAPositionHandler', () => {
 
   async function deposit({ token, rate, swaps }: { token: TokenContract; rate: number; swaps: number }) {
     const response: TransactionResponse = await DCAPositionHandler.deposit(token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
-    const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
+    const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
     return { response, dcaId };
   }
 

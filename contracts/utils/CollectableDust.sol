@@ -7,7 +7,7 @@ import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 interface ICollectableDust {
-  event DustSent(address _to, address token, uint256 amount);
+  event DustSent(address to, address token, uint256 amount);
 
   // solhint-disable-next-line func-name-mixedcase
   function ETH() external view returns (address);

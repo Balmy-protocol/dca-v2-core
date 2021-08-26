@@ -307,7 +307,7 @@ contract('DCAHub', () => {
         throw new Error('WTF u doing man?');
       }
       position.amountOfSwaps = BigNumber.from(args.newSwaps);
-      position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', '_rate');
+      position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }
 
     async function setSwapRatio(ratio: SwapRatio) {
@@ -352,9 +352,9 @@ contract('DCAHub', () => {
 
     async function modifyRate(position: UserPositionDefinition, rate: number): Promise<void> {
       const response = await DCAHub.connect(position.owner).modifyRate(position.id, position.from.asUnits(rate));
-      const newRate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', '_rate');
-      const lastSwap = await readArgFromEventOrFail<number>(response, 'Modified', '_lastSwap');
-      const startingSwap = await readArgFromEventOrFail<number>(response, 'Modified', '_startingSwap');
+      const newRate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
+      const lastSwap = await readArgFromEventOrFail<number>(response, 'Modified', 'lastSwap');
+      const startingSwap = await readArgFromEventOrFail<number>(response, 'Modified', 'startingSwap');
       position.rate = newRate;
       position.amountOfSwaps = BigNumber.from(lastSwap - startingSwap + 1);
     }
@@ -375,7 +375,7 @@ contract('DCAHub', () => {
       await token.mint(depositor.address, token.asUnits(rate).mul(swaps));
       await token.connect(depositor).approve(DCAHub.address, token.asUnits(rate).mul(swaps));
       const response: TransactionResponse = await DCAHub.connect(depositor).deposit(token.address, token.asUnits(rate), swaps, swapInterval);
-      const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', '_dcaId');
+      const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
       return {
         id: positionId,
         owner: depositor,

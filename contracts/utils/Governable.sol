@@ -3,7 +3,7 @@
 pragma solidity >=0.7.0;
 
 interface IGovernable {
-  event PendingGovernorSet(address _pendingGovernor);
+  event PendingGovernorSet(address pendingGovernor);
   event PendingGovernorAccepted();
 
   function setPendingGovernor(address _pendingGovernor) external;

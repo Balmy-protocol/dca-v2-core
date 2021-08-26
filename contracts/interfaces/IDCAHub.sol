@@ -52,52 +52,52 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   }
 
   /// @notice Emitted when a position is terminated
-  /// @param _user The address of the user that terminated the position
-  /// @param _dcaId The id of the position that was terminated
-  /// @param _returnedUnswapped How many "from" tokens were returned to the caller
-  /// @param _returnedSwapped How many "to" tokens were returned to the caller
-  event Terminated(address indexed _user, uint256 _dcaId, uint256 _returnedUnswapped, uint256 _returnedSwapped);
+  /// @param user The address of the user that terminated the position
+  /// @param dcaId The id of the position that was terminated
+  /// @param returnedUnswapped How many "from" tokens were returned to the caller
+  /// @param returnedSwapped How many "to" tokens were returned to the caller
+  event Terminated(address indexed user, uint256 dcaId, uint256 returnedUnswapped, uint256 returnedSwapped);
 
   /// @notice Emitted when a position is created
-  /// @param _user The address of the user that created the position
-  /// @param _dcaId The id of the position that was created
-  /// @param _fromToken The address of the "from" token
-  /// @param _rate How many "from" tokens need to be traded in each swap
-  /// @param _startingSwap The number of the swap when the position will be executed for the first time
-  /// @param _swapInterval How frequently the position's swaps should be executed
-  /// @param _lastSwap The number of the swap when the position will be executed for the last time
+  /// @param user The address of the user that created the position
+  /// @param dcaId The id of the position that was created
+  /// @param fromToken The address of the "from" token
+  /// @param rate How many "from" tokens need to be traded in each swap
+  /// @param startingSwap The number of the swap when the position will be executed for the first time
+  /// @param swapInterval How frequently the position's swaps should be executed
+  /// @param lastSwap The number of the swap when the position will be executed for the last time
   event Deposited(
-    address indexed _user,
-    uint256 _dcaId,
-    address _fromToken,
-    uint160 _rate,
-    uint32 _startingSwap,
-    uint32 _swapInterval,
-    uint32 _lastSwap
+    address indexed user,
+    uint256 dcaId,
+    address fromToken,
+    uint160 rate,
+    uint32 startingSwap,
+    uint32 swapInterval,
+    uint32 lastSwap
   );
 
   /// @notice Emitted when a user withdraws all swapped tokens from a position
-  /// @param _withdrawer The address of the user that executed the withdraw
-  /// @param _recipient The address of the user that will receive the withdrawn tokens
-  /// @param _dcaId The id of the position that was affected
-  /// @param _token The address of the withdrawn tokens. It's the same as the position's "to" token
-  /// @param _amount The amount that was withdrawn
-  event Withdrew(address indexed _withdrawer, address indexed _recipient, uint256 _dcaId, address _token, uint256 _amount);
+  /// @param withdrawer The address of the user that executed the withdraw
+  /// @param recipient The address of the user that will receive the withdrawn tokens
+  /// @param dcaId The id of the position that was affected
+  /// @param token The address of the withdrawn tokens. It's the same as the position's "to" token
+  /// @param amount The amount that was withdrawn
+  event Withdrew(address indexed withdrawer, address indexed recipient, uint256 dcaId, address token, uint256 amount);
 
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
-  /// @param _user The address of the user that executed the withdraw
-  /// @param _dcaIds The ids of the positions that were affected
-  /// @param _swappedTokenA The total amount that was withdrawn in token A
-  /// @param _swappedTokenB The total amount that was withdrawn in token B
-  event WithdrewMany(address indexed _user, uint256[] _dcaIds, uint256 _swappedTokenA, uint256 _swappedTokenB);
+  /// @param user The address of the user that executed the withdraw
+  /// @param dcaIds The ids of the positions that were affected
+  /// @param swappedTokenA The total amount that was withdrawn in token A
+  /// @param swappedTokenB The total amount that was withdrawn in token B
+  event WithdrewMany(address indexed user, uint256[] dcaIds, uint256 swappedTokenA, uint256 swappedTokenB);
 
   /// @notice Emitted when a position is modified
-  /// @param _user The address of the user that modified the position
-  /// @param _dcaId The id of the position that was modified
-  /// @param _rate How many "from" tokens need to be traded in each swap
-  /// @param _startingSwap The number of the swap when the position will be executed for the first time
-  /// @param _lastSwap The number of the swap when the position will be executed for the last time
-  event Modified(address indexed _user, uint256 _dcaId, uint160 _rate, uint32 _startingSwap, uint32 _lastSwap);
+  /// @param user The address of the user that modified the position
+  /// @param dcaId The id of the position that was modified
+  /// @param rate How many "from" tokens need to be traded in each swap
+  /// @param startingSwap The number of the swap when the position will be executed for the first time
+  /// @param lastSwap The number of the swap when the position will be executed for the last time
+  event Modified(address indexed user, uint256 dcaId, uint160 rate, uint32 startingSwap, uint32 lastSwap);
 
   /// @notice Thrown when a user tries to create a position with a token that is neither token A nor token B
   error InvalidToken();
@@ -276,19 +276,19 @@ interface IDCAHubSwapHandler {
   }
 
   /// @notice Emitted when a swap is executed
-  /// @param _sender The address of the user that initiated the swap
-  /// @param _to The address that received the reward + loan
-  /// @param _amountBorrowedTokenA How much was borrowed in token A
-  /// @param _amountBorrowedTokenB How much was borrowed in token B
-  /// @param _fee How much was charged as a swap fee to position owners
-  /// @param _nextSwapInformation All information related to the swap
+  /// @param sender The address of the user that initiated the swap
+  /// @param to The address that received the reward + loan
+  /// @param amountBorrowedTokenA How much was borrowed in token A
+  /// @param amountBorrowedTokenB How much was borrowed in token B
+  /// @param fee How much was charged as a swap fee to position owners
+  /// @param nextSwapInformation All information related to the swap
   event Swapped(
-    address indexed _sender,
-    address indexed _to,
-    uint256 _amountBorrowedTokenA,
-    uint256 _amountBorrowedTokenB,
-    uint32 _fee,
-    NextSwapInformation _nextSwapInformation
+    address indexed sender,
+    address indexed to,
+    uint256 amountBorrowedTokenA,
+    uint256 amountBorrowedTokenB,
+    uint32 fee,
+    NextSwapInformation nextSwapInformation
   );
 
   /// @notice Thrown when trying to execute a swap, but none is available
@@ -331,12 +331,12 @@ interface IDCAHubSwapHandler {
 /// @notice These methods allow users to ask how much is available for loans, and also to execute them
 interface IDCAHubLoanHandler {
   /// @notice Emitted when a flash loan is executed
-  /// @param _sender The address of the user that initiated the loan
-  /// @param _to The address that received the loan
-  /// @param _amountBorrowedTokenA How much was borrowed in token A
-  /// @param _amountBorrowedTokenB How much was borrowed in token B
-  /// @param _loanFee How much was charged as a fee
-  event Loaned(address indexed _sender, address indexed _to, uint256 _amountBorrowedTokenA, uint256 _amountBorrowedTokenB, uint32 _loanFee);
+  /// @param sender The address of the user that initiated the loan
+  /// @param to The address that received the loan
+  /// @param amountBorrowedTokenA How much was borrowed in token A
+  /// @param amountBorrowedTokenB How much was borrowed in token B
+  /// @param loanFee How much was charged as a fee
+  event Loaned(address indexed sender, address indexed to, uint256 amountBorrowedTokenA, uint256 amountBorrowedTokenB, uint32 loanFee);
 
   // @notice Thrown when trying to execute a flash loan but without actually asking for tokens
   error ZeroLoan();

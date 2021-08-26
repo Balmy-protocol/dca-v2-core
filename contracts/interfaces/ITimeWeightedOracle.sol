@@ -7,9 +7,9 @@ import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol';
 /// @notice These methods allow users to add support for pairs, and then ask for quotes
 interface ITimeWeightedOracle {
   /// @notice Emitted when the oracle add supports for a new pair
-  /// @param _tokenA One of the pair's tokens
-  /// @param _tokenB The other of the pair's tokens
-  event AddedSupportForPair(address _tokenA, address _tokenB);
+  /// @param tokenA One of the pair's tokens
+  /// @param tokenB The other of the pair's tokens
+  event AddedSupportForPair(address tokenA, address tokenB);
 
   /// @notice Returns whether this oracle can support this pair of tokens
   /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
@@ -41,12 +41,12 @@ interface ITimeWeightedOracle {
 /// @notice This oracle will attempt to use all fee tiers of the same pair when calculating quotes
 interface IUniswapV3OracleAggregator is ITimeWeightedOracle {
   /// @notice Emitted when a new fee tier is added
-  /// @return _feeTier The added fee tier
-  event AddedFeeTier(uint24 _feeTier);
+  /// @return feeTier The added fee tier
+  event AddedFeeTier(uint24 feeTier);
 
   /// @notice Emitted when a new period is set
-  /// @return _period The new period
-  event PeriodChanged(uint32 _period);
+  /// @return period The new period
+  event PeriodChanged(uint32 period);
 
   /// @notice Returns the Uniswap V3 Factory
   /// @return _factory The Uniswap V3 Factory
