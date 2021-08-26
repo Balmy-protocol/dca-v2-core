@@ -70,7 +70,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     return _idCounter;
   }
 
-  function withdrawSwapped(uint256 _dcaId) external override nonReentrant returns (uint256 _swapped) {
+  function withdrawSwapped(uint256 _dcaId, address _recipient) external override nonReentrant returns (uint256 _swapped) {
+    if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
+
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     _swapped = _calculateSwapped(_dcaId);
@@ -80,9 +82,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     _userPositions[_dcaId].swappedBeforeModified = 0;
 
     _balances[_to] -= _swapped;
-    IERC20Metadata(_to).safeTransfer(msg.sender, _swapped);
+    IERC20Metadata(_to).safeTransfer(_recipient, _swapped);
 
-    emit Withdrew(msg.sender, _dcaId, _to, _swapped);
+    emit Withdrew(msg.sender, _recipient, _dcaId, _to, _swapped);
   }
 
   function withdrawSwappedMany(uint256[] calldata _dcaIds)

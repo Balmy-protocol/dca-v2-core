@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory } from 'ethers';
+import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import {
   DCAGlobalParameters,
@@ -194,7 +194,7 @@ contract('DCAHub', () => {
         { rate: 100, ratio: swapRatio2, fee: swapFee1 },
         { rate: 50, ratio: swapRatio2, fee: swapFee1 }
       );
-      await withdraw(johnsPosition);
+      await withdraw(johnsPosition, john.address);
 
       await assertPositionIsConsistentWithNothingToWithdraw(johnsPosition);
       await assertPairBalanceDifferencesAre({ tokenB: availableForWithdraw.mul(-1) });
@@ -307,15 +307,15 @@ contract('DCAHub', () => {
         throw new Error('WTF u doing man?');
       }
       position.amountOfSwaps = BigNumber.from(args.newSwaps);
-      position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', '_rate');
+      position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }
 
     async function setSwapRatio(ratio: SwapRatio) {
       await timeWeightedOracle.setRate(tokenA.asUnits(ratio.tokenA / ratio.tokenB), tokenB.amountOfDecimals);
     }
 
-    async function withdraw(position: UserPositionDefinition): Promise<void> {
-      await DCAHub.connect(position.owner).withdrawSwapped(position.id);
+    async function withdraw(position: UserPositionDefinition, recipient: string): Promise<void> {
+      await DCAHub.connect(position.owner).withdrawSwapped(position.id, recipient);
 
       // Since the position is "resetted" with a withdraw, we need to reduce the amount of swaps
       const { swapsLeft } = await getPosition(position);
@@ -352,9 +352,9 @@ contract('DCAHub', () => {
 
     async function modifyRate(position: UserPositionDefinition, rate: number): Promise<void> {
       const response = await DCAHub.connect(position.owner).modifyRate(position.id, position.from.asUnits(rate));
-      const newRate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', '_rate');
-      const lastSwap = await readArgFromEventOrFail<number>(response, 'Modified', '_lastSwap');
-      const startingSwap = await readArgFromEventOrFail<number>(response, 'Modified', '_startingSwap');
+      const newRate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
+      const lastSwap = await readArgFromEventOrFail<number>(response, 'Modified', 'lastSwap');
+      const startingSwap = await readArgFromEventOrFail<number>(response, 'Modified', 'startingSwap');
       position.rate = newRate;
       position.amountOfSwaps = BigNumber.from(lastSwap - startingSwap + 1);
     }

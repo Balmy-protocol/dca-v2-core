@@ -77,11 +77,12 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   );
 
   /// @notice Emitted when a user withdraws all swapped tokens from a position
-  /// @param user The address of the user that executed the withdraw
+  /// @param withdrawer The address of the user that executed the withdraw
+  /// @param recipient The address of the user that will receive the withdrawn tokens
   /// @param dcaId The id of the position that was affected
   /// @param token The address of the withdrawn tokens. It's the same as the position's "to" token
   /// @param amount The amount that was withdrawn
-  event Withdrew(address indexed user, uint256 dcaId, address token, uint256 amount);
+  event Withdrew(address indexed withdrawer, address indexed recipient, uint256 dcaId, address token, uint256 amount);
 
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
   /// @param user The address of the user that executed the withdraw
@@ -150,13 +151,14 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
     uint32 _swapInterval
   ) external returns (uint256 _dcaId);
 
-  /// @notice Withdraws all swapped tokens from a position
+  /// @notice Withdraws all swapped tokens from a position to a recipient
   /// @dev Will revert:
   /// With InvalidPosition if _dcaId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// @param _dcaId The position's id
+  /// @param _recipient The address to withdraw swapped tokens to
   /// @return _swapped How much was withdrawn
-  function withdrawSwapped(uint256 _dcaId) external returns (uint256 _swapped);
+  function withdrawSwapped(uint256 _dcaId, address _recipient) external returns (uint256 _swapped);
 
   /// @notice Withdraws all swapped tokens from many positions
   /// @dev Will revert:
