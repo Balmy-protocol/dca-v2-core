@@ -269,10 +269,14 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
   function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
     DCA memory _userDCA = _userPositions[_dcaId];
     uint32 _performedSwaps = performedSwaps.getValue(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
-    uint256 _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][
-      _performedSwaps < _userDCA.lastSwap ? _performedSwaps : _userDCA.lastSwap
-    ];
+    uint32 _lastSwap = _performedSwaps < _userDCA.lastSwap ? _performedSwaps : _userDCA.lastSwap;
 
+    // If the last withdraw happened after the position's last swap, then there is no more swapped balance
+    if (_userDCA.lastWithdrawSwap >= _lastSwap) {
+      return 0;
+    }
+
+    uint256 _accumRatesLastSwap = _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_lastSwap];
     uint256 _accumPerUnit = _accumRatesLastSwap -
       _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_userDCA.lastWithdrawSwap];
     uint256 _magnitude = 10**IERC20Metadata(_userDCA.from).decimals();

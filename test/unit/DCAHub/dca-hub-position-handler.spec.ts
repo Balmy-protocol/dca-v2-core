@@ -241,7 +241,7 @@ describe('DCAPositionHandler', () => {
     });
   });
 
-  describe.only('withdrawSwapped', () => {
+  describe('withdrawSwapped', () => {
     const recipient: string = wallet.generateRandomAddress();
 
     when('withdrawing with zero address recipient', () => {
@@ -890,6 +890,29 @@ describe('DCAPositionHandler', () => {
         // It shouldn't revert, since the position ended before the overflow
         const swapped = await calculateSwapped(dcaId);
         expect(swapped).to.equal(tokenB.asUnits(1000000));
+      });
+    });
+
+    when(`last withdraw happens after the position's last swap`, () => {
+      then('0 is returned', async () => {
+        const { dcaId } = await deposit({ token: tokenA, rate: 1, swaps: 1 });
+
+        // Set a value in PERFORMED_SWAPS_10 + 1
+        await setRatePerUnit({
+          accumRate: 1000000,
+          onSwap: PERFORMED_SWAPS_10 + 1,
+        });
+
+        // Set another value in PERFORMED_SWAPS_10 + 2
+        await setRatePerUnit({
+          accumRate: 1000001,
+          onSwap: PERFORMED_SWAPS_10 + 2,
+        });
+
+        await DCAPositionHandler.setLastWithdraw(dcaId, PERFORMED_SWAPS_10 + 2);
+
+        const swapped = await calculateSwapped(dcaId);
+        expect(swapped).to.equal(0);
       });
     });
 
