@@ -64,7 +64,9 @@ contract('DCAHub', () => {
 
         await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
         await swap({ swapper: swapper });
+
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+        await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
         await swap({ swapper: swapper });
 
         await DCAHub.connect(alice).withdrawSwapped(1, alice.address);

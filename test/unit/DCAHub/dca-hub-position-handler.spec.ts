@@ -910,6 +910,7 @@ describe('DCAPositionHandler', () => {
         });
 
         await DCAPositionHandler.setLastWithdraw(dcaId, PERFORMED_SWAPS_10 + 2);
+        await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 2);
 
         const swapped = await calculateSwapped(dcaId);
         expect(swapped).to.equal(0);
