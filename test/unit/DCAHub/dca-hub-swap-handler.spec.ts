@@ -1401,11 +1401,11 @@ describe('DCAHubSwapHandler', () => {
       });
 
       then('emits event with correct information', async () => {
-        const sender = await readArgFromEvent(tx, 'Swapped', '_sender');
-        const to = await readArgFromEvent(tx, 'Swapped', '_to');
-        const amountBorrowedTokenA = await readArgFromEvent(tx, 'Swapped', '_amountBorrowedTokenA');
-        const amountBorrowedTokenB = await readArgFromEvent(tx, 'Swapped', '_amountBorrowedTokenB');
-        const fee = await readArgFromEvent(tx, 'Swapped', '_fee');
+        const sender = await readArgFromEvent(tx, 'Swapped', 'sender');
+        const to = await readArgFromEvent(tx, 'Swapped', 'to');
+        const amountBorrowedTokenA = await readArgFromEvent(tx, 'Swapped', 'amountBorrowedTokenA');
+        const amountBorrowedTokenB = await readArgFromEvent(tx, 'Swapped', 'amountBorrowedTokenB');
+        const fee = await readArgFromEvent(tx, 'Swapped', 'fee');
         expect(sender).to.equal(owner.address);
         expect(to).to.equal(DCAHubSwapCallee.address);
         expect(amountBorrowedTokenA).to.equal(availableToBorrowTokenA);
@@ -1841,7 +1841,7 @@ describe('DCAHubSwapHandler', () => {
         }
       });
       then('emits event with correct information', async () => {
-        const nextSwapInformation = (await readArgFromEvent(swapTx, 'Swapped', '_nextSwapInformation')) as NextSwapInfo;
+        const nextSwapInformation = (await readArgFromEvent(swapTx, 'Swapped', 'nextSwapInformation')) as NextSwapInfo;
         const parsedNextSwaps = parseNextSwaps(nextSwapContext);
         expect(nextSwapInformation.swapsToPerform).to.deep.equal(parsedNextSwaps.nextSwaps);
         expect(nextSwapInformation.amountOfSwaps).to.equal(parsedNextSwaps.amount);
@@ -1882,11 +1882,11 @@ describe('DCAHubSwapHandler', () => {
           expect(nextSwapInformation.tokenToBeProvidedBySwapper).to.equal(tokenToBeProvidedBySwapper());
           expect(nextSwapInformation.tokenToRewardSwapperWith).to.equal(tokenToRewardSwapperWith!());
         }
-        const sender = await readArgFromEvent(swapTx, 'Swapped', '_sender');
-        const to = await readArgFromEvent(swapTx, 'Swapped', '_to');
-        const amountBorrowedTokenA = await readArgFromEvent(swapTx, 'Swapped', '_amountBorrowedTokenA');
-        const amountBorrowedTokenB = await readArgFromEvent(swapTx, 'Swapped', '_amountBorrowedTokenB');
-        const fee = await readArgFromEvent(swapTx, 'Swapped', '_fee');
+        const sender = await readArgFromEvent(swapTx, 'Swapped', 'sender');
+        const to = await readArgFromEvent(swapTx, 'Swapped', 'to');
+        const amountBorrowedTokenA = await readArgFromEvent(swapTx, 'Swapped', 'amountBorrowedTokenA');
+        const amountBorrowedTokenB = await readArgFromEvent(swapTx, 'Swapped', 'amountBorrowedTokenB');
+        const fee = await readArgFromEvent(swapTx, 'Swapped', 'fee');
         expect(sender).to.equal(owner.address);
         expect(to).to.equal(owner.address);
         expect(amountBorrowedTokenA).to.equal(constants.ZERO);
