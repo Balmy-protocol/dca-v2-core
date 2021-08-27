@@ -43,7 +43,6 @@ describe('DCAGlobalParameters', () => {
   describe('constructor', () => {
     when('immediate governor is zero address', () => {
       then('tx is reverted with reason error', async () => {
-        expect(false).to.be.true;
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAGlobalParametersContract,
           args: [
