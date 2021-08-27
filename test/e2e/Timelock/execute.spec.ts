@@ -10,6 +10,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { hexZeroPad } from 'ethers/lib/utils';
 import { deployContract } from 'ethereum-waffle';
+import { snapshot } from '@test-utils/evm';
 
 contract('Timelock', () => {
   const minDelay = moment.duration('1', 'day').as('seconds');
@@ -22,6 +23,8 @@ contract('Timelock', () => {
   let globalParameters: DCAGlobalParameters;
   let timelock: Contract;
 
+  let snapshotId: string;
+
   const nftDescriptor = wallet.generateRandomAddress();
   const oracle = wallet.generateRandomAddress();
 
@@ -29,11 +32,8 @@ contract('Timelock', () => {
   const PREDECESSOR = constants.ZERO_BYTES32;
 
   before(async () => {
-    globalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
-  });
-
-  beforeEach(async () => {
     [deployer, immediateGovernor, feeRecipient] = await ethers.getSigners();
+    globalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
     timelock = await deployContract(deployer, TIMELOCK, [minDelay, [immediateGovernor.address], [immediateGovernor.address]]);
     globalParameters = await globalParametersFactory.deploy(
       immediateGovernor.address,
@@ -42,6 +42,11 @@ contract('Timelock', () => {
       nftDescriptor,
       oracle
     );
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach(async () => {
+    await snapshot.revert(snapshotId);
   });
 
   describe('execute', () => {

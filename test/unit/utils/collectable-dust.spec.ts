@@ -6,19 +6,18 @@ import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { CollectableDustMock, CollectableDustMock__factory, ERC20Mock } from '@typechained';
+import { snapshot } from '@test-utils/evm';
 
 describe('CollectableDust', function () {
   let owner: SignerWithAddress;
   let someToken: ERC20Mock;
   let collectableDustContract: CollectableDustMock__factory;
   let collectableDust: CollectableDustMock;
+  let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
     collectableDustContract = await ethers.getContractFactory('contracts/mocks/utils/CollectableDust.sol:CollectableDustMock');
-  });
-
-  beforeEach('Deploy and configure', async () => {
     collectableDust = await collectableDustContract.deploy();
     someToken = await erc20.deploy({
       initialAccount: owner.address,
@@ -26,6 +25,11 @@ describe('CollectableDust', function () {
       name: 'Some Token',
       symbol: 'ST',
     });
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach('Deploy and configure', async () => {
+    await snapshot.revert(snapshotId);
   });
 
   describe('addProtocolToken', () => {

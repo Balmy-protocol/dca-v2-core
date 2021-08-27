@@ -14,6 +14,7 @@ import { when, then, given } from '@test-utils/bdd';
 import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
+import { snapshot } from '@test-utils/evm';
 
 describe('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
@@ -34,6 +35,7 @@ describe('DCAPositionHandler', () => {
   let DCAPositionHandler: DCAHubPositionHandlerMock;
   let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
   let DCAGlobalParameters: DCAGlobalParametersMock;
+  let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner, approved, stranger] = await ethers.getSigners();
@@ -41,9 +43,6 @@ describe('DCAPositionHandler', () => {
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
-  });
-
-  beforeEach('Deploy and configure', async () => {
     tokenA = await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
@@ -78,6 +77,11 @@ describe('DCAPositionHandler', () => {
     await tokenA.approveInternal(approved.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10);
     await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach('Deploy and configure', async () => {
+    await snapshot.revert(snapshotId);
   });
 
   describe('constructor', () => {
@@ -241,7 +245,7 @@ describe('DCAPositionHandler', () => {
     });
   });
 
-  describe.only('withdrawSwapped', () => {
+  describe('withdrawSwapped', () => {
     const recipient: string = wallet.generateRandomAddress();
 
     when('withdrawing with zero address recipient', () => {
