@@ -16,6 +16,7 @@ import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { readArgFromEvent } from '@test-utils/event-utils';
 import { TokenContract } from '@test-utils/erc20';
+import { snapshot } from '@test-utils/evm';
 
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
@@ -30,6 +31,7 @@ describe('DCAHubSwapHandler', () => {
   let timeWeightedOracle: TimeWeightedOracleMock;
   let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
   let DCAGlobalParameters: DCAGlobalParametersMock;
+  let snapshotId: string;
   const SWAP_INTERVAL = moment.duration(1, 'days').as('seconds');
   const SWAP_INTERVAL_2 = moment.duration(2, 'days').as('seconds');
 
@@ -40,10 +42,6 @@ describe('DCAHubSwapHandler', () => {
     );
     DCAHubSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubSwapHandler.sol:DCAHubSwapHandlerMock');
     timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
-  });
-
-  beforeEach('Deploy and configure', async () => {
-    await evm.reset();
     tokenA = await erc20.deploy({
       name: 'tokenA',
       symbol: 'TKN0',
@@ -72,6 +70,11 @@ describe('DCAHubSwapHandler', () => {
       DCAGlobalParameters.address // global parameters
     );
     await DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL);
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach('Deploy and configure', async () => {
+    await snapshot.revert(snapshotId);
   });
 
   function addNewRatePerUnitTest({

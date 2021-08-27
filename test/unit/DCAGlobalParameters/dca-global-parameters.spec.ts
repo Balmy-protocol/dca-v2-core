@@ -6,6 +6,7 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, behaviours, bn, contracts } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { snapshot } from '@test-utils/evm';
 
 describe('DCAGlobalParameters', () => {
   let owner: SignerWithAddress,
@@ -16,15 +17,13 @@ describe('DCAGlobalParameters', () => {
   let DCAGlobalParametersContract: DCAGlobalParameters__factory;
   let DCAGlobalParameters: DCAGlobalParameters;
   let immediateRole: string, timeLockedRole: string;
+  let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner, timeLockedOwner, feeRecipient, nftDescriptor, oracle] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
-  });
-
-  beforeEach('Deploy and configure', async () => {
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
       timeLockedOwner.address,
@@ -34,6 +33,11 @@ describe('DCAGlobalParameters', () => {
     );
     immediateRole = await DCAGlobalParameters.IMMEDIATE_ROLE();
     timeLockedRole = await DCAGlobalParameters.TIME_LOCKED_ROLE();
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach('Deploy and configure', async () => {
+    await snapshot.revert(snapshotId);
   });
 
   describe('constructor', () => {

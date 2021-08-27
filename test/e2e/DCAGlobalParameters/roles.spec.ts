@@ -6,6 +6,7 @@ import { wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
 import Web3 from 'web3';
 import { expect } from 'chai';
+import { snapshot } from '@test-utils/evm';
 
 contract('DCAGlobalParameters', () => {
   let immediateGovernor: SignerWithAddress;
@@ -15,14 +16,13 @@ contract('DCAGlobalParameters', () => {
   let globalParametersFactory: DCAGlobalParameters__factory;
   let globalParameters: DCAGlobalParameters;
 
+  let snapshotId: string;
+
   const IMMEDIATE_ROLE: string = new Web3().utils.soliditySha3('IMMEDIATE_ROLE') as string;
   const TIME_LOCKED_ROLE: string = new Web3().utils.soliditySha3('TIME_LOCKED_ROLE') as string;
 
   before(async () => {
     globalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
-  });
-
-  beforeEach(async () => {
     [immediateGovernor, timeLockedGovernor, feeRecipient] = await ethers.getSigners();
     globalParameters = await globalParametersFactory.deploy(
       immediateGovernor.address,
@@ -31,6 +31,11 @@ contract('DCAGlobalParameters', () => {
       wallet.generateRandomAddress(),
       wallet.generateRandomAddress()
     );
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach(async () => {
+    await snapshot.revert(snapshotId);
   });
 
   describe('granting immediate role', () => {

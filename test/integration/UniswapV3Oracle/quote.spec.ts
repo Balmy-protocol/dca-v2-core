@@ -10,10 +10,9 @@ import { getLastPrice, convertPriceToNumberWithDecimals } from '@test-utils/coin
 
 let oracle: UniswapV3Oracle;
 let startingTime: number;
-let oraclePeriod: number = moment.duration('7', 'minutes').as('seconds');
+let oraclePeriod: number = moment.duration('5', 'minutes').as('seconds');
 
-// 15 USDC as a price threshold
-const PRICE_THRESHOLD = 15;
+const PRICE_THRESHOLD = 40;
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 

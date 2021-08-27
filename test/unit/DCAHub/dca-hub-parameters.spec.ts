@@ -10,6 +10,7 @@ import {
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, bn, wallet, contracts } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
+import { snapshot } from '@test-utils/evm';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
@@ -20,6 +21,7 @@ describe('DCAHubParameters', function () {
   let DCAHubParameters: DCAHubParametersMock;
   let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
   let DCAGlobalParameters: DCAGlobalParametersMock;
+  let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
@@ -27,9 +29,6 @@ describe('DCAHubParameters', function () {
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
     DCAHubParametersContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubParameters.sol:DCAHubParametersMock');
-  });
-
-  beforeEach('Deploy and configure', async () => {
     tokenA = (await erc20.deploy({
       name: 'DAI',
       symbol: 'DAI',
@@ -50,6 +49,11 @@ describe('DCAHubParameters', function () {
       constants.NOT_ZERO_ADDRESS
     );
     DCAHubParameters = await DCAHubParametersContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach('Deploy and configure', async () => {
+    await snapshot.revert(snapshotId);
   });
 
   describe('constructor', () => {

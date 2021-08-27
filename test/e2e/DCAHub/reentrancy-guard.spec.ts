@@ -20,6 +20,7 @@ import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
@@ -35,6 +36,8 @@ contract('DCAHub', () => {
     let reentrantDCAHubLoanCalleeFactory: ReentrantDCAHubLoanCalleeMock__factory;
     let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
     let TimeWeightedOracle: TimeWeightedOracleMock;
+    let snapshotId: string;
+
     const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
     before('Setup accounts and contracts', async () => {
@@ -46,10 +49,6 @@ contract('DCAHub', () => {
       reentrantDCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');
       TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
-    });
-
-    beforeEach('Deploy and configure', async () => {
-      await evm.reset();
       tokenA = await erc20.deploy({
         name: 'tokenA',
         symbol: 'TKNA',
@@ -68,6 +67,11 @@ contract('DCAHub', () => {
       );
       DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
+      snapshotId = await snapshot.take();
+    });
+
+    beforeEach('Deploy and configure', async () => {
+      await snapshot.revert(snapshotId);
     });
 
     describe('loan', () => {

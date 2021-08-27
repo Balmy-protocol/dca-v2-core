@@ -6,19 +6,23 @@ import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { GovernableMock, GovernableMock__factory } from '@typechained';
+import { snapshot } from '@test-utils/evm';
 
 describe('Governable', function () {
   let governor: SignerWithAddress;
   let governableContract: GovernableMock__factory;
   let governable: GovernableMock;
+  let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [governor] = await ethers.getSigners();
     governableContract = await ethers.getContractFactory('contracts/mocks/utils/Governable.sol:GovernableMock');
+    governable = await governableContract.deploy(governor.address);
+    snapshotId = await snapshot.take();
   });
 
   beforeEach('Deploy and configure', async () => {
-    governable = await governableContract.deploy(governor.address);
+    await snapshot.revert(snapshotId);
   });
 
   describe('constructor', () => {

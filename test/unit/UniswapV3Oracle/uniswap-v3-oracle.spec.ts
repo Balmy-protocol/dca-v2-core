@@ -12,23 +12,27 @@ import {
   UniswapV3OracleMock__factory,
   UniswapV3PoolMock__factory,
 } from '@typechained';
+import { snapshot } from '@test-utils/evm';
 
 describe('UniswapV3Oracle', () => {
   let owner: SignerWithAddress;
   let UniswapV3OracleContract: UniswapV3OracleMock__factory, UniswapV3FactoryContract: UniswapV3FactoryMock__factory;
   let UniswapV3PoolContract: UniswapV3PoolMock__factory;
   let UniswapV3Oracle: UniswapV3OracleMock, UniswapV3Factory: UniswapV3FactoryMock;
+  let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
     UniswapV3FactoryContract = await ethers.getContractFactory('contracts/mocks/UniswapV3Oracle/UniswapV3FactoryMock.sol:UniswapV3FactoryMock');
     UniswapV3PoolContract = await ethers.getContractFactory('contracts/mocks/UniswapV3Oracle/UniswapV3PoolMock.sol:UniswapV3PoolMock');
     UniswapV3OracleContract = await ethers.getContractFactory('contracts/mocks/UniswapV3Oracle/UniswapV3Oracle.sol:UniswapV3OracleMock');
+    UniswapV3Factory = await UniswapV3FactoryContract.deploy();
+    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, UniswapV3Factory.address);
+    snapshotId = await snapshot.take();
   });
 
   beforeEach('Deploy and configure', async () => {
-    UniswapV3Factory = await UniswapV3FactoryContract.deploy();
-    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, UniswapV3Factory.address);
+    await snapshot.revert(snapshotId);
   });
 
   describe('constructor', () => {
