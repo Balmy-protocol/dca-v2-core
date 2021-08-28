@@ -53,10 +53,19 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Emitted when a position is terminated
   /// @param user The address of the user that terminated the position
+  /// @param recipientUnswapped The address of the user that will receive the unswapped withdrawn tokens
+  /// @param recipientSwapped The address of the user that will receive the swapped withdrawn tokens
   /// @param dcaId The id of the position that was terminated
   /// @param returnedUnswapped How many "from" tokens were returned to the caller
   /// @param returnedSwapped How many "to" tokens were returned to the caller
-  event Terminated(address indexed user, uint256 dcaId, uint256 returnedUnswapped, uint256 returnedSwapped);
+  event Terminated(
+    address indexed user,
+    address indexed recipientUnswapped,
+    address indexed recipientSwapped,
+    uint256 dcaId,
+    uint256 returnedUnswapped,
+    uint256 returnedSwapped
+  );
 
   /// @notice Emitted when a position is created
   /// @param user The address of the user that created the position
@@ -226,10 +235,17 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Terminates the position and sends all unswapped and swapped balance to the caller
   /// @dev Will revert:
+  /// With ZeroAddress if _recipientUnswapped or _recipientSwapped is zero
   /// With InvalidPosition if _dcaId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// @param _dcaId The position's id
-  function terminate(uint256 _dcaId) external;
+  /// @param _recipientUnswapped The address to withdraw unswapped tokens to
+  /// @param _recipientSwapped The address to withdraw swapped tokens to
+  function terminate(
+    uint256 _dcaId,
+    address _recipientUnswapped,
+    address _recipientSwapped
+  ) external;
 }
 
 /// @title The interface for all swap related matters in a DCA pair

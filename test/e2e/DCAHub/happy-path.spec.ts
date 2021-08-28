@@ -246,7 +246,7 @@ contract('DCAHub', () => {
 
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
-      await terminate(johnsPosition);
+      await terminate(johnsPosition, john.address, john.address);
 
       await assertPairBalanceDifferencesAre({ tokenA: -405, tokenB: -89.82 });
       await assertBalanceDifferencesAre(john, { tokenA: +405, tokenB: +89.82 });
@@ -287,8 +287,8 @@ contract('DCAHub', () => {
       }
     }
 
-    async function terminate(position: UserPositionDefinition) {
-      await DCAHub.connect(position.owner).terminate(position.id);
+    async function terminate(position: UserPositionDefinition, recipientUnswapped: string, recipientSwapped: string) {
+      await DCAHub.connect(position.owner).terminate(position.id, recipientUnswapped, recipientSwapped);
     }
 
     async function setSwapFee(fee: number) {
