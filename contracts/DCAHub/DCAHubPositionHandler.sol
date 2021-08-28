@@ -123,7 +123,13 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     emit WithdrewMany(msg.sender, _recipient, _dcaIds, _swappedTokenA, _swappedTokenB);
   }
 
-  function terminate(uint256 _dcaId) external override nonReentrant {
+  function terminate(
+    uint256 _dcaId,
+    address _recipientUnswapped,
+    address _recipientSwapped
+  ) external override nonReentrant {
+    if (_recipientUnswapped == address(0) || _recipientSwapped == address(0)) revert CommonErrors.ZeroAddress();
+
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
 
     uint256 _swapped = _calculateSwapped(_dcaId);
@@ -136,15 +142,15 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
 
     if (_swapped > 0) {
       _balances[address(_to)] -= _swapped;
-      _to.safeTransfer(msg.sender, _swapped);
+      _to.safeTransfer(_recipientSwapped, _swapped);
     }
 
     if (_unswapped > 0) {
       _balances[address(_from)] -= _unswapped;
-      _from.safeTransfer(msg.sender, _unswapped);
+      _from.safeTransfer(_recipientUnswapped, _unswapped);
     }
 
-    emit Terminated(msg.sender, _dcaId, _unswapped, _swapped);
+    emit Terminated(msg.sender, _recipientUnswapped, _recipientSwapped, _dcaId, _unswapped, _swapped);
   }
 
   function modifyRate(uint256 _dcaId, uint160 _newRate) external override nonReentrant {

@@ -494,18 +494,43 @@ describe('DCAPositionHandler', () => {
   });
 
   describe('terminate', () => {
+    const recipientUnswapped = wallet.generateRandomAddress();
+    const recipientSwapped = wallet.generateRandomAddress();
+
+    when('withdrawing with zero address recipientUnswapped', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'terminate',
+          args: [0, constants.ZERO_ADDRESS, recipientSwapped],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+
+    when('withdrawing with zero address recipientSwapped', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'terminate',
+          args: [0, recipientUnswapped, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+
     when('terminating a position with invalid id', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'terminate',
-          args: [100],
+          args: [100, recipientUnswapped, recipientSwapped],
           message: 'InvalidPosition',
         });
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.terminate(dcaId));
+    erc721PermissionTest(({ contract, dcaId }) => contract.terminate(dcaId, recipientUnswapped, recipientSwapped));
 
     when(`terminating a valid position`, () => {
       const swappedWhenTerminated = RATE_PER_UNIT_5 * POSITION_RATE_5;
@@ -523,25 +548,28 @@ describe('DCAPositionHandler', () => {
           amount: POSITION_RATE_5,
         });
 
-        response = await terminate(dcaId);
+        response = await terminate(dcaId, recipientUnswapped, recipientSwapped);
       });
 
       then('event is emitted', async () => {
         await expect(response)
           .to.emit(DCAPositionHandler, 'Terminated')
-          .withArgs(owner.address, dcaId, tokenA.asUnits(unswappedWhenTerminated), tokenB.asUnits(swappedWhenTerminated));
+          .withArgs(
+            owner.address,
+            recipientUnswapped,
+            recipientSwapped,
+            dcaId,
+            tokenA.asUnits(unswappedWhenTerminated),
+            tokenB.asUnits(swappedWhenTerminated)
+          );
       });
 
       then('un-swapped balance is returned', async () => {
-        await expectBalanceToBe(tokenA, owner.address, INITIAL_TOKEN_A_BALANCE_USER - POSITION_RATE_5);
-        await expectBalanceToBe(tokenA, DCAPositionHandler.address, INITIAL_TOKEN_A_BALANCE_CONTRACT);
+        await expectBalanceToBe(tokenA, recipientUnswapped, unswappedWhenTerminated);
       });
 
       then('swapped balance is returned', async () => {
-        const userBalance = await tokenB.balanceOf(owner.address);
-        expect(userBalance).to.be.equal(tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER + swappedWhenTerminated));
-
-        await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
+        await expectBalanceToBe(tokenB, recipientSwapped, swappedWhenTerminated);
       });
 
       then(`position is removed`, async () => {
@@ -1155,8 +1183,8 @@ describe('DCAPositionHandler', () => {
     return DCAPositionHandler.withdrawSwappedMany(dcaIds, recipient);
   }
 
-  function terminate(dcaId: BigNumber): Promise<TransactionResponse> {
-    return DCAPositionHandler.terminate(dcaId);
+  function terminate(dcaId: BigNumber, recipientUnswapped: string, recipientSwapped: string): Promise<TransactionResponse> {
+    return DCAPositionHandler.terminate(dcaId, recipientUnswapped, recipientSwapped);
   }
 
   async function calculateSwapped(dcaId: BigNumber): Promise<BigNumber> {
