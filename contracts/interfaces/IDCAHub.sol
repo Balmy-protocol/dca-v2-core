@@ -59,7 +59,8 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   event Terminated(address indexed user, uint256 dcaId, uint256 returnedUnswapped, uint256 returnedSwapped);
 
   /// @notice Emitted when a position is created
-  /// @param user The address of the user that created the position
+  /// @param depositor The address of the user that creates the position
+  /// @param recipient The address of the user that will receive the position
   /// @param dcaId The id of the position that was created
   /// @param fromToken The address of the "from" token
   /// @param rate How many "from" tokens need to be traded in each swap
@@ -67,7 +68,8 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   /// @param swapInterval How frequently the position's swaps should be executed
   /// @param lastSwap The number of the swap when the position will be executed for the last time
   event Deposited(
-    address indexed user,
+    address indexed depositor,
+    address indexed recipient,
     uint256 dcaId,
     address fromToken,
     uint160 rate,
@@ -135,16 +137,19 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Creates a new position
   /// @dev Will revert:
+  /// With ZeroAddress if _recipient is zero
   /// With InvalidToken if _tokenAddress is neither token A nor token B
   /// With ZeroRate if _rate is zero
   /// With ZeroSwaps if _amountOfSwaps is zero
   /// With InvalidInterval if _swapInterval is not a valid swap interval
+  /// @param _recipient The address of the recipient of the position (nft)
   /// @param _tokenAddress The address of the token that will be deposited
   /// @param _rate How many "from" tokens need to be traded in each swap
   /// @param _amountOfSwaps How many swaps to execute for this position
   /// @param _swapInterval How frequently the position's swaps should be executed
   /// @return _dcaId The id of the created position
   function deposit(
+    address _recipient,
     address _tokenAddress,
     uint160 _rate,
     uint32 _amountOfSwaps,

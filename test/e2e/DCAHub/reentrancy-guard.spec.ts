@@ -160,7 +160,7 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.deposit(wallet.generateRandomAddress(), constants.ZERO_ADDRESS, 0, 0, 0)).data!,
       });
       testReentrantAttack({
         title: 'trying to do a reentrancy attack through withdrawing swapped',
@@ -257,7 +257,13 @@ contract('DCAHub', () => {
     }) {
       await token().mint(depositor.address, token().asUnits(rate).mul(swaps));
       await token().connect(depositor).approve(DCAHub.address, token().asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(token().address, token().asUnits(rate), swaps, swapInterval);
+      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(
+        depositor.address,
+        token().address,
+        token().asUnits(rate),
+        swaps,
+        swapInterval
+      );
       const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
       return { response, dcaId };
     }

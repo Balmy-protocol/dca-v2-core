@@ -374,7 +374,13 @@ contract('DCAHub', () => {
     }): Promise<UserPositionDefinition> {
       await token.mint(depositor.address, token.asUnits(rate).mul(swaps));
       await token.connect(depositor).approve(DCAHub.address, token.asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(token.address, token.asUnits(rate), swaps, swapInterval);
+      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(
+        depositor.address,
+        token.address,
+        token.asUnits(rate),
+        swaps,
+        swapInterval
+      );
       const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
       return {
         id: positionId,
