@@ -87,11 +87,12 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   event Withdrew(address indexed withdrawer, address indexed recipient, uint256 dcaId, address token, uint256 amount);
 
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
-  /// @param user The address of the user that executed the withdraw
+  /// @param withdrawer The address of the user that executed the withdraws
+  /// @param recipient The address of the user that will receive the withdrawn tokens
   /// @param dcaIds The ids of the positions that were affected
   /// @param swappedTokenA The total amount that was withdrawn in token A
   /// @param swappedTokenB The total amount that was withdrawn in token B
-  event WithdrewMany(address indexed user, uint256[] dcaIds, uint256 swappedTokenA, uint256 swappedTokenB);
+  event WithdrewMany(address indexed withdrawer, address indexed recipient, uint256[] dcaIds, uint256 swappedTokenA, uint256 swappedTokenB);
 
   /// @notice Emitted when a position is modified
   /// @param user The address of the user that modified the position
@@ -158,6 +159,7 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Withdraws all swapped tokens from a position to a recipient
   /// @dev Will revert:
+  /// With ZeroAddress if recipient is zero
   /// With InvalidPosition if _dcaId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// @param _dcaId The position's id
@@ -167,12 +169,14 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Withdraws all swapped tokens from many positions
   /// @dev Will revert:
+  /// With ZeroAddress if recipient is zero
   /// With InvalidPosition if any of the ids in _dcaIds is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to any of the positions in _dcaIds
   /// @param _dcaIds The positions' ids
+  /// @param _recipient The address to withdraw swapped tokens to
   /// @return _swappedTokenA How much was withdrawn in token A
   /// @return _swappedTokenB How much was withdrawn in token B
-  function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
+  function withdrawSwappedMany(uint256[] calldata _dcaIds, address _recipient) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
 
   /// @notice Modifies the rate of a position. Could request more funds or return deposited funds
   /// depending on whether the new rate is greater than the previous one.

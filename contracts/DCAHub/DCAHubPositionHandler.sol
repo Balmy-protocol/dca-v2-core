@@ -89,12 +89,13 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     emit Withdrew(msg.sender, _recipient, _dcaId, _to, _swapped);
   }
 
-  function withdrawSwappedMany(uint256[] calldata _dcaIds)
+  function withdrawSwappedMany(uint256[] calldata _dcaIds, address _recipient)
     external
     override
     nonReentrant
     returns (uint256 _swappedTokenA, uint256 _swappedTokenB)
   {
+    if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
     for (uint256 i; i < _dcaIds.length; i++) {
       uint256 _dcaId = _dcaIds[i];
       _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
@@ -114,14 +115,14 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
 
     if (_swappedTokenA > 0) {
       _balances[address(tokenA)] -= _swappedTokenA;
-      tokenA.safeTransfer(msg.sender, _swappedTokenA);
+      tokenA.safeTransfer(_recipient, _swappedTokenA);
     }
 
     if (_swappedTokenB > 0) {
       _balances[address(tokenB)] -= _swappedTokenB;
-      tokenB.safeTransfer(msg.sender, _swappedTokenB);
+      tokenB.safeTransfer(_recipient, _swappedTokenB);
     }
-    emit WithdrewMany(msg.sender, _dcaIds, _swappedTokenA, _swappedTokenB);
+    emit WithdrewMany(msg.sender, _recipient, _dcaIds, _swappedTokenA, _swappedTokenB);
   }
 
   function terminate(uint256 _dcaId) external override nonReentrant {

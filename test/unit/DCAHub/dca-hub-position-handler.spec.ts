@@ -285,7 +285,7 @@ describe('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'withdrawSwapped(uint256,address)',
           args: [0, constants.ZERO_ADDRESS],
-          message: 'ZeroAddress()',
+          message: 'ZeroAddress',
         });
       });
     });
@@ -385,18 +385,31 @@ describe('DCAPositionHandler', () => {
   });
 
   describe('withdrawSwappedMany', () => {
+    const recipient = wallet.generateRandomAddress();
+
+    when('withdrawing with zero address recipient', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'withdrawSwappedMany',
+          args: [[0], constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+
     when('withdrawing swapped with invalid id', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'withdrawSwappedMany',
-          args: [[100]],
+          args: [[100], recipient],
           message: 'InvalidPosition',
         });
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwappedMany([dcaId]));
+    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwappedMany([dcaId], recipient));
 
     when(`withdrawing swapped with positions that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -415,11 +428,11 @@ describe('DCAPositionHandler', () => {
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
         }));
-        response = await withdrawSwappedMany(dcaId1, dcaId2);
+        response = await withdrawSwappedMany([dcaId1, dcaId2], owner.address);
       });
 
       then('event is emitted', async () => {
-        await expect(response).to.emit(DCAPositionHandler, 'WithdrewMany').withArgs(owner.address, [dcaId1, dcaId2], 0, 0);
+        await expect(response).to.emit(DCAPositionHandler, 'WithdrewMany').withArgs(owner.address, owner.address, [dcaId1, dcaId2], 0, 0);
       });
 
       then('no token transfer was made', async () => {
@@ -490,34 +503,14 @@ describe('DCAPositionHandler', () => {
           fromToken: tokenB,
         });
 
-        response = await withdrawSwappedMany(dcaId1, dcaId2);
+        response = await withdrawSwappedMany([dcaId1, dcaId2], recipient);
       });
 
       then('swapped tokens are sent to the user', async () => {
         const tradedFromBToA = tokenA.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_3);
-        const depositedToA = tokenA.asUnits(POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
-        expect(await tokenA.balanceOf(owner.address)).to.equal(
-          tokenA
-            .asUnits(INITIAL_TOKEN_A_BALANCE_USER)
-            .add(
-              tradedFromBToA // Traded from B to A
-            )
-            .sub(
-              depositedToA // Deposited to A
-            )
-        );
+        expect(await tokenA.balanceOf(recipient)).to.equal(tradedFromBToA);
         const tradedFromAToB = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-        const depositedToB = tokenB.asUnits(POSITION_RATE_3 * POSITION_SWAPS_TO_PERFORM_10);
-        expect(await tokenB.balanceOf(owner.address)).to.equal(
-          tokenB
-            .asUnits(INITIAL_TOKEN_B_BALANCE_USER)
-            .add(
-              tradedFromAToB // Traded from A to B
-            )
-            .sub(
-              depositedToB // Deposited to B
-            )
-        );
+        expect(await tokenB.balanceOf(recipient)).to.equal(tradedFromAToB);
       });
 
       then('position is updated', async () => {
@@ -542,7 +535,9 @@ describe('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         const swappedA = tokenA.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_3);
         const swappedB = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-        await expect(response).to.emit(DCAPositionHandler, 'WithdrewMany').withArgs(owner.address, [dcaId1, dcaId2], swappedA, swappedB);
+        await expect(response)
+          .to.emit(DCAPositionHandler, 'WithdrewMany')
+          .withArgs(owner.address, recipient, [dcaId1, dcaId2], swappedA, swappedB);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1207,8 +1202,8 @@ describe('DCAPositionHandler', () => {
     return DCAPositionHandler.withdrawSwapped(dcaId, recipient);
   }
 
-  function withdrawSwappedMany(...dcaIds: BigNumber[]): Promise<TransactionResponse> {
-    return DCAPositionHandler.withdrawSwappedMany(dcaIds);
+  function withdrawSwappedMany(dcaIds: BigNumber[], recipient: string): Promise<TransactionResponse> {
+    return DCAPositionHandler.withdrawSwappedMany(dcaIds, recipient);
   }
 
   function terminate(dcaId: BigNumber): Promise<TransactionResponse> {
