@@ -246,7 +246,7 @@ contract('DCAHub', () => {
 
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
-      await terminate(johnsPosition, john.address, john.address);
+      await terminate(johnsPosition);
 
       await assertPairBalanceDifferencesAre({ tokenA: -405, tokenB: -89.82 });
       await assertBalanceDifferencesAre(john, { tokenA: +405, tokenB: +89.82 });
