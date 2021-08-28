@@ -61,10 +61,10 @@ contract('DCAHub', () => {
     when('all swaps are done', () => {
       given(async () => {
         await tokenB.connect(alice).approve(DCAHub.address, constants.MAX_UINT_256);
-        await DCAHub.connect(alice).deposit(tokenB.address, BigNumber.from('89509558490300730500'), 3, SWAP_INTERVAL_1_HOUR);
+        await DCAHub.connect(alice).deposit(alice.address, tokenB.address, BigNumber.from('89509558490300730500'), 3, SWAP_INTERVAL_1_HOUR);
 
         await tokenB.connect(john).approve(DCAHub.address, constants.MAX_UINT_256);
-        await DCAHub.connect(john).deposit(tokenB.address, utils.parseEther('200'), 5, SWAP_INTERVAL_1_HOUR);
+        await DCAHub.connect(john).deposit(john.address, tokenB.address, utils.parseEther('200'), 5, SWAP_INTERVAL_1_HOUR);
 
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
         await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
