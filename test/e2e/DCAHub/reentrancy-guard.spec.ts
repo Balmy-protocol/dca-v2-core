@@ -175,7 +175,7 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.withdrawSwappedMany([])).data!,
+        attack: async () => (await DCAHub.populateTransaction.withdrawSwappedMany([], wallet.generateRandomAddress())).data!,
       });
 
       testReentrantAttack({
