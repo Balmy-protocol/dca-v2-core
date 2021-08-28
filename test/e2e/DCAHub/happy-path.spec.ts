@@ -287,8 +287,8 @@ contract('DCAHub', () => {
       }
     }
 
-    async function terminate(position: UserPositionDefinition, recipientUnswapped: string, recipientSwapped: string) {
-      await DCAHub.connect(position.owner).terminate(position.id, recipientUnswapped, recipientSwapped);
+    async function terminate(position: UserPositionDefinition) {
+      await DCAHub.connect(position.owner).terminate(position.id, position.owner.address, position.owner.address);
     }
 
     async function setSwapFee(fee: number) {
