@@ -97,13 +97,13 @@ describe('DCAPositionHandler', () => {
 
   describe('deposit', () => {
     const depositShouldRevert = ({
-      recipient,
+      owner,
       address,
       rate,
       swaps,
       error,
     }: {
-      recipient: string;
+      owner: string;
       address: string;
       rate: number;
       swaps: number;
@@ -112,14 +112,14 @@ describe('DCAPositionHandler', () => {
       behaviours.txShouldRevertWithMessage({
         contract: DCAPositionHandler,
         func: 'deposit',
-        args: [recipient, address, rate, swaps, SWAP_INTERVAL],
+        args: [owner, address, rate, swaps, SWAP_INTERVAL],
         message: error,
       });
 
     when('making a deposit to a zero address recipient', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          recipient: constants.ZERO_ADDRESS,
+          owner: constants.ZERO_ADDRESS,
           address: tokenA.address,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -131,7 +131,7 @@ describe('DCAPositionHandler', () => {
     when('making a deposit with an unknown token address', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          recipient: constants.NOT_ZERO_ADDRESS,
+          owner: constants.NOT_ZERO_ADDRESS,
           address: constants.NOT_ZERO_ADDRESS,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -146,7 +146,7 @@ describe('DCAPositionHandler', () => {
       });
       then('tx is reverted with messasge', async () => {
         await depositShouldRevert({
-          recipient: constants.NOT_ZERO_ADDRESS,
+          owner: constants.NOT_ZERO_ADDRESS,
           address: tokenA.address,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -158,7 +158,7 @@ describe('DCAPositionHandler', () => {
     when('making a deposit with 0 rate', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          recipient: constants.NOT_ZERO_ADDRESS,
+          owner: constants.NOT_ZERO_ADDRESS,
           address: tokenA.address,
           rate: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -170,7 +170,7 @@ describe('DCAPositionHandler', () => {
     when('making a deposit with 0 swaps', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          recipient: constants.NOT_ZERO_ADDRESS,
+          owner: constants.NOT_ZERO_ADDRESS,
           address: tokenA.address,
           rate: POSITION_RATE_5,
           swaps: 0,
@@ -183,10 +183,10 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
       let tx: TransactionResponse;
 
-      const recipient = wallet.generateRandomAddress();
+      const nftOwner = wallet.generateRandomAddress();
 
       given(async () => {
-        const depositTx = await deposit({ recipient, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+        const depositTx = await deposit({ owner: nftOwner, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
         tx = depositTx.response;
         dcaId = depositTx.dcaId;
       });
@@ -196,7 +196,7 @@ describe('DCAPositionHandler', () => {
           .to.emit(DCAPositionHandler, 'Deposited')
           .withArgs(
             owner.address,
-            recipient,
+            nftOwner,
             1,
             tokenA.address,
             tokenA.asUnits(POSITION_RATE_5),
@@ -261,10 +261,10 @@ describe('DCAPositionHandler', () => {
         expect(deltaLastDay).to.equal(0);
       });
 
-      then('nft is created', async () => {
+      then('nft is created and assigned to owner', async () => {
         const tokenOwner = await DCAPositionHandler.ownerOf(dcaId);
-        const balance = await DCAPositionHandler.balanceOf(recipient);
-        expect(tokenOwner).to.equal(recipient);
+        const balance = await DCAPositionHandler.balanceOf(nftOwner);
+        expect(tokenOwner).to.equal(nftOwner);
         expect(balance).to.equal(1);
       });
 
@@ -308,7 +308,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         response = await withdrawSwapped(dcaId, owner.address);
       });
 
@@ -344,7 +344,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
           ratePerUnit: RATE_PER_UNIT_5,
@@ -417,13 +417,13 @@ describe('DCAPositionHandler', () => {
 
       given(async () => {
         ({ dcaId: dcaId1 } = await deposit({
-          recipient: owner.address,
+          owner: owner.address,
           token: tokenA,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
         }));
         ({ dcaId: dcaId2 } = await deposit({
-          recipient: owner.address,
+          owner: owner.address,
           token: tokenB,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -479,13 +479,13 @@ describe('DCAPositionHandler', () => {
 
       given(async () => {
         ({ dcaId: dcaId1 } = await deposit({
-          recipient: owner.address,
+          owner: owner.address,
           token: tokenA,
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
         }));
         ({ dcaId: dcaId2 } = await deposit({
-          recipient: owner.address,
+          owner: owner.address,
           token: tokenB,
           rate: POSITION_RATE_3,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -566,7 +566,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
@@ -630,7 +630,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 rate', async () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -646,7 +646,7 @@ describe('DCAPositionHandler', () => {
       const POSITION_RATE_7 = 7;
 
       then('the amount of swapped tokens is correct', async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         // Execute first swap
         await performTrade({
@@ -784,7 +784,7 @@ describe('DCAPositionHandler', () => {
 
     when('adding 0 funds to a position', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -797,7 +797,7 @@ describe('DCAPositionHandler', () => {
 
     when('adding funds but with 0 swaps', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -834,7 +834,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying a position with 0 rate', () => {
       then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
@@ -876,7 +876,7 @@ describe('DCAPositionHandler', () => {
 
     when('modifying the rate of a completed position', () => {
       then('then tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: 1 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: 1 });
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
@@ -899,7 +899,7 @@ describe('DCAPositionHandler', () => {
       let tx: Promise<TransactionResponse>;
 
       given(async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: 1, swaps: 1 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         await setRatePerUnit({
           accumRate: constants.MAX_UINT_256,
@@ -921,7 +921,7 @@ describe('DCAPositionHandler', () => {
   describe('_calculateSwapped', () => {
     when('last swap ended before calculation', () => {
       then('swapped is calculated correctly', async () => {
-        const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: 1, swaps: 1 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
 
         // Set a value in PERFORMED_SWAPS_10 + 1
         await setRatePerUnit({
@@ -968,7 +968,7 @@ describe('DCAPositionHandler', () => {
     });
 
     async function calculateSwappedWith({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate?: number }) {
-      const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
+      const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
       await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
       await setRatePerUnit({
         accumRate,
@@ -979,7 +979,7 @@ describe('DCAPositionHandler', () => {
     }
 
     async function expectCalculationToFailWithOverflow({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate: number }) {
-      const { dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
+      const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
       await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
       await setRatePerUnit({
         accumRate,
@@ -1014,7 +1014,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await DCAPositionHandler.approve(approved.address, dcaId);
       });
 
@@ -1028,7 +1028,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await DCAPositionHandler.setApprovalForAll(approved.address, true);
       });
 
@@ -1042,7 +1042,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
       });
 
       then('operation is reverted', async () => {
@@ -1077,7 +1077,7 @@ describe('DCAPositionHandler', () => {
       let dcaId: BigNumber;
 
       given(async () => {
-        ({ dcaId } = await deposit({ recipient: owner.address, token: tokenA, rate: initialRate, swaps: initialSwaps }));
+        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: initialRate, swaps: initialSwaps }));
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
@@ -1215,8 +1215,8 @@ describe('DCAPositionHandler', () => {
     return swapped;
   }
 
-  async function deposit({ recipient, token, rate, swaps }: { recipient: string; token: TokenContract; rate: number; swaps: number }) {
-    const response: TransactionResponse = await DCAPositionHandler.deposit(recipient, token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
+  async function deposit({ owner, token, rate, swaps }: { owner: string; token: TokenContract; rate: number; swaps: number }) {
+    const response: TransactionResponse = await DCAPositionHandler.deposit(owner, token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
     const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
     return { response, dcaId };
   }

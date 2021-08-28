@@ -43,13 +43,13 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
   }
 
   function deposit(
-    address _recipient,
+    address _owner,
     address _tokenAddress,
     uint160 _rate,
     uint32 _amountOfSwaps,
     uint32 _swapInterval
   ) external override nonReentrant returns (uint256) {
-    if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
+    if (_owner == address(0)) revert CommonErrors.ZeroAddress();
     if (_tokenAddress != address(tokenA) && _tokenAddress != address(tokenB)) revert InvalidToken();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     if (!_activeSwapIntervals.contains(_swapInterval) && !globalParameters.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
@@ -57,7 +57,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     IERC20Metadata(_tokenAddress).safeTransferFrom(msg.sender, address(this), _amount);
     _balances[_tokenAddress] += _amount;
     _idCounter += 1;
-    _safeMint(_recipient, _idCounter);
+    _safeMint(_owner, _idCounter);
     _activeSwapIntervals.add(_swapInterval);
     (uint32 _startingSwap, uint32 _lastSwap) = _addPosition(
       _idCounter,
@@ -68,7 +68,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
       0,
       _swapInterval
     );
-    emit Deposited(msg.sender, _recipient, _idCounter, _tokenAddress, _rate, _startingSwap, _swapInterval, _lastSwap);
+    emit Deposited(msg.sender, _owner, _idCounter, _tokenAddress, _rate, _startingSwap, _swapInterval, _lastSwap);
     return _idCounter;
   }
 
