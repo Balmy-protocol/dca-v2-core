@@ -278,7 +278,10 @@ contract('DCAHub', () => {
     });
 
     async function withdrawMany(position1: UserPositionDefinition, ...otherPositions: UserPositionDefinition[]) {
-      await DCAHub.connect(position1.owner).withdrawSwappedMany([position1.id].concat(otherPositions.map(({ id }) => id)));
+      await DCAHub.connect(position1.owner).withdrawSwappedMany(
+        [position1.id].concat(otherPositions.map(({ id }) => id)),
+        position1.owner.address
+      );
 
       // Since the position is "resetted" with a withdraw, we need to reduce the amount of swaps
       for (const position of [position1].concat(otherPositions)) {
