@@ -53,8 +53,8 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Emitted when a position is terminated
   /// @param user The address of the user that terminated the position
-  /// @param recipientUnswapped The address of the user that will receive the unswapped withdrawn tokens
-  /// @param recipientSwapped The address of the user that will receive the swapped withdrawn tokens
+  /// @param recipientUnswapped The address of the user that will receive the unswapped tokens
+  /// @param recipientSwapped The address of the user that will receive the swapped tokens
   /// @param dcaId The id of the position that was terminated
   /// @param returnedUnswapped How many "from" tokens were returned to the caller
   /// @param returnedSwapped How many "to" tokens were returned to the caller
