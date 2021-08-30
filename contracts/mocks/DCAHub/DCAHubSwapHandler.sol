@@ -6,6 +6,22 @@ import '../../DCAHub/DCAHubSwapHandler.sol';
 import './DCAHubParameters.sol';
 
 contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
+  struct AddNewRatePerUnitCall {
+    address from;
+    address to;
+    uint32 swapInterval;
+    uint32 swap;
+    uint256 ratePerUnit;
+  }
+
+  struct RegisterSwapCall {
+    uint32 swap;
+    uint256 ratePerUnit;
+  }
+
+  AddNewRatePerUnitCall public addNewRatePerUnitCall;
+  mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // from token => to token => swap interval => call
+
   uint32 private _customTimestamp;
 
   // Used to mock _getNextSwapsToPerform
@@ -48,23 +64,21 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   function registerSwap(
-    uint32 _swapInterval,
     address _from,
     address _to,
-    uint256 _internalAmountUsedToSwap,
+    uint32 _swapInterval,
     uint256 _ratePerUnit,
     uint32 _swapToRegister
   ) external {
-    _registerSwap(_swapInterval, _from, _to, _internalAmountUsedToSwap, _ratePerUnit, _swapToRegister);
+    _registerSwap(_from, _to, _swapInterval, _ratePerUnit, _swapToRegister);
   }
 
   function getAmountToSwap(
-    uint32 _swapInterval,
     address _from,
     address _to,
-    uint32 _swap
-  ) external view returns (uint256) {
-    return _getAmountToSwap(_swapInterval, _from, _to, _swap);
+    uint32 _swapInterval
+  ) external view returns (uint256, uint256) {
+    return _getAmountToSwap(_from, _to, _swapInterval);
   }
 
   function setBlockTimestamp(uint32 _blockTimestamp) external {
@@ -73,6 +87,33 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
 
   function _getTimestamp() internal view override returns (uint32 _blockTimestamp) {
     _blockTimestamp = (_customTimestamp > 0) ? _customTimestamp : super._getTimestamp();
+  }
+
+  // Used to register calls
+  function _addNewRatePerUnit(
+    uint32 _swapInterval,
+    address _from,
+    address _to,
+    uint32 _swap,
+    uint256 _ratePerUnit
+  ) internal override {
+    addNewRatePerUnitCall.from = _from;
+    addNewRatePerUnitCall.to = _to;
+    addNewRatePerUnitCall.swapInterval = _swapInterval;
+    addNewRatePerUnitCall.swap = _swap;
+    addNewRatePerUnitCall.ratePerUnit = _ratePerUnit;
+    super._addNewRatePerUnit(_swapInterval, _from, _to, _swap, _ratePerUnit);
+  }
+
+  function _registerSwap(
+    address _from,
+    address _to,
+    uint32 _swapInterval,
+    uint256 _ratePerUnit,
+    uint32 _swapToRegister
+  ) internal override {
+    registerSwapCalls[_from][_to][_swapInterval] = RegisterSwapCall({swap: _swapToRegister, ratePerUnit: _ratePerUnit});
+    super._registerSwap(_from, _to, _swapInterval, _ratePerUnit, _swapToRegister);
   }
 
   // Mocks setters
@@ -85,15 +126,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     uint256 _ratePerUnit
   ) external {
     _addNewRatePerUnit(_swapInterval, _from, _to, _swap, _ratePerUnit);
-  }
-
-  function setSwapAmountAccumulator(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint256 _swapAmountAccumulator
-  ) external {
-    swapAmountAccumulator[_from][_to][_swapInterval] = _swapAmountAccumulator;
   }
 
   function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) external {
