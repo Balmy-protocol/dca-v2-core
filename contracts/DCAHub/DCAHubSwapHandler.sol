@@ -14,27 +14,28 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   using EnumerableSet for EnumerableSet.UintSet;
   using PairSpecificConfig for mapping(address => mapping(address => mapping(uint32 => uint32)));
 
-  function _addNewRatePerUnit(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _performedSwap,
-    uint256 _ratePerUnit
-  ) internal virtual {
-    uint256 _accumRatesPerUnitPreviousSwap = _accumRatesPerUnit[_from][_to][_swapInterval][_performedSwap - 1];
-    _accumRatesPerUnit[_from][_to][_swapInterval][_performedSwap] = _accumRatesPerUnitPreviousSwap + _ratePerUnit;
-  }
-
   function _registerSwap(
-    address _from,
-    address _to,
+    address _tokenA,
+    address _tokenB,
     uint32 _swapInterval,
-    uint256 _ratePerUnit,
-    uint32 _swapToRegister
+    uint256 _ratePerUnitAToB,
+    uint256 _ratePerUnitBToA,
+    uint32 _timestamp
   ) internal virtual {
-    _addNewRatePerUnit(_swapInterval, _from, _to, _swapToRegister, _ratePerUnit);
-    swapAmountDelta[_from][_to][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_from][_to][_swapInterval][_swapToRegister];
-    delete swapAmountDelta[_from][_to][_swapInterval][_swapToRegister];
+    uint32 _swapToRegister = performedSwaps.getValue(_tokenA, _tokenB, _swapInterval) + 1;
+    _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister] =
+      _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister - 1] +
+      _ratePerUnitAToB;
+    _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister] =
+      _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister - 1] +
+      _ratePerUnitBToA;
+    swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
+    swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
+    delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
+    delete swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
+    // TODO: Investigate if sorting the tokens and accessing the mappings directly is more efficient
+    performedSwaps.setValue(_tokenA, _tokenB, _swapInterval, _swapToRegister);
+    nextSwapAvailable.setValue(_tokenA, _tokenB, _swapInterval, ((_timestamp / _swapInterval) + 1) * _swapInterval);
   }
 
   function _getAmountToSwap(
@@ -42,7 +43,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     address _tokenB,
     uint32 _swapInterval
   ) internal view returns (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) {
-    uint32 _nextSwap = performedSwaps.getValue(address(tokenA), address(tokenB), _swapInterval) + 1;
+    uint32 _nextSwap = performedSwaps.getValue(_tokenA, _tokenB, _swapInterval) + 1;
     _amountToSwapTokenA = uint256(swapAmountDelta[_tokenA][_tokenB][_swapInterval][_nextSwap]);
     _amountToSwapTokenB = uint256(swapAmountDelta[_tokenB][_tokenA][_swapInterval][_nextSwap]);
   }
@@ -184,12 +185,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       uint32 _timestamp = _getTimestamp();
       for (uint256 i; i < _nextSwapInformation.amountOfSwaps; i++) {
         uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
-        uint32 _swapToPerform = _nextSwapInformation.swapsToPerform[i].swapToPerform;
         if (_nextSwapInformation.swapsToPerform[i].amountToSwapTokenA > 0 || _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB > 0) {
-          _registerSwap(address(tokenA), address(tokenB), _swapInterval, _ratePerUnitAToBWithFee, _swapToPerform);
-          _registerSwap(address(tokenB), address(tokenA), _swapInterval, _ratePerUnitBToAWithFee, _swapToPerform);
-          performedSwaps.setValue(address(tokenA), address(tokenB), _swapInterval, _swapToPerform);
-          nextSwapAvailable.setValue(address(tokenA), address(tokenB), _swapInterval, ((_timestamp / _swapInterval) + 1) * _swapInterval);
+          _registerSwap(address(tokenA), address(tokenB), _swapInterval, _ratePerUnitAToBWithFee, _ratePerUnitBToAWithFee, _timestamp);
         } else {
           _activeSwapIntervals.remove(_swapInterval);
         }

@@ -6,21 +6,13 @@ import '../../DCAHub/DCAHubSwapHandler.sol';
 import './DCAHubParameters.sol';
 
 contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
-  struct AddNewRatePerUnitCall {
-    address from;
-    address to;
-    uint32 swapInterval;
-    uint32 swap;
-    uint256 ratePerUnit;
-  }
-
   struct RegisterSwapCall {
-    uint32 swap;
-    uint256 ratePerUnit;
+    uint256 ratePerUnitAToB;
+    uint256 ratePerUnitBToA;
+    uint32 timestamp;
   }
 
-  AddNewRatePerUnitCall public addNewRatePerUnitCall;
-  mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // from token => to token => swap interval => call
+  mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
   uint32 private _customTimestamp;
 
@@ -64,13 +56,14 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   function registerSwap(
-    address _from,
-    address _to,
+    address _tokenA,
+    address _tokenB,
     uint32 _swapInterval,
-    uint256 _ratePerUnit,
-    uint32 _swapToRegister
+    uint256 _ratePerUnitAToB,
+    uint256 _ratePerUnitBToA,
+    uint32 _timestamp
   ) external {
-    _registerSwap(_from, _to, _swapInterval, _ratePerUnit, _swapToRegister);
+    _registerSwap(_tokenA, _tokenB, _swapInterval, _ratePerUnitAToB, _ratePerUnitBToA, _timestamp);
   }
 
   function getAmountToSwap(
@@ -90,43 +83,23 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   // Used to register calls
-  function _addNewRatePerUnit(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _swap,
-    uint256 _ratePerUnit
-  ) internal override {
-    addNewRatePerUnitCall.from = _from;
-    addNewRatePerUnitCall.to = _to;
-    addNewRatePerUnitCall.swapInterval = _swapInterval;
-    addNewRatePerUnitCall.swap = _swap;
-    addNewRatePerUnitCall.ratePerUnit = _ratePerUnit;
-    super._addNewRatePerUnit(_swapInterval, _from, _to, _swap, _ratePerUnit);
-  }
-
   function _registerSwap(
-    address _from,
-    address _to,
+    address _tokenA,
+    address _tokenB,
     uint32 _swapInterval,
-    uint256 _ratePerUnit,
-    uint32 _swapToRegister
+    uint256 _ratePerUnitAToB,
+    uint256 _ratePerUnitBToA,
+    uint32 _timestamp
   ) internal override {
-    registerSwapCalls[_from][_to][_swapInterval] = RegisterSwapCall({swap: _swapToRegister, ratePerUnit: _ratePerUnit});
-    super._registerSwap(_from, _to, _swapInterval, _ratePerUnit, _swapToRegister);
+    registerSwapCalls[_tokenA][_tokenB][_swapInterval] = RegisterSwapCall({
+      ratePerUnitAToB: _ratePerUnitAToB,
+      ratePerUnitBToA: _ratePerUnitBToA,
+      timestamp: _timestamp
+    });
+    super._registerSwap(_tokenA, _tokenB, _swapInterval, _ratePerUnitAToB, _ratePerUnitBToA, _timestamp);
   }
 
   // Mocks setters
-
-  function addNewRatePerUnit(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _swap,
-    uint256 _ratePerUnit
-  ) external {
-    _addNewRatePerUnit(_swapInterval, _from, _to, _swap, _ratePerUnit);
-  }
 
   function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) external {
     // TODO: stop using tokenA & tokenB and receive as parameters
