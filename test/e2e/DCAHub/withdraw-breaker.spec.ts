@@ -28,7 +28,6 @@ contract('DCAHub', () => {
     });
 
     beforeEach('Deploy and configure', async () => {
-      await evm.reset();
       tokenA = await erc20.deploy({
         name: 'WBTC',
         symbol: 'WBTC',
@@ -57,10 +56,10 @@ contract('DCAHub', () => {
     when('when a withdraw is executed after position is finished', () => {
       given(async () => {
         await tokenB.connect(alice).approve(DCAHub.address, constants.MAX_UINT_256);
-        await DCAHub.connect(alice).deposit(tokenB.address, tokenB.asUnits(200), 1, SWAP_INTERVAL_1_HOUR);
+        await DCAHub.connect(alice).deposit(alice.address, tokenB.address, tokenB.asUnits(200), 1, SWAP_INTERVAL_1_HOUR);
 
         await tokenB.connect(john).approve(DCAHub.address, constants.MAX_UINT_256);
-        await DCAHub.connect(john).deposit(tokenB.address, tokenB.asUnits(200), 5, SWAP_INTERVAL_1_HOUR);
+        await DCAHub.connect(john).deposit(john.address, tokenB.address, tokenB.asUnits(200), 5, SWAP_INTERVAL_1_HOUR);
 
         await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
         await swap({ swapper: swapper });

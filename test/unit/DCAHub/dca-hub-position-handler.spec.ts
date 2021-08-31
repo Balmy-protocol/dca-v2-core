@@ -973,7 +973,7 @@ describe('DCAPositionHandler', () => {
 
     when(`last withdraw happens after the position's last swap`, () => {
       then('0 is returned', async () => {
-        const { dcaId } = await deposit({ token: tokenA, rate: 1, swaps: 1 });
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
 
         // Set a value in PERFORMED_SWAPS_10 + 1
         await setRatePerUnit({
