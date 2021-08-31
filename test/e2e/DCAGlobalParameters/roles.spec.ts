@@ -42,7 +42,7 @@ contract('DCAGlobalParameters', () => {
     when('not granting from role admin', () => {
       let grantRoleTx: Promise<TransactionResponse>;
       given(async () => {
-        grantRoleTx = globalParameters.connect(timeLockedGovernor).grantRole(IMMEDIATE_ROLE, wallet.generateRandomAddress(), { gasPrice: 0 });
+        grantRoleTx = globalParameters.connect(timeLockedGovernor).grantRole(IMMEDIATE_ROLE, wallet.generateRandomAddress());
       });
       then('tx is reverted', async () => {
         await expect(grantRoleTx).to.be.revertedWith(
@@ -65,7 +65,7 @@ contract('DCAGlobalParameters', () => {
     when('not granting from role admin', () => {
       let grantRoleTx: Promise<TransactionResponse>;
       given(async () => {
-        grantRoleTx = globalParameters.connect(immediateGovernor).grantRole(TIME_LOCKED_ROLE, wallet.generateRandomAddress(), { gasPrice: 0 });
+        grantRoleTx = globalParameters.connect(immediateGovernor).grantRole(TIME_LOCKED_ROLE, wallet.generateRandomAddress());
       });
       then('tx is reverted', async () => {
         await expect(grantRoleTx).to.be.revertedWith(

@@ -195,7 +195,7 @@ const shouldBeExecutableOnlyByGovernor = ({
       const notGovernor = await wallet.generateRandom();
       onlyGovernorAllowedTx = contract()
         .connect(notGovernor)
-        [funcAndSignature](...realParams!, { gasPrice: 0 });
+        [funcAndSignature](...realParams!);
     });
     then('tx is reverted with reason', async () => {
       await expect(onlyGovernorAllowedTx).to.be.revertedWith('Governable: only governor');
@@ -206,7 +206,7 @@ const shouldBeExecutableOnlyByGovernor = ({
     given(async () => {
       onlyGovernorAllowedTx = contract()
         .connect(governor())
-        [funcAndSignature](...realParams!, { gasPrice: 0 });
+        [funcAndSignature](...realParams!);
     });
     then('tx is not reverted or not reverted with reason only governor', async () => {
       await expect(onlyGovernorAllowedTx).to.not.be.revertedWith('Governable: only governor');
@@ -232,7 +232,7 @@ const shouldBeExecutableOnlyByPendingGovernor = ({
       const notPendingGovernor = await wallet.generateRandom();
       onlyPendingGovernorAllowedTx = contract()
         .connect(notPendingGovernor)
-        [funcAndSignature](...params!, { gasPrice: 0 });
+        [funcAndSignature](...params!);
     });
     then('tx is reverted with reason', async () => {
       await expect(onlyPendingGovernorAllowedTx).to.be.revertedWith('Governable: only pending governor');
@@ -245,7 +245,7 @@ const shouldBeExecutableOnlyByPendingGovernor = ({
       await contract().connect(governor()).setPendingGovernor(pendingGovernor.address);
       onlyPendingGovernorAllowedTx = contract()
         .connect(pendingGovernor)
-        [funcAndSignature](...params!, { gasPrice: 0 });
+        [funcAndSignature](...params!);
     });
     then('tx is not reverted or not reverted with reason only pending governor', async () => {
       await expect(onlyPendingGovernorAllowedTx).to.not.be.revertedWith('Governable: only pending governor');
@@ -274,7 +274,7 @@ const shouldBeExecutableOnlyByRole = ({
       walletWithoutRole = await wallet.generateRandom();
       tx = contract()
         .connect(walletWithoutRole)
-        [funcAndSignature](...params!, { gasPrice: 0 });
+        [funcAndSignature](...params!);
     });
     then('tx is reverted with reason', async () => {
       await expect(tx).to.be.revertedWith(`AccessControl: account ${walletWithoutRole.address.toLowerCase()} is missing role ${role()}`);
@@ -285,7 +285,7 @@ const shouldBeExecutableOnlyByRole = ({
     given(async () => {
       tx = contract()
         .connect(addressWithRole())
-        [funcAndSignature](...params!, { gasPrice: 0 });
+        [funcAndSignature](...params!);
     });
     then('tx is not reverted or not reverted with reason only governor', async () => {
       await expect(tx).to.not.be.revertedWith(`AccessControl: account ${addressWithRole().address.toLowerCase()} is missing role ${role()}`);
