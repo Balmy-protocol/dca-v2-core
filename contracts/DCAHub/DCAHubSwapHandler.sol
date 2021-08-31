@@ -14,41 +14,38 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   using EnumerableSet for EnumerableSet.UintSet;
   using PairSpecificConfig for mapping(address => mapping(address => mapping(uint32 => uint32)));
 
-  function _addNewRatePerUnit(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _performedSwap,
-    uint256 _ratePerUnit
-  ) internal {
-    uint256 _accumRatesPerUnitPreviousSwap = _accumRatesPerUnit[_from][_to][_swapInterval][_performedSwap - 1];
-    _accumRatesPerUnit[_from][_to][_swapInterval][_performedSwap] = _accumRatesPerUnitPreviousSwap + _ratePerUnit;
-  }
-
   function _registerSwap(
+    address _tokenA,
+    address _tokenB,
     uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint256 _internalAmountUsedToSwap,
-    uint256 _ratePerUnit,
-    uint32 _swapToRegister
-  ) internal {
-    swapAmountAccumulator[_from][_to][_swapInterval] = _internalAmountUsedToSwap;
-    _addNewRatePerUnit(_swapInterval, _from, _to, _swapToRegister, _ratePerUnit);
-    delete swapAmountDelta[_from][_to][_swapInterval][_swapToRegister];
+    uint256 _ratePerUnitAToB,
+    uint256 _ratePerUnitBToA,
+    uint32 _timestamp
+  ) internal virtual {
+    uint32 _swapToRegister = performedSwaps.getValue(_tokenA, _tokenB, _swapInterval) + 1;
+    _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister] =
+      _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister - 1] +
+      _ratePerUnitAToB;
+    _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister] =
+      _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister - 1] +
+      _ratePerUnitBToA;
+    swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
+    swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
+    delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
+    delete swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
+    // TODO: Investigate if sorting the tokens and accessing the mappings directly is more efficient
+    performedSwaps.setValue(_tokenA, _tokenB, _swapInterval, _swapToRegister);
+    nextSwapAvailable.setValue(_tokenA, _tokenB, _swapInterval, ((_timestamp / _swapInterval) + 1) * _swapInterval);
   }
 
   function _getAmountToSwap(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _swapToPerform
-  ) internal view returns (uint256 _swapAmountAccumulator) {
-    unchecked {
-      _swapAmountAccumulator =
-        swapAmountAccumulator[_from][_to][_swapInterval] +
-        uint256(swapAmountDelta[_from][_to][_swapInterval][_swapToPerform]);
-    }
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval
+  ) internal view returns (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) {
+    uint32 _nextSwap = performedSwaps.getValue(_tokenA, _tokenB, _swapInterval) + 1;
+    _amountToSwapTokenA = uint256(swapAmountDelta[_tokenA][_tokenB][_swapInterval][_nextSwap]);
+    _amountToSwapTokenB = uint256(swapAmountDelta[_tokenB][_tokenA][_swapInterval][_nextSwap]);
   }
 
   function _convertTo(
@@ -66,11 +63,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
       if (nextSwapAvailable.getValue(address(tokenA), address(tokenB), _swapInterval) <= _getTimestamp()) {
         uint32 _swapToPerform = performedSwaps.getValue(address(tokenA), address(tokenB), _swapInterval) + 1;
+        (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) = _getAmountToSwap(address(tokenA), address(tokenB), _swapInterval);
         _swapsToPerform[_amountOfSwapsToPerform++] = SwapInformation({
           interval: _swapInterval,
           swapToPerform: _swapToPerform,
-          amountToSwapTokenA: _getAmountToSwap(_swapInterval, address(tokenA), address(tokenB), _swapToPerform),
-          amountToSwapTokenB: _getAmountToSwap(_swapInterval, address(tokenB), address(tokenA), _swapToPerform)
+          amountToSwapTokenA: _amountToSwapTokenA,
+          amountToSwapTokenB: _amountToSwapTokenB
         });
       }
     }
@@ -187,26 +185,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       uint32 _timestamp = _getTimestamp();
       for (uint256 i; i < _nextSwapInformation.amountOfSwaps; i++) {
         uint32 _swapInterval = _nextSwapInformation.swapsToPerform[i].interval;
-        uint32 _swapToPerform = _nextSwapInformation.swapsToPerform[i].swapToPerform;
         if (_nextSwapInformation.swapsToPerform[i].amountToSwapTokenA > 0 || _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB > 0) {
-          _registerSwap(
-            _swapInterval,
-            address(tokenA),
-            address(tokenB),
-            _nextSwapInformation.swapsToPerform[i].amountToSwapTokenA,
-            _ratePerUnitAToBWithFee,
-            _swapToPerform
-          );
-          _registerSwap(
-            _swapInterval,
-            address(tokenB),
-            address(tokenA),
-            _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB,
-            _ratePerUnitBToAWithFee,
-            _swapToPerform
-          );
-          performedSwaps.setValue(address(tokenA), address(tokenB), _swapInterval, _swapToPerform);
-          nextSwapAvailable.setValue(address(tokenA), address(tokenB), _swapInterval, ((_timestamp / _swapInterval) + 1) * _swapInterval);
+          _registerSwap(address(tokenA), address(tokenB), _swapInterval, _ratePerUnitAToBWithFee, _ratePerUnitBToAWithFee, _timestamp);
         } else {
           _activeSwapIntervals.remove(_swapInterval);
         }

@@ -54,7 +54,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   // TODO: See if there is a way to optimize all these mappings
   mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => int256)))) public swapAmountDelta; // from token => to token => swap interval => swap number => delta
   mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => uint256)))) internal _accumRatesPerUnit; // from token => to token => swap interval => swap number => accum
-  mapping(address => mapping(address => mapping(uint32 => uint256))) public swapAmountAccumulator; // from token => to token => swap interval => swap amount accum
 
   mapping(address => mapping(address => mapping(uint32 => uint32))) public performedSwaps; // token A => token B => swap interval => performed swaps
   mapping(address => mapping(address => mapping(uint32 => uint32))) public nextSwapAvailable; // token A => token B => swap interval => timestamp

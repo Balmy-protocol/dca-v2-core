@@ -41,13 +41,13 @@ contract DCAHubParametersMock is DCAHubParameters {
   }
 
   function setSwapAmountDelta(
-    uint32 _swapInterval,
     address _from,
     address _to,
+    uint32 _swapInterval,
     uint32 _swap,
-    int256 _delta
+    int256 _value
   ) external {
-    swapAmountDelta[_from][_to][_swapInterval][_swap] = _delta;
+    swapAmountDelta[_from][_to][_swapInterval][_swap] = _value;
   }
 
   function setAcummRatesPerUnit(
