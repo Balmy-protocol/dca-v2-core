@@ -987,7 +987,7 @@ describe('DCAPositionHandler', () => {
           onSwap: PERFORMED_SWAPS_10 + 2,
         });
 
-        await DCAPositionHandler.setLastWithdraw(dcaId, PERFORMED_SWAPS_10 + 2);
+        await DCAPositionHandler.setOldestSwap(dcaId, PERFORMED_SWAPS_10 + 2);
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 2);
 
         const swapped = await calculateSwapped(dcaId);
