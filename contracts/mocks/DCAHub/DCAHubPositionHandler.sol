@@ -28,4 +28,8 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubParametersMoc
   ) external {
     _modifyPosition(_dcaId, _totalNecessary, _unswapped, _newRate, _newAmountOfSwaps);
   }
+
+  function setLastUpdated(uint256 _dcaId, uint32 _lastUpdated) external {
+    _userPositions[_dcaId].swapWhereLastUpdated = _lastUpdated;
+  }
 }

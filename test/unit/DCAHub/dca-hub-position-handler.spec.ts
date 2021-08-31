@@ -971,6 +971,30 @@ describe('DCAPositionHandler', () => {
       });
     });
 
+    when(`last update happens after the position's last swap`, () => {
+      then('0 is returned', async () => {
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
+
+        // Set a value in PERFORMED_SWAPS_10 + 1
+        await setRatePerUnit({
+          accumRate: 1000000,
+          onSwap: PERFORMED_SWAPS_10 + 1,
+        });
+
+        // Set another value in PERFORMED_SWAPS_10 + 2
+        await setRatePerUnit({
+          accumRate: 1000001,
+          onSwap: PERFORMED_SWAPS_10 + 2,
+        });
+
+        await DCAPositionHandler.setLastUpdated(dcaId, PERFORMED_SWAPS_10 + 2);
+        await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 2);
+
+        const swapped = await calculateSwapped(dcaId);
+        expect(swapped).to.equal(0);
+      });
+    });
+
     describe('verify overflow errors', () => {
       when('accum is MAX(uint256) and position rate is more than 1', () => {
         then('there is an overflow', async () => {
