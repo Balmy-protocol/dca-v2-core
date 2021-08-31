@@ -10,6 +10,7 @@ CHANGELOG.md
 .versionrc
 .env
 .env.example
+codechecks.yml
 **/LICENSE
 
 # Hardhat

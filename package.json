@@ -61,6 +61,7 @@
     "base64-sol": "1.0.1"
   },
   "devDependencies": {
+    "@codechecks/client": "0.1.11",
     "@commitlint/cli": "13.1.0",
     "@commitlint/config-conventional": "13.1.0",
     "@defi-wonderland/smock": "2.0.1",
