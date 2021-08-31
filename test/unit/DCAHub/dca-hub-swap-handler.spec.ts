@@ -900,7 +900,7 @@ describe('DCAHubSwapHandler', () => {
         await tokenA.mint(DCAHubSwapHandler.address, initialPairBalanceTokenA);
         await tokenB.mint(DCAHubSwapHandler.address, initialPairBalanceTokenB);
         await DCAHubSwapHandler.setInternalBalances(initialPairBalanceTokenA, initialPairBalanceTokenB);
-        swapTx = DCAHubSwapHandler.connect(swapper)['swap()']({ gasPrice: 0 });
+        swapTx = DCAHubSwapHandler.connect(swapper)['swap()']();
         await behaviours.waitForTxAndNotThrow(swapTx);
       });
 
