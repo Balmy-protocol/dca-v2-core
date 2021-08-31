@@ -9,7 +9,7 @@ import './DCAHubParameters.sol';
 abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, IDCAHubPositionHandler, ERC721 {
   // TODO: Explore if we can make reduce the storage size
   struct DCA {
-    uint32 oldestSwap;
+    uint32 swapWhereLastUpdated; // Includes both modify and withdraw
     uint32 finalSwap;
     uint32 swapInterval;
     uint160 rate;
@@ -35,7 +35,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
     _userPosition.swapInterval = _position.swapInterval;
-    _userPosition.swapsExecuted = _position.swapInterval > 0 ? _performedSwaps - _position.oldestSwap : 0;
+    _userPosition.swapsExecuted = _position.swapInterval > 0 ? _performedSwaps - _position.swapWhereLastUpdated : 0;
     _userPosition.swapped = _position.swapInterval > 0 ? _calculateSwapped(_dcaId) : 0;
     _userPosition.swapsLeft = _position.finalSwap > _performedSwaps ? _position.finalSwap - _performedSwaps : 0;
     _userPosition.remaining = _calculateUnswapped(_dcaId);
@@ -80,7 +80,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     _swapped = _calculateSwapped(_dcaId);
 
     address _to = _userPositions[_dcaId].to;
-    _userPositions[_dcaId].oldestSwap = performedSwaps.getValue(_userPositions[_dcaId].from, _to, _userPositions[_dcaId].swapInterval);
+    _userPositions[_dcaId].swapWhereLastUpdated = performedSwaps.getValue(_userPositions[_dcaId].from, _to, _userPositions[_dcaId].swapInterval);
     _userPositions[_dcaId].swappedBeforeModified = 0;
 
     _balances[_to] -= _swapped;
@@ -105,7 +105,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
       } else {
         _swappedTokenA += _swappedDCA;
       }
-      _userPositions[_dcaId].oldestSwap = performedSwaps.getValue(
+      _userPositions[_dcaId].swapWhereLastUpdated = performedSwaps.getValue(
         _userPositions[_dcaId].from,
         _userPositions[_dcaId].to,
         _userPositions[_dcaId].swapInterval
@@ -281,16 +281,17 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     uint32 _performedSwaps = performedSwaps.getValue(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
     uint32 _newestSwapToConsider = _performedSwaps < _userDCA.finalSwap ? _performedSwaps : _userDCA.finalSwap;
 
-    if (_userDCA.oldestSwap > _newestSwapToConsider) {
-      // If the oldest swap happened after the position's final swap, then a withdraw was executed, and we just return 0
+    if (_userDCA.swapWhereLastUpdated > _newestSwapToConsider) {
+      // If last update happened after the position's final swap, then a withdraw was executed, and we just return 0
       return 0;
-    } else if (_userDCA.oldestSwap == _newestSwapToConsider) {
-      // If the oldest swap matches the positions's final swap, then we can avoid all calculation below
+    } else if (_userDCA.swapWhereLastUpdated == _newestSwapToConsider) {
+      // If the last update matches the positions's final swap, then we can avoid all calculation below
       return _userDCA.swappedBeforeModified;
     }
 
     uint256 _accumRatesfinalSwap = _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_newestSwapToConsider];
-    uint256 _accumPerUnit = _accumRatesfinalSwap - _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_userDCA.oldestSwap];
+    uint256 _accumPerUnit = _accumRatesfinalSwap -
+      _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_userDCA.swapWhereLastUpdated];
     uint256 _magnitude = 10**IERC20Metadata(_userDCA.from).decimals();
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
     uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumPerUnit / _magnitude) * _userDCA.rate;

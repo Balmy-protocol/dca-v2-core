@@ -971,7 +971,7 @@ describe('DCAPositionHandler', () => {
       });
     });
 
-    when(`last withdraw happens after the position's last swap`, () => {
+    when(`last update happens after the position's last swap`, () => {
       then('0 is returned', async () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
 
@@ -987,7 +987,7 @@ describe('DCAPositionHandler', () => {
           onSwap: PERFORMED_SWAPS_10 + 2,
         });
 
-        await DCAPositionHandler.setOldestSwap(dcaId, PERFORMED_SWAPS_10 + 2);
+        await DCAPositionHandler.setLastUpdated(dcaId, PERFORMED_SWAPS_10 + 2);
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 2);
 
         const swapped = await calculateSwapped(dcaId);
