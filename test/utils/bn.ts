@@ -1,4 +1,4 @@
-import { BigNumber } from 'ethers';
+import { BigNumber, BigNumberish } from 'ethers';
 import { expect } from 'chai';
 
 const expectToEqualWithThreshold = ({
@@ -27,7 +27,7 @@ const expectArraysToBeEqual = (arr1: BigNumber[] | number[] | string[], arr2: Bi
   });
 };
 
-const toBN = (value: string | number | BigNumber): BigNumber => {
+const toBN = (value: BigNumberish): BigNumber => {
   return BigNumber.isBigNumber(value) ? value : BigNumber.from(value);
 };
 
