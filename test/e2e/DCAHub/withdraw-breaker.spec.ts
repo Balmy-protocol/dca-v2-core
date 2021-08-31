@@ -51,6 +51,7 @@ contract('DCAHub', () => {
       await setInitialBalance(alice, { tokenA: 0, tokenB: 200 });
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(swapper, { tokenA: 2000, tokenB: 2000 });
+      await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
     });
 
     when('when a withdraw is executed after position is finished', () => {
@@ -61,11 +62,8 @@ contract('DCAHub', () => {
         await tokenB.connect(john).approve(DCAHub.address, constants.MAX_UINT_256);
         await DCAHub.connect(john).deposit(john.address, tokenB.address, tokenB.asUnits(200), 5, SWAP_INTERVAL_1_HOUR);
 
-        await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
         await swap({ swapper: swapper });
-
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-        await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
         await swap({ swapper: swapper });
 
         await DCAHub.connect(alice).withdrawSwapped(1, alice.address);
