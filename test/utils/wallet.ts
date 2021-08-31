@@ -13,6 +13,7 @@ const impersonate = async (address: string): Promise<JsonRpcSigner> => {
 };
 const generateRandom = async () => {
   const wallet = (await Wallet.createRandom()).connect(ethers.provider);
+  await ethers.provider.send('hardhat_setBalance', [wallet.address, '0xffffffffffffffff']);
   return wallet;
 };
 

@@ -7,6 +7,7 @@ import { constants, erc20, behaviours, evm } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
+import { snapshot } from '@test-utils/evm';
 
 const WITH_FEE = (bn: BigNumber) => bn.add(CALCULATE_FEE(bn));
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(1).div(1000);
@@ -19,6 +20,7 @@ describe('DCAHubLoanHandler', () => {
   let DCAHubLoanHandler: DCAHubLoanHandlerMock;
   let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
   let DCAGlobalParameters: DCAGlobalParametersMock;
+  let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner, feeRecipient] = await ethers.getSigners();
@@ -26,10 +28,6 @@ describe('DCAHubLoanHandler', () => {
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
     DCAHubLoanHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubLoanHandler.sol:DCAHubLoanHandlerMock');
-  });
-
-  beforeEach('Deploy and configure', async () => {
-    await evm.reset();
     tokenA = await erc20.deploy({
       name: 'tokenA',
       symbol: 'TKNA',
@@ -46,6 +44,11 @@ describe('DCAHubLoanHandler', () => {
       constants.NOT_ZERO_ADDRESS
     );
     DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(tokenA.address, tokenB.address, DCAGlobalParameters.address);
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach('Deploy and configure', async () => {
+    await snapshot.revert(snapshotId);
   });
 
   describe('availableToBorrow', () => {

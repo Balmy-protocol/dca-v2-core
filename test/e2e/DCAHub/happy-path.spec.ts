@@ -278,7 +278,10 @@ contract('DCAHub', () => {
     });
 
     async function withdrawMany(position1: UserPositionDefinition, ...otherPositions: UserPositionDefinition[]) {
-      await DCAHub.connect(position1.owner).withdrawSwappedMany([position1.id].concat(otherPositions.map(({ id }) => id)));
+      await DCAHub.connect(position1.owner).withdrawSwappedMany(
+        [position1.id].concat(otherPositions.map(({ id }) => id)),
+        position1.owner.address
+      );
 
       // Since the position is "resetted" with a withdraw, we need to reduce the amount of swaps
       for (const position of [position1].concat(otherPositions)) {
@@ -288,7 +291,7 @@ contract('DCAHub', () => {
     }
 
     async function terminate(position: UserPositionDefinition) {
-      await DCAHub.connect(position.owner).terminate(position.id);
+      await DCAHub.connect(position.owner).terminate(position.id, position.owner.address, position.owner.address);
     }
 
     async function setSwapFee(fee: number) {
@@ -374,7 +377,13 @@ contract('DCAHub', () => {
     }): Promise<UserPositionDefinition> {
       await token.mint(depositor.address, token.asUnits(rate).mul(swaps));
       await token.connect(depositor).approve(DCAHub.address, token.asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(token.address, token.asUnits(rate), swaps, swapInterval);
+      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(
+        depositor.address,
+        token.address,
+        token.asUnits(rate),
+        swaps,
+        swapInterval
+      );
       const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
       return {
         id: positionId,

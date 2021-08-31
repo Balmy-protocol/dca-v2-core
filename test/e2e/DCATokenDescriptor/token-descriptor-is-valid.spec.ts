@@ -70,7 +70,7 @@ contract('DCATokenDescriptor', () => {
 
   it('Validate tokenURI result', async () => {
     // Deposit
-    const response = await DCAHub.deposit(tokenA.address, tokenA.asUnits(10), 2, swapInterval);
+    const response = await DCAHub.deposit(governor.address, tokenA.address, tokenA.asUnits(10), 2, swapInterval);
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
 
     // Execute one swap

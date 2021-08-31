@@ -6,6 +6,14 @@ import '../../DCAHub/DCAHubSwapHandler.sol';
 import './DCAHubParameters.sol';
 
 contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
+  struct RegisterSwapCall {
+    uint256 ratePerUnitAToB;
+    uint256 ratePerUnitBToA;
+    uint32 timestamp;
+  }
+
+  mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
+
   uint32 private _customTimestamp;
 
   // Used to mock _getNextSwapsToPerform
@@ -48,23 +56,22 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   function registerSwap(
+    address _tokenA,
+    address _tokenB,
     uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint256 _internalAmountUsedToSwap,
-    uint256 _ratePerUnit,
-    uint32 _swapToRegister
+    uint256 _ratePerUnitAToB,
+    uint256 _ratePerUnitBToA,
+    uint32 _timestamp
   ) external {
-    _registerSwap(_swapInterval, _from, _to, _internalAmountUsedToSwap, _ratePerUnit, _swapToRegister);
+    _registerSwap(_tokenA, _tokenB, _swapInterval, _ratePerUnitAToB, _ratePerUnitBToA, _timestamp);
   }
 
   function getAmountToSwap(
-    uint32 _swapInterval,
     address _from,
     address _to,
-    uint32 _swap
-  ) external view returns (uint256) {
-    return _getAmountToSwap(_swapInterval, _from, _to, _swap);
+    uint32 _swapInterval
+  ) external view returns (uint256, uint256) {
+    return _getAmountToSwap(_from, _to, _swapInterval);
   }
 
   function setBlockTimestamp(uint32 _blockTimestamp) external {
@@ -75,26 +82,24 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     _blockTimestamp = (_customTimestamp > 0) ? _customTimestamp : super._getTimestamp();
   }
 
+  // Used to register calls
+  function _registerSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval,
+    uint256 _ratePerUnitAToB,
+    uint256 _ratePerUnitBToA,
+    uint32 _timestamp
+  ) internal override {
+    registerSwapCalls[_tokenA][_tokenB][_swapInterval] = RegisterSwapCall({
+      ratePerUnitAToB: _ratePerUnitAToB,
+      ratePerUnitBToA: _ratePerUnitBToA,
+      timestamp: _timestamp
+    });
+    super._registerSwap(_tokenA, _tokenB, _swapInterval, _ratePerUnitAToB, _ratePerUnitBToA, _timestamp);
+  }
+
   // Mocks setters
-
-  function addNewRatePerUnit(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _swap,
-    uint256 _ratePerUnit
-  ) external {
-    _addNewRatePerUnit(_swapInterval, _from, _to, _swap, _ratePerUnit);
-  }
-
-  function setSwapAmountAccumulator(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint256 _swapAmountAccumulator
-  ) external {
-    swapAmountAccumulator[_from][_to][_swapInterval] = _swapAmountAccumulator;
-  }
 
   function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) external {
     // TODO: stop using tokenA & tokenB and receive as parameters

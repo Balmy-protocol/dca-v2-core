@@ -53,13 +53,23 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Emitted when a position is terminated
   /// @param user The address of the user that terminated the position
+  /// @param recipientUnswapped The address of the user that will receive the unswapped tokens
+  /// @param recipientSwapped The address of the user that will receive the swapped tokens
   /// @param dcaId The id of the position that was terminated
   /// @param returnedUnswapped How many "from" tokens were returned to the caller
   /// @param returnedSwapped How many "to" tokens were returned to the caller
-  event Terminated(address indexed user, uint256 dcaId, uint256 returnedUnswapped, uint256 returnedSwapped);
+  event Terminated(
+    address indexed user,
+    address indexed recipientUnswapped,
+    address indexed recipientSwapped,
+    uint256 dcaId,
+    uint256 returnedUnswapped,
+    uint256 returnedSwapped
+  );
 
   /// @notice Emitted when a position is created
-  /// @param user The address of the user that created the position
+  /// @param depositor The address of the user that creates the position
+  /// @param owner The address of the user that will own the position
   /// @param dcaId The id of the position that was created
   /// @param fromToken The address of the "from" token
   /// @param rate How many "from" tokens need to be traded in each swap
@@ -67,7 +77,8 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   /// @param swapInterval How frequently the position's swaps should be executed
   /// @param lastSwap The number of the swap when the position will be executed for the last time
   event Deposited(
-    address indexed user,
+    address indexed depositor,
+    address indexed owner,
     uint256 dcaId,
     address fromToken,
     uint160 rate,
@@ -85,11 +96,12 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
   event Withdrew(address indexed withdrawer, address indexed recipient, uint256 dcaId, address token, uint256 amount);
 
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
-  /// @param user The address of the user that executed the withdraw
+  /// @param withdrawer The address of the user that executed the withdraws
+  /// @param recipient The address of the user that will receive the withdrawn tokens
   /// @param dcaIds The ids of the positions that were affected
   /// @param swappedTokenA The total amount that was withdrawn in token A
   /// @param swappedTokenB The total amount that was withdrawn in token B
-  event WithdrewMany(address indexed user, uint256[] dcaIds, uint256 swappedTokenA, uint256 swappedTokenB);
+  event WithdrewMany(address indexed withdrawer, address indexed recipient, uint256[] dcaIds, uint256 swappedTokenA, uint256 swappedTokenB);
 
   /// @notice Emitted when a position is modified
   /// @param user The address of the user that modified the position
@@ -135,16 +147,19 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Creates a new position
   /// @dev Will revert:
+  /// With ZeroAddress if _owner is zero
   /// With InvalidToken if _tokenAddress is neither token A nor token B
   /// With ZeroRate if _rate is zero
   /// With ZeroSwaps if _amountOfSwaps is zero
   /// With InvalidInterval if _swapInterval is not a valid swap interval
+  /// @param _owner The address of the owner of the created position (nft)
   /// @param _tokenAddress The address of the token that will be deposited
   /// @param _rate How many "from" tokens need to be traded in each swap
   /// @param _amountOfSwaps How many swaps to execute for this position
   /// @param _swapInterval How frequently the position's swaps should be executed
   /// @return _dcaId The id of the created position
   function deposit(
+    address _owner,
     address _tokenAddress,
     uint160 _rate,
     uint32 _amountOfSwaps,
@@ -153,6 +168,7 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Withdraws all swapped tokens from a position to a recipient
   /// @dev Will revert:
+  /// With ZeroAddress if recipient is zero
   /// With InvalidPosition if _dcaId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// @param _dcaId The position's id
@@ -162,12 +178,14 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Withdraws all swapped tokens from many positions
   /// @dev Will revert:
+  /// With ZeroAddress if recipient is zero
   /// With InvalidPosition if any of the ids in _dcaIds is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to any of the positions in _dcaIds
   /// @param _dcaIds The positions' ids
+  /// @param _recipient The address to withdraw swapped tokens to
   /// @return _swappedTokenA How much was withdrawn in token A
   /// @return _swappedTokenB How much was withdrawn in token B
-  function withdrawSwappedMany(uint256[] calldata _dcaIds) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
+  function withdrawSwappedMany(uint256[] calldata _dcaIds, address _recipient) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
 
   /// @notice Modifies the rate of a position. Could request more funds or return deposited funds
   /// depending on whether the new rate is greater than the previous one.
@@ -226,10 +244,17 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 
   /// @notice Terminates the position and sends all unswapped and swapped balance to the caller
   /// @dev Will revert:
+  /// With ZeroAddress if _recipientUnswapped or _recipientSwapped is zero
   /// With InvalidPosition if _dcaId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// @param _dcaId The position's id
-  function terminate(uint256 _dcaId) external;
+  /// @param _recipientUnswapped The address to withdraw unswapped tokens to
+  /// @param _recipientSwapped The address to withdraw swapped tokens to
+  function terminate(
+    uint256 _dcaId,
+    address _recipientUnswapped,
+    address _recipientSwapped
+  ) external;
 }
 
 /// @title The interface for all swap related matters in a DCA pair

@@ -20,6 +20,7 @@ import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
@@ -35,6 +36,8 @@ contract('DCAHub', () => {
     let reentrantDCAHubLoanCalleeFactory: ReentrantDCAHubLoanCalleeMock__factory;
     let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
     let TimeWeightedOracle: TimeWeightedOracleMock;
+    let snapshotId: string;
+
     const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
     before('Setup accounts and contracts', async () => {
@@ -46,10 +49,6 @@ contract('DCAHub', () => {
       reentrantDCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');
       TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
-    });
-
-    beforeEach('Deploy and configure', async () => {
-      await evm.reset();
       tokenA = await erc20.deploy({
         name: 'tokenA',
         symbol: 'TKNA',
@@ -68,6 +67,11 @@ contract('DCAHub', () => {
       );
       DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
+      snapshotId = await snapshot.take();
+    });
+
+    beforeEach('Deploy and configure', async () => {
+      await snapshot.revert(snapshotId);
     });
 
     describe('loan', () => {
@@ -156,7 +160,7 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.deposit(constants.ZERO_ADDRESS, 0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.deposit(wallet.generateRandomAddress(), constants.ZERO_ADDRESS, 0, 0, 0)).data!,
       });
       testReentrantAttack({
         title: 'trying to do a reentrancy attack through withdrawing swapped',
@@ -171,7 +175,7 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.withdrawSwappedMany([])).data!,
+        attack: async () => (await DCAHub.populateTransaction.withdrawSwappedMany([], wallet.generateRandomAddress())).data!,
       });
 
       testReentrantAttack({
@@ -179,7 +183,8 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.terminate(0)).data!,
+        attack: async () =>
+          (await DCAHub.populateTransaction.terminate(0, wallet.generateRandomAddress(), wallet.generateRandomAddress())).data!,
       });
 
       testReentrantAttack({
@@ -253,7 +258,13 @@ contract('DCAHub', () => {
     }) {
       await token().mint(depositor.address, token().asUnits(rate).mul(swaps));
       await token().connect(depositor).approve(DCAHub.address, token().asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(token().address, token().asUnits(rate), swaps, swapInterval);
+      const response: TransactionResponse = await DCAHub.connect(depositor).deposit(
+        depositor.address,
+        token().address,
+        token().asUnits(rate),
+        swaps,
+        swapInterval
+      );
       const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
       return { response, dcaId };
     }
