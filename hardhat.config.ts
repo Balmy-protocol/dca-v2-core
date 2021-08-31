@@ -58,6 +58,9 @@ const networks: NetworksUserConfig = process.env.TEST
 
 const config: HardhatUserConfig = {
   defaultNetwork: 'hardhat',
+  mocha: {
+    timeout: process.env.MOCHA_TIMEOUT || 300000,
+  },
   namedAccounts: {
     deployer: 0,
     governor: 1,
@@ -100,7 +103,7 @@ const config: HardhatUserConfig = {
   gasReporter: {
     currency: process.env.COINMARKETCAP_DEFAULT_CURRENCY || 'USD',
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-    enabled: process.env.REPORT_GAS ? true : false,
+    enabled: true,
   },
   preprocess: {
     eachLine: removeConsoleLog((hre) => hre.network.name !== 'hardhat'),
