@@ -296,6 +296,33 @@ describe('DCAHubSwapHandler', () => {
     });
   });
 
+  describe('_calculateRatio', () => {
+    when('function is called', () => {
+      let ratioAToB: BigNumber, ratioAToBWithFee: BigNumber;
+      let ratioBToA: BigNumber, ratioBToAWithFee: BigNumber;
+      given(async () => {
+        await setOracleData({ ratePerUnitBToA: tokenA.asUnits(0.6) });
+        [ratioAToB, ratioBToA, ratioAToBWithFee, ratioBToAWithFee] = await DCAHubSwapHandler.calculateRatio(
+          tokenA.address,
+          tokenB.address,
+          tokenA.magnitude,
+          tokenB.magnitude,
+          6000,
+          timeWeightedOracle.address
+        );
+      });
+      then('ratios are calculated correctly', () => {
+        const expectedRatioBToA = tokenA.asUnits(0.6);
+        expect(ratioAToB).to.equal(tokenA.magnitude.mul(tokenB.magnitude).div(expectedRatioBToA));
+        expect(ratioBToA).to.equal(expectedRatioBToA);
+      });
+      then('ratios with fee are also calculated correctly', () => {
+        expect(ratioAToBWithFee).to.equal(APPLY_FEE(ratioAToB));
+        expect(ratioBToAWithFee).to.equal(APPLY_FEE(ratioBToA));
+      });
+    });
+  });
+
   const setOracleData = async ({ ratePerUnitBToA }: { ratePerUnitBToA: BigNumber }) => {
     const tokenBDecimals = BigNumber.from(await tokenB.decimals());
     await timeWeightedOracle.setRate(ratePerUnitBToA, tokenBDecimals);
