@@ -113,6 +113,26 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     (_totalAmountToSwapTokenA, _totalAmountToSwapTokenB, _affectedIntervals) = _getTotalAmountsToSwap(_tokenA, _tokenB, _allowedSwapIntervals);
   }
 
+  function calculateRatio(
+    address _tokenA,
+    address _tokenB,
+    uint256 _magnitudeA,
+    uint256 _magnitudeB,
+    uint32 _swapFee,
+    ITimeWeightedOracle _oracle
+  )
+    external
+    view
+    returns (
+      uint256,
+      uint256,
+      uint256,
+      uint256
+    )
+  {
+    return _calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _swapFee, _oracle);
+  }
+
   // Used to register calls
   function _registerSwap(
     address _tokenA,

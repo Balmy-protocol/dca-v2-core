@@ -288,4 +288,29 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       }
     }
   }
+
+  // TODO: Check if using smaller uint sizes for ratios and magnitudes is cheaper
+  function _calculateRatio(
+    address _tokenA,
+    address _tokenB,
+    uint256 _magnitudeA,
+    uint256 _magnitudeB,
+    uint32 _swapFee,
+    ITimeWeightedOracle _oracle
+  )
+    internal
+    view
+    returns (
+      uint256 _ratioAToB,
+      uint256 _ratioBToA,
+      uint256 _ratioAToBWithFee,
+      uint256 _ratioBToAWithFee
+    )
+  {
+    _ratioBToA = _oracle.quote(_tokenB, uint128(_magnitudeB), _tokenA);
+    _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
+
+    _ratioAToBWithFee = _ratioAToB - _getFeeFromAmount(_swapFee, _ratioAToB);
+    _ratioBToAWithFee = _ratioBToA - _getFeeFromAmount(_swapFee, _ratioBToA);
+  }
 }
