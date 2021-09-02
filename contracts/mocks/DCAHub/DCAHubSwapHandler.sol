@@ -14,6 +14,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
 
   mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
+  mapping(address => mapping(address => mapping(uint32 => uint256[2]))) private _amountToSwap;
   uint32 private _customTimestamp;
 
   // Used to mock _getNextSwapsToPerform
@@ -82,6 +83,36 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     _blockTimestamp = (_customTimestamp > 0) ? _customTimestamp : super._getTimestamp();
   }
 
+  function _getAmountToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval
+  ) internal view override returns (uint256, uint256) {
+    uint256[2] memory _amounts = _amountToSwap[_tokenA][_tokenB][_swapInterval];
+    if (_amounts[0] == 0 && _amounts[1] == 0) {
+      return super._getAmountToSwap(_tokenA, _tokenB, _swapInterval);
+    } else {
+      return (_amounts[0], _amounts[1]);
+    }
+  }
+
+  function getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32[] memory _allowedSwapIntervals
+  )
+    external
+    view
+    virtual
+    returns (
+      uint256 _totalAmountToSwapTokenA,
+      uint256 _totalAmountToSwapTokenB,
+      uint32[] memory _affectedIntervals
+    )
+  {
+    (_totalAmountToSwapTokenA, _totalAmountToSwapTokenB, _affectedIntervals) = _getTotalAmountsToSwap(_tokenA, _tokenB, _allowedSwapIntervals);
+  }
+
   // Used to register calls
   function _registerSwap(
     address _tokenA,
@@ -100,6 +131,16 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   // Mocks setters
+
+  function setAmountToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval,
+    uint256 _amountTokenA,
+    uint256 _amountTokenB
+  ) external {
+    _amountToSwap[_tokenA][_tokenB][_swapInterval] = [_amountTokenA, _amountTokenB];
+  }
 
   function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) external {
     // TODO: stop using tokenA & tokenB and receive as parameters

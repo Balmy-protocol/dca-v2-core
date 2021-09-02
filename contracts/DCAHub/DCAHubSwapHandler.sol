@@ -6,7 +6,6 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/IDCAHubSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
-
 import './DCAHubParameters.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHubSwapHandler {
@@ -42,7 +41,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     address _tokenA,
     address _tokenB,
     uint32 _swapInterval
-  ) internal view returns (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) {
+  ) internal view virtual returns (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) {
     uint32 _nextSwap = performedSwaps.getValue(_tokenA, _tokenB, _swapInterval) + 1;
     _amountToSwapTokenA = uint256(swapAmountDelta[_tokenA][_tokenB][_swapInterval][_nextSwap]);
     _amountToSwapTokenB = uint256(swapAmountDelta[_tokenB][_tokenA][_swapInterval][_nextSwap]);
@@ -259,5 +258,34 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
 
   function _getTimestamp() internal view virtual returns (uint32 _blockTimestamp) {
     _blockTimestamp = uint32(block.timestamp);
+  }
+
+  function _getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32[] memory _allowedSwapIntervals
+  )
+    internal
+    view
+    virtual
+    returns (
+      uint256 _totalAmountToSwapTokenA,
+      uint256 _totalAmountToSwapTokenB,
+      uint32[] memory _affectedIntervals
+    )
+  {
+    uint8 _intervalCount;
+    _affectedIntervals = new uint32[](_allowedSwapIntervals.length);
+    for (uint256 i; i < _allowedSwapIntervals.length; i++) {
+      uint32 _swapInterval = _allowedSwapIntervals[i];
+      if (nextSwapAvailable.getValue(_tokenA, _tokenB, _swapInterval) <= _getTimestamp()) {
+        (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) = _getAmountToSwap(_tokenA, _tokenB, _swapInterval);
+        if (_amountToSwapTokenA > 0 || _amountToSwapTokenB > 0) {
+          _affectedIntervals[_intervalCount++] = _swapInterval;
+          _totalAmountToSwapTokenA += _amountToSwapTokenA;
+          _totalAmountToSwapTokenB += _amountToSwapTokenB;
+        }
+      }
+    }
   }
 }
