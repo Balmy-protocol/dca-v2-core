@@ -17,6 +17,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { readArgFromEvent } from '@test-utils/event-utils';
 import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';
+import { buildSwapInput } from 'js-lib/swap-utils';
 
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
@@ -323,9 +324,381 @@ describe('DCAHubSwapHandler', () => {
     });
   });
 
+  describe('_getNextSwapInfo', () => {
+    let tokenC: TokenContract;
+
+    given(async () => {
+      tokenC = await erc20.deploy({
+        name: 'tokenC',
+        symbol: 'TKN2',
+        decimals: 18,
+        initialAccount: owner.address,
+        initialAmount: ethers.constants.MaxUint256.div(2),
+      });
+    });
+
+    type Pair = {
+      tokenA: () => TokenContract;
+      tokenB: () => TokenContract;
+      amountTokenA: number;
+      amountTokenB: number;
+      ratioBToA: number;
+    };
+
+    type Token = { token: () => TokenContract } & ({ CoW: number } | { platformFee: number }) & ({ required: number } | { reward: number } | {});
+
+    type SwapInformation = {
+      tokens: { token: string; reward: BigNumber; toProvide: BigNumber; platformFee: BigNumber }[];
+      pairs: { tokenA: string; tokenB: string; ratioAToB: BigNumber; ratioBToA: BigNumber; intervalsInSwap: number[] }[];
+    };
+
+    type RatiosWithFee = { ratioAToBWithFee: BigNumber; ratioBToAWithFee: BigNumber };
+
+    function getNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
+      when(title, () => {
+        let expectedRatios: Map<string, { ratioAToB: BigNumber; ratioBToA: BigNumber }>;
+        let swapInformation: SwapInformation;
+        let ratiosWithFees: RatiosWithFee[];
+
+        given(async () => {
+          expectedRatios = new Map();
+          for (const { tokenA, tokenB, amountTokenA, amountTokenB, ratioBToA } of pairs) {
+            const [token0, token1, amountToken0, amountToken1, ratio1To0] =
+              tokenA().address < tokenB().address
+                ? [tokenA(), tokenB(), amountTokenA, amountTokenB, ratioBToA]
+                : [tokenB(), tokenA(), amountTokenB, amountTokenA, 1 / ratioBToA];
+            await DCAHubSwapHandler.setTotalAmountsToSwap(
+              token0.address,
+              token1.address,
+              token0.asUnits(amountToken0),
+              token1.asUnits(amountToken1)
+            );
+            await DCAHubSwapHandler.setRatio(token0.address, token1.address, token0.asUnits(ratio1To0));
+            expectedRatios.set(token0.address + token1.address, {
+              ratioBToA: token0.asUnits(ratio1To0),
+              ratioAToB: token1.asUnits(1 / ratio1To0),
+            });
+          }
+          const { tokens, indexes } = buildSwapInput(
+            pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address }))
+          );
+          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(
+            tokens,
+            indexes,
+            6000,
+            timeWeightedOracle.address,
+            [SWAP_INTERVAL, SWAP_INTERVAL_2]
+          );
+        });
+
+        then('ratios are expose correctly', () => {
+          for (const pair of swapInformation.pairs) {
+            const { ratioAToB, ratioBToA } = expectedRatios.get(pair.tokenA + pair.tokenB)!;
+            expect(pair.ratioAToB).to.equal(ratioAToB);
+            expect(pair.ratioBToA).to.equal(ratioBToA);
+          }
+        });
+
+        then('ratios with fees are expose correctly', () => {
+          for (let i = 0; i < ratiosWithFees.length; i++) {
+            const { tokenA, tokenB } = swapInformation.pairs[i];
+            const { ratioAToBWithFee, ratioBToAWithFee } = ratiosWithFees[i];
+            const { ratioAToB, ratioBToA } = expectedRatios.get(tokenA + tokenB)!;
+            expect(ratioAToBWithFee).to.equal(APPLY_FEE(ratioAToB));
+            expect(ratioBToAWithFee).to.equal(APPLY_FEE(ratioBToA));
+          }
+        });
+
+        then('intervals are expose correctly', () => {
+          for (const pair of swapInformation.pairs) {
+            expect(pair.intervalsInSwap).to.eql([SWAP_INTERVAL, SWAP_INTERVAL_2]);
+          }
+        });
+
+        then('token amounts and roles are calculated correctly', () => {
+          const tokens = new Map(swapInformation.tokens.map(({ token, ...information }) => [token, information]));
+          for (const tokenData of result) {
+            const token = tokenData.token();
+            const { reward, toProvide, platformFee } = tokens.get(token.address)!;
+            if ('CoW' in tokenData) {
+              expect(platformFee).to.equal(CALCULATE_FEE(token.asUnits(tokenData.CoW)));
+            } else {
+              expect(platformFee).to.equal(APPLY_FEE(token.asUnits(tokenData.platformFee)));
+            }
+            if ('required' in tokenData) {
+              expect(toProvide).to.equal(APPLY_FEE(token.asUnits(tokenData.required)));
+              expect(reward).to.equal(0);
+            } else if ('reward' in tokenData) {
+              expect(reward).to.equal(token.asUnits(tokenData.reward));
+              expect(toProvide).to.equal(0);
+            } else {
+              expect(reward).to.equal(0);
+              expect(toProvide).to.equal(0);
+            }
+          }
+        });
+      });
+    }
+
+    getNextSwapInfoTest({
+      title: 'no pairs are sent',
+      pairs: [],
+      result: [],
+    });
+
+    getNextSwapInfoTest({
+      title: 'only one pair, but nothing to swap for token B',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 100,
+          amountTokenB: 0,
+          ratioBToA: 2,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          CoW: 0,
+          reward: 100,
+        },
+        {
+          token: () => tokenB,
+          CoW: 0,
+          required: 50,
+        },
+      ],
+    });
+
+    getNextSwapInfoTest({
+      title: 'only one pair, but nothing to swap for token A',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 0,
+          amountTokenB: 100,
+          ratioBToA: 0.5,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          CoW: 0,
+          required: 50,
+        },
+        {
+          token: () => tokenB,
+          CoW: 0,
+          reward: 100,
+        },
+      ],
+    });
+
+    getNextSwapInfoTest({
+      title: 'only one pair, with some CoW',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 50,
+          amountTokenB: 100,
+          ratioBToA: 1,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          CoW: 50,
+          required: 50,
+        },
+        {
+          token: () => tokenB,
+          CoW: 50,
+          reward: 50,
+        },
+      ],
+    });
+
+    getNextSwapInfoTest({
+      title: 'only one pair, with full CoW',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 30,
+          amountTokenB: 120,
+          ratioBToA: 0.25,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          CoW: 30,
+        },
+        {
+          token: () => tokenB,
+          CoW: 120,
+        },
+      ],
+    });
+
+    getNextSwapInfoTest({
+      title: 'two pairs, no CoW between them',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 50,
+          amountTokenB: 0,
+          ratioBToA: 1,
+        },
+
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenC,
+          amountTokenA: 50,
+          amountTokenB: 0,
+          ratioBToA: 1,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          CoW: 0,
+          reward: 100,
+        },
+        {
+          token: () => tokenB,
+          CoW: 0,
+          required: 50,
+        },
+        {
+          token: () => tokenC,
+          CoW: 0,
+          required: 50,
+        },
+      ],
+    });
+
+    getNextSwapInfoTest({
+      title: 'two pairs, some CoW between them',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 50,
+          amountTokenB: 20,
+          ratioBToA: 2,
+        },
+
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenC,
+          amountTokenA: 60,
+          amountTokenB: 20,
+          ratioBToA: 4,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          CoW: 110,
+          required: 10,
+        },
+        {
+          token: () => tokenB,
+          CoW: 20,
+          required: 5,
+        },
+        {
+          token: () => tokenC,
+          CoW: 15,
+          reward: 5,
+        },
+      ],
+    });
+
+    getNextSwapInfoTest({
+      title: 'two pairs, full CoW between them',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 50,
+          amountTokenB: 20,
+          ratioBToA: 2,
+        },
+
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenC,
+          amountTokenA: 70,
+          amountTokenB: 20,
+          ratioBToA: 4,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          CoW: 120,
+        },
+        {
+          token: () => tokenB,
+          CoW: 20,
+          required: 5,
+        },
+        {
+          token: () => tokenC,
+          CoW: 17.5,
+          reward: 2.5,
+        },
+      ],
+    });
+
+    getNextSwapInfoTest({
+      title: 'two pairs, full CoW but swapper needs to provide platform fee',
+      // This is a special scenario where we require the swapper to provide a token, just to pay it fully as platform fee
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          amountTokenA: 0,
+          amountTokenB: 50,
+          ratioBToA: 1,
+        },
+
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenC,
+          amountTokenA: 49.7,
+          amountTokenB: 0,
+          ratioBToA: 1,
+        },
+      ],
+      result: [
+        {
+          token: () => tokenA,
+          platformFee: 0.3,
+          required: 0.3,
+        },
+        {
+          token: () => tokenB,
+          CoW: 0,
+          reward: 50,
+        },
+        {
+          token: () => tokenC,
+          CoW: 0,
+          required: 49.7,
+        },
+      ],
+    });
+  });
+
   const setOracleData = async ({ ratePerUnitBToA }: { ratePerUnitBToA: BigNumber }) => {
-    const tokenBDecimals = BigNumber.from(await tokenB.decimals());
-    await timeWeightedOracle.setRate(ratePerUnitBToA, tokenBDecimals);
+    await timeWeightedOracle.setRate(ratePerUnitBToA, tokenB.amountOfDecimals);
   };
 
   type NextSwapInformationContext = {

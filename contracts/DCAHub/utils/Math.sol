@@ -13,4 +13,8 @@ library Math {
       return (true, c);
     }
   }
+
+  function min(uint256 a, uint256 b) internal pure returns (uint256) {
+    return a > b ? b : a;
+  }
 }

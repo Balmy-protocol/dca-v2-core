@@ -6,6 +6,7 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/IDCAHubSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
+import './utils/Math.sol';
 import './DCAHubParameters.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHubSwapHandler {
@@ -300,6 +301,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   )
     internal
     view
+    virtual
     returns (
       uint256 _ratioAToB,
       uint256 _ratioBToA,
@@ -312,5 +314,121 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
 
     _ratioAToBWithFee = _ratioAToB - _getFeeFromAmount(_swapFee, _ratioAToB);
     _ratioBToAWithFee = _ratioBToA - _getFeeFromAmount(_swapFee, _ratioBToA);
+  }
+
+  struct PairIndexes {
+    uint8 indexTokenA;
+    uint8 indexTokenB;
+  }
+
+  struct SwapInfo {
+    TokenInSwap[] tokens;
+    PairInSwap[] pairs;
+  }
+
+  struct TokenInSwap {
+    address token;
+    uint256 reward;
+    uint256 toProvide;
+    uint256 platformFee;
+  }
+
+  struct PairInSwap {
+    address tokenA;
+    address tokenB;
+    uint256 ratioAToB;
+    uint256 ratioBToA;
+    uint32[] intervalsInSwap;
+  }
+
+  // TODO: Explore if re-calculating the ratios with fee in swap is cheaper than passing them around
+  struct RatioWithFee {
+    uint256 ratioAToBWithFee;
+    uint256 ratioBToAWithFee;
+  }
+
+  struct InternalTokenInfo {
+    uint8 indexTokenA;
+    uint8 indexTokenB;
+    uint120 magnitudeA; // 36 decimals max amount supported
+    uint120 magnitudeB; // 36 decimals max amount supported
+  }
+
+  // TODO: Check if using the "each pair's active intervals" approach is creaper
+  function _getNextSwapInfo(
+    address[] memory _tokens,
+    PairIndexes[] memory _pairs,
+    uint32 _swapFee,
+    ITimeWeightedOracle _oracle,
+    uint32[] memory _allowedSwapIntervals
+  ) internal view returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
+    // TODO: Make sure that there are no repeated tokens in _tokens
+    // TODO: Make sure that there are no repeted pairs in _pairs
+    // TODO: Make sure that _indexTokenA != _indexTokenB for all pair indexes
+
+    uint256[] memory _total = new uint256[](_tokens.length);
+    uint256[] memory _needed = new uint256[](_tokens.length);
+    _swapInformation.pairs = new PairInSwap[](_pairs.length);
+    _internalSwapInformation = new RatioWithFee[](_pairs.length);
+
+    for (uint256 i; i < _pairs.length; i++) {
+      InternalTokenInfo memory _tokenInfo;
+      _tokenInfo.indexTokenA = _pairs[i].indexTokenA;
+      _tokenInfo.indexTokenB = _pairs[i].indexTokenB;
+      _swapInformation.pairs[i].tokenA = _tokens[_tokenInfo.indexTokenA];
+      _swapInformation.pairs[i].tokenB = _tokens[_tokenInfo.indexTokenB];
+      _tokenInfo.magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
+      _tokenInfo.magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
+      // TODO: Check if it is cheaper to store magnitude for all tokens, instead of calculating it each time
+
+      uint256 _amountToSwapTokenA;
+      uint256 _amountToSwapTokenB;
+
+      (_amountToSwapTokenA, _amountToSwapTokenB, _swapInformation.pairs[i].intervalsInSwap) = _getTotalAmountsToSwap(
+        _swapInformation.pairs[i].tokenA,
+        _swapInformation.pairs[i].tokenB,
+        _allowedSwapIntervals
+      );
+
+      _total[_tokenInfo.indexTokenA] += _amountToSwapTokenA;
+      _total[_tokenInfo.indexTokenB] += _amountToSwapTokenB;
+
+      (
+        _swapInformation.pairs[i].ratioAToB,
+        _swapInformation.pairs[i].ratioBToA,
+        _internalSwapInformation[i].ratioAToBWithFee,
+        _internalSwapInformation[i].ratioBToAWithFee
+      ) = _calculateRatio(
+        _swapInformation.pairs[i].tokenA,
+        _swapInformation.pairs[i].tokenB,
+        _tokenInfo.magnitudeA,
+        _tokenInfo.magnitudeB,
+        _swapFee,
+        _oracle
+      );
+
+      _needed[_tokenInfo.indexTokenA] += _convertTo(_tokenInfo.magnitudeB, _amountToSwapTokenB, _internalSwapInformation[i].ratioBToAWithFee);
+      _needed[_tokenInfo.indexTokenB] += _convertTo(_tokenInfo.magnitudeA, _amountToSwapTokenA, _internalSwapInformation[i].ratioAToBWithFee);
+    }
+
+    _swapInformation.tokens = new TokenInSwap[](_tokens.length);
+
+    for (uint256 i; i < _swapInformation.tokens.length; i++) {
+      _swapInformation.tokens[i].token = _tokens[i];
+
+      uint256 _neededWithFee = _needed[i];
+      uint256 _neededWithoutFee = (_neededWithFee * _feePrecision * 100) / (_feePrecision * 100 - _swapFee); // We are un-applying the fee here
+
+      int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _total[i]))); // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
+      int256 _diff = int256(_total[i]) - int256(_neededWithFee); // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
+
+      // Instead of checking if diff is positive or not, we compare against the platform fee. This is to avoid any rounding issues
+      if (_diff > _platformFee) {
+        _swapInformation.tokens[i].reward = uint256(_diff - _platformFee);
+      } else if (_diff < _platformFee) {
+        _swapInformation.tokens[i].toProvide = uint256(_platformFee - _diff);
+      }
+      _swapInformation.tokens[i].platformFee = uint256(_platformFee);
+    }
   }
 }
