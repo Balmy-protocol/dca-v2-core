@@ -15,6 +15,8 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
   mapping(address => mapping(address => mapping(uint32 => uint256[2]))) private _amountToSwap;
+  mapping(address => mapping(address => uint256)) private _ratios; // from => to => ratio(from -> to)
+  mapping(address => mapping(address => uint256[2])) private _totalAmountsToSwap; // tokenA => tokenB => total amoutns
   uint32 private _customTimestamp;
 
   // Used to mock _getNextSwapsToPerform
@@ -103,14 +105,46 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   )
     external
     view
-    virtual
     returns (
-      uint256 _totalAmountToSwapTokenA,
-      uint256 _totalAmountToSwapTokenB,
+      uint256,
+      uint256,
+      uint32[] memory
+    )
+  {
+    return _getTotalAmountsToSwap(_tokenA, _tokenB, _allowedSwapIntervals);
+  }
+
+  function _getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32[] memory _allowedSwapIntervals
+  )
+    internal
+    view
+    override
+    returns (
+      uint256 _totalAmountTokenA,
+      uint256 _totalAmountTokenB,
       uint32[] memory _affectedIntervals
     )
   {
-    (_totalAmountToSwapTokenA, _totalAmountToSwapTokenB, _affectedIntervals) = _getTotalAmountsToSwap(_tokenA, _tokenB, _allowedSwapIntervals);
+    uint256[2] memory _amounts = _totalAmountsToSwap[_tokenA][_tokenB];
+    if (_amounts[0] == 0 && _amounts[1] == 0) {
+      return super._getTotalAmountsToSwap(_tokenA, _tokenB, _allowedSwapIntervals);
+    }
+    _totalAmountTokenA = _amounts[0];
+    _totalAmountTokenB = _amounts[1];
+    _affectedIntervals = _allowedSwapIntervals;
+  }
+
+  function internalGetNextSwapInfo(
+    address[] memory _tokens,
+    PairIndexes[] memory _pairs,
+    uint32 _swapFee,
+    ITimeWeightedOracle _oracle,
+    uint32[] memory _allowedSwapIntervals
+  ) external view returns (SwapInfo memory, RatioWithFee[] memory) {
+    return _getNextSwapInfo(_tokens, _pairs, _swapFee, _oracle, _allowedSwapIntervals);
   }
 
   function calculateRatio(
@@ -133,6 +167,33 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     return _calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _swapFee, _oracle);
   }
 
+  function _calculateRatio(
+    address _tokenA,
+    address _tokenB,
+    uint256 _magnitudeA,
+    uint256 _magnitudeB,
+    uint32 _swapFee,
+    ITimeWeightedOracle _oracle
+  )
+    internal
+    view
+    override
+    returns (
+      uint256 _ratioAToB,
+      uint256 _ratioBToA,
+      uint256 _ratioAToBWithFee,
+      uint256 _ratioBToAWithFee
+    )
+  {
+    _ratioBToA = _ratios[_tokenB][_tokenA];
+    if (_ratioBToA == 0) {
+      return super._calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _swapFee, _oracle);
+    }
+    _ratioAToB = (_magnitudeA * _magnitudeB) / _ratioBToA;
+    _ratioAToBWithFee = _ratioAToB - _getFeeFromAmount(_swapFee, _ratioAToB);
+    _ratioBToAWithFee = _ratioBToA - _getFeeFromAmount(_swapFee, _ratioBToA);
+  }
+
   // Used to register calls
   function _registerSwap(
     address _tokenA,
@@ -151,6 +212,23 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   // Mocks setters
+
+  function setRatio(
+    address _tokenA,
+    address _tokenB,
+    uint256 _ratioBToA
+  ) external {
+    _ratios[_tokenB][_tokenA] = _ratioBToA;
+  }
+
+  function setTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint256 _totalAmountTokenA,
+    uint256 _totalAmountTokenB
+  ) external {
+    _totalAmountsToSwap[_tokenA][_tokenB] = [_totalAmountTokenA, _totalAmountTokenB];
+  }
 
   function setAmountToSwap(
     address _tokenA,
