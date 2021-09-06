@@ -417,18 +417,26 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       _swapInformation.tokens[i].token = _tokens[i];
 
       uint256 _neededWithFee = _needed[i];
-      uint256 _neededWithoutFee = (_neededWithFee * _feePrecision * 100) / (_feePrecision * 100 - _swapFee); // We are un-applying the fee here
+      uint256 _totalBeingSwapped = _total[i];
 
-      int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _total[i]))); // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
-      int256 _diff = int256(_total[i]) - int256(_neededWithFee); // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
+      if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
+        // We are un-applying the fee here
+        uint256 _neededWithoutFee = (_neededWithFee * _feePrecision * 100) / (_feePrecision * 100 - _swapFee);
 
-      // Instead of checking if diff is positive or not, we compare against the platform fee. This is to avoid any rounding issues
-      if (_diff > _platformFee) {
-        _swapInformation.tokens[i].reward = uint256(_diff - _platformFee);
-      } else if (_diff < _platformFee) {
-        _swapInformation.tokens[i].toProvide = uint256(_platformFee - _diff);
+        // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
+        int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
+
+        // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
+        int256 _diff = int256(_totalBeingSwapped) - int256(_neededWithFee);
+
+        // Instead of checking if diff is positive or not, we compare against the platform fee. This is to avoid any rounding issues
+        if (_diff > _platformFee) {
+          _swapInformation.tokens[i].reward = uint256(_diff - _platformFee);
+        } else if (_diff < _platformFee) {
+          _swapInformation.tokens[i].toProvide = uint256(_platformFee - _diff);
+        }
+        _swapInformation.tokens[i].platformFee = uint256(_platformFee);
       }
-      _swapInformation.tokens[i].platformFee = uint256(_platformFee);
     }
   }
 }
