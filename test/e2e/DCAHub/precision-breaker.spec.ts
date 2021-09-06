@@ -99,7 +99,7 @@ contract('DCAHub', () => {
     }
 
     async function getNextSwapInfo(): Promise<NextSwapInformation> {
-      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAHub.getNextSwapInfo();
+      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAHub['getNextSwapInfo()']();
       return {
         ...nextSwapInfo,
         // Remove zeroed positions in array

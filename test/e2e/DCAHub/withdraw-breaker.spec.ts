@@ -82,7 +82,7 @@ contract('DCAHub', () => {
     }
 
     async function getAmountToBeProvided(): Promise<{ tokenToBeProvidedBySwapper: TokenContract; amountToBeProvidedBySwapper: BigNumber }> {
-      const { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper } = await DCAHub.getNextSwapInfo();
+      const { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper } = await DCAHub['getNextSwapInfo()']();
       return { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper: tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB };
     }
 

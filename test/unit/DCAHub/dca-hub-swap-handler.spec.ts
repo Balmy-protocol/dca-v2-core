@@ -741,17 +741,15 @@ describe('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setInternalBalance(tokenB.address, INTERNAL_BALANCE_TOKEN_B);
         await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation, []);
 
-        result = // @ts-ignore
-        (
-          await DCAHubSwapHandler.functions['getNextSwapInfo(address[],(uint8,uint8)[])'](
-            [tokenA.address, tokenB.address],
-            [{ indexTokenA: 0, indexTokenB: 1 }]
-          )
-        )._swapInformation;
+        // @ts-ignore
+        result = await DCAHubSwapHandler['getNextSwapInfo(address[],(uint8,uint8)[])'](
+          [tokenA.address, tokenB.address],
+          [{ indexTokenA: 0, indexTokenB: 1 }]
+        );
       });
 
       then('_getNextSwapInfo is called with the correct parameters', () => {
-        // TODO: We can't do this right now, because _getNextSwapInfo is a view, so we can't store the call in the contract's state.
+        // TODO: We can't check this right now, because _getNextSwapInfo is a view, so we can't store the call in the contract's state.
         // We will need to wait for smock to support it
       });
 
