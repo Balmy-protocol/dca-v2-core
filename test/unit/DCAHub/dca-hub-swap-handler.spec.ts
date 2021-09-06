@@ -740,8 +740,9 @@ describe('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setInternalBalance(tokenA.address, INTERNAL_BALANCE_TOKEN_A);
         await DCAHubSwapHandler.setInternalBalance(tokenB.address, INTERNAL_BALANCE_TOKEN_B);
         await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation, []);
-        // @ts-ignore
-        result = (
+
+        result = // @ts-ignore
+        (
           await DCAHubSwapHandler.functions['getNextSwapInfo(address[],(uint8,uint8)[])'](
             [tokenA.address, tokenB.address],
             [{ indexTokenA: 0, indexTokenB: 1 }]
