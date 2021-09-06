@@ -347,14 +347,9 @@ describe('DCAHubSwapHandler', () => {
 
     type Token = { token: () => TokenContract } & ({ CoW: number } | { platformFee: number }) & ({ required: number } | { reward: number } | {});
 
-    type SwapInformation = {
-      tokens: { token: string; reward: BigNumber; toProvide: BigNumber; platformFee: BigNumber }[];
-      pairs: { tokenA: string; tokenB: string; ratioAToB: BigNumber; ratioBToA: BigNumber; intervalsInSwap: number[] }[];
-    };
-
     type RatiosWithFee = { ratioAToBWithFee: BigNumber; ratioBToAWithFee: BigNumber };
 
-    function getNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
+    function internalGetNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
       when(title, () => {
         let expectedRatios: Map<string, { ratioAToB: BigNumber; ratioBToA: BigNumber }>;
         let swapInformation: SwapInformation;
@@ -440,13 +435,13 @@ describe('DCAHubSwapHandler', () => {
       });
     }
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'no pairs are sent',
       pairs: [],
       result: [],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'only one pair, but nothing to swap for token B',
       pairs: [
         {
@@ -471,7 +466,7 @@ describe('DCAHubSwapHandler', () => {
       ],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'only one pair, but nothing to swap for token A',
       pairs: [
         {
@@ -496,7 +491,7 @@ describe('DCAHubSwapHandler', () => {
       ],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'only one pair, with some CoW',
       pairs: [
         {
@@ -521,7 +516,7 @@ describe('DCAHubSwapHandler', () => {
       ],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'only one pair, with full CoW',
       pairs: [
         {
@@ -544,7 +539,7 @@ describe('DCAHubSwapHandler', () => {
       ],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'two pairs, no CoW between them',
       pairs: [
         {
@@ -582,7 +577,7 @@ describe('DCAHubSwapHandler', () => {
       ],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'two pairs, some CoW between them',
       pairs: [
         {
@@ -620,7 +615,7 @@ describe('DCAHubSwapHandler', () => {
       ],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'two pairs, full CoW between them',
       pairs: [
         {
@@ -657,7 +652,7 @@ describe('DCAHubSwapHandler', () => {
       ],
     });
 
-    getNextSwapInfoTest({
+    internalGetNextSwapInfoTest({
       title: 'two pairs, full CoW but swapper needs to provide platform fee',
       // This is a special scenario where we require the swapper to provide a token, just to pay it fully as platform fee
       pairs: [
@@ -694,6 +689,93 @@ describe('DCAHubSwapHandler', () => {
           required: 49.7,
         },
       ],
+    });
+  });
+
+  describe('getNextSwapInfo', () => {
+    type NextSwapInfo = {
+      tokens: {
+        token: string;
+        reward: BigNumber;
+        toProvide: BigNumber;
+        availableToBorrow: BigNumber;
+      }[];
+      pairs: SwapInformation['pairs'];
+    };
+
+    when('getNextSwapInfo is called', () => {
+      const INTERNAL_BALANCE_TOKEN_A = BigNumber.from(100);
+      const INTERNAL_BALANCE_TOKEN_B = BigNumber.from(200);
+
+      let internalSwapInformation: SwapInformation;
+      let result: NextSwapInfo;
+
+      given(async () => {
+        internalSwapInformation = {
+          tokens: [
+            {
+              token: tokenA.address,
+              reward: constants.ZERO,
+              toProvide: BigNumber.from(20),
+              platformFee: constants.ZERO,
+            },
+            {
+              token: tokenB.address,
+              reward: BigNumber.from(20),
+              toProvide: constants.ZERO,
+              platformFee: BigNumber.from(50),
+            },
+          ],
+          pairs: [
+            {
+              tokenA: tokenA.address,
+              tokenB: tokenB.address,
+              ratioAToB: BigNumber.from(10),
+              ratioBToA: BigNumber.from(10),
+              intervalsInSwap: [SWAP_INTERVAL, SWAP_INTERVAL_2],
+            },
+          ],
+        };
+
+        await DCAHubSwapHandler.setInternalBalance(tokenA.address, INTERNAL_BALANCE_TOKEN_A);
+        await DCAHubSwapHandler.setInternalBalance(tokenB.address, INTERNAL_BALANCE_TOKEN_B);
+        await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation, []);
+        // @ts-ignore
+        result = (
+          await DCAHubSwapHandler.functions['getNextSwapInfo(address[],(uint8,uint8)[])'](
+            [tokenA.address, tokenB.address],
+            [{ indexTokenA: 0, indexTokenB: 1 }]
+          )
+        )._swapInformation;
+      });
+
+      then('_getNextSwapInfo is called with the correct parameters', () => {
+        // TODO: We can't do this right now, because _getNextSwapInfo is a view, so we can't store the call in the contract's state.
+        // We will need to wait for smock to support it
+      });
+
+      then('pairs are returned correctly', () => {
+        expect(result.pairs.length).to.equal(1);
+        const [pair] = result.pairs;
+        const [expectedPair] = internalSwapInformation.pairs;
+        expect(pair.tokenA).to.eql(expectedPair.tokenA);
+        expect(pair.tokenB).to.eql(expectedPair.tokenB);
+        expect(pair.ratioAToB).to.eql(expectedPair.ratioAToB);
+        expect(pair.ratioBToA).to.eql(expectedPair.ratioBToA);
+        expect(pair.intervalsInSwap).to.eql(expectedPair.intervalsInSwap);
+      });
+
+      then('tokens are returned correctly', () => {
+        for (let i = 0; i < result.tokens.length; i++) {
+          const token = result.tokens[i];
+          const internalTokenInfo = internalSwapInformation.tokens[i];
+          expect(token.token).to.equal(internalTokenInfo.token);
+          expect(token.toProvide).to.equal(internalTokenInfo.toProvide);
+          expect(token.reward).to.equal(internalTokenInfo.reward);
+          const balance = token.token === tokenA.address ? INTERNAL_BALANCE_TOKEN_A : INTERNAL_BALANCE_TOKEN_B;
+          expect(token.availableToBorrow).to.equal(balance.sub(internalTokenInfo.reward));
+        }
+      });
     });
   });
 
@@ -993,7 +1075,7 @@ describe('DCAHubSwapHandler', () => {
           (totalAmountToSwapOfTokenA as BigNumber).mul(2),
           (totalAmountToSwapOfTokenB as BigNumber).mul(2)
         );
-        nextSwapInfo = await DCAHubSwapHandler.getNextSwapInfo();
+        nextSwapInfo = await DCAHubSwapHandler['getNextSwapInfo()']();
       });
       then('swaps to perform are correct', () => {
         const parsedNextSwaps = parseNextSwaps(nextSwapContext);
@@ -1667,7 +1749,7 @@ describe('DCAHubSwapHandler', () => {
         platformFeeTokenB,
         availableToBorrowTokenA,
         availableToBorrowTokenB,
-      } = await DCAHubSwapHandler.getNextSwapInfo());
+      } = await DCAHubSwapHandler['getNextSwapInfo()']());
     });
 
     when('doing a reentrancy attack via swap', () => {
@@ -2362,4 +2444,9 @@ describe('DCAHubSwapHandler', () => {
     if (typeof amount === 'string') return token.asUnits(amount);
     return token.asUnits(amount.toFixed(tokenA.amountOfDecimals));
   }
+
+  type SwapInformation = {
+    tokens: { token: string; reward: BigNumber; toProvide: BigNumber; platformFee: BigNumber }[];
+    pairs: { tokenA: string; tokenB: string; ratioAToB: BigNumber; ratioBToA: BigNumber; intervalsInSwap: number[] }[];
+  };
 });

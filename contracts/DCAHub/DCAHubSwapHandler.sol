@@ -361,7 +361,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint32 _swapFee,
     ITimeWeightedOracle _oracle,
     uint32[] memory _allowedSwapIntervals
-  ) internal view returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
+  ) internal view virtual returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
     // TODO: Make sure that there are no repeated tokens in _tokens
     // TODO: Make sure that there are no repeted pairs in _pairs
     // TODO: Make sure that _indexTokenA != _indexTokenB for all pair indexes
@@ -437,6 +437,44 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
         }
         _swapInformation.tokens[i].platformFee = uint256(_platformFee);
       }
+    }
+  }
+
+  struct NextSwapInfo {
+    NextTokenInSwap[] tokens;
+    PairInSwap[] pairs;
+  }
+
+  struct NextTokenInSwap {
+    address token;
+    uint256 reward;
+    uint256 toProvide;
+    uint256 availableToBorrow;
+  }
+
+  function getNextSwapInfo(address[] memory _tokens, PairIndexes[] memory _pairsToSwap)
+    external
+    view
+    returns (NextSwapInfo memory _swapInformation)
+  {
+    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
+    (SwapInfo memory _internalSwapInformation, ) = _getNextSwapInfo(
+      _tokens,
+      _pairsToSwap,
+      _swapParameters.swapFee,
+      _swapParameters.oracle,
+      globalParameters.allowedSwapIntervals()
+    );
+
+    _swapInformation.pairs = _internalSwapInformation.pairs;
+    _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
+
+    for (uint256 i; i < _internalSwapInformation.tokens.length; i++) {
+      TokenInSwap memory _tokenInSwap = _internalSwapInformation.tokens[i];
+      _swapInformation.tokens[i].token = _tokenInSwap.token;
+      _swapInformation.tokens[i].reward = _tokenInSwap.reward;
+      _swapInformation.tokens[i].toProvide = _tokenInSwap.toProvide;
+      _swapInformation.tokens[i].availableToBorrow = _balances[_tokenInSwap.token] - _tokenInSwap.reward;
     }
   }
 }
