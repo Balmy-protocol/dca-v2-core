@@ -12,11 +12,17 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     uint32 timestamp;
   }
 
+  struct TotalAmountsToSwap {
+    uint256 amountTokenA;
+    uint256 amountTokenB;
+    uint32[] intervalsInSwap;
+  }
+
   mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
   mapping(address => mapping(address => mapping(uint32 => uint256[2]))) private _amountToSwap;
   mapping(address => mapping(address => uint256)) private _ratios; // from => to => ratio(from -> to)
-  mapping(address => mapping(address => uint256[2])) private _totalAmountsToSwap; // tokenA => tokenB => total amoutns
+  mapping(address => mapping(address => TotalAmountsToSwap)) private _totalAmountsToSwap; // tokenA => tokenB => total amounts
 
   SwapInfo private _swapInformation;
   RatioWithFee[] private _internalSwapInformation;
@@ -101,11 +107,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     }
   }
 
-  function getTotalAmountsToSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32[] memory _allowedSwapIntervals
-  )
+  function getTotalAmountsToSwap(address _tokenA, address _tokenB)
     external
     view
     returns (
@@ -114,14 +116,10 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
       uint32[] memory
     )
   {
-    return _getTotalAmountsToSwap(_tokenA, _tokenB, _allowedSwapIntervals);
+    return _getTotalAmountsToSwap(_tokenA, _tokenB);
   }
 
-  function _getTotalAmountsToSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32[] memory _allowedSwapIntervals
-  )
+  function _getTotalAmountsToSwap(address _tokenA, address _tokenB)
     internal
     view
     override
@@ -131,36 +129,34 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
       uint32[] memory _affectedIntervals
     )
   {
-    uint256[2] memory _amounts = _totalAmountsToSwap[_tokenA][_tokenB];
-    if (_amounts[0] == 0 && _amounts[1] == 0) {
-      return super._getTotalAmountsToSwap(_tokenA, _tokenB, _allowedSwapIntervals);
+    TotalAmountsToSwap memory _amounts = _totalAmountsToSwap[_tokenA][_tokenB];
+    if (_amounts.amountTokenA == 0 && _amounts.amountTokenB == 0) {
+      return super._getTotalAmountsToSwap(_tokenA, _tokenB);
     }
-    _totalAmountTokenA = _amounts[0];
-    _totalAmountTokenB = _amounts[1];
-    _affectedIntervals = _allowedSwapIntervals;
+    _totalAmountTokenA = _amounts.amountTokenA;
+    _totalAmountTokenB = _amounts.amountTokenB;
+    _affectedIntervals = _amounts.intervalsInSwap;
   }
 
   function internalGetNextSwapInfo(
     address[] memory _tokens,
     PairIndexes[] memory _pairs,
     uint32 _swapFee,
-    ITimeWeightedOracle _oracle,
-    uint32[] memory _allowedSwapIntervals
+    ITimeWeightedOracle _oracle
   ) external view returns (SwapInfo memory, RatioWithFee[] memory) {
-    return _getNextSwapInfo(_tokens, _pairs, _swapFee, _oracle, _allowedSwapIntervals);
+    return _getNextSwapInfo(_tokens, _pairs, _swapFee, _oracle);
   }
 
   function _getNextSwapInfo(
     address[] memory _tokens,
     PairIndexes[] memory _pairs,
     uint32 _swapFee,
-    ITimeWeightedOracle _oracle,
-    uint32[] memory _allowedSwapIntervals
+    ITimeWeightedOracle _oracle
   ) internal view override returns (SwapInfo memory, RatioWithFee[] memory) {
     if (_swapInformation.tokens.length > 0) {
       return (_swapInformation, _internalSwapInformation);
     } else {
-      return super._getNextSwapInfo(_tokens, _pairs, _swapFee, _oracle, _allowedSwapIntervals);
+      return super._getNextSwapInfo(_tokens, _pairs, _swapFee, _oracle);
     }
   }
 
@@ -242,9 +238,15 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     address _tokenA,
     address _tokenB,
     uint256 _totalAmountTokenA,
-    uint256 _totalAmountTokenB
+    uint256 _totalAmountTokenB,
+    uint32[] memory _intervalsInSwap
   ) external {
-    _totalAmountsToSwap[_tokenA][_tokenB] = [_totalAmountTokenA, _totalAmountTokenB];
+    _totalAmountsToSwap[_tokenA][_tokenB].amountTokenA = _totalAmountTokenA;
+    _totalAmountsToSwap[_tokenA][_tokenB].amountTokenB = _totalAmountTokenB;
+
+    for (uint256 i = 0; i < _intervalsInSwap.length; i++) {
+      _totalAmountsToSwap[_tokenA][_tokenB].intervalsInSwap.push(_intervalsInSwap[i]);
+    }
   }
 
   function setAmountToSwap(
