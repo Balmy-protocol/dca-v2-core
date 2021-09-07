@@ -319,10 +319,6 @@ interface IDCAHubSwapHandler {
   /// @notice Thrown when trying to execute a swap, but none is available
   error NoSwapsToExecute();
 
-  /// @notice Returns all information related to the next swap
-  /// @return _nextSwapInformation The information about the next swap
-  function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
-
   /// @notice Executes a swap
   /// @dev This method assumes that the required amount has already been sent. Will revert with:
   /// Paused if swaps are paused by protocol

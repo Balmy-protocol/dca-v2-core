@@ -9,6 +9,7 @@ import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
+import { buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Withdraw breaker', () => {
@@ -82,7 +83,18 @@ contract('DCAHub', () => {
     }
 
     async function getAmountToBeProvided(): Promise<{ tokenToBeProvidedBySwapper: TokenContract; amountToBeProvidedBySwapper: BigNumber }> {
-      const { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper } = await DCAHub['getNextSwapInfo()']();
+      const { tokens, indexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
+      const nextSwapInfo = await DCAHub.getNextSwapInfo(tokens, indexes);
+      const [token0, token1] = nextSwapInfo.tokens;
+      let amountToBeProvidedBySwapper: BigNumber;
+      let tokenToBeProvidedBySwapper: string;
+      if (token0.toProvide.gt(token1.toProvide)) {
+        amountToBeProvidedBySwapper = token0.toProvide;
+        tokenToBeProvidedBySwapper = token0.token;
+      } else {
+        amountToBeProvidedBySwapper = token1.toProvide;
+        tokenToBeProvidedBySwapper = token1.token;
+      }
       return { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper: tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB };
     }
 

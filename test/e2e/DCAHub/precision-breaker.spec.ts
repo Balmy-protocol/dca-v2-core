@@ -9,6 +9,7 @@ import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
+import { buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Precision breaker', () => {
@@ -92,20 +93,27 @@ contract('DCAHub', () => {
     });
 
     async function swap({ swapper }: { swapper: SignerWithAddress }) {
-      const nextSwapInfo = await getNextSwapInfo();
-      const tokenToProvide = nextSwapInfo.tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB;
-      await tokenToProvide.connect(swapper).transfer(DCAHub.address, nextSwapInfo.amountToBeProvidedBySwapper);
+      const { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper } = await getAmountToBeProvided();
+      await tokenToBeProvidedBySwapper.connect(swapper).transfer(DCAHub.address, amountToBeProvidedBySwapper);
       await DCAHub.connect(swapper)['swap()']();
     }
 
-    async function getNextSwapInfo(): Promise<NextSwapInformation> {
-      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAHub['getNextSwapInfo()']();
-      return {
-        ...nextSwapInfo,
-        // Remove zeroed positions in array
-        swapsToPerform: nextSwapInfo.swapsToPerform.slice(0, nextSwapInfo.amountOfSwaps),
-      };
+    async function getAmountToBeProvided(): Promise<{ tokenToBeProvidedBySwapper: TokenContract; amountToBeProvidedBySwapper: BigNumber }> {
+      const { tokens, indexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
+      const nextSwapInfo = await DCAHub.getNextSwapInfo(tokens, indexes);
+      const [token0, token1] = nextSwapInfo.tokens;
+      let amountToBeProvidedBySwapper: BigNumber;
+      let tokenToBeProvidedBySwapper: string;
+      if (token0.toProvide.gt(token1.toProvide)) {
+        amountToBeProvidedBySwapper = token0.toProvide;
+        tokenToBeProvidedBySwapper = token0.token;
+      } else {
+        amountToBeProvidedBySwapper = token1.toProvide;
+        tokenToBeProvidedBySwapper = token1.token;
+      }
+      return { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper: tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB };
     }
+
     async function setInitialBalance(
       hasAddress: HasAddress,
       { tokenA: amountTokenA, tokenB: amountTokenB }: { tokenA: number; tokenB: number }

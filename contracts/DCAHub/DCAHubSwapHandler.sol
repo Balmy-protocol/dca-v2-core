@@ -92,11 +92,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     }
   }
 
-  function getNextSwapInfo() external view override returns (NextSwapInformation memory _nextSwapInformation) {
-    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    (_nextSwapInformation, , ) = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
-  }
-
   function _getNextSwapInfo(uint32 _swapFee, ITimeWeightedOracle _oracle)
     internal
     view
