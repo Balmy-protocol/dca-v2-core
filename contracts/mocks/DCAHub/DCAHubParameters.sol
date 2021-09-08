@@ -36,12 +36,20 @@ contract DCAHubParametersMock is DCAHubParameters {
     _balances[_token] = _amount;
   }
 
-  function addActiveSwapInterval(uint32 _activeInterval) external {
-    _activeSwapIntervals.add(_activeInterval);
+  function addActiveSwapInterval(
+    address _tokenA,
+    address _tokenB,
+    uint32 _activeInterval
+  ) external {
+    _activeSwapIntervals[_tokenA][_tokenB].add(_activeInterval);
   }
 
-  function removeActiveSwapInterval(uint32 _activeInterval) external {
-    _activeSwapIntervals.remove(_activeInterval);
+  function removeActiveSwapInterval(
+    address _tokenA,
+    address _tokenB,
+    uint32 _activeInterval
+  ) external {
+    _activeSwapIntervals[_tokenA][_tokenB].remove(_activeInterval);
   }
 
   function setSwapAmountDelta(

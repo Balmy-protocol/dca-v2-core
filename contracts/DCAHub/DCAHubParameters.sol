@@ -21,20 +21,6 @@ library PairSpecificConfig {
   ) internal view returns (uint32 _value) {
     _value = (_tokenA < _tokenB) ? _mapping[_tokenA][_tokenB][_swapInterval] : _mapping[_tokenB][_tokenA][_swapInterval];
   }
-
-  function setValue(
-    mapping(address => mapping(address => mapping(uint32 => uint32))) storage _mapping,
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval,
-    uint32 _value
-  ) internal {
-    if (_tokenA < _tokenB) {
-      _mapping[_tokenA][_tokenB][_swapInterval] = _value;
-    } else {
-      _mapping[_tokenB][_tokenA][_swapInterval] = _value;
-    }
-  }
 }
 
 abstract contract DCAHubParameters is IDCAHubParameters {
@@ -57,9 +43,9 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   mapping(address => mapping(address => mapping(uint32 => uint32))) public performedSwaps; // token A => token B => swap interval => performed swaps
   mapping(address => mapping(address => mapping(uint32 => uint32))) public nextSwapAvailable; // token A => token B => swap interval => timestamp
+  mapping(address => mapping(address => EnumerableSet.UintSet)) internal _activeSwapIntervals; // token A => token B => active swap intervals
 
-  mapping(address => uint256) internal _balances;
-  EnumerableSet.UintSet internal _activeSwapIntervals;
+  mapping(address => uint256) internal _balances; // token => balance
 
   constructor(
     IDCAGlobalParameters _globalParameters,
@@ -76,8 +62,14 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     _magnitudeB = uint112(10**_tokenB.decimals());
   }
 
-  function isSwapIntervalActive(uint32 _activeSwapInterval) external view override returns (bool _isIntervalActive) {
-    _isIntervalActive = _activeSwapIntervals.contains(_activeSwapInterval);
+  function isSwapIntervalActive(
+    address _tokenA,
+    address _tokenB,
+    uint32 _activeSwapInterval
+  ) external view returns (bool _isIntervalActive) {
+    _isIntervalActive = _tokenA < _tokenB
+      ? _activeSwapIntervals[_tokenA][_tokenB].contains(_activeSwapInterval)
+      : _activeSwapIntervals[_tokenB][_tokenA].contains(_activeSwapInterval);
   }
 
   function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal view returns (uint256) {
