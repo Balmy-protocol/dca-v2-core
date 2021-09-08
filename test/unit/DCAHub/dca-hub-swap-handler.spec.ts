@@ -2271,7 +2271,7 @@ describe('DCAHubSwapHandler', () => {
         });
       });
       then('emits event with correct information', async () => {
-        const nextSwapInformation = (await readArgFromEvent(swapTx, 'Swapped', 'nextSwapInformation')) as NextSwapInfo;
+        const nextSwapInformation = (await readArgFromEvent(swapTx, 'SwappedOld', 'nextSwapInformation')) as NextSwapInfo;
         const parsedNextSwaps = parseNextSwaps(nextSwapContext);
         expect(nextSwapInformation.swapsToPerform).to.deep.equal(parsedNextSwaps.nextSwaps);
         expect(nextSwapInformation.amountOfSwaps).to.equal(parsedNextSwaps.amount);
