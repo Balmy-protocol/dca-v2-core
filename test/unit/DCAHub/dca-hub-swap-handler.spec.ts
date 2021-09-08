@@ -1194,7 +1194,7 @@ describe('DCAHubSwapHandler', () => {
         intervalsInSwap: number[];
       }[];
     }) {
-      when.only(title, () => {
+      when(title, () => {
         const BLOCK_TIMESTAMP = 30004;
         let initialBalances: Map<string, Map<TokenContract, BigNumber>>;
         let result: SwapInformation;
