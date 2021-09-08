@@ -37,7 +37,7 @@ export function buildSwapInput(
   return { tokens, pairIndexes, borrow: toBorrow };
 }
 
-function buildBorrowArray(tokens: TokenAddress[], borrow: Borrow[]) {
+function buildBorrowArray(tokens: TokenAddress[], borrow: Borrow[]): BigNumber[] {
   const borrowMap = new Map(borrow.map(({ token, amount }) => [token, amount]));
   return tokens.map((token) => borrowMap.get(token) ?? BigNumber.from(0));
 }
