@@ -1,3 +1,5 @@
+import { BigNumber } from 'ethers';
+
 export type TokenAddress = string;
 
 export type Pair = {
@@ -5,16 +7,39 @@ export type Pair = {
   tokenB: TokenAddress;
 };
 
+export type Borrow = {
+  token: TokenAddress;
+  amount: BigNumber;
+};
+
 export type PairIndex = {
   indexTokenA: number;
   indexTokenB: number;
 };
 
-export function buildSwapInput(pairs: Pair[]): { tokens: TokenAddress[]; indexes: PairIndex[] } {
-  const tokens: TokenAddress[] = getUniqueTokens(pairs);
-  const indexes = getIndexes(pairs, tokens);
-  assertValid(indexes);
-  return { tokens, indexes };
+export function buildGetNextSwapInfoInput(
+  pairsToSwap: Pair[],
+  checkAvailableToBorrow: TokenAddress[]
+): { tokens: TokenAddress[]; pairIndexes: PairIndex[] } {
+  const fakeAmounts = checkAvailableToBorrow.map((token) => ({ token, amount: BigNumber.from(0) }));
+  const { tokens, pairIndexes } = buildSwapInput(pairsToSwap, fakeAmounts);
+  return { tokens, pairIndexes };
+}
+
+export function buildSwapInput(
+  pairsToSwap: Pair[],
+  borrow: Borrow[]
+): { tokens: TokenAddress[]; pairIndexes: PairIndex[]; borrow: BigNumber[] } {
+  const tokens: TokenAddress[] = getUniqueTokens(pairsToSwap, borrow);
+  const pairIndexes = getIndexes(pairsToSwap, tokens);
+  assertValid(pairIndexes);
+  const toBorrow = buildBorrowArray(tokens, borrow);
+  return { tokens, pairIndexes, borrow: toBorrow };
+}
+
+function buildBorrowArray(tokens: TokenAddress[], borrow: Borrow[]) {
+  const borrowMap = new Map(borrow.map(({ token, amount }) => [token, amount]));
+  return tokens.map((token) => borrowMap.get(token) ?? BigNumber.from(0));
 }
 
 function assertValid(indexes: PairIndex[]) {
@@ -46,11 +71,15 @@ function getIndexes(pairs: Pair[], tokens: TokenAddress[]): PairIndex[] {
 }
 
 /** Given a list of pairs, returns a sorted list of the tokens involved */
-function getUniqueTokens(pairs: Pair[]): TokenAddress[] {
+function getUniqueTokens(pairs: Pair[], borrow: Borrow[]): TokenAddress[] {
   const tokenSet: Set<TokenAddress> = new Set();
   for (const { tokenA, tokenB } of pairs) {
     tokenSet.add(tokenA);
     tokenSet.add(tokenB);
+  }
+
+  for (const { token } of borrow) {
+    tokenSet.add(token);
   }
 
   return [...tokenSet].sort();

@@ -268,7 +268,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint8 _intervalCount;
     EnumerableSet.UintSet storage _swapIntervals = _activeSwapIntervals[_tokenA][_tokenB];
     _intervalsInSwap = new uint32[](_swapIntervals.length());
-    for (uint256 i; i < _swapIntervals.length(); i++) {
+    for (uint256 i; i < _intervalsInSwap.length; i++) {
       uint32 _swapInterval = uint32(_swapIntervals.at(i));
       if (nextSwapAvailable.getValue(_tokenA, _tokenB, _swapInterval) <= _getTimestamp()) {
         (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) = _getAmountToSwap(_tokenA, _tokenB, _swapInterval);
@@ -277,6 +277,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
         _totalAmountToSwapTokenB += _amountToSwapTokenB;
       }
     }
+
+    // TODO: If _totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0, consider making _intervalsInSwap a length 0 array
   }
 
   // TODO: Check if using smaller uint sizes for ratios and magnitudes is cheaper

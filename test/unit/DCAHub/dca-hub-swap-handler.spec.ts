@@ -17,7 +17,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { readArgFromEvent } from '@test-utils/event-utils';
 import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';
-import { buildSwapInput } from 'js-lib/swap-utils';
+import { buildGetNextSwapInfoInput } from 'js-lib/swap-utils';
 
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
@@ -363,10 +363,16 @@ describe('DCAHubSwapHandler', () => {
               ratioAToB: token1.asUnits(1 / ratio1To0),
             });
           }
-          const { tokens, indexes } = buildSwapInput(
-            pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address }))
+          const { tokens, pairIndexes } = buildGetNextSwapInfoInput(
+            pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address })),
+            []
           );
-          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(tokens, indexes, 6000, timeWeightedOracle.address);
+          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(
+            tokens,
+            pairIndexes,
+            6000,
+            timeWeightedOracle.address
+          );
         });
 
         then('ratios are expose correctly', () => {
@@ -689,11 +695,21 @@ describe('DCAHubSwapHandler', () => {
     when('getNextSwapInfo is called', () => {
       const INTERNAL_BALANCE_TOKEN_A = BigNumber.from(100);
       const INTERNAL_BALANCE_TOKEN_B = BigNumber.from(200);
+      const INTERNAL_BALANCE_TOKEN_C = BigNumber.from(300);
 
       let internalSwapInformation: SwapInformation;
       let result: NextSwapInfo;
+      let tokenC: TokenContract;
+      let internalBalances: Map<string, BigNumber>;
 
       given(async () => {
+        tokenC = await erc20.deploy({
+          name: 'tokenC',
+          symbol: 'TKN2',
+          decimals: 18,
+          initialAccount: owner.address,
+          initialAmount: ethers.constants.MaxUint256.div(2),
+        });
         internalSwapInformation = {
           tokens: [
             {
@@ -708,6 +724,12 @@ describe('DCAHubSwapHandler', () => {
               toProvide: constants.ZERO,
               platformFee: BigNumber.from(50),
             },
+            {
+              token: tokenC.address,
+              reward: constants.ZERO,
+              toProvide: constants.ZERO,
+              platformFee: constants.ZERO,
+            },
           ],
           pairs: [
             {
@@ -720,11 +742,18 @@ describe('DCAHubSwapHandler', () => {
           ],
         };
 
-        await DCAHubSwapHandler.setInternalBalance(tokenA.address, INTERNAL_BALANCE_TOKEN_A);
-        await DCAHubSwapHandler.setInternalBalance(tokenB.address, INTERNAL_BALANCE_TOKEN_B);
+        internalBalances = new Map([
+          [tokenA.address, INTERNAL_BALANCE_TOKEN_A],
+          [tokenB.address, INTERNAL_BALANCE_TOKEN_B],
+          [tokenC.address, INTERNAL_BALANCE_TOKEN_C],
+        ]);
+
+        for (const [token, balance] of internalBalances) {
+          await DCAHubSwapHandler.setInternalBalance(token, balance);
+        }
         await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation, []);
 
-        result = await DCAHubSwapHandler.getNextSwapInfo([tokenA.address, tokenB.address], [{ indexTokenA: 0, indexTokenB: 1 }]);
+        result = await DCAHubSwapHandler.getNextSwapInfo([tokenA.address, tokenB.address, tokenC.address], [{ indexTokenA: 0, indexTokenB: 1 }]);
       });
 
       then('_getNextSwapInfo is called with the correct parameters', () => {
@@ -750,7 +779,7 @@ describe('DCAHubSwapHandler', () => {
           expect(token.token).to.equal(internalTokenInfo.token);
           expect(token.toProvide).to.equal(internalTokenInfo.toProvide);
           expect(token.reward).to.equal(internalTokenInfo.reward);
-          const balance = token.token === tokenA.address ? INTERNAL_BALANCE_TOKEN_A : INTERNAL_BALANCE_TOKEN_B;
+          const balance = internalBalances.get(token.token)!;
           expect(token.availableToBorrow).to.equal(balance.sub(internalTokenInfo.reward));
         }
       });

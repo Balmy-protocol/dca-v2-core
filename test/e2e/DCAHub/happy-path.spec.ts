@@ -20,7 +20,7 @@ import { contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
-import { buildSwapInput } from 'js-lib/swap-utils';
+import { buildGetNextSwapInfoInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Full e2e test', () => {
@@ -356,8 +356,8 @@ contract('DCAHub', () => {
     }
 
     async function getNextSwapInfo() {
-      const { tokens, indexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-      return DCAHub.getNextSwapInfo(tokens, indexes);
+      const { tokens, pairIndexes } = buildGetNextSwapInfoInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+      return DCAHub.getNextSwapInfo(tokens, pairIndexes);
     }
 
     async function modifyRate(position: UserPositionDefinition, rate: number): Promise<void> {
