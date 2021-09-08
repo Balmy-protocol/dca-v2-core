@@ -70,7 +70,7 @@ describe('DCAHubSwapHandler', () => {
       tokenB.address,
       DCAGlobalParameters.address // global parameters
     );
-    await DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL);
+    await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
     snapshotId = await snapshot.take();
   });
 
@@ -212,12 +212,14 @@ describe('DCAHubSwapHandler', () => {
   });
 
   describe('_getTotalAmountsToSwap', () => {
-    when('there are no swap intervals', () => {
+    when('there are no active swap intervals', () => {
+      given(async () => {
+        await DCAHubSwapHandler.removeActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
+      });
       then('nothing is returned', async () => {
         const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
           tokenA.address,
-          tokenB.address,
-          []
+          tokenB.address
         );
         expect(amountToSwapTokenA).to.equal(0);
         expect(amountToSwapTokenB).to.equal(0);
@@ -229,66 +231,52 @@ describe('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setBlockTimestamp(10);
         await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, 20);
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
       });
       then('nothing is returned', async () => {
         const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
           tokenA.address,
-          tokenB.address,
-          [SWAP_INTERVAL]
+          tokenB.address
         );
         expect(amountToSwapTokenA).to.equal(0);
         expect(amountToSwapTokenB).to.equal(0);
         expect(affectedIntervals).to.eql([0]);
       });
     });
-    when('there is an active swap interval, but there is no amount to swap', () => {
-      given(async () => {
-        await DCAHubSwapHandler.setBlockTimestamp(10);
-        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, 10);
-      });
-      then('nothing is returned', async () => {
-        const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
-          tokenA.address,
-          tokenB.address,
-          [SWAP_INTERVAL]
-        );
-        expect(amountToSwapTokenA).to.equal(0);
-        expect(amountToSwapTokenB).to.equal(0);
-        expect(affectedIntervals).to.eql([0]);
-      });
-    });
-    when('only some swap intervals are active', () => {
+    when('only some swap intervals can be swapped', () => {
       given(async () => {
         await DCAHubSwapHandler.setBlockTimestamp(15);
         await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, 20);
         await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL_2, 10);
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL_2);
       });
       then('they are returned correctly', async () => {
         const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
           tokenA.address,
-          tokenB.address,
-          [SWAP_INTERVAL, SWAP_INTERVAL_2]
+          tokenB.address
         );
         expect(amountToSwapTokenA).to.equal(tokenA.asUnits(30));
         expect(amountToSwapTokenB).to.equal(tokenB.asUnits(50));
         expect(affectedIntervals).to.eql([SWAP_INTERVAL_2, 0]);
       });
     });
-    when('all swap intervals are active', () => {
+    when('all swap intervals can be swapped', () => {
       given(async () => {
         await DCAHubSwapHandler.setBlockTimestamp(20);
         await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, 10);
         await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL_2, 15);
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL_2);
       });
       then('they are returned correctly', async () => {
         const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
           tokenA.address,
-          tokenB.address,
-          [SWAP_INTERVAL, SWAP_INTERVAL_2]
+          tokenB.address
         );
         expect(amountToSwapTokenA).to.equal(tokenA.asUnits(40));
         expect(amountToSwapTokenB).to.equal(tokenB.asUnits(70));
@@ -366,7 +354,8 @@ describe('DCAHubSwapHandler', () => {
               token0.address,
               token1.address,
               token0.asUnits(amountToken0),
-              token1.asUnits(amountToken1)
+              token1.asUnits(amountToken1),
+              [SWAP_INTERVAL, SWAP_INTERVAL_2]
             );
             await DCAHubSwapHandler.setRatio(token0.address, token1.address, token0.asUnits(ratio1To0));
             expectedRatios.set(token0.address + token1.address, {
@@ -377,13 +366,7 @@ describe('DCAHubSwapHandler', () => {
           const { tokens, indexes } = buildSwapInput(
             pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address }))
           );
-          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(
-            tokens,
-            indexes,
-            6000,
-            timeWeightedOracle.address,
-            [SWAP_INTERVAL, SWAP_INTERVAL_2]
-          );
+          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(tokens, indexes, 6000, timeWeightedOracle.address);
         });
 
         then('ratios are expose correctly', () => {
@@ -404,7 +387,7 @@ describe('DCAHubSwapHandler', () => {
           }
         });
 
-        then('intervals are expose correctly', () => {
+        then('intervals are exposed correctly', () => {
           for (const pair of swapInformation.pairs) {
             expect(pair.intervalsInSwap).to.eql([SWAP_INTERVAL, SWAP_INTERVAL_2]);
           }
@@ -741,11 +724,7 @@ describe('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setInternalBalance(tokenB.address, INTERNAL_BALANCE_TOKEN_B);
         await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation, []);
 
-        // @ts-ignore
-        result = await DCAHubSwapHandler['getNextSwapInfo(address[],(uint8,uint8)[])'](
-          [tokenA.address, tokenB.address],
-          [{ indexTokenA: 0, indexTokenB: 1 }]
-        );
+        result = await DCAHubSwapHandler.getNextSwapInfo([tokenA.address, tokenB.address], [{ indexTokenA: 0, indexTokenB: 1 }]);
       });
 
       then('_getNextSwapInfo is called with the correct parameters', () => {
@@ -907,7 +886,7 @@ describe('DCAHubSwapHandler', () => {
   describe('getNextSwapsToPerform', () => {
     getNextSwapsToPerformTest({
       title: 'no active swap interval',
-      context: () => DCAHubSwapHandler.removeActiveSwapInterval(SWAP_INTERVAL),
+      context: () => DCAHubSwapHandler.removeActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL),
       nextSwapContext: [],
     });
 
@@ -951,7 +930,7 @@ describe('DCAHubSwapHandler', () => {
 
     getNextSwapsToPerformTest({
       title: 'neither of both intervals are executable',
-      context: () => DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL_2),
+      context: () => DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL_2),
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
@@ -973,7 +952,7 @@ describe('DCAHubSwapHandler', () => {
 
     getNextSwapsToPerformTest({
       title: 'one of both intervals is executable',
-      context: () => DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL_2),
+      context: () => DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL_2),
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
@@ -994,7 +973,7 @@ describe('DCAHubSwapHandler', () => {
 
     getNextSwapsToPerformTest({
       title: 'both intervals are executable',
-      context: () => DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL_2),
+      context: () => DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL_2),
       nextSwapContext: [
         {
           interval: SWAP_INTERVAL,
@@ -1015,305 +994,6 @@ describe('DCAHubSwapHandler', () => {
   function doesSwapNeedToBeExecuted(nextSwapContext: NextSwapInformationContextWithNextSwapAvailableAt, blockTimestamp?: number): boolean {
     return !blockTimestamp || !nextSwapContext.nextSwapAvailableAt || nextSwapContext.nextSwapAvailableAt <= blockTimestamp;
   }
-
-  function getNextSwapInfoTest({
-    title,
-    context,
-    nextSwapContext,
-    ratePerUnitBToA,
-    threshold,
-  }: {
-    title: string;
-    context?: () => Promise<any>;
-    nextSwapContext: NextSwapInformationContext[];
-    ratePerUnitBToA: BigNumber | number | string;
-    threshold?: BigNumber | number;
-  }) {
-    let totalAmountToSwapOfTokenA: BigNumber;
-    let totalAmountToSwapOfTokenB: BigNumber;
-    let ratePerUnitAToB: BigNumber;
-    let platformFeeTokenA: BigNumber;
-    let platformFeeTokenB: BigNumber;
-    let amountToBeProvidedBySwapper: BigNumber;
-    let amountToRewardSwapperWith: BigNumber;
-    let tokenToBeProvidedBySwapper: () => string;
-    let tokenToRewardSwapperWith: () => string;
-    let nextSwapInfo: NextSwapInfo;
-    when(title, () => {
-      given(async () => {
-        if (context) await context();
-        totalAmountToSwapOfTokenA = toBN(
-          sumAmountFromContext(nextSwapContext, (swapContext) => swapContext.amountToSwapOfTokenA),
-          tokenA
-        );
-        totalAmountToSwapOfTokenB = toBN(
-          sumAmountFromContext(nextSwapContext, (swapContext) => swapContext.amountToSwapOfTokenB),
-          tokenB
-        );
-        ratePerUnitBToA = toBN(ratePerUnitBToA, tokenA);
-        threshold = bn.toBN(threshold ?? 1);
-        ({
-          ratePerUnitAToB,
-          platformFeeTokenA,
-          platformFeeTokenB,
-          amountToBeProvidedBySwapper,
-          amountToRewardSwapperWith,
-          tokenToBeProvidedBySwapper,
-          tokenToRewardSwapperWith,
-        } = calculateSwapDetails(ratePerUnitBToA, totalAmountToSwapOfTokenB, totalAmountToSwapOfTokenA));
-        await DCAHubSwapHandler.setNextSwapsToPerform(
-          nextSwapContext.map(({ interval, nextSwapToPerform, amountToSwapOfTokenA, amountToSwapOfTokenB }) => ({
-            interval,
-            swapToPerform: nextSwapToPerform,
-            amountToSwapTokenA: tokenA.asUnits(amountToSwapOfTokenA),
-            amountToSwapTokenB: tokenB.asUnits(amountToSwapOfTokenB),
-          }))
-        );
-        await setOracleData({ ratePerUnitBToA });
-        await DCAHubSwapHandler.setInternalBalances(
-          (totalAmountToSwapOfTokenA as BigNumber).mul(2),
-          (totalAmountToSwapOfTokenB as BigNumber).mul(2)
-        );
-        nextSwapInfo = await DCAHubSwapHandler['getNextSwapInfo()']();
-      });
-      then('swaps to perform are correct', () => {
-        const parsedNextSwaps = parseNextSwaps(nextSwapContext);
-        expect(nextSwapInfo.swapsToPerform).to.eql(parsedNextSwaps.nextSwaps);
-        expect(nextSwapInfo.amountOfSwaps).to.eql(parsedNextSwaps.amount);
-      });
-      then('rate of unit b to a is correct', async () => {
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInfo.ratePerUnitBToA,
-          to: ratePerUnitBToA,
-          threshold: threshold!,
-        });
-      });
-      then('rate of unit a to b is correct', () => {
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInfo.ratePerUnitAToB,
-          to: ratePerUnitAToB,
-          threshold: threshold!,
-        });
-      });
-      then('token a fee is correct', async () => {
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInfo.platformFeeTokenA,
-          to: platformFeeTokenA,
-          threshold: threshold!,
-        });
-      });
-      then('token b fee is correct', async () => {
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInfo.platformFeeTokenB,
-          to: platformFeeTokenB,
-          threshold: threshold!,
-        });
-      });
-      then('the amount of tokens to be provided by swapper is correct', async () => {
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInfo.amountToBeProvidedBySwapper,
-          to: amountToBeProvidedBySwapper,
-          threshold: threshold!,
-        });
-      });
-      then('the amount of tokens to reward swapper with is correct', async () => {
-        bn.expectToEqualWithThreshold({
-          value: nextSwapInfo.amountToRewardSwapperWith,
-          to: amountToRewardSwapperWith,
-          threshold: threshold!,
-        });
-      });
-      then('token to be provided by swapper is correct', async () => {
-        expect(nextSwapInfo.tokenToBeProvidedBySwapper).to.be.equal(tokenToBeProvidedBySwapper());
-      });
-      then('token to reward swapper with is correct', async () => {
-        expect(nextSwapInfo.tokenToRewardSwapperWith).to.be.equal(tokenToRewardSwapperWith());
-      });
-      then('available to borrow token a is correct', async () => {
-        const balanceA = await DCAHubSwapHandler.internalBalanceOf(tokenA.address);
-        if (tokenToRewardSwapperWith() === tokenA.address) {
-          expect(nextSwapInfo.availableToBorrowTokenA).to.be.equal(balanceA.sub(nextSwapInfo.amountToRewardSwapperWith));
-        } else {
-          expect(nextSwapInfo.availableToBorrowTokenA).to.be.equal(balanceA);
-        }
-      });
-      then('available to borrow token b is correct', async () => {
-        const balanceB = await DCAHubSwapHandler.internalBalanceOf(tokenB.address);
-        if (tokenToRewardSwapperWith() === tokenB.address) {
-          expect(nextSwapInfo.availableToBorrowTokenB).to.be.equal(balanceB.sub(nextSwapInfo.amountToRewardSwapperWith));
-        } else {
-          expect(nextSwapInfo.availableToBorrowTokenB).to.be.equal(balanceB);
-        }
-      });
-      then('fees are no more than expected', () => {
-        const expectedFeesTokenA = CALCULATE_FEE(totalAmountToSwapOfTokenA as BigNumber);
-        const expectedFeesTokenB = CALCULATE_FEE(totalAmountToSwapOfTokenB as BigNumber);
-
-        let totalFeesTokenA = platformFeeTokenA;
-        let totalFeesTokenB = platformFeeTokenB;
-
-        if (tokenToRewardSwapperWith() === tokenA.address) {
-          const feesAsRewards = amountToRewardSwapperWith.sub(amountToBeProvidedBySwapper.mul(ratePerUnitBToA).div(tokenB.magnitude));
-          totalFeesTokenA = totalFeesTokenA.add(feesAsRewards);
-        } else {
-          const feesAsRewards = amountToRewardSwapperWith.sub(amountToBeProvidedBySwapper.mul(ratePerUnitAToB).div(tokenA.magnitude));
-          totalFeesTokenB = totalFeesTokenB.add(feesAsRewards);
-        }
-        bn.expectToEqualWithThreshold({
-          value: totalFeesTokenA,
-          to: expectedFeesTokenA,
-          threshold: threshold!,
-        });
-        bn.expectToEqualWithThreshold({
-          value: totalFeesTokenB,
-          to: expectedFeesTokenB,
-          threshold: threshold!,
-        });
-      });
-    });
-  }
-
-  describe('getNextSwapInfo', () => {
-    getNextSwapInfoTest({
-      title: 'only one interval, rate per unit is 1:1 and needing token b to be provided externally',
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1.4,
-          amountToSwapOfTokenB: 1.3,
-        },
-      ],
-      ratePerUnitBToA: 1,
-    });
-
-    getNextSwapInfoTest({
-      title: 'only one interval but no amount to swap',
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 0,
-          amountToSwapOfTokenB: 0,
-        },
-      ],
-      ratePerUnitBToA: 1,
-    });
-
-    getNextSwapInfoTest({
-      title: 'only one interval, rate per unit is 1:1 and needing token a to be provided externally',
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1,
-          amountToSwapOfTokenB: 1.3,
-        },
-      ],
-      ratePerUnitBToA: 1,
-    });
-
-    getNextSwapInfoTest({
-      title: 'only one interval, rate per unit is 1:1 and there is no need to provide tokens externally',
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1,
-          amountToSwapOfTokenB: 1,
-        },
-      ],
-      ratePerUnitBToA: 1,
-    });
-
-    getNextSwapInfoTest({
-      title: 'only one interval, rate per unit is 3:5 and needing token b to be provided externally',
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1.4,
-          amountToSwapOfTokenB: 2,
-        },
-      ],
-      ratePerUnitBToA: 0.6,
-      threshold: 2,
-    });
-
-    getNextSwapInfoTest({
-      title: 'only one interval, rate per unit is 3:5 and needing token a to be provided externally',
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1,
-          amountToSwapOfTokenB: 5,
-        },
-      ],
-      threshold: 2,
-      ratePerUnitBToA: 0.6,
-    });
-
-    getNextSwapInfoTest({
-      title: 'two intervals, rate per unit is 1:2 and needing token b to be provided externally',
-      context: () => DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL_2),
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1.4,
-          amountToSwapOfTokenB: 2.6,
-        },
-        {
-          interval: SWAP_INTERVAL_2,
-          nextSwapToPerform: 8,
-          amountToSwapOfTokenA: 1.4,
-          amountToSwapOfTokenB: 2.8,
-        },
-      ],
-      ratePerUnitBToA: 0.5,
-    });
-
-    getNextSwapInfoTest({
-      title: 'two intervals, rate per unit is 1:2 and needing token a to be provided externally',
-      context: () => DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL_2),
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 3,
-          amountToSwapOfTokenA: 1,
-          amountToSwapOfTokenB: 2.6,
-        },
-        {
-          interval: SWAP_INTERVAL_2,
-          nextSwapToPerform: 7,
-          amountToSwapOfTokenA: 0.3,
-          amountToSwapOfTokenB: 1,
-        },
-      ],
-      ratePerUnitBToA: 0.5,
-    });
-
-    getNextSwapInfoTest({
-      title: 'two intervals, rate per unit is 1:2 and there is no need to provide tokens externally',
-      context: () => DCAHubSwapHandler.addActiveSwapInterval(SWAP_INTERVAL_2),
-      nextSwapContext: [
-        {
-          interval: SWAP_INTERVAL,
-          nextSwapToPerform: 2,
-          amountToSwapOfTokenA: 1,
-          amountToSwapOfTokenB: 2,
-        },
-        {
-          interval: SWAP_INTERVAL_2,
-          nextSwapToPerform: 15,
-          amountToSwapOfTokenA: 0.5,
-          amountToSwapOfTokenB: 1,
-        },
-      ],
-      ratePerUnitBToA: 0.5,
-    });
-  });
 
   const swapTestFailed = ({
     title,
@@ -1350,7 +1030,7 @@ describe('DCAHubSwapHandler', () => {
           await context();
         }
         for (const interval of addedSwapIntervals ?? []) {
-          await DCAHubSwapHandler.addActiveSwapInterval(interval);
+          await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, interval);
         }
         initialSwapperBalanceTokenA =
           typeof initialSwapperBalanceTokenA === 'function' ? initialSwapperBalanceTokenA() : initialSwapperBalanceTokenA;
@@ -1442,9 +1122,9 @@ describe('DCAHubSwapHandler', () => {
         }
       });
       then('active swap intervals remain the same', async () => {
-        expect(await DCAHubSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.true;
+        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.true;
         for (const addedSwapInterval of addedSwapIntervals ?? []) {
-          expect(await DCAHubSwapHandler.isSwapIntervalActive(addedSwapInterval)).to.true;
+          expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, addedSwapInterval)).to.true;
         }
       });
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1697,7 +1377,7 @@ describe('DCAHubSwapHandler', () => {
         expect(await DCAHubSwapHandler.performedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(0);
       });
       then('swap interval is no longer active', async () => {
-        expect(await DCAHubSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.be.false;
+        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.be.false;
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1741,14 +1421,13 @@ describe('DCAHubSwapHandler', () => {
       ]);
       await setOracleData({ ratePerUnitBToA: tokenA.asUnits(1) });
 
-      ({
-        amountToBeProvidedBySwapper,
-        amountToRewardSwapperWith,
-        platformFeeTokenA,
-        platformFeeTokenB,
-        availableToBorrowTokenA,
-        availableToBorrowTokenB,
-      } = await DCAHubSwapHandler['getNextSwapInfo()']());
+      ({ amountToBeProvidedBySwapper, amountToRewardSwapperWith, platformFeeTokenA, platformFeeTokenB } = calculateSwapDetails(
+        tokenA.asUnits(1),
+        tokenB.asUnits(1),
+        tokenA.asUnits(2)
+      ));
+      availableToBorrowTokenA = pairInitialBalanceTokenA.sub(amountToRewardSwapperWith);
+      availableToBorrowTokenB = pairInitialBalanceTokenB;
     });
 
     when('doing a reentrancy attack via swap', () => {
@@ -1905,23 +1584,21 @@ describe('DCAHubSwapHandler', () => {
       });
 
       then('active swap intervals remain the same', async () => {
-        expect(await DCAHubSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.be.true;
-        expect(await DCAHubSwapHandler.isSwapIntervalActive(SWAP_INTERVAL_2)).to.be.false;
+        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.be.true;
+        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL_2)).to.be.false;
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
     when('more tokens than expected are returned', () => {
-      let tx: TransactionResponse;
-
       given(async () => {
         await DCAHubSwapCallee.returnSpecificAmounts(
           availableToBorrowTokenA.add(1),
           availableToBorrowTokenB.add(amountToBeProvidedBySwapper).add(1)
         );
 
-        tx = await DCAHubSwapHandler['swap(uint256,uint256,address,bytes)'](
+        await DCAHubSwapHandler['swap(uint256,uint256,address,bytes)'](
           availableToBorrowTokenA,
           availableToBorrowTokenB,
           DCAHubSwapCallee.address,
@@ -2083,10 +1760,10 @@ describe('DCAHubSwapHandler', () => {
       when(title, () => {
         given(async () => {
           // This is added automatically. Will remove it and re-add it if test needs it
-          await DCAHubSwapHandler.removeActiveSwapInterval(SWAP_INTERVAL);
+          await DCAHubSwapHandler.removeActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
 
           for (const { interval, nextAvailable } of intervals) {
-            await DCAHubSwapHandler.addActiveSwapInterval(interval);
+            await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, interval);
             await DCAHubSwapHandler.setNextSwapAvailable(interval, nextAvailable);
           }
           await DCAHubSwapHandler.setBlockTimestamp(blockTimestamp);
@@ -2141,7 +1818,7 @@ describe('DCAHubSwapHandler', () => {
           await context();
         }
         for (const interval of addedSwapIntervals ?? []) {
-          await DCAHubSwapHandler.addActiveSwapInterval(interval);
+          await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, interval);
         }
         initialContractTokenABalance = toBN(initialContractTokenABalance, tokenA);
         initialContractTokenBBalance = toBN(initialContractTokenBBalance, tokenB);
@@ -2352,9 +2029,9 @@ describe('DCAHubSwapHandler', () => {
       });
 
       then('active swap intervals remain the same', async () => {
-        expect(await DCAHubSwapHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.true;
+        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.true;
         for (const addedSwapInterval of addedSwapIntervals ?? []) {
-          expect(await DCAHubSwapHandler.isSwapIntervalActive(addedSwapInterval)).to.true;
+          expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, addedSwapInterval)).to.true;
         }
       });
 
