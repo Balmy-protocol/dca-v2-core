@@ -248,7 +248,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     if (_toFeeRecipientTokenB > 0) tokenB.safeTransfer(_swapParameters.feeRecipient, _toFeeRecipientTokenB);
 
     // Emit event
-    emit Swapped(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _swapParameters.swapFee, _nextSwapInformation);
+    emit SwappedOld(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _swapParameters.swapFee, _nextSwapInformation);
   }
 
   function _getTimestamp() internal view virtual returns (uint32 _blockTimestamp) {
@@ -458,5 +458,85 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       _swapInformation.tokens[i].toProvide = _tokenInSwap.toProvide;
       _swapInformation.tokens[i].availableToBorrow = _balances[_tokenInSwap.token] - _tokenInSwap.reward;
     }
+  }
+
+  event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
+
+  function swap(address[] memory _tokens, PairIndexes[] memory _pairsToSwap) external {
+    swap(_tokens, _pairsToSwap, new uint256[](_tokens.length), msg.sender, '');
+  }
+
+  function swap(
+    address[] memory _tokens,
+    PairIndexes[] memory _pairsToSwap,
+    uint256[] memory _borrow,
+    address _to,
+    bytes memory _data
+  ) public nonReentrant {
+    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
+    if (_swapParameters.isPaused) revert CommonErrors.Paused();
+
+    SwapInfo memory _swapInformation;
+
+    {
+      RatioWithFee[] memory _internalSwapInformation;
+      (_swapInformation, _internalSwapInformation) = _getNextSwapInfo(_tokens, _pairsToSwap, _swapParameters.swapFee, _swapParameters.oracle);
+      // TODO: revert with 'NoSwapsToExecute' if there are no swaps being executed
+
+      uint32 _timestamp = _getTimestamp();
+      for (uint256 i; i < _swapInformation.pairs.length; i++) {
+        for (uint256 j; j < _swapInformation.pairs[i].intervalsInSwap.length; j++) {
+          if (_swapInformation.pairs[i].intervalsInSwap[j] == 0) {
+            // Note: This is an optimization. If the interval is 0, we know there won't be any other intervals for this pair
+            break;
+          }
+          _registerSwap(
+            _swapInformation.pairs[i].tokenA,
+            _swapInformation.pairs[i].tokenB,
+            _swapInformation.pairs[i].intervalsInSwap[j],
+            _internalSwapInformation[i].ratioAToBWithFee,
+            _internalSwapInformation[i].ratioBToAWithFee,
+            _timestamp
+          );
+        }
+      }
+    }
+
+    // Optimistically transfer tokens
+    for (uint256 i; i < _swapInformation.tokens.length; i++) {
+      uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
+      if (_amountToSend > 0) {
+        // TODO: Think if we want to revert with a nicer message when there aren't enough funds, or if we just let it fail during transfer
+        IERC20Metadata(_swapInformation.tokens[i].token).safeTransfer(_to, _amountToSend);
+      }
+    }
+
+    if (_data.length > 0) {
+      // TODO: Add support for flash loans
+    }
+
+    for (uint256 i; i < _swapInformation.tokens.length; i++) {
+      uint256 _amountToHave = _balances[_swapInformation.tokens[i].token] +
+        _swapInformation.tokens[i].toProvide -
+        _swapInformation.tokens[i].reward;
+
+      // TODO: Check if it's cheaper to avoid checking the balance for tokens that had nothing to provide and that weren't borrowed
+      uint256 _currentBalance = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+
+      // Make sure tokens were sent back
+      if (_currentBalance < _amountToHave) {
+        revert CommonErrors.LiquidityNotReturned();
+      }
+
+      // Update internal balance
+      _balances[_swapInformation.tokens[i].token] = _amountToHave;
+
+      // Update platform balance
+      uint256 _extra = _swapInformation.tokens[i].platformFee + (_currentBalance - _amountToHave);
+      platformBalance[_swapInformation.tokens[i].token] += _extra;
+    }
+
+    // Emit event
+    emit Swapped(msg.sender, _to, _swapInformation, _borrow, _swapParameters.swapFee);
   }
 }

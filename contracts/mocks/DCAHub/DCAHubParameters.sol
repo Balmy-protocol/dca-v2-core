@@ -36,6 +36,10 @@ contract DCAHubParametersMock is DCAHubParameters {
     _balances[_token] = _amount;
   }
 
+  function setPlatformBalance(address _token, uint256 _amount) external {
+    platformBalance[_token] = _amount;
+  }
+
   function addActiveSwapInterval(
     address _tokenA,
     address _tokenB,

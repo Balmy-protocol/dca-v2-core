@@ -301,7 +301,7 @@ interface IDCAHubSwapHandler {
   /// @param amountBorrowedTokenB How much was borrowed in token B
   /// @param fee How much was charged as a swap fee to position owners
   /// @param nextSwapInformation All information related to the swap
-  event Swapped(
+  event SwappedOld(
     address indexed sender,
     address indexed to,
     uint256 amountBorrowedTokenA,
