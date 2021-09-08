@@ -20,6 +20,7 @@ import { contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import { buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Full e2e test', () => {
@@ -327,8 +328,18 @@ contract('DCAHub', () => {
 
     async function swap({ swapper }: { swapper: SignerWithAddress }) {
       const nextSwapInfo = await getNextSwapInfo();
-      const tokenToProvide = nextSwapInfo.tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB;
-      await tokenToProvide.connect(swapper).transfer(DCAHub.address, nextSwapInfo.amountToBeProvidedBySwapper);
+      const [token0, token1] = nextSwapInfo.tokens;
+      let amountToProvide: BigNumber;
+      let tokenToProvide: string;
+      if (token0.toProvide.gt(token1.toProvide)) {
+        amountToProvide = token0.toProvide;
+        tokenToProvide = token0.token;
+      } else {
+        amountToProvide = token1.toProvide;
+        tokenToProvide = token1.token;
+      }
+      const token = { [tokenA.address]: tokenA, [tokenB.address]: tokenB }[tokenToProvide];
+      await token.connect(swapper).transfer(DCAHub.address, amountToProvide);
       await DCAHub.connect(swapper)['swap()']();
     }
 
@@ -344,13 +355,9 @@ contract('DCAHub', () => {
       return DCAHub.userPosition(position.id);
     }
 
-    async function getNextSwapInfo(): Promise<NextSwapInformation> {
-      const nextSwapInfo: NextSwapInformation & { amountOfSwaps: number } = await DCAHub.getNextSwapInfo();
-      return {
-        ...nextSwapInfo,
-        // Remove zeroed positions in array
-        swapsToPerform: nextSwapInfo.swapsToPerform.slice(0, nextSwapInfo.amountOfSwaps),
-      };
+    async function getNextSwapInfo() {
+      const { tokens, indexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
+      return DCAHub.getNextSwapInfo(tokens, indexes);
     }
 
     async function modifyRate(position: UserPositionDefinition, rate: number): Promise<void> {
@@ -424,16 +431,27 @@ contract('DCAHub', () => {
     }
 
     async function assertAmountsToSwapAre({ tokenA: expectedTokenA, tokenB: expectedTokenB }: { tokenA: number; tokenB: number }) {
-      const { swapsToPerform } = await getNextSwapInfo();
-      const totalTokenA = swapsToPerform.map(({ amountToSwapTokenA }) => amountToSwapTokenA).reduce(sumBN, constants.ZERO);
-      const totalTokenB = swapsToPerform.map(({ amountToSwapTokenB }) => amountToSwapTokenB).reduce(sumBN, constants.ZERO);
+      const nextSwapInfo = await getNextSwapInfo();
+      const { intervalsInSwap } = nextSwapInfo.pairs[0];
+      let totalTokenA = constants.ZERO;
+      let totalTokenB = constants.ZERO;
+
+      for (const interval of intervalsInSwap) {
+        const performedSwaps = await DCAHub.performedSwaps(tokenA.address, tokenB.address, interval);
+        totalTokenA = totalTokenA.add(await DCAHub.swapAmountDelta(tokenA.address, tokenB.address, interval, performedSwaps + 1));
+        totalTokenB = totalTokenB.add(await DCAHub.swapAmountDelta(tokenB.address, tokenA.address, interval, performedSwaps + 1));
+      }
+
       expect(totalTokenA).to.equal(tokenA.asUnits(expectedTokenA));
       expect(totalTokenB).to.equal(tokenB.asUnits(expectedTokenB));
     }
 
     async function assertIntervalsToSwapNowAre(...swapIntervals: number[]): Promise<void> {
       const nextSwapInfo = await getNextSwapInfo();
-      const intervals = nextSwapInfo.swapsToPerform.map(({ interval }) => interval);
+      const intervals = nextSwapInfo.pairs
+        .map(({ intervalsInSwap }) => intervalsInSwap)
+        .flat()
+        .filter((interval) => interval > 0);
       expect(intervals).to.eql(swapIntervals);
       if (swapIntervals.length > 0) {
         const secondsUntilNext = await DCAHub.secondsUntilNextSwap();

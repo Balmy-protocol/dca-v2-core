@@ -20,12 +20,6 @@ interface IDCAHubParameters {
   /// @notice Returns the token B contract
   /// @return The contract for token B
   function tokenB() external view returns (IERC20Metadata);
-
-  /// @notice Returns if a certain swap interval is active or not
-  /// @dev We consider a swap interval to be active if there is at least one active position on that interval
-  /// @param _swapInterval The swap interval to check
-  /// @return _isActive Whether the given swap interval is currently active
-  function isSwapIntervalActive(uint32 _swapInterval) external view returns (bool _isActive);
 }
 
 /// @title The interface for all position related matters in a DCA pair
@@ -318,10 +312,6 @@ interface IDCAHubSwapHandler {
 
   /// @notice Thrown when trying to execute a swap, but none is available
   error NoSwapsToExecute();
-
-  /// @notice Returns all information related to the next swap
-  /// @return _nextSwapInformation The information about the next swap
-  function getNextSwapInfo() external view returns (NextSwapInformation memory _nextSwapInformation);
 
   /// @notice Executes a swap
   /// @dev This method assumes that the required amount has already been sent. Will revert with:

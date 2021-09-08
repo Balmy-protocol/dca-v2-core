@@ -269,7 +269,7 @@ describe('DCAPositionHandler', () => {
       });
 
       then('interval is now active', async () => {
-        expect(await DCAPositionHandler.isSwapIntervalActive(SWAP_INTERVAL)).to.be.true;
+        expect(await DCAPositionHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.be.true;
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();

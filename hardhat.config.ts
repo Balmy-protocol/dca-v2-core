@@ -14,7 +14,11 @@ import { getNodeUrl, accounts } from './utils/network';
 import 'tsconfig-paths/register';
 
 const networks: NetworksUserConfig = process.env.TEST
-  ? {}
+  ? {
+      hardhat: {
+        allowUnlimitedContractSize: true,
+      },
+    }
   : {
       hardhat: {
         forking: {

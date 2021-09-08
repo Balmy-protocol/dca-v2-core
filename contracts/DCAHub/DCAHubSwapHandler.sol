@@ -33,9 +33,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
     delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
     delete swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
-    // TODO: Investigate if sorting the tokens and accessing the mappings directly is more efficient
-    performedSwaps.setValue(_tokenA, _tokenB, _swapInterval, _swapToRegister);
-    nextSwapAvailable.setValue(_tokenA, _tokenB, _swapInterval, ((_timestamp / _swapInterval) + 1) * _swapInterval);
+    performedSwaps[_tokenA][_tokenB][_swapInterval] = _swapToRegister;
+    nextSwapAvailable[_tokenA][_tokenB][_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
   }
 
   function _getAmountToSwap(
@@ -57,10 +56,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   }
 
   function _getNextSwapsToPerform() internal view virtual returns (SwapInformation[] memory _swapsToPerform, uint8 _amountOfSwapsToPerform) {
-    uint256 _activeSwapIntervalsLength = _activeSwapIntervals.length();
+    uint256 _activeSwapIntervalsLength = _activeSwapIntervals[address(tokenA)][address(tokenB)].length();
     _swapsToPerform = new SwapInformation[](_activeSwapIntervalsLength);
     for (uint256 i; i < _activeSwapIntervalsLength; i++) {
-      uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
+      uint32 _swapInterval = uint32(_activeSwapIntervals[address(tokenA)][address(tokenB)].at(i));
       if (nextSwapAvailable.getValue(address(tokenA), address(tokenB), _swapInterval) <= _getTimestamp()) {
         uint32 _swapToPerform = performedSwaps.getValue(address(tokenA), address(tokenB), _swapInterval) + 1;
         (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) = _getAmountToSwap(address(tokenA), address(tokenB), _swapInterval);
@@ -77,8 +76,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   function secondsUntilNextSwap() external view override returns (uint32 _secondsUntil) {
     _secondsUntil = type(uint32).max;
     uint32 _timestamp = _getTimestamp();
-    for (uint256 i; i < _activeSwapIntervals.length(); i++) {
-      uint32 _swapInterval = uint32(_activeSwapIntervals.at(i));
+    for (uint256 i; i < _activeSwapIntervals[address(tokenA)][address(tokenB)].length(); i++) {
+      uint32 _swapInterval = uint32(_activeSwapIntervals[address(tokenA)][address(tokenB)].at(i));
       uint32 _nextAvailable = nextSwapAvailable.getValue(address(tokenA), address(tokenB), _swapInterval);
       if (_nextAvailable <= _timestamp) {
         _secondsUntil = 0;
@@ -90,11 +89,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
         }
       }
     }
-  }
-
-  function getNextSwapInfo() external view override returns (NextSwapInformation memory _nextSwapInformation) {
-    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    (_nextSwapInformation, , ) = _getNextSwapInfo(_swapParameters.swapFee, _swapParameters.oracle);
   }
 
   function _getNextSwapInfo(uint32 _swapFee, ITimeWeightedOracle _oracle)
@@ -188,7 +182,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
         if (_nextSwapInformation.swapsToPerform[i].amountToSwapTokenA > 0 || _nextSwapInformation.swapsToPerform[i].amountToSwapTokenB > 0) {
           _registerSwap(address(tokenA), address(tokenB), _swapInterval, _ratePerUnitAToBWithFee, _ratePerUnitBToAWithFee, _timestamp);
         } else {
-          _activeSwapIntervals.remove(_swapInterval);
+          _activeSwapIntervals[address(tokenA)][address(tokenB)].remove(_swapInterval);
         }
       }
     }
@@ -261,31 +255,26 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     _blockTimestamp = uint32(block.timestamp);
   }
 
-  function _getTotalAmountsToSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32[] memory _allowedSwapIntervals
-  )
+  function _getTotalAmountsToSwap(address _tokenA, address _tokenB)
     internal
     view
     virtual
     returns (
       uint256 _totalAmountToSwapTokenA,
       uint256 _totalAmountToSwapTokenB,
-      uint32[] memory _affectedIntervals
+      uint32[] memory _intervalsInSwap
     )
   {
     uint8 _intervalCount;
-    _affectedIntervals = new uint32[](_allowedSwapIntervals.length);
-    for (uint256 i; i < _allowedSwapIntervals.length; i++) {
-      uint32 _swapInterval = _allowedSwapIntervals[i];
+    EnumerableSet.UintSet storage _swapIntervals = _activeSwapIntervals[_tokenA][_tokenB];
+    _intervalsInSwap = new uint32[](_swapIntervals.length());
+    for (uint256 i; i < _swapIntervals.length(); i++) {
+      uint32 _swapInterval = uint32(_swapIntervals.at(i));
       if (nextSwapAvailable.getValue(_tokenA, _tokenB, _swapInterval) <= _getTimestamp()) {
         (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) = _getAmountToSwap(_tokenA, _tokenB, _swapInterval);
-        if (_amountToSwapTokenA > 0 || _amountToSwapTokenB > 0) {
-          _affectedIntervals[_intervalCount++] = _swapInterval;
-          _totalAmountToSwapTokenA += _amountToSwapTokenA;
-          _totalAmountToSwapTokenB += _amountToSwapTokenB;
-        }
+        _intervalsInSwap[_intervalCount++] = _swapInterval;
+        _totalAmountToSwapTokenA += _amountToSwapTokenA;
+        _totalAmountToSwapTokenB += _amountToSwapTokenB;
       }
     }
   }
@@ -354,14 +343,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint120 magnitudeB; // 36 decimals max amount supported
   }
 
-  // TODO: Check if using the "each pair's active intervals" approach is creaper
   function _getNextSwapInfo(
     address[] memory _tokens,
     PairIndexes[] memory _pairs,
     uint32 _swapFee,
-    ITimeWeightedOracle _oracle,
-    uint32[] memory _allowedSwapIntervals
-  ) internal view returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
+    ITimeWeightedOracle _oracle
+  ) internal view virtual returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
     // TODO: Make sure that there are no repeated tokens in _tokens
     // TODO: Make sure that there are no repeted pairs in _pairs
     // TODO: Make sure that _indexTokenA != _indexTokenB for all pair indexes
@@ -386,8 +373,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
 
       (_amountToSwapTokenA, _amountToSwapTokenB, _swapInformation.pairs[i].intervalsInSwap) = _getTotalAmountsToSwap(
         _swapInformation.pairs[i].tokenA,
-        _swapInformation.pairs[i].tokenB,
-        _allowedSwapIntervals
+        _swapInformation.pairs[i].tokenB
       );
 
       _total[_tokenInfo.indexTokenA] += _amountToSwapTokenA;
@@ -437,6 +423,38 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
         }
         _swapInformation.tokens[i].platformFee = uint256(_platformFee);
       }
+    }
+  }
+
+  struct NextSwapInfo {
+    NextTokenInSwap[] tokens;
+    PairInSwap[] pairs;
+  }
+
+  struct NextTokenInSwap {
+    address token;
+    uint256 reward;
+    uint256 toProvide;
+    uint256 availableToBorrow;
+  }
+
+  function getNextSwapInfo(address[] memory _tokens, PairIndexes[] memory _pairsToSwap)
+    external
+    view
+    returns (NextSwapInfo memory _swapInformation)
+  {
+    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
+    (SwapInfo memory _internalSwapInformation, ) = _getNextSwapInfo(_tokens, _pairsToSwap, _swapParameters.swapFee, _swapParameters.oracle);
+
+    _swapInformation.pairs = _internalSwapInformation.pairs;
+    _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
+
+    for (uint256 i; i < _internalSwapInformation.tokens.length; i++) {
+      TokenInSwap memory _tokenInSwap = _internalSwapInformation.tokens[i];
+      _swapInformation.tokens[i].token = _tokenInSwap.token;
+      _swapInformation.tokens[i].reward = _tokenInSwap.reward;
+      _swapInformation.tokens[i].toProvide = _tokenInSwap.toProvide;
+      _swapInformation.tokens[i].availableToBorrow = _balances[_tokenInSwap.token] - _tokenInSwap.reward;
     }
   }
 }

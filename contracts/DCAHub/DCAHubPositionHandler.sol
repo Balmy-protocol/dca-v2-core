@@ -53,13 +53,15 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     if (_owner == address(0)) revert CommonErrors.ZeroAddress();
     if (_tokenAddress != address(tokenA) && _tokenAddress != address(tokenB)) revert InvalidToken();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    if (!_activeSwapIntervals.contains(_swapInterval) && !globalParameters.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
+    if (
+      !_activeSwapIntervals[address(tokenA)][address(tokenB)].contains(_swapInterval) && !globalParameters.isSwapIntervalAllowed(_swapInterval)
+    ) revert InvalidInterval();
     uint256 _amount = _rate * _amountOfSwaps;
     IERC20Metadata(_tokenAddress).safeTransferFrom(msg.sender, address(this), _amount);
     _balances[_tokenAddress] += _amount;
     _idCounter += 1;
     _safeMint(_owner, _idCounter);
-    _activeSwapIntervals.add(_swapInterval);
+    _activeSwapIntervals[address(tokenA)][address(tokenB)].add(_swapInterval);
     (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(
       _idCounter,
       _tokenAddress,
