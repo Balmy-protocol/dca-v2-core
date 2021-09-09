@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.6;
-pragma abicoder v2;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
@@ -23,18 +22,24 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint32 _timestamp
   ) internal virtual {
     uint32 _swapToRegister = performedSwaps.getValue(_tokenA, _tokenB, _swapInterval) + 1;
-    _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister] =
-      _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister - 1] +
-      _ratePerUnitAToB;
-    _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister] =
-      _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister - 1] +
-      _ratePerUnitBToA;
-    swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
-    swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1] += swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
-    delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
-    delete swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
-    performedSwaps[_tokenA][_tokenB][_swapInterval] = _swapToRegister;
-    nextSwapAvailable[_tokenA][_tokenB][_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
+    int256 _swappedTokenA = swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
+    int256 _swappedTokenB = swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
+    if (_swappedTokenA > 0 || _swappedTokenB > 0) {
+      _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister] =
+        _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister - 1] +
+        _ratePerUnitAToB;
+      _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister] =
+        _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister - 1] +
+        _ratePerUnitBToA;
+      swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister + 1] += _swappedTokenA;
+      swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1] += _swappedTokenB;
+      delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
+      delete swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
+      performedSwaps[_tokenA][_tokenB][_swapInterval] = _swapToRegister;
+      nextSwapAvailable[_tokenA][_tokenB][_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
+    } else {
+      _activeSwapIntervals[_tokenA][_tokenB].remove(_swapInterval);
+    }
   }
 
   function _getAmountToSwap(

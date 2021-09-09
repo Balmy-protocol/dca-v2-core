@@ -190,6 +190,46 @@ describe.only('DCAHubSwapHandler', () => {
         accumRatePerUnitBToA: 600312,
       },
     });
+
+    when('no amount was swapped', () => {
+      const NEXT_SWAP = 10;
+      const NEXT_AVAILABLE = 50;
+
+      given(async () => {
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        await DCAHubSwapHandler.setPerformedSwaps(SWAP_INTERVAL, NEXT_SWAP - 1);
+        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, NEXT_AVAILABLE);
+        await DCAHubSwapHandler.registerSwap(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL,
+          BigNumber.from(100),
+          BigNumber.from(200),
+          NEXT_AVAILABLE + 10
+        );
+      });
+      then('interval is removed from active list', async () => {
+        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.be.false;
+      });
+      then('next delta is not modified', async () => {
+        const deltaInNextSwapAToB = await DCAHubSwapHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, NEXT_SWAP + 1);
+        const deltaInNextSwapBToA = await DCAHubSwapHandler.swapAmountDelta(tokenB.address, tokenA.address, SWAP_INTERVAL, NEXT_SWAP + 1);
+        expect(deltaInNextSwapAToB).to.equal(0);
+        expect(deltaInNextSwapBToA).to.equal(0);
+      });
+      then('rate per unit is not increased', async () => {
+        const accumRatesPerUnitAToB = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenA.address, tokenB.address, NEXT_SWAP);
+        const accumRatesPerUnitBToA = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenB.address, tokenA.address, NEXT_SWAP);
+        expect(accumRatesPerUnitAToB).to.equal(0);
+        expect(accumRatesPerUnitBToA).to.equal(0);
+      });
+      then('performed swaps is not incremented', async () => {
+        expect(await DCAHubSwapHandler.performedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(NEXT_SWAP - 1);
+      });
+      then('next available is not updated', async () => {
+        expect(await DCAHubSwapHandler.nextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(NEXT_AVAILABLE);
+      });
+    });
   });
 
   describe('_getAmountToSwap', () => {
