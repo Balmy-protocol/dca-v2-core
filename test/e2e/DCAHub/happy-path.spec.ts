@@ -75,7 +75,9 @@ contract('DCAHub', () => {
       );
       DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
-      DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy(tokenA.asUnits(500), tokenB.asUnits(500));
+      DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
+      await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);
+
       DCAHubLoanCallee = await DCAHubLoanCalleeFactory.deploy(tokenA.asUnits(20), tokenB.asUnits(20));
 
       await setInitialBalance(swapper1, { tokenA: 2000, tokenB: 2000 });
