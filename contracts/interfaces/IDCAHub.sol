@@ -320,30 +320,6 @@ interface IDCAHubSwapHandler {
   /// @notice Thrown when trying to execute a swap, but none is available
   error NoSwapsToExecute();
 
-  /// @notice Executes a swap
-  /// @dev This method assumes that the required amount has already been sent. Will revert with:
-  /// Paused if swaps are paused by protocol
-  /// NoSwapsToExecute if there are no swaps to execute
-  /// LiquidityNotReturned if the required tokens were not sent before calling the function
-  function swap() external;
-
-  /// @notice Executes a flash swap
-  /// @dev Will revert with:
-  /// Paused if swaps are paused by protocol
-  /// NoSwapsToExecute if there are no swaps to execute
-  /// InsufficientLiquidity if asked to borrow more than the actual reserves
-  /// LiquidityNotReturned if the required tokens were not back during the callback
-  /// @param _amountToBorrowTokenA How much to borrow in token A
-  /// @param _amountToBorrowTokenB How much to borrow in token B
-  /// @param _to Address to send the reward + the borrowed tokens
-  /// @param _data Bytes to send to the caller during the callback. If this parameter is empty, the callback won't be executed
-  function swap(
-    uint256 _amountToBorrowTokenA,
-    uint256 _amountToBorrowTokenB,
-    address _to,
-    bytes calldata _data
-  ) external;
-
   /// @notice Returns how many seconds left until the next swap is available
   /// @return _secondsUntilNextSwap The amount of seconds until next swap. Returns 0 if a swap can already be executed
   function secondsUntilNextSwap() external view returns (uint32 _secondsUntilNextSwap);
