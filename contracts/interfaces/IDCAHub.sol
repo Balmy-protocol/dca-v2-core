@@ -294,6 +294,13 @@ interface IDCAHubSwapHandler {
     IERC20Metadata tokenToRewardSwapperWith;
   }
 
+  struct TokenInSwap {
+    address token;
+    uint256 reward;
+    uint256 toProvide;
+    uint256 platformFee;
+  }
+
   /// @notice Emitted when a swap is executed
   /// @param sender The address of the user that initiated the swap
   /// @param to The address that received the reward + loan
