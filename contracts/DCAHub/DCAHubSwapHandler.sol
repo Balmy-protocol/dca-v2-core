@@ -317,13 +317,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     PairInSwap[] pairs;
   }
 
-  struct TokenInSwap {
-    address token;
-    uint256 reward;
-    uint256 toProvide;
-    uint256 platformFee;
-  }
-
   struct PairInSwap {
     address tokenA;
     address tokenB;
@@ -512,7 +505,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     }
 
     if (_data.length > 0) {
-      // TODO: Add support for flash loans
+      // Make call
+      IDCAHubSwapCallee(_to).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _data);
     }
 
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
