@@ -9,7 +9,7 @@ import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
-import { buildGetNextSwapInfoInput } from 'js-lib/swap-utils';
+import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Precision breaker', () => {
@@ -95,7 +95,9 @@ contract('DCAHub', () => {
     async function swap({ swapper }: { swapper: SignerWithAddress }) {
       const { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper } = await getAmountToBeProvided();
       await tokenToBeProvidedBySwapper.connect(swapper).transfer(DCAHub.address, amountToBeProvidedBySwapper);
-      await DCAHub.connect(swapper)['swap()']();
+      const { tokens, pairIndexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+      // @ts-ignore
+      await DCAHub.connect(swapper)['swap(address[],(uint8,uint8)[])'](tokens, pairIndexes);
     }
 
     async function getAmountToBeProvided(): Promise<{ tokenToBeProvidedBySwapper: TokenContract; amountToBeProvidedBySwapper: BigNumber }> {

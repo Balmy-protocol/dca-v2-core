@@ -20,7 +20,7 @@ import { contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
-import { buildGetNextSwapInfoInput } from 'js-lib/swap-utils';
+import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Full e2e test', () => {
@@ -99,16 +99,16 @@ contract('DCAHub', () => {
 
       await assertPositionIsConsistent(johnsPosition);
       await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES);
-      await assertPairBalanceDifferencesAre({ tokenA: +1000 });
+      await assertHubBalanceDifferencesAre({ tokenA: +1000 });
       await assertAmountsToSwapAre({ tokenA: 100, tokenB: 0 });
 
       await swap({ swapper: swapper1 });
 
       await assertPositionIsConsistent(johnsPosition, { expectedSwapped: swapped({ rate: 100, ratio: swapRatio1, fee: swapFee1 }) });
       await assertNoSwapsCanBeExecutedNow();
-      await assertPairBalanceDifferencesAre({ tokenA: -100, tokenB: +49.85 });
+      await assertHubBalanceDifferencesAre({ tokenA: -100, tokenB: +49.85 });
       await assertBalanceDifferencesAre(swapper1, { tokenA: +100, tokenB: -49.85 });
-      await assertBalanceDifferencesAre(feeRecipient, { tokenA: 0, tokenB: 0 });
+      await assertPlatformBalanceIncreasedBy({ tokenA: 0, tokenB: 0 });
 
       const lucysPosition = await deposit({
         depositor: lucy,
@@ -121,7 +121,7 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(lucysPosition);
       await assertIntervalsToSwapNowAre(SWAP_INTERVAL_1_HOUR);
       await assertAmountsToSwapAre({ tokenA: 0, tokenB: 200 });
-      await assertPairBalanceDifferencesAre({ tokenB: +400 });
+      await assertHubBalanceDifferencesAre({ tokenB: +400 });
 
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_10_MINUTES);
 
@@ -137,9 +137,9 @@ contract('DCAHub', () => {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatio1, fee: swapFee1 }, { rate: 100, ratio: swapRatio2, fee: swapFee1 }),
       });
       await assertPositionIsConsistent(lucysPosition, { expectedSwapped: swapped({ rate: 200, ratio: swapRatio2, fee: swapFee1 }) });
-      await assertPairBalanceDifferencesAre({ tokenA: +99.4, tokenB: -100.3 });
+      await assertHubBalanceDifferencesAre({ tokenA: +99.7, tokenB: -100 });
       await assertBalanceDifferencesAre(swapper1, { tokenA: -99.7, tokenB: +100 });
-      await assertBalanceDifferencesAre(feeRecipient, { tokenA: +0.3, tokenB: +0.3 });
+      await assertPlatformBalanceIncreasedBy({ tokenA: +0.3, tokenB: +0.3 });
 
       const sarahsPosition1 = await deposit({
         depositor: sarah,
@@ -158,13 +158,13 @@ contract('DCAHub', () => {
 
       await assertPositionIsConsistent(sarahsPosition1);
       await assertPositionIsConsistent(sarahsPosition2);
-      await assertPairBalanceDifferencesAre({ tokenA: +1500, tokenB: +400 });
+      await assertHubBalanceDifferencesAre({ tokenA: +1500, tokenB: +400 });
 
       await modifyRate(johnsPosition, 50);
       await assertPositionIsConsistent(johnsPosition, {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatio1, fee: swapFee1 }, { rate: 100, ratio: swapRatio2, fee: swapFee1 }),
       });
-      await assertPairBalanceDifferencesAre({ tokenA: -400 });
+      await assertHubBalanceDifferencesAre({ tokenA: -400 });
       await assertBalanceDifferencesAre(john, { tokenA: +400 });
 
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
@@ -187,9 +187,9 @@ contract('DCAHub', () => {
       });
       await assertPositionIsConsistent(sarahsPosition1, { expectedSwapped: swapped({ rate: 500, ratio: swapRatio2, fee: swapFee1 }) });
       await assertPositionIsConsistent(sarahsPosition2, { expectedSwapped: swapped({ rate: 100, ratio: swapRatio2, fee: swapFee1 }) });
-      await assertPairBalanceDifferencesAre({ tokenA: -250.9, tokenB: +248.35 });
+      await assertHubBalanceDifferencesAre({ tokenA: -250, tokenB: +249.25 });
       await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +250, tokenB: -249.25 });
-      await assertBalanceDifferencesAre(feeRecipient, { tokenA: +0.9, tokenB: +0.9 });
+      await assertPlatformBalanceIncreasedBy({ tokenA: +0.9, tokenB: +0.9 });
 
       const availableForWithdraw = calculateSwapped(
         johnsPosition,
@@ -200,20 +200,23 @@ contract('DCAHub', () => {
       await withdraw(johnsPosition, john.address);
 
       await assertPositionIsConsistentWithNothingToWithdraw(johnsPosition);
-      await assertPairBalanceDifferencesAre({ tokenB: availableForWithdraw.mul(-1) });
+      await assertHubBalanceDifferencesAre({ tokenB: availableForWithdraw.mul(-1) });
       await assertBalanceDifferencesAre(john, { tokenB: availableForWithdraw });
 
-      await assertAvailableToBorrowIs({ tokenA: 1848.5, tokenB: 798.5 }); // Calculated by summing all balance differences
-      await loan({ callee: DCAHubLoanCallee, tokenA: 1848.5, tokenB: 798.5 });
+      await assertAvailableToBorrowIs({ tokenA: 1849.7, tokenB: 799.7 }); // Calculated by summing all balance differences
+      await loan({ callee: DCAHubLoanCallee, tokenA: 1849.7, tokenB: 799.7 });
 
-      await assertPairBalanceDifferencesAre({ tokenA: 0, tokenB: 0 });
-      await assertBalanceDifferencesAre(feeRecipient, { tokenA: +1.8485, tokenB: +0.7985 });
-      await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: -1.8485, tokenB: -0.7985 });
+      // TODO: Uncomment when loan stops sending fees to fee recipient
+      // await assertHubBalanceDifferencesAre({ tokenA: +1.8497, tokenB: +0.7997 });
+      // await assertPlatformBalanceIncreasedBy({ tokenA: +1.8497, tokenB: +0.7997 });
+      await assertHubBalanceDifferencesAre({ tokenA: 0, tokenB: 0 });
+      await assertBalanceDifferencesAre(feeRecipient, { tokenA: +1.8497, tokenB: +0.7997 });
+      await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: -1.8497, tokenB: -0.7997 });
 
       await addFundsToPosition(johnsPosition, { newSwaps: 10, tokenA: 100 });
 
       await assertPositionIsConsistentWithNothingToWithdraw(johnsPosition);
-      await assertPairBalanceDifferencesAre({ tokenA: +100 });
+      await assertHubBalanceDifferencesAre({ tokenA: +100 });
       await assertBalanceDifferencesAre(john, { tokenA: -100 });
 
       const swapFee2 = 0.2;
@@ -240,24 +243,25 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(sarahsPosition2, {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatio2, fee: swapFee1 }, { rate: 100, ratio: swapRatio3, fee: swapFee2 }),
       });
-      await assertPairBalanceDifferencesAre({ tokenA: -495.1, tokenB: +987.82 });
+      await assertHubBalanceDifferencesAre({ tokenA: -495, tokenB: +988.02 });
       await assertBalanceDifferencesAre(swapper1, { tokenA: +495, tokenB: -988.02 });
-      await assertBalanceDifferencesAre(feeRecipient, { tokenA: +0.1, tokenB: +0.2 });
+      await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
 
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES); // Even after waiting an hour, the 1 hour interval is available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
+      // TODO: Uncomment once registerSwap removes inactive intervals
+      // await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
 
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
       await terminate(johnsPosition);
 
-      await assertPairBalanceDifferencesAre({ tokenA: -405, tokenB: -89.82 });
+      await assertHubBalanceDifferencesAre({ tokenA: -405, tokenB: -89.82 });
       await assertBalanceDifferencesAre(john, { tokenA: +405, tokenB: +89.82 });
       await assertAmountsToSwapAre({ tokenA: 500, tokenB: 100 });
 
       await withdrawMany(sarahsPosition1, sarahsPosition2);
 
-      await assertPairBalanceDifferencesAre({ tokenA: -149.6, tokenB: -1496.5 });
+      await assertHubBalanceDifferencesAre({ tokenA: -149.6, tokenB: -1496.5 });
       await assertBalanceDifferencesAre(sarah, { tokenA: +149.6, tokenB: +1496.5 });
 
       await swap({ swapper: swapper1 });
@@ -272,9 +276,9 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(sarahsPosition2, {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatio3, fee: swapFee2 }),
       });
-      await assertPairBalanceDifferencesAre({ tokenA: -450.1, tokenB: +898 });
+      await assertHubBalanceDifferencesAre({ tokenA: -450, tokenB: +898.2 });
       await assertBalanceDifferencesAre(swapper1, { tokenA: +450, tokenB: -898.2 });
-      await assertBalanceDifferencesAre(feeRecipient, { tokenA: +0.1, tokenB: +0.2 });
+      await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
 
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_10_MINUTES);
       await assertAmountsToSwapAre({ tokenA: 0, tokenB: 100 });
@@ -342,11 +346,22 @@ contract('DCAHub', () => {
       }
       const token = { [tokenA.address]: tokenA, [tokenB.address]: tokenB }[tokenToProvide];
       await token.connect(swapper).transfer(DCAHub.address, amountToProvide);
-      await DCAHub.connect(swapper)['swap()']();
+
+      const { tokens, pairIndexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+      // @ts-ignore
+      await DCAHub.connect(swapper)['swap(address[],(uint8,uint8)[])'](tokens, pairIndexes);
     }
 
     async function flashSwap({ callee }: { callee: HasAddress }) {
-      await DCAHub['swap(uint256,uint256,address,bytes)'](0, 0, callee.address, ethers.utils.randomBytes(5));
+      const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+      // @ts-ignore
+      await DCAHub['swap(address[],(uint8,uint8)[],uint256[],address,bytes)'](
+        tokens,
+        pairIndexes,
+        borrow,
+        callee.address,
+        ethers.utils.randomBytes(5)
+      );
     }
 
     async function loan({ callee, tokenA: amountTokenA, tokenB: amountTokenB }: { callee: HasAddress; tokenA: number; tokenB: number }) {
@@ -496,7 +511,7 @@ contract('DCAHub', () => {
       }
     }
 
-    async function assertPairBalanceDifferencesAre(
+    async function assertHubBalanceDifferencesAre(
       args: { tokenA: number | BigNumber; tokenB?: number | BigNumber } | { tokenA?: number | BigNumber; tokenB: number | BigNumber }
     ) {
       const { expectedBalanceTokenA, expectedBalanceTokenB } = await assertBalanceDifferencesAre(DCAHub, args);
@@ -516,10 +531,26 @@ contract('DCAHub', () => {
       const diffB = !diffTokenB ? 0 : BigNumber.isBigNumber(diffTokenB) ? diffTokenB : tokenB.asUnits(diffTokenB);
       const expectedBalanceTokenA = (lastBalanceTokenA.get(hasAddress.address) ?? constants.ZERO).add(diffA);
       const expectedBalanceTokenB = (lastBalanceTokenB.get(hasAddress.address) ?? constants.ZERO).add(diffB);
-      expect(await tokenA.balanceOf(hasAddress.address)).to.equal(expectedBalanceTokenA);
-      expect(await tokenB.balanceOf(hasAddress.address)).to.equal(expectedBalanceTokenB);
+      expect(await tokenA.balanceOf(hasAddress.address), 'Unexpected diff in token A').to.equal(expectedBalanceTokenA);
+      expect(await tokenB.balanceOf(hasAddress.address), 'Unexpected diff in token B').to.equal(expectedBalanceTokenB);
       lastBalanceTokenA.set(hasAddress.address, expectedBalanceTokenA);
       lastBalanceTokenB.set(hasAddress.address, expectedBalanceTokenB);
+      return { expectedBalanceTokenA, expectedBalanceTokenB };
+    }
+
+    async function assertPlatformBalanceIncreasedBy({
+      tokenA: increasedTokenA,
+      tokenB: increasedTokenB,
+    }: { tokenA: number | BigNumber; tokenB?: number | BigNumber } | { tokenA?: number | BigNumber; tokenB: number | BigNumber }) {
+      const diffA = !increasedTokenA ? 0 : BigNumber.isBigNumber(increasedTokenA) ? increasedTokenA : tokenA.asUnits(increasedTokenA);
+      const diffB = !increasedTokenB ? 0 : BigNumber.isBigNumber(increasedTokenB) ? increasedTokenB : tokenB.asUnits(increasedTokenB);
+      const expectedBalanceTokenA = (lastBalanceTokenA.get('platform') ?? constants.ZERO).add(diffA);
+      const expectedBalanceTokenB = (lastBalanceTokenB.get('platform') ?? constants.ZERO).add(diffB);
+
+      expect(await DCAHub.platformBalance(tokenA.address)).to.equal(expectedBalanceTokenA);
+      expect(await DCAHub.platformBalance(tokenB.address)).to.equal(expectedBalanceTokenB);
+      lastBalanceTokenA.set('platform', expectedBalanceTokenA);
+      lastBalanceTokenB.set('platform', expectedBalanceTokenB);
       return { expectedBalanceTokenA, expectedBalanceTokenB };
     }
 
