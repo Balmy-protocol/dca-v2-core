@@ -1,6 +1,6 @@
 import moment from 'moment';
 import { expect } from 'chai';
-import { BigNumber, BigNumberish, Contract, Wallet } from 'ethers';
+import { BigNumber, BigNumberish, Contract } from 'ethers';
 import { ethers } from 'hardhat';
 import {
   DCAGlobalParametersMock__factory,
@@ -11,10 +11,10 @@ import {
   TimeWeightedOracleMock__factory,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours, evm, bn, wallet } from '@test-utils';
+import { constants, erc20, bn } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { readArgFromEvent, readArgFromEventOrFail } from '@test-utils/event-utils';
+import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';
 import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
@@ -22,7 +22,7 @@ import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
-describe('DCAHubSwapHandler', () => {
+describe.only('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let swapper: SignerWithAddress;
@@ -71,7 +71,6 @@ describe('DCAHubSwapHandler', () => {
       tokenB.address,
       DCAGlobalParameters.address // global parameters
     );
-    await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
     snapshotId = await snapshot.take();
   });
 
@@ -214,9 +213,6 @@ describe('DCAHubSwapHandler', () => {
 
   describe('_getTotalAmountsToSwap', () => {
     when('there are no active swap intervals', () => {
-      given(async () => {
-        await DCAHubSwapHandler.removeActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
-      });
       then('nothing is returned', async () => {
         const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
           tokenA.address,
@@ -790,82 +786,6 @@ describe('DCAHubSwapHandler', () => {
   const setOracleData = async ({ ratePerUnitBToA }: { ratePerUnitBToA: BigNumber }) => {
     await timeWeightedOracle.setRate(ratePerUnitBToA, tokenB.amountOfDecimals);
   };
-
-  type NextSwapInformationContext = {
-    interval: number;
-    nextSwapToPerform: number;
-    amountToSwapOfTokenA: number;
-    amountToSwapOfTokenB: number;
-  };
-
-  type NextSwapInformationContextWithNextSwapAvailableAt = NextSwapInformationContext & { nextSwapAvailableAt?: number };
-
-  const setNextSwapInfoContext = async ({
-    nextSwapInfo,
-    blockTimestamp,
-  }: {
-    nextSwapInfo: NextSwapInformationContextWithNextSwapAvailableAt[];
-    blockTimestamp: number;
-  }) => {
-    for (let i = 0; i < nextSwapInfo.length; i++) {
-      const nextSwapToPerform = bn.toBN(nextSwapInfo[i].nextSwapToPerform);
-      const amountToSwapOfTokenA = toBN(nextSwapInfo[i].amountToSwapOfTokenA, tokenA);
-      const amountToSwapOfTokenB = toBN(nextSwapInfo[i].amountToSwapOfTokenB, tokenB);
-      await DCAHubSwapHandler.setNextSwapAvailable(nextSwapInfo[i].interval, nextSwapInfo[i].nextSwapAvailableAt ?? blockTimestamp);
-      await DCAHubSwapHandler.setPerformedSwaps(nextSwapInfo[i].interval, nextSwapToPerform.sub(1));
-      await DCAHubSwapHandler.setSwapAmountDelta(
-        tokenA.address,
-        tokenB.address,
-        nextSwapInfo[i].interval,
-        nextSwapToPerform,
-        amountToSwapOfTokenA
-      );
-      await DCAHubSwapHandler.setSwapAmountDelta(
-        tokenB.address,
-        tokenA.address,
-        nextSwapInfo[i].interval,
-        nextSwapToPerform,
-        amountToSwapOfTokenB
-      );
-    }
-  };
-
-  type NextSwapInfo = {
-    swapsToPerform: ([number, number, BigNumber, BigNumber] & {
-      interval: number;
-      swapToPerform: number;
-      amountToSwapTokenA: BigNumber;
-      amountToSwapTokenB: BigNumber;
-    })[];
-    amountOfSwaps: number;
-    availableToBorrowTokenA: BigNumber;
-    availableToBorrowTokenB: BigNumber;
-    ratePerUnitBToA: BigNumber;
-    ratePerUnitAToB: BigNumber;
-    platformFeeTokenA: BigNumber;
-    platformFeeTokenB: BigNumber;
-    amountToBeProvidedBySwapper: BigNumber;
-    amountToRewardSwapperWith: BigNumber;
-    tokenToBeProvidedBySwapper: string;
-    tokenToRewardSwapperWith: string;
-  };
-
-  function parseNextSwaps(nextSwapContext: NextSwapInformationContext[], blockTimestamp?: number) {
-    const parsedNextSwaps = nextSwapContext
-      .filter((nextSwap) => doesSwapNeedToBeExecuted(nextSwap, blockTimestamp))
-      .map(({ interval, nextSwapToPerform, amountToSwapOfTokenA, amountToSwapOfTokenB }) => [
-        interval,
-        nextSwapToPerform,
-        toBN(amountToSwapOfTokenA, tokenA),
-        toBN(amountToSwapOfTokenB, tokenB),
-      ]);
-    const fill = new Array(nextSwapContext.length - parsedNextSwaps.length).fill([0, 0, constants.ZERO, constants.ZERO]);
-    return { nextSwaps: parsedNextSwaps.concat(fill), amount: parsedNextSwaps.length };
-  }
-
-  function doesSwapNeedToBeExecuted(nextSwapContext: NextSwapInformationContextWithNextSwapAvailableAt, blockTimestamp?: number): boolean {
-    return !blockTimestamp || !nextSwapContext.nextSwapAvailableAt || nextSwapContext.nextSwapAvailableAt <= blockTimestamp;
-  }
 
   describe('swap', () => {
     let tokenC: TokenContract;
@@ -1487,9 +1407,6 @@ describe('DCAHubSwapHandler', () => {
     }) {
       when(title, () => {
         given(async () => {
-          // This is added automatically. Will remove it and re-add it if test needs it
-          await DCAHubSwapHandler.removeActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
-
           for (const { interval, nextAvailable } of intervals) {
             await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, interval);
             await DCAHubSwapHandler.setNextSwapAvailable(interval, nextAvailable);
@@ -1525,60 +1442,6 @@ describe('DCAHubSwapHandler', () => {
         threshold,
       });
     });
-  }
-
-  function calculateSwapDetails(ratePerUnitBToA: BigNumber, amountToSwapOfTokenB: BigNumber, amountToSwapOfTokenA: BigNumber) {
-    let ratePerUnitAToB: BigNumber;
-    let platformFeeTokenA: BigNumber;
-    let platformFeeTokenB: BigNumber;
-    let amountToBeProvidedBySwapper: BigNumber;
-    let amountToRewardSwapperWith: BigNumber;
-    let tokenToBeProvidedBySwapper: () => string;
-    let tokenToRewardSwapperWith: () => string;
-
-    ratePerUnitAToB = tokenA.magnitude.mul(tokenB.magnitude).div(ratePerUnitBToA);
-    const amountToSwapBInA = amountToSwapOfTokenB.mul(ratePerUnitBToA).div(tokenB.magnitude);
-    if (amountToSwapBInA.eq(amountToSwapOfTokenA)) {
-      tokenToBeProvidedBySwapper = () => constants.ZERO_ADDRESS;
-      tokenToRewardSwapperWith = () => constants.ZERO_ADDRESS;
-      amountToBeProvidedBySwapper = bn.toBN(0);
-      amountToRewardSwapperWith = bn.toBN(0);
-      platformFeeTokenA = CALCULATE_FEE(amountToSwapOfTokenA);
-      platformFeeTokenB = CALCULATE_FEE(amountToSwapOfTokenB);
-    } else if (amountToSwapBInA.gt(amountToSwapOfTokenA)) {
-      tokenToBeProvidedBySwapper = () => tokenA.address;
-      tokenToRewardSwapperWith = () => tokenB.address;
-      const needed = amountToSwapBInA.sub(amountToSwapOfTokenA);
-      const neededConvertedToB = needed.mul(ratePerUnitAToB).div(tokenA.magnitude);
-      amountToBeProvidedBySwapper = needed.sub(CALCULATE_FEE(needed));
-      amountToRewardSwapperWith = neededConvertedToB;
-      platformFeeTokenA = CALCULATE_FEE(amountToSwapOfTokenA);
-      platformFeeTokenB = CALCULATE_FEE(amountToSwapOfTokenB.sub(neededConvertedToB));
-    } else {
-      tokenToBeProvidedBySwapper = () => tokenB.address;
-      tokenToRewardSwapperWith = () => tokenA.address;
-      const amountToSwapAInB = amountToSwapOfTokenA.mul(ratePerUnitAToB).div(tokenA.magnitude);
-      const needed = amountToSwapAInB.sub(amountToSwapOfTokenB);
-      const neededConvertedToA = needed.mul(ratePerUnitBToA).div(tokenB.magnitude);
-      amountToBeProvidedBySwapper = needed.sub(CALCULATE_FEE(needed));
-      amountToRewardSwapperWith = neededConvertedToA;
-      platformFeeTokenA = CALCULATE_FEE(amountToSwapOfTokenA.sub(neededConvertedToA));
-      platformFeeTokenB = CALCULATE_FEE(amountToSwapOfTokenB);
-    }
-
-    return {
-      ratePerUnitAToB,
-      platformFeeTokenA,
-      platformFeeTokenB,
-      amountToBeProvidedBySwapper,
-      amountToRewardSwapperWith,
-      tokenToBeProvidedBySwapper,
-      tokenToRewardSwapperWith,
-    };
-  }
-
-  function sumAmountFromContext(nextSwapContext: NextSwapInformationContext[], transform: (context: NextSwapInformationContext) => number) {
-    return nextSwapContext.map(transform).reduce((a, b) => a + b, 0);
   }
 
   function toBN(amount: BigNumber | string | number, token: TokenContract): BigNumber {
