@@ -18,6 +18,7 @@ import {
 } from '@typechained';
 import isSvg from 'is-svg';
 import { expect } from 'chai';
+import { buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCATokenDescriptor', () => {
   let governor: SignerWithAddress;
@@ -75,7 +76,7 @@ contract('DCATokenDescriptor', () => {
 
     // Execute one swap
     await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
-    await DCAHub['swap()']();
+    await swap();
 
     // Get token uri
     const result1 = await DCAHub.tokenURI(tokenId);
@@ -90,7 +91,7 @@ contract('DCATokenDescriptor', () => {
     // Execute the last swap and withdraw
     await evm.advanceTimeAndBlock(swapInterval);
     await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
-    await DCAHub['swap()']();
+    await swap();
     await DCAHub.withdrawSwapped(tokenId, wallet.generateRandomAddress());
 
     // Get token uri
@@ -101,6 +102,12 @@ contract('DCATokenDescriptor', () => {
     expect(description2).to.equal(description1);
     expect(isValidSvgImage(image2)).to.be.true;
   });
+
+  async function swap() {
+    const { tokens, pairIndexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+    // @ts-ignore
+    await DCAHub['swap(address[],(uint8,uint8)[])'](tokens, pairIndexes);
+  }
 
   function isValidSvgImage(base64: string) {
     const encodedImage = base64.substr('data:image/svg+xml;base64,'.length);

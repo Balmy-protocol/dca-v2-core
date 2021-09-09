@@ -115,8 +115,8 @@ contract('DCAHub', () => {
       });
 
       testReentrantForFunction({
-        funcAndSignature: 'swap(uint256,uint256,address,bytes)',
-        args: () => [0, 0, reentrantDCAHubSwapCallee.address, utils.formatBytes32String('')],
+        funcAndSignature: 'swap(address[],(uint8,uint8)[],uint256[],address,bytes)',
+        args: () => [[], [], [], reentrantDCAHubSwapCallee.address, utils.formatBytes32String('')],
         attackerContract: () => reentrantDCAHubSwapCallee,
       });
     });
@@ -224,7 +224,8 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction['swap()']()).data!,
+        // @ts-ignore
+        attack: async () => (await DCAHub.populateTransaction['swap(address[],(uint8,uint8)[])']([], [])).data!,
       });
 
       testReentrantAttack({
@@ -232,8 +233,17 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () =>
-          (await DCAHub.populateTransaction['swap(uint256,uint256,address,bytes)'](0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
+        attack: async () => {
+          // @ts-ignore
+          const result = await DCAHub.populateTransaction['swap(address[],(uint8,uint8)[],uint256[],address,bytes)'](
+            [],
+            [],
+            [],
+            constants.NOT_ZERO_ADDRESS,
+            '0x'
+          );
+          return result.data!;
+        },
       });
 
       testReentrantAttack({

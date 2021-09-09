@@ -35,8 +35,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
     _userPosition.swapInterval = _position.swapInterval;
-    // TODO: Avoid underflow
-    _userPosition.swapsExecuted = _position.swapInterval > 0 ? _performedSwaps - _position.swapWhereLastUpdated : 0;
+    _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _position.finalSwap
+      ? uint32(Math.min(_performedSwaps, _position.finalSwap)) - _position.swapWhereLastUpdated
+      : 0;
     _userPosition.swapped = _position.swapInterval > 0 ? _calculateSwapped(_dcaId) : 0;
     _userPosition.swapsLeft = _position.finalSwap > _performedSwaps ? _position.finalSwap - _performedSwaps : 0;
     _userPosition.remaining = _calculateUnswapped(_dcaId);
