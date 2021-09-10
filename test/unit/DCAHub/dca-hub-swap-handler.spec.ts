@@ -22,11 +22,11 @@ import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
-describe.only('DCAHubSwapHandler', () => {
+describe('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let swapper: SignerWithAddress;
-  let tokenA: TokenContract, tokenB: TokenContract;
+  let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
   let DCAHubSwapHandlerContract: DCAHubSwapHandlerMock__factory;
   let DCAHubSwapHandler: DCAHubSwapHandlerMock;
   let timeWeightedOracleContract: TimeWeightedOracleMock__factory;
@@ -44,20 +44,20 @@ describe.only('DCAHubSwapHandler', () => {
     );
     DCAHubSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubSwapHandler.sol:DCAHubSwapHandlerMock');
     timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
-    tokenA = await erc20.deploy({
-      name: 'tokenA',
-      symbol: 'TKN0',
-      decimals: 12,
-      initialAccount: owner.address,
-      initialAmount: ethers.constants.MaxUint256.div(2),
-    });
-    tokenB = await erc20.deploy({
-      name: 'tokenB',
-      symbol: 'TKN1',
-      decimals: 16,
-      initialAccount: owner.address,
-      initialAmount: ethers.constants.MaxUint256.div(2),
-    });
+
+    const deploy = (decimals: number) =>
+      erc20.deploy({
+        name: 'A name',
+        symbol: 'SYMB',
+        decimals: decimals,
+        initialAccount: owner.address,
+        initialAmount: ethers.constants.MaxUint256.div(2),
+      });
+
+    const tokens = await Promise.all([deploy(12), deploy(16), deploy(18)]);
+
+    [tokenA, tokenB, tokenC] = tokens.sort((a, b) => a.address.localeCompare(b.address));
+
     timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
@@ -350,18 +350,6 @@ describe.only('DCAHubSwapHandler', () => {
   });
 
   describe('_getNextSwapInfo', () => {
-    let tokenC: TokenContract;
-
-    given(async () => {
-      tokenC = await erc20.deploy({
-        name: 'tokenC',
-        symbol: 'TKN2',
-        decimals: 18,
-        initialAccount: owner.address,
-        initialAmount: ethers.constants.MaxUint256.div(2),
-      });
-    });
-
     type Pair = {
       tokenA: () => TokenContract;
       tokenB: () => TokenContract;
@@ -371,7 +359,6 @@ describe.only('DCAHubSwapHandler', () => {
     };
 
     type Token = { token: () => TokenContract } & ({ CoW: number } | { platformFee: number }) & ({ required: number } | { reward: number } | {});
-
     type RatiosWithFee = { ratioAToBWithFee: BigNumber; ratioBToAWithFee: BigNumber };
 
     function internalGetNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
@@ -383,21 +370,17 @@ describe.only('DCAHubSwapHandler', () => {
         given(async () => {
           expectedRatios = new Map();
           for (const { tokenA, tokenB, amountTokenA, amountTokenB, ratioBToA } of pairs) {
-            const [token0, token1, amountToken0, amountToken1, ratio1To0] =
-              tokenA().address < tokenB().address
-                ? [tokenA(), tokenB(), amountTokenA, amountTokenB, ratioBToA]
-                : [tokenB(), tokenA(), amountTokenB, amountTokenA, 1 / ratioBToA];
             await DCAHubSwapHandler.setTotalAmountsToSwap(
-              token0.address,
-              token1.address,
-              token0.asUnits(amountToken0),
-              token1.asUnits(amountToken1),
+              tokenA().address,
+              tokenB().address,
+              tokenA().asUnits(amountTokenA),
+              tokenB().asUnits(amountTokenB),
               [SWAP_INTERVAL, SWAP_INTERVAL_2]
             );
-            await DCAHubSwapHandler.setRatio(token0.address, token1.address, token0.asUnits(ratio1To0));
-            expectedRatios.set(token0.address + token1.address, {
-              ratioBToA: token0.asUnits(ratio1To0),
-              ratioAToB: token1.asUnits(1 / ratio1To0),
+            await DCAHubSwapHandler.setRatio(tokenA().address, tokenB().address, tokenA().asUnits(ratioBToA));
+            expectedRatios.set(tokenA().address + tokenB().address, {
+              ratioBToA: tokenA().asUnits(ratioBToA),
+              ratioAToB: tokenB().asUnits(1 / ratioBToA),
             });
           }
           const { tokens, pairIndexes } = buildGetNextSwapInfoInput(
@@ -736,17 +719,9 @@ describe.only('DCAHubSwapHandler', () => {
 
       let internalSwapInformation: SwapInformation;
       let result: NextSwapInfo;
-      let tokenC: TokenContract;
       let internalBalances: Map<string, BigNumber>;
 
       given(async () => {
-        tokenC = await erc20.deploy({
-          name: 'tokenC',
-          symbol: 'TKN2',
-          decimals: 18,
-          initialAccount: owner.address,
-          initialAmount: ethers.constants.MaxUint256.div(2),
-        });
         internalSwapInformation = {
           tokens: [
             {
@@ -828,18 +803,6 @@ describe.only('DCAHubSwapHandler', () => {
   };
 
   describe('swap', () => {
-    let tokenC: TokenContract;
-
-    given(async () => {
-      tokenC = await erc20.deploy({
-        name: 'tokenC',
-        symbol: 'TKN2',
-        decimals: 18,
-        initialAccount: owner.address,
-        initialAmount: ethers.constants.MaxUint256.div(2),
-      });
-    });
-
     function swapTest({
       title,
       tokens,
@@ -1094,18 +1057,9 @@ describe.only('DCAHubSwapHandler', () => {
   });
 
   describe('flash swap', () => {
-    let tokenC: TokenContract;
     let DCAHubSwapCallee: Contract;
 
     given(async () => {
-      tokenC = await erc20.deploy({
-        name: 'tokenC',
-        symbol: 'TKN2',
-        decimals: 18,
-        initialAccount: owner.address,
-        initialAmount: ethers.constants.MaxUint256.div(2),
-      });
-
       const DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
     });
