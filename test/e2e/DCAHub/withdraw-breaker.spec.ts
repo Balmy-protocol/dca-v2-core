@@ -9,7 +9,7 @@ import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
-import { buildGetNextSwapInfoInput } from 'js-lib/swap-utils';
+import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Withdraw breaker', () => {
@@ -55,7 +55,7 @@ contract('DCAHub', () => {
       await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
     });
 
-    when('when a withdraw is executed after position is finished', () => {
+    when('a withdraw is executed after position is finished', () => {
       given(async () => {
         await tokenB.connect(alice).approve(DCAHub.address, constants.MAX_UINT_256);
         await DCAHub.connect(alice).deposit(alice.address, tokenB.address, tokenB.asUnits(200), 1, SWAP_INTERVAL_1_HOUR);
@@ -79,7 +79,9 @@ contract('DCAHub', () => {
     async function swap({ swapper }: { swapper: SignerWithAddress }) {
       const { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper } = await getAmountToBeProvided();
       await tokenToBeProvidedBySwapper.connect(swapper).transfer(DCAHub.address, amountToBeProvidedBySwapper);
-      await DCAHub.connect(swapper)['swap()']();
+      const { tokens, pairIndexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+      // @ts-ignore
+      await DCAHub.connect(swapper)['swap(address[],(uint8,uint8)[])'](tokens, pairIndexes);
     }
 
     async function getAmountToBeProvided(): Promise<{ tokenToBeProvidedBySwapper: TokenContract; amountToBeProvidedBySwapper: BigNumber }> {
