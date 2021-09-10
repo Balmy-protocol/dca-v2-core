@@ -56,7 +56,7 @@ describe('DCAPositionHandler', () => {
       constants.NOT_ZERO_ADDRESS
     );
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
-    await tokenB.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
+    await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
