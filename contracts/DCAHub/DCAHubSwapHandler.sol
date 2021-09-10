@@ -339,7 +339,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
       if (_amountToSend > 0) {
-        // TODO: Think if we want to revert with a nicer message when there aren't enough funds, or if we just let it fail during transfer
+        if (_amountToSend > _balances[_swapInformation.tokens[i].token]) {
+          revert CommonErrors.InsufficientLiquidity();
+        }
         IERC20Metadata(_swapInformation.tokens[i].token).safeTransfer(_to, _amountToSend);
       }
     }
