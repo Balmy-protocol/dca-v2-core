@@ -30,3 +30,6 @@ coverage.json
 # Solidity
 contracts/mock
 typechained
+
+# Gas report
+gasReporterOutput.json
