@@ -1013,6 +1013,9 @@ describe('DCAPositionHandler', () => {
             accumRate: constants.MAX_UINT_256,
             positionRate: 1,
           });
+          console.log('tokenA', tokenA.address);
+          console.log('tokenB', tokenB.address);
+          console.log(swapped, swapped.toString());
           // We are losing precision when accumRate is MAX(uint256), but we accept that
           expect(swapped.gte('0xffffffffffffffffffffffffffffffffffffffffffffffffffffff2b653b7000')).to.true;
         });
