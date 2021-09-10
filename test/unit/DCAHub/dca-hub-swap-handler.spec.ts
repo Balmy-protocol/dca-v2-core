@@ -14,10 +14,10 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, evm, bn, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { readArgFromEvent } from '@test-utils/event-utils';
+import { readArgFromEvent, readArgFromEventOrFail } from '@test-utils/event-utils';
 import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';
-import { buildGetNextSwapInfoInput } from 'js-lib/swap-utils';
+import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
@@ -25,6 +25,7 @@ const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 describe('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
+  let swapper: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubSwapHandlerContract: DCAHubSwapHandlerMock__factory;
   let DCAHubSwapHandler: DCAHubSwapHandlerMock;
@@ -37,7 +38,7 @@ describe('DCAHubSwapHandler', () => {
   const SWAP_INTERVAL_2 = moment.duration(2, 'days').as('seconds');
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient] = await ethers.getSigners();
+    [owner, feeRecipient, swapper] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
@@ -1161,6 +1162,272 @@ describe('DCAHubSwapHandler', () => {
   };
 
   describe('swap', () => {
+    let tokenC: TokenContract;
+
+    given(async () => {
+      tokenC = await erc20.deploy({
+        name: 'tokenC',
+        symbol: 'TKN2',
+        decimals: 18,
+        initialAccount: owner.address,
+        initialAmount: ethers.constants.MaxUint256.div(2),
+      });
+    });
+
+    function swapTest({
+      title,
+      tokens,
+      pairs,
+    }: {
+      title: string;
+      tokens: {
+        token: () => TokenContract;
+        reward?: number;
+        toProvide?: number;
+        platformFee?: number;
+      }[];
+      pairs: {
+        tokenA: () => TokenContract;
+        tokenB: () => TokenContract;
+        ratioAToB: number;
+        ratioBToA: number;
+        intervalsInSwap: number[];
+      }[];
+    }) {
+      when(title, () => {
+        const BLOCK_TIMESTAMP = 30004;
+        let initialBalances: Map<string, Map<TokenContract, BigNumber>>;
+        let result: SwapInformation;
+        let tx: TransactionResponse;
+
+        given(async () => {
+          const mappedTokens = tokens.map(({ token, reward, toProvide, platformFee }) => ({
+            token: token().address,
+            reward: !!reward ? token().asUnits(reward) : constants.ZERO,
+            toProvide: !!toProvide ? token().asUnits(toProvide) : constants.ZERO,
+            platformFee: !!platformFee ? token().asUnits(platformFee) : constants.ZERO,
+          }));
+          const mappedPairs = pairs.map(({ tokenA, tokenB, ratioAToB, ratioBToA, intervalsInSwap }) => ({
+            tokenA: tokenA().address,
+            tokenB: tokenB().address,
+            ratioAToB: BigNumber.from(ratioAToB),
+            ratioBToA: BigNumber.from(ratioBToA),
+            intervalsInSwap,
+          }));
+          result = {
+            tokens: mappedTokens,
+            pairs: mappedPairs,
+          };
+          const ratiosWithFee = mappedPairs.map(({ ratioAToB, ratioBToA }) => ({
+            ratioAToBWithFee: APPLY_FEE(ratioAToB),
+            ratioBToAWithFee: APPLY_FEE(ratioBToA),
+          }));
+
+          initialBalances = new Map([
+            [
+              swapper.address,
+              new Map([
+                [tokenA, tokenA.asUnits(3000)],
+                [tokenB, tokenB.asUnits(200)],
+                [tokenC, tokenC.asUnits(300)],
+              ]),
+            ],
+            [
+              DCAHubSwapHandler.address,
+              new Map([
+                [tokenA, tokenA.asUnits(200)],
+                [tokenB, tokenB.asUnits(500)],
+                [tokenC, tokenC.asUnits(100)],
+              ]),
+            ],
+            [
+              'platform',
+              new Map([
+                [tokenA, tokenA.asUnits(0)],
+                [tokenB, tokenB.asUnits(50)],
+                [tokenC, tokenC.asUnits(10)],
+              ]),
+            ],
+          ]);
+
+          for (const [address, balances] of initialBalances) {
+            for (const [token, amount] of balances) {
+              if (address === 'platform') {
+                await DCAHubSwapHandler.setPlatformBalance(token.address, amount);
+              } else {
+                await token.mint(address, amount);
+                if (address === DCAHubSwapHandler.address) {
+                  await DCAHubSwapHandler.setInternalBalance(token.address, amount);
+                }
+              }
+            }
+          }
+
+          await DCAHubSwapHandler.setBlockTimestamp(BLOCK_TIMESTAMP);
+          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs }, ratiosWithFee);
+
+          const { tokens: tokensInput, pairIndexes } = buildSwapInput(mappedPairs, []);
+          for (const { token, toProvide } of tokens) {
+            if (toProvide) {
+              await token().connect(swapper).transfer(DCAHubSwapHandler.address, token().asUnits(toProvide));
+            }
+          }
+          // @ts-ignore
+          tx = await DCAHubSwapHandler.connect(swapper)['swap(address[],(uint8,uint8)[])'](tokensInput, pairIndexes);
+        });
+
+        then(`swapper's balance is modified correctly`, async () => {
+          for (const { token, reward, toProvide } of tokens) {
+            const initialBalance = initialBalances.get(swapper.address)!.get(token())!;
+            const currentBalance = await token().balanceOf(swapper.address);
+            if (reward) {
+              expect(currentBalance).to.equal(initialBalance.add(token().asUnits(reward)));
+            } else if (toProvide) {
+              expect(currentBalance).to.equal(initialBalance.sub(token().asUnits(toProvide)));
+            } else {
+              expect(currentBalance).to.equal(initialBalance);
+            }
+          }
+        });
+
+        then(`hub's balance is modified correctly`, async () => {
+          for (const { token, reward, toProvide } of tokens) {
+            const initialBalance = initialBalances.get(DCAHubSwapHandler.address)!.get(token())!;
+            const currentBalance = await token().balanceOf(DCAHubSwapHandler.address);
+            if (reward) {
+              expect(currentBalance).to.equal(initialBalance.sub(token().asUnits(reward)));
+            } else if (toProvide) {
+              expect(currentBalance).to.equal(initialBalance.add(token().asUnits(toProvide)));
+            } else {
+              expect(currentBalance).to.equal(initialBalance);
+            }
+          }
+        });
+
+        then('correct amount is assigned as protocol fee', async () => {
+          for (const { token, platformFee } of tokens) {
+            const initialBalance = initialBalances.get('platform')!.get(token())!;
+            const currentBalance = await DCAHubSwapHandler.platformBalance(token().address);
+            if (platformFee) {
+              expect(currentBalance).to.equal(initialBalance.add(token().asUnits(platformFee)));
+            } else {
+              expect(currentBalance).to.equal(initialBalance);
+            }
+          }
+        });
+
+        then('swap is registered correctly', async () => {
+          for (const pair of pairs) {
+            for (const interval of pair.intervalsInSwap) {
+              const call = await DCAHubSwapHandler.registerSwapCalls(pair.tokenA().address, pair.tokenB().address, interval);
+              expect(call.ratePerUnitAToB).to.equal(APPLY_FEE(BigNumber.from(pair.ratioAToB)));
+              expect(call.ratePerUnitBToA).to.equal(APPLY_FEE(BigNumber.from(pair.ratioBToA)));
+              expect(call.timestamp).to.equal(BLOCK_TIMESTAMP);
+            }
+          }
+        });
+
+        then('event is emitted correctly', async () => {
+          const sender = await readArgFromEventOrFail(tx, 'Swapped', 'sender');
+          const to = await readArgFromEventOrFail(tx, 'Swapped', 'to');
+          const swapInformation: SwapInformation = await readArgFromEventOrFail(tx, 'Swapped', 'swapInformation');
+          const borrowed: BigNumber[] = await readArgFromEventOrFail(tx, 'Swapped', 'borrowed');
+          const fee = await readArgFromEventOrFail(tx, 'Swapped', 'fee');
+          expect(sender).to.equal(swapper.address);
+          expect(to).to.equal(swapper.address);
+          expect(fee).to.equal(6000);
+          expect(borrowed.length).to.equal(swapInformation.tokens.length);
+          expect(borrowed.every((amount) => amount.eq(0))).to.be.true;
+
+          expect(swapInformation.pairs.length).to.equal(result.pairs.length);
+          for (let i = 0; i < swapInformation.pairs.length; i++) {
+            const pair = swapInformation.pairs[i];
+            const expectedPair = result.pairs[i];
+            expect(pair.tokenA).to.eql(expectedPair.tokenA);
+            expect(pair.tokenB).to.eql(expectedPair.tokenB);
+            expect(pair.ratioAToB).to.eql(expectedPair.ratioAToB);
+            expect(pair.ratioBToA).to.eql(expectedPair.ratioBToA);
+            expect(pair.intervalsInSwap).to.eql(expectedPair.intervalsInSwap);
+          }
+
+          expect(swapInformation.tokens.length).to.equal(result.tokens.length);
+          for (let i = 0; i < swapInformation.tokens.length; i++) {
+            const token = swapInformation.tokens[i];
+            const expectedToken = result.tokens[i];
+            expect(token.token).to.equal(expectedToken.token);
+            expect(token.toProvide).to.equal(expectedToken.toProvide);
+            expect(token.reward).to.equal(expectedToken.reward);
+            expect(token.platformFee).to.equal(expectedToken.platformFee);
+          }
+        });
+
+        thenInternalBalancesAreTheSameAsTokenBalances();
+      });
+    }
+
+    swapTest({
+      title: 'there is only one pair being swapped',
+      tokens: [
+        {
+          token: () => tokenA,
+          toProvide: 3000,
+          platformFee: 100,
+        },
+        {
+          token: () => tokenB,
+          reward: 10,
+          platformFee: 1,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          ratioAToB: 100000,
+          ratioBToA: 20000,
+          intervalsInSwap: [SWAP_INTERVAL],
+        },
+      ],
+    });
+
+    swapTest({
+      title: 'there are two pairs being swapped',
+      tokens: [
+        {
+          token: () => tokenA,
+          toProvide: 3000,
+          platformFee: 100,
+        },
+        {
+          token: () => tokenB,
+          reward: 10,
+          platformFee: 2,
+        },
+        {
+          token: () => tokenC,
+          platformFee: 10,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          ratioAToB: 100000,
+          ratioBToA: 20000,
+          intervalsInSwap: [SWAP_INTERVAL],
+        },
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenC,
+          ratioAToB: 5000,
+          ratioBToA: 100,
+          intervalsInSwap: [SWAP_INTERVAL, SWAP_INTERVAL_2],
+        },
+      ],
+    });
+  });
+
+  describe('old swap', () => {
     swapTestFailed({
       title: 'there are no swaps to execute',
       nextSwapContext: [],
@@ -1600,11 +1867,11 @@ describe('DCAHubSwapHandler', () => {
       });
 
       then('emits event with correct information', async () => {
-        const sender = await readArgFromEvent(tx, 'Swapped', 'sender');
-        const to = await readArgFromEvent(tx, 'Swapped', 'to');
-        const amountBorrowedTokenA = await readArgFromEvent(tx, 'Swapped', 'amountBorrowedTokenA');
-        const amountBorrowedTokenB = await readArgFromEvent(tx, 'Swapped', 'amountBorrowedTokenB');
-        const fee = await readArgFromEvent(tx, 'Swapped', 'fee');
+        const sender = await readArgFromEvent(tx, 'SwappedOld', 'sender');
+        const to = await readArgFromEvent(tx, 'SwappedOld', 'to');
+        const amountBorrowedTokenA = await readArgFromEvent(tx, 'SwappedOld', 'amountBorrowedTokenA');
+        const amountBorrowedTokenB = await readArgFromEvent(tx, 'SwappedOld', 'amountBorrowedTokenB');
+        const fee = await readArgFromEvent(tx, 'SwappedOld', 'fee');
         expect(sender).to.equal(owner.address);
         expect(to).to.equal(DCAHubSwapCallee.address);
         expect(amountBorrowedTokenA).to.equal(availableToBorrowTokenA);
@@ -2004,7 +2271,7 @@ describe('DCAHubSwapHandler', () => {
         });
       });
       then('emits event with correct information', async () => {
-        const nextSwapInformation = (await readArgFromEvent(swapTx, 'Swapped', 'nextSwapInformation')) as NextSwapInfo;
+        const nextSwapInformation = (await readArgFromEvent(swapTx, 'SwappedOld', 'nextSwapInformation')) as NextSwapInfo;
         const parsedNextSwaps = parseNextSwaps(nextSwapContext);
         expect(nextSwapInformation.swapsToPerform).to.deep.equal(parsedNextSwaps.nextSwaps);
         expect(nextSwapInformation.amountOfSwaps).to.equal(parsedNextSwaps.amount);
@@ -2045,11 +2312,11 @@ describe('DCAHubSwapHandler', () => {
           expect(nextSwapInformation.tokenToBeProvidedBySwapper).to.equal(tokenToBeProvidedBySwapper());
           expect(nextSwapInformation.tokenToRewardSwapperWith).to.equal(tokenToRewardSwapperWith!());
         }
-        const sender = await readArgFromEvent(swapTx, 'Swapped', 'sender');
-        const to = await readArgFromEvent(swapTx, 'Swapped', 'to');
-        const amountBorrowedTokenA = await readArgFromEvent(swapTx, 'Swapped', 'amountBorrowedTokenA');
-        const amountBorrowedTokenB = await readArgFromEvent(swapTx, 'Swapped', 'amountBorrowedTokenB');
-        const fee = await readArgFromEvent(swapTx, 'Swapped', 'fee');
+        const sender = await readArgFromEvent(swapTx, 'SwappedOld', 'sender');
+        const to = await readArgFromEvent(swapTx, 'SwappedOld', 'to');
+        const amountBorrowedTokenA = await readArgFromEvent(swapTx, 'SwappedOld', 'amountBorrowedTokenA');
+        const amountBorrowedTokenB = await readArgFromEvent(swapTx, 'SwappedOld', 'amountBorrowedTokenB');
+        const fee = await readArgFromEvent(swapTx, 'SwappedOld', 'fee');
         expect(sender).to.equal(owner.address);
         expect(to).to.equal(owner.address);
         expect(amountBorrowedTokenA).to.equal(constants.ZERO);
