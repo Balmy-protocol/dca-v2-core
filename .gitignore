@@ -5,6 +5,8 @@ node_modules
 # Coverage
 coverage.json
 coverage
+gasReporterOutput.json
+gasReporterOutput-*.json
 
 # Hardhat files
 cache

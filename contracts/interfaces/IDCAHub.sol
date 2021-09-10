@@ -301,22 +301,6 @@ interface IDCAHubSwapHandler {
     uint256 platformFee;
   }
 
-  /// @notice Emitted when a swap is executed
-  /// @param sender The address of the user that initiated the swap
-  /// @param to The address that received the reward + loan
-  /// @param amountBorrowedTokenA How much was borrowed in token A
-  /// @param amountBorrowedTokenB How much was borrowed in token B
-  /// @param fee How much was charged as a swap fee to position owners
-  /// @param nextSwapInformation All information related to the swap
-  event SwappedOld(
-    address indexed sender,
-    address indexed to,
-    uint256 amountBorrowedTokenA,
-    uint256 amountBorrowedTokenB,
-    uint32 fee,
-    NextSwapInformation nextSwapInformation
-  );
-
   /// @notice Thrown when trying to execute a swap, but none is available
   error NoSwapsToExecute();
 

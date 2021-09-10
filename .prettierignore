@@ -10,6 +10,8 @@ CHANGELOG.md
 .versionrc
 .env
 .env.example
+codechecks.yml
+gasReporterOutput-*.json
 **/LICENSE
 
 # Hardhat
