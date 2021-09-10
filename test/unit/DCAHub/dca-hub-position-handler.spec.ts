@@ -43,20 +43,11 @@ describe('DCAPositionHandler', () => {
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
-    tokenA = await erc20.deploy({
-      name: 'DAI',
-      symbol: 'DAI',
-      decimals: 12,
-      initialAccount: owner.address,
-      initialAmount: INITIAL_TOKEN_A_BALANCE_USER,
-    });
-    tokenB = await erc20.deploy({
-      name: 'WBTC',
-      symbol: 'WBTC',
-      decimals: 16,
-      initialAccount: owner.address,
-      initialAmount: INITIAL_TOKEN_B_BALANCE_USER,
-    });
+
+    const deploy = (decimals: number) => erc20.deploy({ name: 'A name', symbol: 'SYMB', decimals });
+
+    const tokens = await Promise.all([deploy(12), deploy(16)]);
+    [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
       owner.address,
@@ -64,6 +55,8 @@ describe('DCAPositionHandler', () => {
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
+    await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
+    await tokenB.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
