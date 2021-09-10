@@ -103,6 +103,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
         _totalAmountToSwapTokenB += _amountToSwapTokenB;
       }
     }
+
+    // TODO: If _totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0, consider making _intervalsInSwap a length 0 array
   }
 
   // TODO: Check if using smaller uint sizes for ratios and magnitudes is cheaper
