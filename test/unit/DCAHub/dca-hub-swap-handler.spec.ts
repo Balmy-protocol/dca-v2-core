@@ -22,7 +22,7 @@ import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
-describe.only('DCAHubSwapHandler', () => {
+describe('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let swapper: SignerWithAddress;
