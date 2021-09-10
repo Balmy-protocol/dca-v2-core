@@ -162,16 +162,15 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint120 magnitudeB; // 36 decimals max amount supported
   }
 
+  error InvalidPairs();
+  error InvalidTokens();
+
   function _getNextSwapInfo(
     address[] memory _tokens,
     PairIndexes[] memory _pairs,
     uint32 _swapFee,
     ITimeWeightedOracle _oracle
   ) internal view virtual returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
-    // TODO: Make sure that there are no repeated tokens in _tokens
-    // TODO: Make sure that there are no repeted pairs in _pairs
-    // TODO: Make sure that _indexTokenA != _indexTokenB for all pair indexes
-
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
@@ -181,6 +180,17 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       InternalTokenInfo memory _tokenInfo;
       _tokenInfo.indexTokenA = _pairs[i].indexTokenA;
       _tokenInfo.indexTokenB = _pairs[i].indexTokenB;
+
+      if (
+        _tokenInfo.indexTokenA >= _tokenInfo.indexTokenB ||
+        (i > 0 &&
+          (_tokenInfo.indexTokenA < _pairs[i - 1].indexTokenA ||
+            (_tokenInfo.indexTokenA == _pairs[i - 1].indexTokenA && _tokenInfo.indexTokenB <= _pairs[i - 1].indexTokenB)))
+      ) {
+        // Note: this confusing condition verifies that the pairs are sorted, first by token A, and then by token B
+        revert InvalidPairs();
+      }
+
       _swapInformation.pairs[i].tokenA = _tokens[_tokenInfo.indexTokenA];
       _swapInformation.pairs[i].tokenB = _tokens[_tokenInfo.indexTokenB];
       _tokenInfo.magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
@@ -219,6 +229,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
 
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
+      if (i > 0 && _tokens[i] <= _tokens[i - 1]) {
+        revert InvalidTokens();
+      }
+
       _swapInformation.tokens[i].token = _tokens[i];
 
       uint256 _neededWithFee = _needed[i];
