@@ -11,7 +11,7 @@ import {
   TimeWeightedOracleMock__factory,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, bn } from '@test-utils';
+import { constants, erc20, bn, behaviours } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
@@ -26,7 +26,7 @@ describe('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
   let feeRecipient: SignerWithAddress;
   let swapper: SignerWithAddress;
-  let tokenA: TokenContract, tokenB: TokenContract;
+  let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
   let DCAHubSwapHandlerContract: DCAHubSwapHandlerMock__factory;
   let DCAHubSwapHandler: DCAHubSwapHandlerMock;
   let timeWeightedOracleContract: TimeWeightedOracleMock__factory;
@@ -44,20 +44,20 @@ describe('DCAHubSwapHandler', () => {
     );
     DCAHubSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubSwapHandler.sol:DCAHubSwapHandlerMock');
     timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
-    tokenA = await erc20.deploy({
-      name: 'tokenA',
-      symbol: 'TKN0',
-      decimals: 12,
-      initialAccount: owner.address,
-      initialAmount: ethers.constants.MaxUint256.div(2),
-    });
-    tokenB = await erc20.deploy({
-      name: 'tokenB',
-      symbol: 'TKN1',
-      decimals: 16,
-      initialAccount: owner.address,
-      initialAmount: ethers.constants.MaxUint256.div(2),
-    });
+
+    const deploy = (decimals: number) =>
+      erc20.deploy({
+        name: 'A name',
+        symbol: 'SYMB',
+        decimals: decimals,
+        initialAccount: owner.address,
+        initialAmount: ethers.constants.MaxUint256.div(2),
+      });
+
+    const tokens = await Promise.all([deploy(12), deploy(16), deploy(18)]);
+
+    [tokenA, tokenB, tokenC] = tokens.sort((a, b) => a.address.localeCompare(b.address));
+
     timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
@@ -190,6 +190,46 @@ describe('DCAHubSwapHandler', () => {
         accumRatePerUnitBToA: 600312,
       },
     });
+
+    when('no amount was swapped', () => {
+      const NEXT_SWAP = 10;
+      const NEXT_AVAILABLE = 50;
+
+      given(async () => {
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        await DCAHubSwapHandler.setPerformedSwaps(SWAP_INTERVAL, NEXT_SWAP - 1);
+        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, NEXT_AVAILABLE);
+        await DCAHubSwapHandler.registerSwap(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL,
+          BigNumber.from(100),
+          BigNumber.from(200),
+          NEXT_AVAILABLE + 10
+        );
+      });
+      then('interval is removed from active list', async () => {
+        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.be.false;
+      });
+      then('next delta is not modified', async () => {
+        const deltaInNextSwapAToB = await DCAHubSwapHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, NEXT_SWAP + 1);
+        const deltaInNextSwapBToA = await DCAHubSwapHandler.swapAmountDelta(tokenB.address, tokenA.address, SWAP_INTERVAL, NEXT_SWAP + 1);
+        expect(deltaInNextSwapAToB).to.equal(0);
+        expect(deltaInNextSwapBToA).to.equal(0);
+      });
+      then('rate per unit is not increased', async () => {
+        const accumRatesPerUnitAToB = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenA.address, tokenB.address, NEXT_SWAP);
+        const accumRatesPerUnitBToA = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenB.address, tokenA.address, NEXT_SWAP);
+        expect(accumRatesPerUnitAToB).to.equal(0);
+        expect(accumRatesPerUnitBToA).to.equal(0);
+      });
+      then('performed swaps is not incremented', async () => {
+        expect(await DCAHubSwapHandler.performedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(NEXT_SWAP - 1);
+      });
+      then('next available is not updated', async () => {
+        expect(await DCAHubSwapHandler.nextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(NEXT_AVAILABLE);
+      });
+    });
   });
 
   describe('_getAmountToSwap', () => {
@@ -310,18 +350,6 @@ describe('DCAHubSwapHandler', () => {
   });
 
   describe('_getNextSwapInfo', () => {
-    let tokenC: TokenContract;
-
-    given(async () => {
-      tokenC = await erc20.deploy({
-        name: 'tokenC',
-        symbol: 'TKN2',
-        decimals: 18,
-        initialAccount: owner.address,
-        initialAmount: ethers.constants.MaxUint256.div(2),
-      });
-    });
-
     type Pair = {
       tokenA: () => TokenContract;
       tokenB: () => TokenContract;
@@ -331,7 +359,6 @@ describe('DCAHubSwapHandler', () => {
     };
 
     type Token = { token: () => TokenContract } & ({ CoW: number } | { platformFee: number }) & ({ required: number } | { reward: number } | {});
-
     type RatiosWithFee = { ratioAToBWithFee: BigNumber; ratioBToAWithFee: BigNumber };
 
     function internalGetNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
@@ -343,21 +370,17 @@ describe('DCAHubSwapHandler', () => {
         given(async () => {
           expectedRatios = new Map();
           for (const { tokenA, tokenB, amountTokenA, amountTokenB, ratioBToA } of pairs) {
-            const [token0, token1, amountToken0, amountToken1, ratio1To0] =
-              tokenA().address < tokenB().address
-                ? [tokenA(), tokenB(), amountTokenA, amountTokenB, ratioBToA]
-                : [tokenB(), tokenA(), amountTokenB, amountTokenA, 1 / ratioBToA];
             await DCAHubSwapHandler.setTotalAmountsToSwap(
-              token0.address,
-              token1.address,
-              token0.asUnits(amountToken0),
-              token1.asUnits(amountToken1),
+              tokenA().address,
+              tokenB().address,
+              tokenA().asUnits(amountTokenA),
+              tokenB().asUnits(amountTokenB),
               [SWAP_INTERVAL, SWAP_INTERVAL_2]
             );
-            await DCAHubSwapHandler.setRatio(token0.address, token1.address, token0.asUnits(ratio1To0));
-            expectedRatios.set(token0.address + token1.address, {
-              ratioBToA: token0.asUnits(ratio1To0),
-              ratioAToB: token1.asUnits(1 / ratio1To0),
+            await DCAHubSwapHandler.setRatio(tokenA().address, tokenB().address, tokenA().asUnits(ratioBToA));
+            expectedRatios.set(tokenA().address + tokenB().address, {
+              ratioBToA: tokenA().asUnits(ratioBToA),
+              ratioAToB: tokenB().asUnits(1 / ratioBToA),
             });
           }
           const { tokens, pairIndexes } = buildGetNextSwapInfoInput(
@@ -417,6 +440,34 @@ describe('DCAHubSwapHandler', () => {
               expect(toProvide).to.equal(0);
             }
           }
+        });
+      });
+    }
+
+    function failedGetNextSwapInfoTest({
+      title,
+      tokens,
+      pairs,
+      error,
+    }: {
+      title: string;
+      tokens: (() => TokenContract)[];
+      pairs: { indexTokenA: number; indexTokenB: number }[];
+      error: string;
+    }) {
+      when(title, () => {
+        given(async () => {
+          for (const { indexTokenA, indexTokenB } of pairs) {
+            await DCAHubSwapHandler.setRatio(tokens[indexTokenA]().address, tokens[indexTokenB]().address, tokens[indexTokenA]().asUnits(1000));
+          }
+        });
+        then('should revert with message', async () => {
+          await behaviours.txShouldRevertWithMessage({
+            contract: DCAHubSwapHandler,
+            func: 'internalGetNextSwapInfo',
+            args: [tokens.map((token) => token().address), pairs, 6000, timeWeightedOracle.address],
+            message: error,
+          });
         });
       });
     }
@@ -676,6 +727,67 @@ describe('DCAHubSwapHandler', () => {
         },
       ],
     });
+
+    failedGetNextSwapInfoTest({
+      title: 'indexTokenA is the same as indexTokenB',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [
+        { indexTokenA: 0, indexTokenB: 1 },
+        { indexTokenA: 1, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'indexTokenA is greater than indexTokenB',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [{ indexTokenA: 1, indexTokenB: 0 }],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenA indexes are not sorted correctly',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [
+        { indexTokenA: 1, indexTokenB: 1 },
+        { indexTokenA: 0, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenA indexes are the same but tokenB indexes are not sorted correctly',
+      tokens: [() => tokenA, () => tokenB, () => tokenC],
+      pairs: [
+        { indexTokenA: 0, indexTokenB: 2 },
+        { indexTokenA: 0, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'same pair appears twice',
+      tokens: [() => tokenA, () => tokenB, () => tokenC],
+      pairs: [
+        { indexTokenA: 0, indexTokenB: 1 },
+        { indexTokenA: 0, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'same token appears twice',
+      tokens: [() => tokenA, () => tokenA],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'InvalidTokens',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokens are not sorted',
+      tokens: [() => tokenB, () => tokenA],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'InvalidTokens',
+    });
   });
 
   describe('getNextSwapInfo', () => {
@@ -696,17 +808,9 @@ describe('DCAHubSwapHandler', () => {
 
       let internalSwapInformation: SwapInformation;
       let result: NextSwapInfo;
-      let tokenC: TokenContract;
       let internalBalances: Map<string, BigNumber>;
 
       given(async () => {
-        tokenC = await erc20.deploy({
-          name: 'tokenC',
-          symbol: 'TKN2',
-          decimals: 18,
-          initialAccount: owner.address,
-          initialAmount: ethers.constants.MaxUint256.div(2),
-        });
         internalSwapInformation = {
           tokens: [
             {
@@ -788,18 +892,6 @@ describe('DCAHubSwapHandler', () => {
   };
 
   describe('swap', () => {
-    let tokenC: TokenContract;
-
-    given(async () => {
-      tokenC = await erc20.deploy({
-        name: 'tokenC',
-        symbol: 'TKN2',
-        decimals: 18,
-        initialAccount: owner.address,
-        initialAmount: ethers.constants.MaxUint256.div(2),
-      });
-    });
-
     function swapTest({
       title,
       tokens,
@@ -1054,18 +1146,9 @@ describe('DCAHubSwapHandler', () => {
   });
 
   describe('flash swap', () => {
-    let tokenC: TokenContract;
     let DCAHubSwapCallee: Contract;
 
     given(async () => {
-      tokenC = await erc20.deploy({
-        name: 'tokenC',
-        symbol: 'TKN2',
-        decimals: 18,
-        initialAccount: owner.address,
-        initialAmount: ethers.constants.MaxUint256.div(2),
-      });
-
       const DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
     });

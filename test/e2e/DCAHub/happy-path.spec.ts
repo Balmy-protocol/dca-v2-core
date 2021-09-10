@@ -248,8 +248,7 @@ contract('DCAHub', () => {
       await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
 
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-      // TODO: Uncomment once registerSwap removes inactive intervals
-      // await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
+      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
 
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
