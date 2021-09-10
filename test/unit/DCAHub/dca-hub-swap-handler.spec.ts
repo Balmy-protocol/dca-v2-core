@@ -11,7 +11,7 @@ import {
   TimeWeightedOracleMock__factory,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, bn } from '@test-utils';
+import { constants, erc20, bn, behaviours } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
@@ -444,6 +444,34 @@ describe('DCAHubSwapHandler', () => {
       });
     }
 
+    function failedGetNextSwapInfoTest({
+      title,
+      tokens,
+      pairs,
+      error,
+    }: {
+      title: string;
+      tokens: (() => TokenContract)[];
+      pairs: { indexTokenA: number; indexTokenB: number }[];
+      error: string;
+    }) {
+      when(title, () => {
+        given(async () => {
+          for (const { indexTokenA, indexTokenB } of pairs) {
+            await DCAHubSwapHandler.setRatio(tokens[indexTokenA]().address, tokens[indexTokenB]().address, tokens[indexTokenA]().asUnits(1000));
+          }
+        });
+        then('should revert with message', async () => {
+          await behaviours.txShouldRevertWithMessage({
+            contract: DCAHubSwapHandler,
+            func: 'internalGetNextSwapInfo',
+            args: [tokens.map((token) => token().address), pairs, 6000, timeWeightedOracle.address],
+            message: error,
+          });
+        });
+      });
+    }
+
     internalGetNextSwapInfoTest({
       title: 'no pairs are sent',
       pairs: [],
@@ -698,6 +726,67 @@ describe('DCAHubSwapHandler', () => {
           required: 49.7,
         },
       ],
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'indexTokenA is the same as indexTokenB',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [
+        { indexTokenA: 0, indexTokenB: 1 },
+        { indexTokenA: 1, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'indexTokenA is greater than indexTokenB',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [{ indexTokenA: 1, indexTokenB: 0 }],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenA indexes are not sorted correctly',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [
+        { indexTokenA: 1, indexTokenB: 1 },
+        { indexTokenA: 0, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenA indexes are the same but tokenB indexes are not sorted correctly',
+      tokens: [() => tokenA, () => tokenB, () => tokenC],
+      pairs: [
+        { indexTokenA: 0, indexTokenB: 2 },
+        { indexTokenA: 0, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'same pair appears twice',
+      tokens: [() => tokenA, () => tokenB, () => tokenC],
+      pairs: [
+        { indexTokenA: 0, indexTokenB: 1 },
+        { indexTokenA: 0, indexTokenB: 1 },
+      ],
+      error: 'InvalidPairs',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'same token appears twice',
+      tokens: [() => tokenA, () => tokenA],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'InvalidTokens',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokens are not sorted',
+      tokens: [() => tokenB, () => tokenA],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'InvalidTokens',
     });
   });
 
