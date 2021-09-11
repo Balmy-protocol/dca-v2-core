@@ -116,7 +116,13 @@ contract('DCAHub', () => {
 
       testReentrantForFunction({
         funcAndSignature: 'swap(address[],(uint8,uint8)[],uint256[],address,bytes)',
-        args: () => [[], [], [], reentrantDCAHubSwapCallee.address, utils.formatBytes32String('')],
+        args: () => [
+          [tokenA.address, tokenB.address],
+          [{ indexTokenA: 0, indexTokenB: 1 }],
+          [0, 0],
+          reentrantDCAHubSwapCallee.address,
+          utils.formatBytes32String(''),
+        ],
         attackerContract: () => reentrantDCAHubSwapCallee,
       });
     });
