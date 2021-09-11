@@ -1247,7 +1247,7 @@ describe('DCAHubSwapHandler', () => {
     });
 
     failedSwapTest({
-      title: 'there intervals are inactive',
+      title: 'the intervals are inactive',
       tokens: [
         {
           token: () => tokenA,
@@ -1314,6 +1314,7 @@ describe('DCAHubSwapHandler', () => {
   });
 
   describe('flash swap', () => {
+    const BYTES = ethers.utils.randomBytes(5);
     let DCAHubSwapCallee: Contract;
 
     given(async () => {
@@ -1343,7 +1344,6 @@ describe('DCAHubSwapHandler', () => {
       }[];
     }) {
       when(title, () => {
-        const BYTES = ethers.utils.randomBytes(5);
         const BLOCK_TIMESTAMP = 30004;
         let initialBalances: Map<string, Map<TokenContract, BigNumber>>;
         let borrow: BigNumber[];
@@ -1537,6 +1537,105 @@ describe('DCAHubSwapHandler', () => {
       });
     }
 
+    function failedFlashSwapTest({
+      title,
+      tokens,
+      pairs,
+      error,
+      initialBalanceHub,
+      amountToReturn,
+      context,
+    }: {
+      title: string;
+      tokens: {
+        token: () => TokenContract;
+        reward?: number;
+        toProvide?: number;
+        borrow?: number;
+      }[];
+      pairs: {
+        tokenA: () => TokenContract;
+        tokenB: () => TokenContract;
+        intervalsInSwap: number[];
+      }[];
+      initialBalanceHub?: {
+        token: () => TokenContract;
+        amount: number;
+      }[];
+      amountToReturn?: {
+        token: () => TokenContract;
+        amount: number;
+      }[];
+      context?: () => Promise<any>;
+      error: string;
+    }) {
+      when(title, () => {
+        const CALLEE_INITIAL_BALANCE = 100;
+        let tokensInput: string[];
+        let pairIndexesInput: { indexTokenA: number; indexTokenB: number }[];
+        let borrowInput: BigNumber[];
+
+        given(async () => {
+          const mappedTokens = tokens.map(({ token, reward, toProvide }) => ({
+            token: token().address,
+            reward: !!reward ? token().asUnits(reward) : constants.ZERO,
+            toProvide: !!toProvide ? token().asUnits(toProvide) : constants.ZERO,
+            platformFee: constants.ZERO,
+          }));
+          const mappedPairs = pairs.map(({ tokenA, tokenB, intervalsInSwap }) => ({
+            tokenA: tokenA().address,
+            tokenB: tokenB().address,
+            ratioAToB: BigNumber.from(200000),
+            ratioBToA: BigNumber.from(300000),
+            intervalsInSwap,
+          }));
+          const ratiosWithFee = mappedPairs.map(({ ratioAToB, ratioBToA }) => ({
+            ratioAToBWithFee: APPLY_FEE(ratioAToB),
+            ratioBToAWithFee: APPLY_FEE(ratioBToA),
+          }));
+          const mappedBorrow = tokens
+            .filter(({ borrow }) => !!borrow)
+            .map(({ token, borrow }) => ({
+              token: token().address,
+              amount: token().asUnits(borrow!),
+            }));
+
+          for (const { token, amount } of initialBalanceHub ?? []) {
+            await token().mint(DCAHubSwapHandler.address, token().asUnits(amount));
+            await DCAHubSwapHandler.setInternalBalance(token().address, token().asUnits(amount));
+          }
+
+          for (const token of [tokenA, tokenB, tokenC]) {
+            await token.mint(DCAHubSwapCallee.address, token.asUnits(CALLEE_INITIAL_BALANCE));
+          }
+          await DCAHubSwapCallee.setInitialBalances(
+            [tokenA.address, tokenB.address, tokenC.address],
+            [tokenA.asUnits(CALLEE_INITIAL_BALANCE), tokenB.asUnits(CALLEE_INITIAL_BALANCE), tokenC.asUnits(CALLEE_INITIAL_BALANCE)]
+          );
+
+          if (amountToReturn) {
+            const tokens = amountToReturn.map(({ token }) => token().address);
+            const amounts = amountToReturn.map(({ token, amount }) => token().asUnits(amount));
+            await DCAHubSwapCallee.returnSpecificAmounts(tokens, amounts);
+          }
+
+          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs }, ratiosWithFee);
+          await context?.();
+
+          ({ tokens: tokensInput, pairIndexes: pairIndexesInput, borrow: borrowInput } = buildSwapInput(mappedPairs, mappedBorrow));
+        });
+
+        then('should revert with message', async () => {
+          await behaviours.txShouldRevertWithMessage({
+            contract: DCAHubSwapHandler,
+            func: 'swap(address[],(uint8,uint8)[],uint256[],address,bytes)',
+            args: [tokensInput, pairIndexesInput, borrowInput, DCAHubSwapCallee.address, BYTES],
+            message: error,
+          });
+        });
+      });
+    }
+
     flashSwapTest({
       title: 'a token that is not being swapped is borrowed',
       tokens: [
@@ -1602,6 +1701,154 @@ describe('DCAHubSwapHandler', () => {
           intervalsInSwap: [SWAP_INTERVAL, SWAP_INTERVAL_2],
         },
       ],
+    });
+
+    failedFlashSwapTest({
+      title: 'swapping is paused',
+      context: () => DCAGlobalParameters.pause(),
+      tokens: [],
+      pairs: [],
+      error: 'Paused',
+    });
+
+    failedFlashSwapTest({
+      title: 'there are no swaps to execute',
+      tokens: [
+        {
+          token: () => tokenA,
+          reward: 100,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervalsInSwap: [],
+        },
+      ],
+      error: 'NoSwapsToExecute',
+    });
+
+    failedFlashSwapTest({
+      title: 'the intervals are inactive',
+      tokens: [
+        {
+          token: () => tokenA,
+          reward: 100,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervalsInSwap: [0, 0],
+        },
+      ],
+      error: 'NoSwapsToExecute',
+    });
+
+    failedFlashSwapTest({
+      title: 'the amount to provide is not returned',
+      tokens: [
+        {
+          token: () => tokenA,
+          toProvide: 100,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervalsInSwap: [10],
+        },
+      ],
+      amountToReturn: [
+        {
+          token: () => tokenA,
+          amount: 99,
+        },
+      ],
+      error: 'LiquidityNotReturned',
+    });
+
+    failedFlashSwapTest({
+      title: 'the amount borrowed is not returned',
+      tokens: [
+        {
+          token: () => tokenA,
+          toProvide: 50,
+          borrow: 50,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervalsInSwap: [10],
+        },
+      ],
+      initialBalanceHub: [
+        {
+          token: () => tokenA,
+          amount: 50,
+        },
+      ],
+      amountToReturn: [
+        {
+          token: () => tokenA,
+          amount: 99,
+        },
+      ],
+      error: 'LiquidityNotReturned',
+    });
+
+    failedFlashSwapTest({
+      title: 'the amount to reward is not available',
+      tokens: [
+        {
+          token: () => tokenA,
+          reward: 100,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervalsInSwap: [20],
+        },
+      ],
+      initialBalanceHub: [
+        {
+          token: () => tokenA,
+          amount: 99,
+        },
+      ],
+      error: 'ERC20: transfer amount exceeds balance',
+    });
+
+    failedFlashSwapTest({
+      title: 'swapper borrows more than is available',
+      tokens: [
+        {
+          token: () => tokenA,
+          reward: 50,
+          borrow: 50,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervalsInSwap: [20],
+        },
+      ],
+      initialBalanceHub: [
+        {
+          token: () => tokenA,
+          amount: 99,
+        },
+      ],
+      error: 'ERC20: transfer amount exceeds balance',
     });
   });
 
