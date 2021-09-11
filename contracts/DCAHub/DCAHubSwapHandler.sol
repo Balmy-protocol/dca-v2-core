@@ -314,15 +314,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     {
       RatioWithFee[] memory _internalSwapInformation;
       (_swapInformation, _internalSwapInformation) = _getNextSwapInfo(_tokens, _pairsToSwap, _swapParameters.swapFee, _swapParameters.oracle);
-      // TODO: revert with 'NoSwapsToExecute' if there are no swaps being executed
 
       uint32 _timestamp = _getTimestamp();
+      bool _executedAPair;
       for (uint256 i; i < _swapInformation.pairs.length; i++) {
-        for (uint256 j; j < _swapInformation.pairs[i].intervalsInSwap.length; j++) {
-          if (_swapInformation.pairs[i].intervalsInSwap[j] == 0) {
-            // Note: This is an optimization. If the interval is 0, we know there won't be any other intervals for this pair
-            break;
-          }
+        uint256 j;
+        while (j < _swapInformation.pairs[i].intervalsInSwap.length && _swapInformation.pairs[i].intervalsInSwap[j] > 0) {
           _registerSwap(
             _swapInformation.pairs[i].tokenA,
             _swapInformation.pairs[i].tokenB,
@@ -331,7 +328,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
             _internalSwapInformation[i].ratioBToAWithFee,
             _timestamp
           );
+          j++;
         }
+        _executedAPair = _executedAPair || j > 0;
+      }
+
+      if (!_executedAPair) {
+        revert NoSwapsToExecute();
       }
     }
 
@@ -339,9 +342,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
       if (_amountToSend > 0) {
-        if (_amountToSend > _balances[_swapInformation.tokens[i].token]) {
-          revert CommonErrors.InsufficientLiquidity();
-        }
+        // TODO: Think if we want to revert with a nicer message when there aren't enough funds, or if we just let it fail during transfer
         IERC20Metadata(_swapInformation.tokens[i].token).safeTransfer(_to, _amountToSend);
       }
     }
