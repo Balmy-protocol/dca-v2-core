@@ -6,8 +6,8 @@ import './DCAHubParameters.sol';
 
 contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   struct RegisterSwapCall {
-    uint256 ratePerUnitAToB;
-    uint256 ratePerUnitBToA;
+    uint256 ratioAToB;
+    uint256 ratioBToA;
     uint32 timestamp;
   }
 
@@ -41,11 +41,11 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     address _tokenA,
     address _tokenB,
     uint32 _swapInterval,
-    uint256 _ratePerUnitAToB,
-    uint256 _ratePerUnitBToA,
+    uint256 _ratioAToB,
+    uint256 _ratioBToA,
     uint32 _timestamp
   ) external {
-    _registerSwap(_tokenA, _tokenB, _swapInterval, _ratePerUnitAToB, _ratePerUnitBToA, _timestamp);
+    _registerSwap(_tokenA, _tokenB, _swapInterval, _ratioAToB, _ratioBToA, _timestamp);
   }
 
   function getAmountToSwap(
@@ -182,16 +182,12 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     address _tokenA,
     address _tokenB,
     uint32 _swapInterval,
-    uint256 _ratePerUnitAToB,
-    uint256 _ratePerUnitBToA,
+    uint256 _ratioAToB,
+    uint256 _ratioBToA,
     uint32 _timestamp
   ) internal override {
-    registerSwapCalls[_tokenA][_tokenB][_swapInterval] = RegisterSwapCall({
-      ratePerUnitAToB: _ratePerUnitAToB,
-      ratePerUnitBToA: _ratePerUnitBToA,
-      timestamp: _timestamp
-    });
-    super._registerSwap(_tokenA, _tokenB, _swapInterval, _ratePerUnitAToB, _ratePerUnitBToA, _timestamp);
+    registerSwapCalls[_tokenA][_tokenB][_swapInterval] = RegisterSwapCall({ratioAToB: _ratioAToB, ratioBToA: _ratioBToA, timestamp: _timestamp});
+    super._registerSwap(_tokenA, _tokenB, _swapInterval, _ratioAToB, _ratioBToA, _timestamp);
   }
 
   // Mocks setters

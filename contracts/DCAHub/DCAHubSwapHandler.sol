@@ -16,20 +16,20 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     address _tokenA,
     address _tokenB,
     uint32 _swapInterval,
-    uint256 _ratePerUnitAToB,
-    uint256 _ratePerUnitBToA,
+    uint256 _ratioAToB,
+    uint256 _ratioBToA,
     uint32 _timestamp
   ) internal virtual {
     uint32 _swapToRegister = performedSwaps[_tokenA][_tokenB][_swapInterval] + 1;
     int256 _swappedTokenA = swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
     int256 _swappedTokenB = swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
     if (_swappedTokenA > 0 || _swappedTokenB > 0) {
-      _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister] =
-        _accumRatesPerUnit[_tokenA][_tokenB][_swapInterval][_swapToRegister - 1] +
-        _ratePerUnitAToB;
-      _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister] =
-        _accumRatesPerUnit[_tokenB][_tokenA][_swapInterval][_swapToRegister - 1] +
-        _ratePerUnitBToA;
+      accumRatio[_tokenA][_tokenB][_swapInterval][_swapToRegister] =
+        accumRatio[_tokenA][_tokenB][_swapInterval][_swapToRegister - 1] +
+        _ratioAToB;
+      accumRatio[_tokenB][_tokenA][_swapInterval][_swapToRegister] =
+        accumRatio[_tokenB][_tokenA][_swapInterval][_swapToRegister - 1] +
+        _ratioBToA;
       swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister + 1] += _swappedTokenA;
       swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1] += _swappedTokenB;
       delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
