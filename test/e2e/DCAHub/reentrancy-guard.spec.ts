@@ -49,14 +49,10 @@ contract('DCAHub', () => {
       reentrantDCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');
       TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
-      tokenA = await erc20.deploy({
-        name: 'tokenA',
-        symbol: 'TKNA',
-      });
-      tokenB = await erc20.deploy({
-        name: 'tokenB',
-        symbol: 'TKNB',
-      });
+
+      const deploy = () => erc20.deploy({ name: 'A name', symbol: 'SYMB' });
+      const tokens = [await deploy(), await deploy()];
+      [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
       TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(0, 0);
       DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(
         governor.address,
