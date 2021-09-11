@@ -85,8 +85,8 @@ describe('DCAHubSwapHandler', () => {
     amountToSwapTokenA,
     amountToSwapTokenB,
     nextSwapNumber,
-    ratePerUnitAToB,
-    ratePerUnitBToA,
+    ratioAToB,
+    ratioBToA,
     blockTimestamp,
     previous,
   }: {
@@ -96,12 +96,12 @@ describe('DCAHubSwapHandler', () => {
     amountToSwapTokenA: BigNumberish;
     amountToSwapTokenB: BigNumberish;
     nextSwapNumber: number;
-    ratePerUnitAToB: BigNumberish;
-    ratePerUnitBToA: BigNumberish;
+    ratioAToB: BigNumberish;
+    ratioBToA: BigNumberish;
     blockTimestamp: number;
     previous?: {
-      accumRatePerUnitAToB: BigNumberish;
-      accumRatePerUnitBToA: BigNumberish;
+      accumRatioAToB: BigNumberish;
+      accumRatioBToA: BigNumberish;
     };
   }) {
     const NEXT_DELTA_FROM_A_TO_B = 20;
@@ -116,11 +116,11 @@ describe('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setPerformedSwaps(SWAP_INTERVAL, nextSwapNumber - 1);
 
         if (previous) {
-          await DCAHubSwapHandler.setAcummRatesPerUnit(SWAP_INTERVAL, tokenA(), tokenB(), nextSwapNumber - 1, previous.accumRatePerUnitAToB);
-          await DCAHubSwapHandler.setAcummRatesPerUnit(SWAP_INTERVAL, tokenB(), tokenA(), nextSwapNumber - 1, previous.accumRatePerUnitBToA);
+          await DCAHubSwapHandler.setAcummRatio(tokenA(), tokenB(), SWAP_INTERVAL, nextSwapNumber - 1, previous.accumRatioAToB);
+          await DCAHubSwapHandler.setAcummRatio(tokenB(), tokenA(), SWAP_INTERVAL, nextSwapNumber - 1, previous.accumRatioBToA);
         }
 
-        await DCAHubSwapHandler.registerSwap(tokenA(), tokenB(), SWAP_INTERVAL, ratePerUnitAToB, ratePerUnitBToA, blockTimestamp);
+        await DCAHubSwapHandler.registerSwap(tokenA(), tokenB(), SWAP_INTERVAL, ratioAToB, ratioBToA, blockTimestamp);
       });
 
       describe('token A to B', () => {
@@ -129,8 +129,8 @@ describe('DCAHubSwapHandler', () => {
           expect(deltaInNextSwap).to.equal(bn.toBN(amountToSwapTokenA).add(NEXT_DELTA_FROM_A_TO_B));
         });
         then('increments the rate per unit accumulator', async () => {
-          const accumRatesPerUnit = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenA(), tokenB(), nextSwapNumber);
-          expect(accumRatesPerUnit).to.equal(bn.toBN(ratePerUnitAToB).add(previous?.accumRatePerUnitAToB ?? 0));
+          const accumRatios = await DCAHubSwapHandler.accumRatio(tokenA(), tokenB(), SWAP_INTERVAL, nextSwapNumber);
+          expect(accumRatios).to.equal(bn.toBN(ratioAToB).add(previous?.accumRatioAToB ?? 0));
         });
         then('deletes swap amount delta of the executed swap', async () => {
           expect(await DCAHubSwapHandler.swapAmountDelta(tokenA(), tokenB(), SWAP_INTERVAL, nextSwapNumber)).to.equal(0);
@@ -143,8 +143,8 @@ describe('DCAHubSwapHandler', () => {
           expect(deltaInNextSwap).to.equal(bn.toBN(amountToSwapTokenB).add(NEXT_DELTA_FROM_B_TO_A));
         });
         then('increments the rate per unit accumulator', async () => {
-          const accumRatesPerUnit = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenB(), tokenA(), nextSwapNumber);
-          expect(accumRatesPerUnit).to.equal(bn.toBN(ratePerUnitBToA).add(previous?.accumRatePerUnitBToA ?? 0));
+          const accumRatios = await DCAHubSwapHandler.accumRatio(tokenB(), tokenA(), SWAP_INTERVAL, nextSwapNumber);
+          expect(accumRatios).to.equal(bn.toBN(ratioBToA).add(previous?.accumRatioBToA ?? 0));
         });
         then('deletes swap amount delta of the executed swap', async () => {
           expect(await DCAHubSwapHandler.swapAmountDelta(tokenB(), tokenA(), SWAP_INTERVAL, nextSwapNumber)).to.equal(0);
@@ -168,8 +168,8 @@ describe('DCAHubSwapHandler', () => {
       tokenA: () => tokenA.address,
       tokenB: () => tokenB.address,
       nextSwapNumber: 1,
-      ratePerUnitAToB: 123456789,
-      ratePerUnitBToA: 9991230,
+      ratioAToB: 123456789,
+      ratioBToA: 9991230,
       blockTimestamp: 1000000,
       amountToSwapTokenA: 1000000,
       amountToSwapTokenB: 5000,
@@ -180,14 +180,14 @@ describe('DCAHubSwapHandler', () => {
       tokenA: () => tokenA.address,
       tokenB: () => tokenB.address,
       nextSwapNumber: 5,
-      ratePerUnitAToB: 123456789,
-      ratePerUnitBToA: 9991230,
+      ratioAToB: 123456789,
+      ratioBToA: 9991230,
       blockTimestamp: 1000000,
       amountToSwapTokenA: 1000000,
       amountToSwapTokenB: 5000,
       previous: {
-        accumRatePerUnitAToB: 100004003,
-        accumRatePerUnitBToA: 600312,
+        accumRatioAToB: 100004003,
+        accumRatioBToA: 600312,
       },
     });
 
@@ -218,10 +218,10 @@ describe('DCAHubSwapHandler', () => {
         expect(deltaInNextSwapBToA).to.equal(0);
       });
       then('rate per unit is not increased', async () => {
-        const accumRatesPerUnitAToB = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenA.address, tokenB.address, NEXT_SWAP);
-        const accumRatesPerUnitBToA = await DCAHubSwapHandler.accumRatesPerUnit(SWAP_INTERVAL, tokenB.address, tokenA.address, NEXT_SWAP);
-        expect(accumRatesPerUnitAToB).to.equal(0);
-        expect(accumRatesPerUnitBToA).to.equal(0);
+        const accumRatioAToB = await DCAHubSwapHandler.accumRatio(tokenA.address, tokenB.address, SWAP_INTERVAL, NEXT_SWAP);
+        const accumRatioBToA = await DCAHubSwapHandler.accumRatio(tokenB.address, tokenA.address, SWAP_INTERVAL, NEXT_SWAP);
+        expect(accumRatioAToB).to.equal(0);
+        expect(accumRatioBToA).to.equal(0);
       });
       then('performed swaps is not incremented', async () => {
         expect(await DCAHubSwapHandler.performedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(NEXT_SWAP - 1);
@@ -327,7 +327,7 @@ describe('DCAHubSwapHandler', () => {
       let ratioAToB: BigNumber, ratioAToBWithFee: BigNumber;
       let ratioBToA: BigNumber, ratioBToAWithFee: BigNumber;
       given(async () => {
-        await setOracleData({ ratePerUnitBToA: tokenA.asUnits(0.6) });
+        await setOracleData({ ratioBToA: tokenA.asUnits(0.6) });
         [ratioAToB, ratioBToA, ratioAToBWithFee, ratioBToAWithFee] = await DCAHubSwapHandler.calculateRatio(
           tokenA.address,
           tokenB.address,
@@ -887,8 +887,8 @@ describe('DCAHubSwapHandler', () => {
     });
   });
 
-  const setOracleData = async ({ ratePerUnitBToA }: { ratePerUnitBToA: BigNumber }) => {
-    await timeWeightedOracle.setRate(ratePerUnitBToA, tokenB.amountOfDecimals);
+  const setOracleData = async ({ ratioBToA }: { ratioBToA: BigNumber }) => {
+    await timeWeightedOracle.setRate(ratioBToA, tokenB.amountOfDecimals);
   };
 
   describe('swap', () => {
@@ -1038,8 +1038,8 @@ describe('DCAHubSwapHandler', () => {
           for (const pair of pairs) {
             for (const interval of pair.intervalsInSwap) {
               const call = await DCAHubSwapHandler.registerSwapCalls(pair.tokenA().address, pair.tokenB().address, interval);
-              expect(call.ratePerUnitAToB).to.equal(APPLY_FEE(BigNumber.from(pair.ratioAToB)));
-              expect(call.ratePerUnitBToA).to.equal(APPLY_FEE(BigNumber.from(pair.ratioBToA)));
+              expect(call.ratioAToB).to.equal(APPLY_FEE(BigNumber.from(pair.ratioAToB)));
+              expect(call.ratioBToA).to.equal(APPLY_FEE(BigNumber.from(pair.ratioBToA)));
               expect(call.timestamp).to.equal(BLOCK_TIMESTAMP);
             }
           }
@@ -1308,8 +1308,8 @@ describe('DCAHubSwapHandler', () => {
           for (const pair of pairs) {
             for (const interval of pair.intervalsInSwap) {
               const call = await DCAHubSwapHandler.registerSwapCalls(pair.tokenA().address, pair.tokenB().address, interval);
-              expect(call.ratePerUnitAToB).to.equal(APPLY_FEE(BigNumber.from(pair.ratioAToB)));
-              expect(call.ratePerUnitBToA).to.equal(APPLY_FEE(BigNumber.from(pair.ratioBToA)));
+              expect(call.ratioAToB).to.equal(APPLY_FEE(BigNumber.from(pair.ratioAToB)));
+              expect(call.ratioBToA).to.equal(APPLY_FEE(BigNumber.from(pair.ratioBToA)));
               expect(call.timestamp).to.equal(BLOCK_TIMESTAMP);
             }
           }

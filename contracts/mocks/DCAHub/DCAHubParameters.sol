@@ -66,23 +66,14 @@ contract DCAHubParametersMock is DCAHubParameters {
     swapAmountDelta[_from][_to][_swapInterval][_swap] = _value;
   }
 
-  function setAcummRatesPerUnit(
-    uint32 _swapInterval,
+  function setAcummRatio(
     address _from,
     address _to,
+    uint32 _swapInterval,
     uint32 _swap,
-    uint256 _accumRatePerUnit
+    uint256 _accumRatio
   ) external {
-    _accumRatesPerUnit[_from][_to][_swapInterval][_swap] = _accumRatePerUnit;
-  }
-
-  function accumRatesPerUnit(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _swap
-  ) external view returns (uint256) {
-    return _accumRatesPerUnit[_from][_to][_swapInterval][_swap];
+    accumRatio[_from][_to][_swapInterval][_swap] = _accumRatio;
   }
 
   function setPerformedSwaps(uint32 _swapInterval, uint32 _performedSwaps) external {
@@ -92,16 +83,6 @@ contract DCAHubParametersMock is DCAHubParameters {
     } else {
       performedSwaps[address(tokenB)][address(tokenA)][_swapInterval] = _performedSwaps;
     }
-  }
-
-  function setRatePerUnit(
-    uint32 _swapInterval,
-    address _from,
-    address _to,
-    uint32 _swap,
-    uint256 _rate
-  ) external {
-    _accumRatesPerUnit[_from][_to][_swapInterval][_swap] = _rate;
   }
 
   function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external view returns (uint256) {

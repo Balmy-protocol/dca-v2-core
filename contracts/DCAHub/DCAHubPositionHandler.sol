@@ -293,9 +293,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
       return _userDCA.swappedBeforeModified;
     }
 
-    uint256 _accumRatesfinalSwap = _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_newestSwapToConsider];
-    uint256 _accumPerUnit = _accumRatesfinalSwap -
-      _accumRatesPerUnit[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_userDCA.swapWhereLastUpdated];
+    uint256 _accumRatiosFinalSwap = accumRatio[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_newestSwapToConsider];
+    uint256 _accumPerUnit = _accumRatiosFinalSwap - accumRatio[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_userDCA.swapWhereLastUpdated];
     uint256 _magnitude = 10**IERC20Metadata(_userDCA.from).decimals();
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
     uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumPerUnit / _magnitude) * _userDCA.rate;

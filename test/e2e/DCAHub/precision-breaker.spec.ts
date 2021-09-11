@@ -124,27 +124,6 @@ contract('DCAHub', () => {
       await tokenB.mint(hasAddress.address, tokenB.asUnits(amountTokenB));
     }
 
-    type SwapInformation = {
-      interval: number;
-      swapToPerform: number;
-      amountToSwapTokenA: BigNumber;
-      amountToSwapTokenB: BigNumber;
-    };
-
-    type NextSwapInformation = {
-      swapsToPerform: SwapInformation[];
-      availableToBorrowTokenA: BigNumber;
-      availableToBorrowTokenB: BigNumber;
-      ratePerUnitBToA: BigNumber;
-      ratePerUnitAToB: BigNumber;
-      platformFeeTokenA: BigNumber;
-      platformFeeTokenB: BigNumber;
-      amountToBeProvidedBySwapper: BigNumber;
-      amountToRewardSwapperWith: BigNumber;
-      tokenToBeProvidedBySwapper: string;
-      tokenToRewardSwapperWith: string;
-    };
-
     type HasAddress = {
       readonly address: string;
     };
