@@ -93,6 +93,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     emit Withdrew(msg.sender, _recipient, _dcaId, _to, _swapped);
   }
 
+  // { to: token, ids: BigNumber[] }[]
   function withdrawSwappedMany(uint256[] calldata _dcaIds, address _recipient)
     external
     override
