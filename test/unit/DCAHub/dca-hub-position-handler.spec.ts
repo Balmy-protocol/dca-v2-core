@@ -340,7 +340,7 @@ describe('DCAPositionHandler', () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT_5,
+          ratio: RATE_PER_UNIT_5,
           amount: POSITION_RATE_5,
         });
       });
@@ -485,13 +485,13 @@ describe('DCAPositionHandler', () => {
         }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT_5,
+          ratio: RATE_PER_UNIT_5,
           amount: POSITION_RATE_5,
           fromToken: tokenA,
         });
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT_5,
+          ratio: RATE_PER_UNIT_5,
           amount: POSITION_RATE_3,
           fromToken: tokenB,
         });
@@ -588,7 +588,7 @@ describe('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT_5,
+          ratio: RATE_PER_UNIT_5,
           amount: POSITION_RATE_5,
         });
 
@@ -672,7 +672,7 @@ describe('DCAPositionHandler', () => {
         // Execute first swap
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT_5,
+          ratio: RATE_PER_UNIT_5,
           amount: POSITION_RATE_5,
         });
 
@@ -682,7 +682,7 @@ describe('DCAPositionHandler', () => {
         // Execute second swap
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 2,
-          ratePerUnit: RATE_PER_UNIT_5 * 2,
+          ratio: RATE_PER_UNIT_5 * 2,
           amount: POSITION_RATE_6,
         });
 
@@ -692,7 +692,7 @@ describe('DCAPositionHandler', () => {
         // Execute final swap
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 3,
-          ratePerUnit: RATE_PER_UNIT_5 * 3,
+          ratio: RATE_PER_UNIT_5 * 3,
           amount: POSITION_RATE_7,
         });
 
@@ -901,7 +901,7 @@ describe('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT_5,
+          ratio: RATE_PER_UNIT_5,
           amount: POSITION_RATE_5,
         });
 
@@ -922,7 +922,7 @@ describe('DCAPositionHandler', () => {
       given(async () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
         await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
-        await setRatePerUnit({
+        await setRatio({
           accumRate: constants.MAX_UINT_256,
           onSwap: PERFORMED_SWAPS_10 + 1,
         });
@@ -945,13 +945,13 @@ describe('DCAPositionHandler', () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
 
         // Set a value in PERFORMED_SWAPS_10 + 1
-        await setRatePerUnit({
+        await setRatio({
           accumRate: 1000000,
           onSwap: PERFORMED_SWAPS_10 + 1,
         });
 
         // Set another value in PERFORMED_SWAPS_10 + 2
-        await setRatePerUnit({
+        await setRatio({
           accumRate: 1000001,
           onSwap: PERFORMED_SWAPS_10 + 2,
         });
@@ -969,13 +969,13 @@ describe('DCAPositionHandler', () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
 
         // Set a value in PERFORMED_SWAPS_10 + 1
-        await setRatePerUnit({
+        await setRatio({
           accumRate: 1000000,
           onSwap: PERFORMED_SWAPS_10 + 1,
         });
 
         // Set another value in PERFORMED_SWAPS_10 + 2
-        await setRatePerUnit({
+        await setRatio({
           accumRate: 1000001,
           onSwap: PERFORMED_SWAPS_10 + 2,
         });
@@ -1015,7 +1015,7 @@ describe('DCAPositionHandler', () => {
     async function calculateSwappedWith({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate?: number }) {
       const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
       await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
-      await setRatePerUnit({
+      await setRatio({
         accumRate,
         onSwap: PERFORMED_SWAPS_10 + 1,
       });
@@ -1026,7 +1026,7 @@ describe('DCAPositionHandler', () => {
     async function expectCalculationToFailWithOverflow({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate: number }) {
       const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
       await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
-      await setRatePerUnit({
+      await setRatio({
         accumRate,
         onSwap: PERFORMED_SWAPS_10 + 1,
       });
@@ -1039,11 +1039,11 @@ describe('DCAPositionHandler', () => {
     }
   });
 
-  async function setRatePerUnit({ accumRate, onSwap }: { accumRate: number | BigNumber; onSwap: number }) {
-    await DCAPositionHandler.setRatePerUnit(
-      SWAP_INTERVAL,
+  async function setRatio({ accumRate, onSwap }: { accumRate: number | BigNumber; onSwap: number }) {
+    await DCAPositionHandler.setAcummRatio(
       tokenA.address,
       tokenB.address,
+      SWAP_INTERVAL,
       onSwap,
       BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate)
     );
@@ -1126,7 +1126,7 @@ describe('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratePerUnit: RATE_PER_UNIT_5,
+          ratio: RATE_PER_UNIT_5,
           amount: initialRate,
         });
 
@@ -1204,23 +1204,13 @@ describe('DCAPositionHandler', () => {
     });
   }
 
-  async function performTrade({
-    swap,
-    ratePerUnit,
-    amount,
-    fromToken,
-  }: {
-    swap: number;
-    ratePerUnit: number;
-    amount: number;
-    fromToken?: TokenContract;
-  }) {
+  async function performTrade({ swap, ratio, amount, fromToken }: { swap: number; ratio: number; amount: number; fromToken?: TokenContract }) {
     const fromTokenReal = fromToken ?? tokenA;
     const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
     await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, swap);
-    await DCAPositionHandler.setRatePerUnit(SWAP_INTERVAL, fromTokenReal.address, toToken.address, swap, toToken.asUnits(ratePerUnit));
+    await DCAPositionHandler.setAcummRatio(fromTokenReal.address, toToken.address, SWAP_INTERVAL, swap, toToken.asUnits(ratio));
     await fromTokenReal.burn(DCAPositionHandler.address, fromTokenReal.asUnits(amount));
-    await toToken.mint(DCAPositionHandler.address, toToken.asUnits(amount * ratePerUnit));
+    await toToken.mint(DCAPositionHandler.address, toToken.asUnits(amount * ratio));
     await DCAPositionHandler.setInternalBalances(
       await tokenA.balanceOf(DCAPositionHandler.address),
       await tokenB.balanceOf(DCAPositionHandler.address)

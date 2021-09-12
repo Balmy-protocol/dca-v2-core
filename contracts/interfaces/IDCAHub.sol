@@ -254,46 +254,6 @@ interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
 /// @title The interface for all swap related matters in a DCA pair
 /// @notice These methods allow users to get information about the next swap, and how to execute it
 interface IDCAHubSwapHandler {
-  /// @notice Information about an available swap for a specific swap interval
-  struct SwapInformation {
-    // The affected swap interval
-    uint32 interval;
-    // The number of the swap that will be performed
-    uint32 swapToPerform;
-    // The amount of token A that needs swapping
-    uint256 amountToSwapTokenA;
-    // The amount of token B that needs swapping
-    uint256 amountToSwapTokenB;
-  }
-
-  /// @notice All information about the next swap
-  struct NextSwapInformation {
-    // All swaps that can be executed
-    SwapInformation[] swapsToPerform;
-    // How many entries of the swapsToPerform array are valid
-    uint8 amountOfSwaps;
-    // How much can be borrowed in token A during a flash swap
-    uint256 availableToBorrowTokenA;
-    // How much can be borrowed in token B during a flash swap
-    uint256 availableToBorrowTokenB;
-    // How much 10**decimals(tokenB) is when converted to token A
-    uint256 ratePerUnitBToA;
-    // How much 10**decimals(tokenA) is when converted to token B
-    uint256 ratePerUnitAToB;
-    // How much token A will be sent to the platform in terms of fee
-    uint256 platformFeeTokenA;
-    // How much token B will be sent to the platform in terms of fee
-    uint256 platformFeeTokenB;
-    // The amount of tokens that need to be provided by the swapper
-    uint256 amountToBeProvidedBySwapper;
-    // The amount of tokens that will be sent to the swapper optimistically
-    uint256 amountToRewardSwapperWith;
-    // The token that needs to be provided by the swapper
-    IERC20Metadata tokenToBeProvidedBySwapper;
-    // The token that will be sent to the swapper optimistically
-    IERC20Metadata tokenToRewardSwapperWith;
-  }
-
   struct TokenInSwap {
     address token;
     uint256 reward;

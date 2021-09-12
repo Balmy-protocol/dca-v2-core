@@ -572,27 +572,6 @@ contract('DCAHub', () => {
 
     type SwapRatio = { tokenA: 1; tokenB: number } | { tokenA: number; tokenB: 1 };
 
-    type SwapInformation = {
-      interval: number;
-      swapToPerform: number;
-      amountToSwapTokenA: BigNumber;
-      amountToSwapTokenB: BigNumber;
-    };
-
-    type NextSwapInformation = {
-      swapsToPerform: SwapInformation[];
-      availableToBorrowTokenA: BigNumber;
-      availableToBorrowTokenB: BigNumber;
-      ratePerUnitBToA: BigNumber;
-      ratePerUnitAToB: BigNumber;
-      platformFeeTokenA: BigNumber;
-      platformFeeTokenB: BigNumber;
-      amountToBeProvidedBySwapper: BigNumber;
-      amountToRewardSwapperWith: BigNumber;
-      tokenToBeProvidedBySwapper: string;
-      tokenToRewardSwapperWith: string;
-    };
-
     type UserPositionDefinition = {
       id: BigNumber;
       owner: SignerWithAddress;
