@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  unit:
+  run:
     runs-on: ubuntu-latest
     steps:
       - name: Check out github repository
