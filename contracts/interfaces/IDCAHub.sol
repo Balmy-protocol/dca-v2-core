@@ -279,11 +279,6 @@ interface IDCAHubLoanHandler {
   // @notice Thrown when trying to execute a flash loan but without actually asking for tokens
   error ZeroLoan();
 
-  /// @notice Returns the amount of tokens that can be asked for during a flash loan
-  /// @return _amountToBorrowTokenA The amount of token A that is available for borrowing
-  /// @return _amountToBorrowTokenB The amount of token B that is available for borrowing
-  function availableToBorrow() external view returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB);
-
   /// @notice Executes a flash loan, sending the required amounts to the specified loan recipient
   /// @dev Will revert:
   /// With ZeroLoan if both _amountToBorrowTokenA & _amountToBorrowTokenB are 0
