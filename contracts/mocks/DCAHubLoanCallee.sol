@@ -8,66 +8,65 @@ import '../interfaces/IDCAHub.sol';
 
 contract DCAHubLoanCalleeMock is IDCAHubLoanCallee {
   struct LoanCall {
-    address pair;
+    address hub;
     address sender;
-    IERC20Metadata tokenA;
-    IERC20Metadata tokenB;
-    uint256 amountBorrowedTokenA;
-    uint256 amountBorrowedTokenB;
-    uint256 feeTokenA;
-    uint256 feeTokenB;
+    IDCAHub.Loan[] loan;
+    uint32 loanFee;
     bytes data;
   }
 
-  uint256 private _initialBalanceA;
-  uint256 private _initialBalanceB;
+  mapping(address => uint256) private _initialBalance;
+  mapping(address => uint256) private _amountToReturn;
   LoanCall private _lastCall;
   bool private _returnAsExpected = true;
-  uint256 private _amountToReturnTokenA;
-  uint256 private _amountToReturnTokenB;
-
-  constructor(uint256 __initialBalanceA, uint256 __initialBalanceB) {
-    _initialBalanceA = __initialBalanceA;
-    _initialBalanceB = __initialBalanceB;
-  }
 
   // solhint-disable-next-line func-name-mixedcase
   function DCAHubLoanCall(
     address _sender,
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB,
-    uint256 _amountBorrowedTokenA,
-    uint256 _amountBorrowedTokenB,
-    uint256 _feeTokenA,
-    uint256 _feeTokenB,
+    IDCAHub.Loan[] calldata _loan,
+    uint32 _loanFee,
     bytes calldata _data
   ) external override {
-    require(_tokenA.balanceOf(address(this)) == _initialBalanceA + _amountBorrowedTokenA, 'DCAHubLoanCallee: token A not sent optimistically');
-    require(_tokenB.balanceOf(address(this)) == _initialBalanceB + _amountBorrowedTokenB, 'DCAHubLoanCallee: token B not sent optimistically');
+    for (uint256 i; i < _loan.length; i++) {
+      require(
+        IERC20Metadata(_loan[i].token).balanceOf(address(this)) == _initialBalance[_loan[i].token] + _loan[i].amount,
+        'DCAHubLoanCallee: token not sent optimistically'
+      );
+    }
+    _lastCall.hub = msg.sender;
+    _lastCall.sender = _sender;
+    _lastCall.loanFee = _loanFee;
+    _lastCall.data = _data;
 
-    _lastCall = LoanCall(msg.sender, _sender, _tokenA, _tokenB, _amountBorrowedTokenA, _amountBorrowedTokenB, _feeTokenA, _feeTokenB, _data);
+    for (uint256 i; i < _loan.length; i++) {
+      _lastCall.loan.push(_loan[i]);
+    }
 
-    if (_returnAsExpected) {
-      _tokenA.transfer(msg.sender, _amountBorrowedTokenA + _feeTokenA);
-      _tokenB.transfer(msg.sender, _amountBorrowedTokenB + _feeTokenB);
-    } else {
-      _tokenA.transfer(msg.sender, _amountToReturnTokenA);
-      _tokenB.transfer(msg.sender, _amountToReturnTokenB);
+    for (uint256 i; i < _loan.length; i++) {
+      uint256 _amount = _returnAsExpected ? _loan[i].amount + _getFeeFromAmount(_loanFee, _loan[i].amount) : _amountToReturn[_loan[i].token];
+      IERC20Metadata(_loan[i].token).transfer(msg.sender, _amount);
     }
   }
 
-  function returnSpecificAmounts(uint256 __amountToReturnTokenA, uint256 __amountToReturnTokenB) external {
-    _amountToReturnTokenA = __amountToReturnTokenA;
-    _amountToReturnTokenB = __amountToReturnTokenB;
+  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
+    return (_amount * _feeAmount) / 10000 / 100;
+  }
+
+  function setInitialBalances(address[] calldata _tokens, uint256[] calldata _amounts) external {
+    for (uint256 i; i < _tokens.length; i++) {
+      _initialBalance[_tokens[i]] = _amounts[i];
+    }
+  }
+
+  function returnSpecificAmounts(address[] calldata _tokens, uint256[] calldata _amounts) external {
+    for (uint256 i; i < _tokens.length; i++) {
+      _amountToReturn[_tokens[i]] = _amounts[i];
+    }
     _returnAsExpected = false;
   }
 
-  function wasThereACall() external view returns (bool) {
-    return _lastCall.pair != address(0);
-  }
-
-  function getLastCall() external view returns (LoanCall memory __lastCall) {
-    __lastCall = _lastCall;
+  function lastCall() external view returns (LoanCall memory) {
+    return _lastCall;
   }
 }
 
@@ -83,12 +82,8 @@ contract ReentrantDCAHubLoanCalleeMock is IDCAHubLoanCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAHubLoanCall(
     address,
-    IERC20Metadata,
-    IERC20Metadata,
-    uint256,
-    uint256,
-    uint256,
-    uint256,
+    IDCAHub.Loan[] calldata,
+    uint32,
     bytes calldata
   ) external override {
     (msg.sender).functionCall(_attack);
