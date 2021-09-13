@@ -59,15 +59,32 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
   }
 
-  function secondsUntilNextSwap() external view override returns (uint32 _secondsUntil) {
-    _secondsUntil = type(uint32).max;
+  struct Pair {
+    address tokenA;
+    address tokenB;
+  }
+
+  function secondsUntilNextSwap(Pair[] calldata _pairs) external view returns (uint32[] memory _seconds) {
+    _seconds = new uint32[](_pairs.length);
     uint32 _timestamp = _getTimestamp();
-    for (uint256 i; i < _activeSwapIntervals[address(tokenA)][address(tokenB)].length(); i++) {
-      uint32 _swapInterval = uint32(_activeSwapIntervals[address(tokenA)][address(tokenB)].at(i));
-      uint32 _nextAvailable = nextSwapAvailable[address(tokenA)][address(tokenB)][_swapInterval];
+    for (uint256 i; i < _pairs.length; i++) {
+      _seconds[i] = _pairs[i].tokenA < _pairs[i].tokenB
+        ? _secondsUntilNextSwap(_pairs[i].tokenA, _pairs[i].tokenB, _timestamp)
+        : _secondsUntilNextSwap(_pairs[i].tokenB, _pairs[i].tokenA, _timestamp);
+    }
+  }
+
+  function _secondsUntilNextSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _timestamp
+  ) internal view returns (uint32 _secondsUntil) {
+    _secondsUntil = type(uint32).max;
+    for (uint256 i; i < _activeSwapIntervals[_tokenA][_tokenB].length(); i++) {
+      uint32 _swapInterval = uint32(_activeSwapIntervals[_tokenA][_tokenB].at(i));
+      uint32 _nextAvailable = nextSwapAvailable[_tokenA][_tokenB][_swapInterval];
       if (_nextAvailable <= _timestamp) {
-        _secondsUntil = 0;
-        break;
+        return 0;
       } else {
         uint32 _diff = _nextAvailable - _timestamp;
         if (_diff < _secondsUntil) {
@@ -168,8 +185,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   error InvalidTokens();
 
   function _getNextSwapInfo(
-    address[] memory _tokens,
-    PairIndexes[] memory _pairs,
+    address[] calldata _tokens,
+    PairIndexes[] calldata _pairs,
     uint32 _swapFee,
     ITimeWeightedOracle _oracle
   ) internal view virtual returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
@@ -273,7 +290,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint256 availableToBorrow;
   }
 
-  function getNextSwapInfo(address[] memory _tokens, PairIndexes[] memory _pairsToSwap)
+  function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairsToSwap)
     external
     view
     returns (NextSwapInfo memory _swapInformation)
@@ -290,18 +307,19 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
       _swapInformation.tokens[i].reward = _tokenInSwap.reward;
       _swapInformation.tokens[i].toProvide = _tokenInSwap.toProvide;
       _swapInformation.tokens[i].availableToBorrow = _balances[_tokenInSwap.token] - _tokenInSwap.reward;
+      // TODO: Decide if we also want to expose the platform fee
     }
   }
 
   event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
 
-  function swap(address[] memory _tokens, PairIndexes[] memory _pairsToSwap) external {
+  function swap(address[] calldata _tokens, PairIndexes[] calldata _pairsToSwap) external {
     swap(_tokens, _pairsToSwap, new uint256[](_tokens.length), msg.sender, '');
   }
 
   function swap(
-    address[] memory _tokens,
-    PairIndexes[] memory _pairsToSwap,
+    address[] calldata _tokens,
+    PairIndexes[] calldata _pairsToSwap,
     uint256[] memory _borrow,
     address _to,
     bytes memory _data

@@ -263,10 +263,6 @@ interface IDCAHubSwapHandler {
 
   /// @notice Thrown when trying to execute a swap, but none is available
   error NoSwapsToExecute();
-
-  /// @notice Returns how many seconds left until the next swap is available
-  /// @return _secondsUntilNextSwap The amount of seconds until next swap. Returns 0 if a swap can already be executed
-  function secondsUntilNextSwap() external view returns (uint32 _secondsUntilNextSwap);
 }
 
 /// @title The interface for all loan related matters in a DCA pair

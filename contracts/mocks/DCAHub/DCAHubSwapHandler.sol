@@ -109,8 +109,8 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   function internalGetNextSwapInfo(
-    address[] memory _tokens,
-    PairIndexes[] memory _pairs,
+    address[] calldata _tokens,
+    PairIndexes[] calldata _pairs,
     uint32 _swapFee,
     ITimeWeightedOracle _oracle
   ) external view returns (SwapInfo memory, RatioWithFee[] memory) {
@@ -118,8 +118,8 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   }
 
   function _getNextSwapInfo(
-    address[] memory _tokens,
-    PairIndexes[] memory _pairs,
+    address[] calldata _tokens,
+    PairIndexes[] calldata _pairs,
     uint32 _swapFee,
     ITimeWeightedOracle _oracle
   ) internal view override returns (SwapInfo memory, RatioWithFee[] memory) {

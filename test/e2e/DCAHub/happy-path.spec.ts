@@ -436,12 +436,12 @@ contract('DCAHub', () => {
     }
 
     async function assertNoSwapsCanBeExecutedNow() {
-      const secondsUntilNext = await DCAHub.secondsUntilNextSwap();
+      const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
       expect(secondsUntilNext).to.be.greaterThan(0);
     }
 
     async function assertThereAreNoSwapsAvailable() {
-      const secondsUntilNext = await DCAHub.secondsUntilNextSwap();
+      const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
       expect(secondsUntilNext).to.equal(MAX_UINT_32);
       await assertIntervalsToSwapNowAre();
     }
@@ -470,7 +470,7 @@ contract('DCAHub', () => {
         .filter((interval) => interval > 0);
       expect(intervals).to.eql(swapIntervals);
       if (swapIntervals.length > 0) {
-        const secondsUntilNext = await DCAHub.secondsUntilNextSwap();
+        const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
         expect(secondsUntilNext).to.equal(0);
       }
     }

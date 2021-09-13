@@ -1854,67 +1854,117 @@ describe('DCAHubSwapHandler', () => {
 
   describe('secondsUntilNextSwap', () => {
     secondsUntilNextSwapTest({
-      title: 'there are not active intervals',
-      intervals: [],
-      blockTimestamp: 1000,
-      expected: 2 ** 32 - 1,
+      title: 'no pairs are passed',
+      pairs: [],
+      currentTimestamp: 1000,
+      expected: [],
     });
 
     secondsUntilNextSwapTest({
-      title: 'one of the intervals can be swapped already',
-      intervals: [
+      title: 'there are not active intervals for the given pair',
+      pairs: [
         {
-          interval: SWAP_INTERVAL,
-          nextAvailable: 1000,
-        },
-        {
-          interval: SWAP_INTERVAL_2,
-          nextAvailable: 1001,
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervals: [],
         },
       ],
-      blockTimestamp: 1000,
-      expected: 0,
+      currentTimestamp: 1000,
+      expected: [2 ** 32 - 1],
     });
 
     secondsUntilNextSwapTest({
-      title: 'none of the intervals can be swapped right now',
-      intervals: [
+      title: 'one of the intervals can be swapped for the given pair',
+      pairs: [
         {
-          interval: SWAP_INTERVAL,
-          nextAvailable: 1500,
-        },
-        {
-          interval: SWAP_INTERVAL_2,
-          nextAvailable: 1200,
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervals: [
+            {
+              interval: SWAP_INTERVAL,
+              nextAvailable: 1000,
+            },
+            {
+              interval: SWAP_INTERVAL_2,
+              nextAvailable: 1001,
+            },
+          ],
         },
       ],
-      blockTimestamp: 1000,
-      expected: 200,
+      currentTimestamp: 1000,
+      expected: [0],
+    });
+
+    secondsUntilNextSwapTest({
+      title: 'none of the intervals can be swapped right now for the given pair',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervals: [
+            {
+              interval: SWAP_INTERVAL,
+              nextAvailable: 1500,
+            },
+            {
+              interval: SWAP_INTERVAL_2,
+              nextAvailable: 1200,
+            },
+          ],
+        },
+      ],
+      currentTimestamp: 1000,
+      expected: [200],
+    });
+
+    secondsUntilNextSwapTest({
+      title: 'many pairs are provided',
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          intervals: [{ interval: SWAP_INTERVAL_2, nextAvailable: 1200 }],
+        },
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenC,
+          intervals: [{ interval: SWAP_INTERVAL, nextAvailable: 500 }],
+        },
+      ],
+      currentTimestamp: 1000,
+      expected: [200, 0],
     });
 
     async function secondsUntilNextSwapTest({
       title,
-      intervals,
-      blockTimestamp,
+      pairs,
+      currentTimestamp,
       expected,
     }: {
       title: string;
-      intervals: { interval: number; nextAvailable: number }[];
-      blockTimestamp: number;
-      expected: number;
+      pairs: {
+        tokenA: () => TokenContract;
+        tokenB: () => TokenContract;
+        intervals: { interval: number; nextAvailable: number }[];
+      }[];
+      currentTimestamp: number;
+      expected: number[];
     }) {
       when(title, () => {
         given(async () => {
-          for (const { interval, nextAvailable } of intervals) {
-            await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, interval);
-            await DCAHubSwapHandler.setNextSwapAvailable(interval, nextAvailable);
+          for (const { tokenA, tokenB, intervals } of pairs) {
+            for (const { interval, nextAvailable } of intervals) {
+              await DCAHubSwapHandler.addActiveSwapInterval(tokenA().address, tokenB().address, interval);
+              await DCAHubSwapHandler.setNextSwapAvailable(interval, nextAvailable);
+            }
           }
-          await DCAHubSwapHandler.setBlockTimestamp(blockTimestamp);
+          await DCAHubSwapHandler.setBlockTimestamp(currentTimestamp);
         });
 
         then('result is as expected', async () => {
-          const result = await DCAHubSwapHandler.secondsUntilNextSwap();
-          expect(result).to.equal(expected);
+          const input = pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address }));
+          const result = await DCAHubSwapHandler.secondsUntilNextSwap(input);
+          expect(result).to.eql(expected);
         });
       });
     }
@@ -1940,12 +1990,6 @@ describe('DCAHubSwapHandler', () => {
         threshold,
       });
     });
-  }
-
-  function toBN(amount: BigNumber | string | number, token: TokenContract): BigNumber {
-    if (BigNumber.isBigNumber(amount)) return amount;
-    if (typeof amount === 'string') return token.asUnits(amount);
-    return token.asUnits(amount.toFixed(tokenA.amountOfDecimals));
   }
 
   type SwapInformation = {
