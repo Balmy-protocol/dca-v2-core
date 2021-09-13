@@ -486,7 +486,7 @@ contract('DCAHub', () => {
       tokenA: number | BigNumber;
       tokenB: number | BigNumber;
     }) {
-      const [availableToBorrowA, availableToBorrowB] = await DCAHub.availableToBorrow();
+      const [availableToBorrowA, availableToBorrowB] = await DCAHub.availableToBorrow([tokenA.address, tokenB.address]);
       expect(availableToBorrowA).to.equal(BigNumber.isBigNumber(amountTokenA) ? amountTokenA : tokenA.asUnits(amountTokenA));
       expect(availableToBorrowB).to.equal(BigNumber.isBigNumber(amountTokenB) ? amountTokenB : tokenB.asUnits(amountTokenB));
     }
