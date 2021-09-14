@@ -197,7 +197,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     uint32 _newAmountOfSwaps,
     bool _increase
   ) internal {
-    // TODO: this method is not very gas-efficient. See if we can improve it
     if (_amount == 0) revert ZeroAmount();
     _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
 
@@ -219,20 +218,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     uint32 _finalSwap = _performedSwaps + _newAmountOfSwaps;
     _addToDelta(_userDCA.from, _userDCA.to, _userDCA.swapInterval, _startingSwap, _finalSwap, int160(_newRate));
 
-    // TODO: Check if it's cheaper to update variables individually
     _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
     _userPositions[_positionId].finalSwap = _finalSwap;
     _userPositions[_positionId].rate = _newRate;
     _userPositions[_positionId].swappedBeforeModified = uint248(_swapped);
-    // _userPositions[_positionId] = DCA(
-    //   _performedSwaps,
-    //   _finalSwap,
-    //   _userDCA.swapInterval,
-    //   _newRate,
-    //   _userDCA.from,
-    //   _userDCA.to,
-    //   uint248(_swapped)
-    // );
 
     if (_increase) {
       IERC20Metadata(_userDCA.from).safeTransferFrom(msg.sender, address(this), _amount);
