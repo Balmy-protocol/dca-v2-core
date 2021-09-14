@@ -98,14 +98,8 @@ describe('DCAHubParameters', function () {
       then('sets token A', async () => {
         expect(await deployedContract.tokenA()).to.equal(tokenA.address);
       });
-      then('sets magnitude A', async () => {
-        expect(await deployedContract.magnitudeA()).to.equal(BigNumber.from('10').pow(await tokenA.decimals()));
-      });
       then('sets token B', async () => {
         expect(await deployedContract.tokenB()).to.equal(tokenB.address);
-      });
-      then('sets magnitude B', async () => {
-        expect(await deployedContract.magnitudeB()).to.equal(BigNumber.from('10').pow(await tokenB.decimals()));
       });
       then('internal balance for token A starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenA.address)).to.equal(0);

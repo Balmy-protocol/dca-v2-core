@@ -15,8 +15,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
-  uint112 internal _magnitudeA;
-  uint112 internal _magnitudeB;
   uint24 internal _feePrecision;
 
   // Basic setup
@@ -48,8 +46,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     _feePrecision = globalParameters.FEE_PRECISION();
     tokenA = _tokenA;
     tokenB = _tokenB;
-    _magnitudeA = uint112(10**_tokenA.decimals());
-    _magnitudeB = uint112(10**_tokenB.decimals());
   }
 
   function isSwapIntervalActive(
