@@ -107,9 +107,6 @@ describe('DCAHubParameters', function () {
       then('internal balance for token B starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
       });
-      then('fee precision is copied from global parameters', async () => {
-        expect(await deployedContract.feePrecision()).to.equal(await DCAGlobalParameters.FEE_PRECISION());
-      });
     });
   });
 

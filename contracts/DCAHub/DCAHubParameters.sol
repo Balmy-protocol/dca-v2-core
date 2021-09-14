@@ -15,7 +15,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
-  uint24 internal _feePrecision;
+  uint24 public constant FEE_PRECISION = 10000;
 
   // Basic setup
   IDCAGlobalParameters public override globalParameters;
@@ -43,7 +43,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     if (address(_globalParameters) == address(0) || address(_tokenA) == address(0) || address(_tokenB) == address(0))
       revert CommonErrors.ZeroAddress();
     globalParameters = _globalParameters;
-    _feePrecision = globalParameters.FEE_PRECISION();
     tokenA = _tokenA;
     tokenB = _tokenB;
   }
@@ -58,7 +57,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
       : _activeSwapIntervals[_tokenB][_tokenA].contains(_activeSwapInterval);
   }
 
-  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal view returns (uint256) {
-    return (_amount * _feeAmount) / _feePrecision / 100;
+  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
+    return (_amount * _feeAmount) / FEE_PRECISION / 100;
   }
 }

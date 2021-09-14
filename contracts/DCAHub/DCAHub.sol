@@ -6,6 +6,7 @@ import './DCAHubPositionHandler.sol';
 import './DCAHubSwapHandler.sol';
 import './DCAHubLoanHandler.sol';
 
+// TODO: Externd from DCAHubConfigHandler
 contract DCAHub is DCAHubParameters, DCAHubSwapHandler, DCAHubPositionHandler, DCAHubLoanHandler, IDCAHub {
   constructor(
     IDCAGlobalParameters _globalParameters,
