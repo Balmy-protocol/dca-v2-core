@@ -14,19 +14,11 @@ contract DCAHubParametersMock is DCAHubParameters {
   ) DCAHubParameters(_globalParameters, _tokenA, _tokenB) {}
 
   // Mocks setters
-
-  function magnitudeA() external view returns (uint256) {
-    return _magnitudeA;
-  }
-
-  function magnitudeB() external view returns (uint256) {
-    return _magnitudeB;
-  }
-
   function internalBalanceOf(address _token) external view returns (uint256) {
     return _balances[_token];
   }
 
+  // TODO: Remove when no longer used
   function setInternalBalances(uint256 _amountTokenA, uint256 _amountTokenB) external {
     _balances[address(tokenA)] = _amountTokenA;
     _balances[address(tokenB)] = _amountTokenB;
@@ -76,13 +68,13 @@ contract DCAHubParametersMock is DCAHubParameters {
     accumRatio[_from][_to][_swapInterval][_swap] = _accumRatio;
   }
 
-  function setPerformedSwaps(uint32 _swapInterval, uint32 _performedSwaps) external {
-    // TODO: stop using tokenA & tokenB and receive as parameters
-    if (address(tokenA) < address(tokenB)) {
-      performedSwaps[address(tokenA)][address(tokenB)][_swapInterval] = _performedSwaps;
-    } else {
-      performedSwaps[address(tokenB)][address(tokenA)][_swapInterval] = _performedSwaps;
-    }
+  function setPerformedSwaps(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval,
+    uint32 _performedSwaps
+  ) external {
+    performedSwaps[_tokenA][_tokenB][_swapInterval] = _performedSwaps;
   }
 
   function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external view returns (uint256) {

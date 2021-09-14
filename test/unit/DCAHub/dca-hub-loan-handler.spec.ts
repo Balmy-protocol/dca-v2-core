@@ -60,7 +60,7 @@ describe('DCAHubLoanHandler', () => {
 
     when('checking how much is available to borrow', () => {
       then('the amounts are the internal balances', async () => {
-        const [availableToBorrowA, availableToBorrowB] = await DCAHubLoanHandler.availableToBorrow();
+        const [availableToBorrowA, availableToBorrowB] = await DCAHubLoanHandler.availableToBorrow([tokenA.address, tokenB.address]);
         expect(availableToBorrowA).to.equal(balanceTokenA);
         expect(availableToBorrowB).to.equal(balanceTokenB);
       });

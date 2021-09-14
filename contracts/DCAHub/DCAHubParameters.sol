@@ -11,24 +11,10 @@ import '../libraries/CommonErrors.sol';
 
 import './utils/Math.sol';
 
-// TODO: Move to another place or consider changing when we investigate joining mappings
-library PairSpecificConfig {
-  function getValue(
-    mapping(address => mapping(address => mapping(uint32 => uint32))) storage _mapping,
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) internal view returns (uint32 _value) {
-    _value = (_tokenA < _tokenB) ? _mapping[_tokenA][_tokenB][_swapInterval] : _mapping[_tokenB][_tokenA][_swapInterval];
-  }
-}
-
 abstract contract DCAHubParameters is IDCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
-  uint112 internal _magnitudeA;
-  uint112 internal _magnitudeB;
   uint24 internal _feePrecision;
 
   // Basic setup
@@ -60,8 +46,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     _feePrecision = globalParameters.FEE_PRECISION();
     tokenA = _tokenA;
     tokenB = _tokenB;
-    _magnitudeA = uint112(10**_tokenA.decimals());
-    _magnitudeB = uint112(10**_tokenB.decimals());
   }
 
   function isSwapIntervalActive(

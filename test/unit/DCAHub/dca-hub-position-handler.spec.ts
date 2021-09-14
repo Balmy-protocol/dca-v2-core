@@ -68,7 +68,7 @@ describe('DCAPositionHandler', () => {
     );
     await tokenA.mint(approved.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenA.approveInternal(approved.address, DCAPositionHandler.address, tokenA.asUnits(1000));
-    await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10);
+    await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
     await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
     snapshotId = await snapshot.take();
   });
@@ -921,7 +921,7 @@ describe('DCAPositionHandler', () => {
 
       given(async () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: 1, swaps: 1 });
-        await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
+        await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
         await setRatio({
           accumRate: constants.MAX_UINT_256,
           onSwap: PERFORMED_SWAPS_10 + 1,
@@ -956,7 +956,7 @@ describe('DCAPositionHandler', () => {
           onSwap: PERFORMED_SWAPS_10 + 2,
         });
 
-        await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 3);
+        await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 3);
 
         // It shouldn't revert, since the position ended before the overflow
         const swapped = await calculateSwapped(dcaId);
@@ -981,7 +981,7 @@ describe('DCAPositionHandler', () => {
         });
 
         await DCAPositionHandler.setLastUpdated(dcaId, PERFORMED_SWAPS_10 + 2);
-        await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 2);
+        await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 2);
 
         const swapped = await calculateSwapped(dcaId);
         expect(swapped).to.equal(0);
@@ -1014,7 +1014,7 @@ describe('DCAPositionHandler', () => {
 
     async function calculateSwappedWith({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate?: number }) {
       const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
-      await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
+      await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
       await setRatio({
         accumRate,
         onSwap: PERFORMED_SWAPS_10 + 1,
@@ -1025,7 +1025,7 @@ describe('DCAPositionHandler', () => {
 
     async function expectCalculationToFailWithOverflow({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate: number }) {
       const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
-      await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
+      await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
       await setRatio({
         accumRate,
         onSwap: PERFORMED_SWAPS_10 + 1,
@@ -1207,7 +1207,7 @@ describe('DCAPositionHandler', () => {
   async function performTrade({ swap, ratio, amount, fromToken }: { swap: number; ratio: number; amount: number; fromToken?: TokenContract }) {
     const fromTokenReal = fromToken ?? tokenA;
     const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
-    await DCAPositionHandler.setPerformedSwaps(SWAP_INTERVAL, swap);
+    await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, swap);
     await DCAPositionHandler.setAcummRatio(fromTokenReal.address, toToken.address, SWAP_INTERVAL, swap, toToken.asUnits(ratio));
     await fromTokenReal.burn(DCAPositionHandler.address, fromTokenReal.asUnits(amount));
     await toToken.mint(DCAPositionHandler.address, toToken.asUnits(amount * ratio));
