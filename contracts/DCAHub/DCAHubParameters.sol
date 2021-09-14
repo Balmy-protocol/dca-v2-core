@@ -11,18 +11,6 @@ import '../libraries/CommonErrors.sol';
 
 import './utils/Math.sol';
 
-// TODO: Move to another place or consider changing when we investigate joining mappings
-library PairSpecificConfig {
-  function getValue(
-    mapping(address => mapping(address => mapping(uint32 => uint32))) storage _mapping,
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) internal view returns (uint32 _value) {
-    _value = (_tokenA < _tokenB) ? _mapping[_tokenA][_tokenB][_swapInterval] : _mapping[_tokenB][_tokenA][_swapInterval];
-  }
-}
-
 abstract contract DCAHubParameters is IDCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
