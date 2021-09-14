@@ -201,7 +201,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
 
     DCA memory _userDCA = _userPositions[_positionId];
 
-    uint32 _performedSwaps = performedSwaps.getValue(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
+    uint32 _performedSwaps = _getPerformedSwaps(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
     uint160 _newRate;
     if (_newAmountOfSwaps > 0) {
       uint256 _unswapped = (_userDCA.finalSwap <= _performedSwaps) ? 0 : (_userDCA.finalSwap - _performedSwaps) * _userDCA.rate;
