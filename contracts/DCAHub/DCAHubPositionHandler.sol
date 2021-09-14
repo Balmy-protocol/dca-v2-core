@@ -211,7 +211,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
       _newRate = uint160(_total / _newAmountOfSwaps);
     }
 
-    uint256 _swapped = _calculateSwapped(_positionId);
+    uint256 _swapped = _calculateSwapped(_userDCA);
     if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
 
     _removeFromDelta(_userDCA.from, _userDCA.to, _userDCA.swapInterval, _performedSwaps, _userDCA.finalSwap, int160(_userDCA.rate));
@@ -353,7 +353,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
 
   /** Returns the amount of tokens swapped in TO */
   function _calculateSwapped(uint256 _dcaId) internal view returns (uint256 _swapped) {
-    DCA memory _userDCA = _userPositions[_dcaId];
+    _swapped = _calculateSwapped(_userPositions[_dcaId]);
+  }
+
+  function _calculateSwapped(DCA memory _userDCA) internal view returns (uint256 _swapped) {
     uint32 _performedSwaps = performedSwaps.getValue(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
     uint32 _newestSwapToConsider = _performedSwaps < _userDCA.finalSwap ? _performedSwaps : _userDCA.finalSwap;
 
