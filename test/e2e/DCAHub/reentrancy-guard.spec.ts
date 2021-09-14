@@ -87,8 +87,8 @@ contract('DCAHub', () => {
       });
 
       testReentrantForFunction({
-        funcAndSignature: 'loan(uint256,uint256,address,bytes)',
-        args: () => [totalTokenA.sub(1), 0, reentrantDCAHubLoanCallee.address, '0x'],
+        funcAndSignature: 'loan',
+        args: () => [[], reentrantDCAHubLoanCallee.address, '0x'],
         attackerContract: () => reentrantDCAHubLoanCallee,
       });
     });
@@ -253,7 +253,7 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.loan(0, 0, constants.NOT_ZERO_ADDRESS, '0x')).data!,
+        attack: async () => (await DCAHub.populateTransaction.loan([], constants.NOT_ZERO_ADDRESS, '0x')).data!,
       });
     }
 
