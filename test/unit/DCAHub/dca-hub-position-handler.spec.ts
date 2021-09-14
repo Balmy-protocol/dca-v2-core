@@ -841,6 +841,69 @@ describe('DCAPositionHandler', () => {
     });
   });
 
+  describe('removeFundsFromPosition', () => {
+    const NEW_SWAPS_TO_PERFORM_5 = 5;
+    const AMOUNT_TO_REMOVE_1 = 1;
+
+    when('removing funds from a position with invalid id', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'removeFundsFromPosition',
+          args: [100, tokenA.asUnits(AMOUNT_TO_REMOVE_1), POSITION_SWAPS_TO_PERFORM_10],
+          message: 'InvalidPosition',
+        });
+      });
+    });
+
+    when('removing 0 funds from a position', () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'removeFundsFromPosition',
+          args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
+          message: 'ZeroAmount',
+        });
+      });
+    });
+
+    when('removing funds but with 0 swaps', () => {
+      then('tx is reverted with message', async () => {
+        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'removeFundsFromPosition',
+          args: [dcaId, tokenA.asUnits(AMOUNT_TO_REMOVE_1), 0],
+          message: 'ZeroSwaps',
+        });
+      });
+    });
+
+    erc721PermissionTest(({ token, contract, dcaId }) => contract.removeFundsFromPosition(dcaId, token.asUnits(1), 2));
+
+    modifyPositionTest({
+      title: `removing all funds from a position`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 0,
+      newSwaps: NEW_SWAPS_TO_PERFORM_5,
+      exec: ({ token, dcaId, newSwaps }) =>
+        removeFundsFromPosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, newSwaps),
+    });
+
+    modifyPositionTest({
+      title: `removing some funds from a position`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 - AMOUNT_TO_REMOVE_1) / NEW_SWAPS_TO_PERFORM_5, // We are subtracting one to the positions to perform, because there was one trade already
+      newSwaps: NEW_SWAPS_TO_PERFORM_5,
+      exec: ({ token, dcaId, newSwaps }) => removeFundsFromPosition(token, dcaId, AMOUNT_TO_REMOVE_1, newSwaps),
+    });
+  });
+
   describe('modifyRate', () => {
     when('modifying a position with invalid id', () => {
       then('tx is reverted with message', async () => {
@@ -1231,6 +1294,10 @@ describe('DCAPositionHandler', () => {
 
   function addFundsToPosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
     return DCAPositionHandler.addFundsToPosition(dcaId, token.asUnits(amount), swaps);
+  }
+
+  function removeFundsFromPosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
+    return DCAPositionHandler.removeFundsFromPosition(dcaId, token.asUnits(amount), swaps);
   }
 
   function withdrawSwapped(dcaId: BigNumber, recipient: string): Promise<TransactionResponse> {

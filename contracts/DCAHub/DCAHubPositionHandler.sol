@@ -187,8 +187,15 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     uint256 _amount,
     uint32 _newAmountOfSwaps
   ) external override nonReentrant {
-    if (_newAmountOfSwaps == 0) revert ZeroSwaps();
     _modify(_positionId, _amount, _newAmountOfSwaps, true);
+  }
+
+  function removeFundsFromPosition(
+    uint256 _positionId,
+    uint256 _amount,
+    uint32 _newAmountOfSwaps
+  ) external nonReentrant {
+    _modify(_positionId, _amount, _newAmountOfSwaps, false);
   }
 
   function _modify(
@@ -198,6 +205,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     bool _increase
   ) internal {
     if (_amount == 0) revert ZeroAmount();
+    if (_newAmountOfSwaps == 0) revert ZeroSwaps();
     _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
 
     DCA memory _userDCA = _userPositions[_positionId];
