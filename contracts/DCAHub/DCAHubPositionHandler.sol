@@ -203,17 +203,16 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
 
     DCA memory _userDCA = _userPositions[_positionId];
 
+    uint32 _performedSwaps = performedSwaps.getValue(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
     uint160 _newRate;
     if (_newAmountOfSwaps > 0) {
-      uint256 _unswapped = _calculateUnswapped(_positionId);
+      uint256 _unswapped = (_userDCA.finalSwap <= _performedSwaps) ? 0 : (_userDCA.finalSwap - _performedSwaps) * _userDCA.rate;
       uint256 _total = _increase ? _unswapped + _amount : _unswapped - _amount;
       _newRate = uint160(_total / _newAmountOfSwaps);
     }
 
     uint256 _swapped = _calculateSwapped(_positionId);
     if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
-
-    uint32 _performedSwaps = performedSwaps.getValue(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
 
     _removeFromDelta(_userDCA.from, _userDCA.to, _userDCA.swapInterval, _performedSwaps, _userDCA.finalSwap, int160(_userDCA.rate));
     uint32 _startingSwap = _performedSwaps + 1;
@@ -375,6 +374,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
   }
 
   /** Returns how many FROM remains unswapped  */
+  // TODO: See if we can in-line this in other methods
   function _calculateUnswapped(uint256 _dcaId) internal view returns (uint256 _unswapped) {
     uint32 _performedSwaps = performedSwaps.getValue(
       _userPositions[_dcaId].from,
