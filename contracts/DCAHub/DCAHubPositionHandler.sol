@@ -183,17 +183,55 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
   }
 
   function addFundsToPosition(
-    uint256 _dcaId,
+    uint256 _positionId,
     uint256 _amount,
-    uint32 _newSwaps
+    uint32 _newAmountOfSwaps
   ) external override nonReentrant {
+    if (_newAmountOfSwaps == 0) revert ZeroSwaps();
+    _modify(_positionId, _amount, _newAmountOfSwaps, true);
+  }
+
+  function _modify(
+    uint256 _positionId,
+    uint256 _amount,
+    uint32 _newAmountOfSwaps,
+    bool _increase
+  ) internal {
+    // TODO: this method is not very gas-efficient. See if we can improve it
     if (_amount == 0) revert ZeroAmount();
-    if (_newSwaps == 0) revert ZeroSwaps();
+    _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
 
-    uint256 _unswapped = _calculateUnswapped(_dcaId);
-    uint256 _total = _unswapped + _amount;
+    uint256 _unswapped = _calculateUnswapped(_positionId);
+    uint256 _total = _increase ? _unswapped + _amount : _unswapped - _amount;
+    uint160 _newRate = _newAmountOfSwaps > 0 ? uint160(_total / _newAmountOfSwaps) : 0;
 
-    _modifyPosition(_dcaId, _total, _unswapped, uint160(_total / _newSwaps), _newSwaps);
+    address _from = _userPositions[_positionId].from;
+    address _to = _userPositions[_positionId].to;
+
+    uint256 _swapped = _calculateSwapped(_positionId);
+    if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
+
+    uint32 _swapInterval = _userPositions[_positionId].swapInterval;
+    _removePosition(_positionId);
+    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(
+      _positionId,
+      _from,
+      _to,
+      _newRate,
+      _newAmountOfSwaps,
+      uint248(_swapped),
+      _swapInterval
+    );
+
+    if (_increase) {
+      IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
+      _balances[_from] += _amount;
+    } else {
+      _balances[_from] -= _amount;
+      IERC20Metadata(_from).safeTransfer(msg.sender, _amount);
+    }
+
+    emit Modified(msg.sender, _positionId, _newRate, _startingSwap, _finalSwap);
   }
 
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
