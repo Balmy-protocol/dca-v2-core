@@ -89,7 +89,7 @@ describe('CollectableDust', function () {
       let sendDustTx: Promise<TransactionResponse>;
       beforeEach(async () => {
         await collectableDust.addProtocolToken(someToken.address);
-        sendDustTx = collectableDust.sendDust(await wallet.generateRandomAddress(), someToken.address, utils.parseEther('1'));
+        sendDustTx = collectableDust.sendDust(wallet.generateRandomAddress(), someToken.address, utils.parseEther('1'));
       });
       then('tx is reverted with reason', async () => {
         await expect(sendDustTx).to.be.revertedWith('CollectableDust: token is part of protocol');
@@ -101,7 +101,7 @@ describe('CollectableDust', function () {
       const initialDustBalanceOfContract = utils.parseEther('1');
       const collectedDust = initialDustBalanceOfContract.div(2);
       given(async () => {
-        collectorAddress = await wallet.generateRandomAddress();
+        collectorAddress = wallet.generateRandomAddress();
         await collectableDust.addProtocolToken(someToken.address);
         const forceETHContract = await ethers.getContractFactory('contracts/mocks/ForceETH.sol:ForceETH');
         await forceETHContract.deploy(collectableDust.address, { value: initialDustBalanceOfContract });
@@ -126,7 +126,7 @@ describe('CollectableDust', function () {
       const initialDustBalanceOfContract = utils.parseEther('1');
       const collectedDust = initialDustBalanceOfContract.div(2);
       given(async () => {
-        collectorAddress = await wallet.generateRandomAddress();
+        collectorAddress = wallet.generateRandomAddress();
         await collectableDust.addProtocolToken(someToken.address);
         someOtherToken = await erc20.deploy({
           initialAccount: owner.address,

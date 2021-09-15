@@ -12,14 +12,13 @@ const impersonate = async (address: string): Promise<JsonRpcSigner> => {
   return ethers.provider.getSigner(address);
 };
 const generateRandom = async () => {
-  const wallet = (await Wallet.createRandom()).connect(ethers.provider);
+  const wallet = Wallet.createRandom().connect(ethers.provider);
   await ethers.provider.send('hardhat_setBalance', [wallet.address, '0xffffffffffffffff']);
   return wallet;
 };
 
-export const generateRandomAddress = () => {
-  return getAddress(randomHex(20));
-};
+// Note: we are hardcoding the random address to make tests deterministic. We couldn't generate a random address by using a seed
+export const generateRandomAddress = () => '0x37601c8d013fA4DFA82e9C0d416b70143f4cbFcF';
 
 export default {
   impersonate,
