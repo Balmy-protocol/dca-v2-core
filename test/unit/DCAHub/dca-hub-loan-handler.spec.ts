@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { BigNumber, Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAGlobalParametersMock__factory, DCAGlobalParametersMock, DCAHubLoanHandlerMock__factory, DCAHubLoanHandlerMock } from '@typechained';
+import { DCAHubLoanHandlerMock__factory, DCAHubLoanHandlerMock } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, behaviours, evm } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
@@ -18,15 +18,10 @@ describe('DCAHubLoanHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubLoanHandlerContract: DCAHubLoanHandlerMock__factory;
   let DCAHubLoanHandler: DCAHubLoanHandlerMock;
-  let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
-  let DCAGlobalParameters: DCAGlobalParametersMock;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    DCAGlobalParametersContract = await ethers.getContractFactory(
-      'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
-    );
     DCAHubLoanHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubLoanHandler.sol:DCAHubLoanHandlerMock');
     tokenA = await erc20.deploy({
       name: 'tokenA',
@@ -36,14 +31,15 @@ describe('DCAHubLoanHandler', () => {
       name: 'tokenB',
       symbol: 'TKNB',
     });
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
-      owner.address,
-      owner.address,
+    DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(
+      tokenA.address,
+      tokenB.address,
       constants.NOT_ZERO_ADDRESS,
+      owner.address,
+      owner.address,
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
-    DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(tokenA.address, tokenB.address, DCAGlobalParameters.address);
     snapshotId = await snapshot.take();
   });
 
@@ -89,10 +85,10 @@ describe('DCAHubLoanHandler', () => {
 
     flashLoanFailedTest({
       title: 'flash loans are paused',
-      context: () => DCAGlobalParameters.pause(),
+      context: () => DCAHubLoanHandler.pause(),
       amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
       amountToBorrowTokenB: () => constants.ZERO,
-      errorMessage: 'Paused',
+      errorMessage: 'Pausable: paused',
     });
 
     flashLoanFailedTest({
