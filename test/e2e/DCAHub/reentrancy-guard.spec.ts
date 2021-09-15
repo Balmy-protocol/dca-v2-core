@@ -1,11 +1,9 @@
 import moment from 'moment';
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
+import { BigNumber, Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import {
-  DCAGlobalParameters,
-  DCAGlobalParameters__factory,
   DCAHub,
   DCAHub__factory,
   TimeWeightedOracleMock,
@@ -15,7 +13,7 @@ import {
   ReentrantDCAHubLoanCalleeMock,
   ReentrantDCAHubLoanCalleeMock__factory,
 } from '@typechained';
-import { constants, erc20, evm, wallet } from '@test-utils';
+import { constants, erc20, wallet } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
@@ -26,12 +24,9 @@ contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
     let governor: SignerWithAddress;
     let dude: SignerWithAddress;
-    let feeRecipient: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory;
     let DCAHub: DCAHub;
-    let DCAGlobalParametersFactory: DCAGlobalParameters__factory;
-    let DCAGlobalParameters: DCAGlobalParameters;
     let reentrantDCAHubSwapCalleeFactory: ReentrantDCAHubSwapCalleeMock__factory;
     let reentrantDCAHubLoanCalleeFactory: ReentrantDCAHubLoanCalleeMock__factory;
     let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
@@ -41,10 +36,7 @@ contract('DCAHub', () => {
     const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
     before('Setup accounts and contracts', async () => {
-      [governor, dude, feeRecipient] = await ethers.getSigners();
-      DCAGlobalParametersFactory = await ethers.getContractFactory(
-        'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
-      );
+      [governor, dude] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       reentrantDCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');
@@ -54,15 +46,7 @@ contract('DCAHub', () => {
       const tokens = [await deploy(), await deploy()];
       [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
       TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(0, 0);
-      DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(
-        governor.address,
-        constants.NOT_ZERO_ADDRESS,
-        feeRecipient.address,
-        constants.NOT_ZERO_ADDRESS,
-        TimeWeightedOracle.address
-      );
       DCAHub = await DCAHubFactory.deploy(
-        DCAGlobalParameters.address,
         tokenA.address,
         tokenB.address,
         governor.address,
@@ -70,7 +54,6 @@ contract('DCAHub', () => {
         constants.NOT_ZERO_ADDRESS,
         TimeWeightedOracle.address
       );
-      await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
       await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
       snapshotId = await snapshot.take();
     });
