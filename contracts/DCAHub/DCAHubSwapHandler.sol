@@ -54,9 +54,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   function _convertTo(
     uint256 _fromTokenMagnitude,
     uint256 _amountFrom,
-    uint256 _rateFromTo
+    uint256 _rateFromTo,
+    uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
+    _amountTo = _applyFeeToAmount(_swapFee, (_amountFrom * _rateFromTo) / _fromTokenMagnitude);
   }
 
   struct Pair {
@@ -172,18 +173,19 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
 
     for (uint256 i; i < _pairs.length; i++) {
+      uint8 indexTokenA = _pairs[i].indexTokenA;
+      uint8 indexTokenB = _pairs[i].indexTokenB;
       if (
-        _pairs[i].indexTokenA >= _pairs[i].indexTokenB ||
+        indexTokenA >= indexTokenB ||
         (i > 0 &&
-          (_pairs[i].indexTokenA < _pairs[i - 1].indexTokenA ||
-            (_pairs[i].indexTokenA == _pairs[i - 1].indexTokenA && _pairs[i].indexTokenB <= _pairs[i - 1].indexTokenB)))
+          (indexTokenA < _pairs[i - 1].indexTokenA || (indexTokenA == _pairs[i - 1].indexTokenA && indexTokenB <= _pairs[i - 1].indexTokenB)))
       ) {
         // Note: this confusing condition verifies that the pairs are sorted, first by token A, and then by token B
         revert InvalidPairs();
       }
 
-      _swapInformation.pairs[i].tokenA = _tokens[_pairs[i].indexTokenA];
-      _swapInformation.pairs[i].tokenB = _tokens[_pairs[i].indexTokenB];
+      _swapInformation.pairs[i].tokenA = _tokens[indexTokenA];
+      _swapInformation.pairs[i].tokenB = _tokens[indexTokenB];
       uint120 _magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
       uint120 _magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
       // TODO: Check if it is cheaper to store magnitude for all tokens, instead of calculating it each time
@@ -196,8 +198,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         _swapInformation.pairs[i].tokenB
       );
 
-      _total[_pairs[i].indexTokenA] += _amountToSwapTokenA;
-      _total[_pairs[i].indexTokenB] += _amountToSwapTokenB;
+      _total[indexTokenA] += _amountToSwapTokenA;
+      _total[indexTokenB] += _amountToSwapTokenB;
 
       (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA) = _calculateRatio(
         _swapInformation.pairs[i].tokenA,
@@ -207,16 +209,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         _oracle
       );
 
-      _needed[_pairs[i].indexTokenA] += _convertTo(
-        _magnitudeB,
-        _amountToSwapTokenB,
-        _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA)
-      );
-      _needed[_pairs[i].indexTokenB] += _convertTo(
-        _magnitudeA,
-        _amountToSwapTokenA,
-        _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB)
-      );
+      _needed[indexTokenA] += _convertTo(_magnitudeB, _amountToSwapTokenB, _swapInformation.pairs[i].ratioBToA, _swapFee);
+      _needed[indexTokenB] += _convertTo(_magnitudeA, _amountToSwapTokenA, _swapInformation.pairs[i].ratioAToB, _swapFee);
     }
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
