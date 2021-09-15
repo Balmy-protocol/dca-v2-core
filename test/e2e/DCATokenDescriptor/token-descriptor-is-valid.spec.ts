@@ -63,7 +63,7 @@ contract('DCATokenDescriptor', () => {
     await tokenB.mint(governor.address, tokenB.asUnits(1000));
   });
 
-  it.only('Validate tokenURI result', async () => {
+  it('Validate tokenURI result', async () => {
     // Deposit
     const response = await DCAHub.deposit(governor.address, tokenB.address, tokenB.asUnits(10), 2, swapInterval);
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
