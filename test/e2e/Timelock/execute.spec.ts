@@ -1,11 +1,11 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import { Contract, ContractFactory, PopulatedTransaction } from 'ethers';
+import { Contract, PopulatedTransaction } from 'ethers';
 import { ethers } from 'hardhat';
 import TIMELOCK from '@openzeppelin/contracts/build/contracts/TimelockController.json';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, evm, wallet } from '@test-utils';
+import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
-import { DCAGlobalParameters, DCAGlobalParameters__factory } from '@typechained';
+import { DCAHub__factory, DCAHub } from '@typechained';
 import moment from 'moment';
 import { expect } from 'chai';
 import { hexZeroPad } from 'ethers/lib/utils';
@@ -17,10 +17,9 @@ contract('Timelock', () => {
 
   let deployer: SignerWithAddress;
   let immediateGovernor: SignerWithAddress;
-  let feeRecipient: SignerWithAddress;
 
-  let globalParametersFactory: DCAGlobalParameters__factory;
-  let globalParameters: DCAGlobalParameters;
+  let DCAHubFactory: DCAHub__factory;
+  let DCAHub: DCAHub;
   let timelock: Contract;
 
   let snapshotId: string;
@@ -32,16 +31,20 @@ contract('Timelock', () => {
   const PREDECESSOR = constants.ZERO_BYTES32;
 
   before(async () => {
-    [deployer, immediateGovernor, feeRecipient] = await ethers.getSigners();
-    globalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
+    [deployer, immediateGovernor] = await ethers.getSigners();
+    DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     timelock = await deployContract(deployer, TIMELOCK, [minDelay, [immediateGovernor.address], [immediateGovernor.address]]);
-    globalParameters = await globalParametersFactory.deploy(
-      immediateGovernor.address,
-      timelock.address,
-      feeRecipient.address,
-      nftDescriptor,
-      oracle
-    );
+    const tokenA = await erc20.deploy({
+      name: 'WBTC',
+      symbol: 'WBTC',
+      decimals: 8,
+    });
+    const tokenB = await erc20.deploy({
+      name: 'DAI',
+      symbol: 'DAI',
+      decimals: 18,
+    });
+    DCAHub = await DCAHubFactory.deploy(tokenA.address, tokenB.address, immediateGovernor.address, timelock.address, nftDescriptor, oracle);
     snapshotId = await snapshot.take();
   });
 
@@ -54,15 +57,13 @@ contract('Timelock', () => {
     const SALT = hexZeroPad(wallet.generateRandomAddress(), 32);
     const NEW_ORACLE = wallet.generateRandomAddress();
     given(async () => {
-      populatedTransaction = await globalParameters.populateTransaction.setOracle(NEW_ORACLE);
-      await timelock
-        .connect(immediateGovernor)
-        .schedule(globalParameters.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT, minDelay);
+      populatedTransaction = await DCAHub.populateTransaction.setOracle(NEW_ORACLE);
+      await timelock.connect(immediateGovernor).schedule(DCAHub.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT, minDelay);
     });
     when('executing before delay', () => {
       let executeTx: Promise<TransactionResponse>;
       given(async () => {
-        executeTx = timelock.connect(immediateGovernor).execute(globalParameters.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT);
+        executeTx = timelock.connect(immediateGovernor).execute(DCAHub.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT);
       });
       then('tx is reverted', async () => {
         await expect(executeTx).to.be.revertedWith('TimelockController: operation is not ready');
@@ -71,10 +72,10 @@ contract('Timelock', () => {
     when('executing after delay', () => {
       given(async () => {
         await evm.advanceTimeAndBlock(minDelay);
-        await timelock.connect(immediateGovernor).execute(globalParameters.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT);
+        await timelock.connect(immediateGovernor).execute(DCAHub.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT);
       });
       then('tx is sent', async () => {
-        expect(await globalParameters.oracle()).to.be.equal(NEW_ORACLE);
+        expect(await DCAHub.oracle()).to.be.equal(NEW_ORACLE);
       });
     });
   });
