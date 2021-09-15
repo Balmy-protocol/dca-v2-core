@@ -21,7 +21,6 @@ contract('DCAHubConfigHandler', () => {
     DCAHubConfigHandler = await DCAHubConfigHandlerFactory.deploy(
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS,
-      constants.NOT_ZERO_ADDRESS,
       owner.address,
       timeLockedOwner.address,
       nftDescriptor.address,
@@ -44,7 +43,6 @@ contract('DCAHubConfigHandler', () => {
           args: [
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
             constants.ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
@@ -62,7 +60,6 @@ contract('DCAHubConfigHandler', () => {
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
             constants.ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
@@ -76,7 +73,6 @@ contract('DCAHubConfigHandler', () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAHubConfigHandlerFactory,
           args: [
-            constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
@@ -98,7 +94,6 @@ contract('DCAHubConfigHandler', () => {
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
             constants.ZERO_ADDRESS,
           ],
           message: 'ZeroAddress',
@@ -109,7 +104,6 @@ contract('DCAHubConfigHandler', () => {
       let deployedContract: Contract;
       given(async () => {
         const deployment = await contracts.deploy(DCAHubConfigHandlerFactory, [
-          constants.NOT_ZERO_ADDRESS,
           constants.NOT_ZERO_ADDRESS,
           constants.NOT_ZERO_ADDRESS,
           owner.address,

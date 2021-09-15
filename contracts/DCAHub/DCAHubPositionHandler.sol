@@ -231,10 +231,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit Modified(msg.sender, _positionId, _newRate, _startingSwap, _finalSwap);
   }
 
-  function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    return nftDescriptor.tokenURI(this, tokenId);
-  }
-
   /** Helper function to modify a position */
   function _modifyRateAndSwaps(
     uint256 _dcaId,

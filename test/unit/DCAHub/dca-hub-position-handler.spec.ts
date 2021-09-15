@@ -41,7 +41,6 @@ contract('DCAPositionHandler', () => {
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(
-      constants.NOT_ZERO_ADDRESS,
       tokenA.address,
       tokenB.address,
       owner.address,

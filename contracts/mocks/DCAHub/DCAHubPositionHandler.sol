@@ -7,7 +7,6 @@ import './DCAHubConfigHandler.sol';
 
 contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandlerMock {
   constructor(
-    IDCAGlobalParameters _globalParameters,
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB,
     address _immediateGovernor,
@@ -15,7 +14,7 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandler
     IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
   )
-    DCAHubConfigHandlerMock(_tokenA, _tokenB, _globalParameters, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
+    DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
     DCAHubPositionHandler(_tokenA, _tokenB)
   {
     /* */
