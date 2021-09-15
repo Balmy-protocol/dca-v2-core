@@ -28,7 +28,7 @@ contract('DCAHub', () => {
     const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
     const MAX_UINT_32 = BigNumber.from(2).pow(32).sub(1);
 
-    let governor: SignerWithAddress, feeRecipient: SignerWithAddress, john: SignerWithAddress;
+    let governor: SignerWithAddress, john: SignerWithAddress;
     let swapper1: SignerWithAddress;
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
@@ -43,7 +43,7 @@ contract('DCAHub', () => {
     const swapRatio1: SwapRatio = { tokenA: 2, tokenB: 1 };
 
     before('Setup accounts and contracts', async () => {
-      [governor, feeRecipient, swapper1, john, lucy, sarah] = await ethers.getSigners();
+      [governor, swapper1, john, lucy, sarah] = await ethers.getSigners();
       DCAGlobalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       timeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
@@ -69,7 +69,7 @@ contract('DCAHub', () => {
       DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(
         governor.address,
         governor.address,
-        feeRecipient.address,
+        constants.NOT_ZERO_ADDRESS,
         constants.NOT_ZERO_ADDRESS,
         timeWeightedOracle.address
       );
@@ -78,7 +78,8 @@ contract('DCAHub', () => {
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);
 
-      DCAHubLoanCallee = await DCAHubLoanCalleeFactory.deploy(tokenA.asUnits(20), tokenB.asUnits(20));
+      DCAHubLoanCallee = await DCAHubLoanCalleeFactory.deploy();
+      await DCAHubLoanCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(20), tokenB.asUnits(20)]);
 
       await setInitialBalance(swapper1, { tokenA: 2000, tokenB: 2000 });
       await setInitialBalance(DCAHubSwapCallee, { tokenA: 500, tokenB: 500 });
@@ -206,11 +207,8 @@ contract('DCAHub', () => {
       await assertAvailableToBorrowIs({ tokenA: 1849.7, tokenB: 799.7 }); // Calculated by summing all balance differences
       await loan({ callee: DCAHubLoanCallee, tokenA: 1849.7, tokenB: 799.7 });
 
-      // TODO: Uncomment when loan stops sending fees to fee recipient
-      // await assertHubBalanceDifferencesAre({ tokenA: +1.8497, tokenB: +0.7997 });
-      // await assertPlatformBalanceIncreasedBy({ tokenA: +1.8497, tokenB: +0.7997 });
-      await assertHubBalanceDifferencesAre({ tokenA: 0, tokenB: 0 });
-      await assertBalanceDifferencesAre(feeRecipient, { tokenA: +1.8497, tokenB: +0.7997 });
+      await assertHubBalanceDifferencesAre({ tokenA: +1.8497, tokenB: +0.7997 });
+      await assertPlatformBalanceIncreasedBy({ tokenA: +1.8497, tokenB: +0.7997 });
       await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: -1.8497, tokenB: -0.7997 });
 
       await addFundsToPosition(johnsPosition, { newSwaps: 10, tokenA: 100 });
@@ -364,7 +362,14 @@ contract('DCAHub', () => {
     }
 
     async function loan({ callee, tokenA: amountTokenA, tokenB: amountTokenB }: { callee: HasAddress; tokenA: number; tokenB: number }) {
-      await DCAHub.loan(tokenA.asUnits(amountTokenA), tokenB.asUnits(amountTokenB), callee.address, ethers.utils.randomBytes(5));
+      await DCAHub.loan(
+        [
+          { token: tokenA.address, amount: tokenA.asUnits(amountTokenA) },
+          { token: tokenB.address, amount: tokenB.asUnits(amountTokenB) },
+        ],
+        callee.address,
+        ethers.utils.randomBytes(5)
+      );
     }
 
     function getPosition(position: UserPositionDefinition): Promise<OngoingUserPosition> {
