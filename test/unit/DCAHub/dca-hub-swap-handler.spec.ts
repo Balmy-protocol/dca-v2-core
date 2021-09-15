@@ -49,7 +49,6 @@ contract('DCAHubSwapHandler', () => {
     DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
-      constants.NOT_ZERO_ADDRESS,
       owner.address,
       owner.address,
       constants.NOT_ZERO_ADDRESS,

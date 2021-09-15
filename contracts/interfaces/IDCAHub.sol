@@ -3,16 +3,10 @@ pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import './IDCAGlobalParameters.sol';
 
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the pair's current values
 interface IDCAHubParameters {
-  /// @notice Returns the global parameters contract
-  /// @dev Global parameters has information about swaps and pairs, like swap intervals, fees charged, etc.
-  /// @return The Global Parameters contract
-  function globalParameters() external view returns (IDCAGlobalParameters);
-
   /// @notice Returns the token A contract
   /// @return The contract for token A
   function tokenA() external view returns (IERC20Metadata);

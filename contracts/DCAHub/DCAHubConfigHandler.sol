@@ -6,6 +6,7 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 
 import './DCAHubParameters.sol';
+import '../interfaces/ITimeWeightedOracle.sol';
 import '../interfaces/IDCATokenDescriptor.sol';
 import '../libraries/CommonErrors.sol';
 

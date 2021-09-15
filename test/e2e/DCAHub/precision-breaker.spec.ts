@@ -2,7 +2,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAGlobalParameters, DCAGlobalParameters__factory, DCAHub, DCAHub__factory, IUniswapV3OracleAggregator } from '@typechained';
+import { DCAHub, DCAHub__factory, IUniswapV3OracleAggregator } from '@typechained';
 import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -15,19 +15,17 @@ contract('DCAHub', () => {
   describe('Precision breaker', () => {
     const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
 
-    let governor: SignerWithAddress, feeRecipient: SignerWithAddress;
+    let governor: SignerWithAddress;
     let alice: SignerWithAddress, john: SignerWithAddress, swapper1: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let DCAGlobalParametersFactory: DCAGlobalParameters__factory, DCAGlobalParameters: DCAGlobalParameters;
     let timeWeightedOracle: FakeContract<IUniswapV3OracleAggregator>;
 
     // Global variables
     const swapFee: number = 0.6;
 
     before('Setup accounts and contracts', async () => {
-      [governor, feeRecipient, alice, john, swapper1] = await ethers.getSigners();
-      DCAGlobalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
+      [governor, alice, john, swapper1] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     });
 
@@ -44,15 +42,7 @@ contract('DCAHub', () => {
         decimals: 18,
       });
       timeWeightedOracle = await smock.fake(IUniswapV3OracleAggregatorABI);
-      DCAGlobalParameters = await DCAGlobalParametersFactory.deploy(
-        governor.address,
-        governor.address,
-        feeRecipient.address,
-        constants.NOT_ZERO_ADDRESS,
-        timeWeightedOracle.address
-      );
       DCAHub = await DCAHubFactory.deploy(
-        DCAGlobalParameters.address,
         tokenA.address,
         tokenB.address,
         governor.address,
@@ -60,8 +50,7 @@ contract('DCAHub', () => {
         constants.NOT_ZERO_ADDRESS,
         timeWeightedOracle.address
       );
-      await DCAGlobalParameters.setSwapFee(swapFee * 10000);
-      await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
+      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(alice, { tokenA: 0, tokenB: 10000 });
       await setInitialBalance(swapper1, { tokenA: 2000, tokenB: 2000 });

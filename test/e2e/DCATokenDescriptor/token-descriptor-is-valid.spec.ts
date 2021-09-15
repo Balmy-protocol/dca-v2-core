@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { BigNumber, Contract, ContractFactory } from 'ethers';
+import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract } from '@test-utils/bdd';
@@ -7,8 +7,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import {
-  DCAGlobalParameters,
-  DCAGlobalParameters__factory,
   DCAHub,
   DCAHub__factory,
   DCATokenDescriptor,
@@ -22,12 +20,9 @@ import { buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCATokenDescriptor', () => {
   let governor: SignerWithAddress;
-  let feeRecipient: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubContract: DCAHub__factory;
   let DCAHub: DCAHub;
-  let DCAGlobalParametersContract: DCAGlobalParameters__factory;
-  let DCAGlobalParameters: DCAGlobalParameters;
   let DCATokenDescriptorContract: DCATokenDescriptor__factory;
   let DCATokenDescriptor: DCATokenDescriptor;
   let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
@@ -35,8 +30,7 @@ contract('DCATokenDescriptor', () => {
   const swapInterval = moment.duration(10, 'minutes').as('seconds');
 
   before('Setup accounts and contracts', async () => {
-    [governor, feeRecipient] = await ethers.getSigners();
-    DCAGlobalParametersContract = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
+    [governor] = await ethers.getSigners();
     DCAHubContract = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     DCATokenDescriptorContract = await ethers.getContractFactory('contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor');
     TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
@@ -54,15 +48,7 @@ contract('DCATokenDescriptor', () => {
     });
     TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(tokenA.asUnits(1), tokenA.amountOfDecimals); // Rate is 1 token A = 1 token B
     DCATokenDescriptor = await DCATokenDescriptorContract.deploy();
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
-      governor.address,
-      constants.NOT_ZERO_ADDRESS,
-      feeRecipient.address,
-      DCATokenDescriptor.address,
-      TimeWeightedOracle.address
-    );
     DCAHub = await DCAHubContract.deploy(
-      DCAGlobalParameters.address,
       tokenA.address,
       tokenB.address,
       governor.address,
@@ -70,7 +56,7 @@ contract('DCATokenDescriptor', () => {
       DCATokenDescriptor.address,
       TimeWeightedOracle.address
     );
-    await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
+    await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
     await tokenA.approveInternal(governor.address, DCAHub.address, tokenA.asUnits(1000));

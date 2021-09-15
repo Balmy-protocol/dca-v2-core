@@ -1,20 +1,19 @@
-import { DCAGlobalParameters, DCAGlobalParameters__factory } from '@typechained';
+import { DCAHub__factory, DCAHub } from '@typechained';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { wallet } from '@test-utils';
+import { constants, erc20, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
 import Web3 from 'web3';
 import { expect } from 'chai';
 import { snapshot } from '@test-utils/evm';
 
-contract('DCAGlobalParameters', () => {
+contract('DCAHub', () => {
   let immediateGovernor: SignerWithAddress;
   let timeLockedGovernor: SignerWithAddress;
-  let feeRecipient: SignerWithAddress;
 
-  let globalParametersFactory: DCAGlobalParameters__factory;
-  let globalParameters: DCAGlobalParameters;
+  let DCAHubFactory: DCAHub__factory;
+  let DCAHub: DCAHub;
 
   let snapshotId: string;
 
@@ -22,14 +21,25 @@ contract('DCAGlobalParameters', () => {
   const TIME_LOCKED_ROLE: string = new Web3().utils.soliditySha3('TIME_LOCKED_ROLE') as string;
 
   before(async () => {
-    globalParametersFactory = await ethers.getContractFactory('contracts/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParameters');
-    [immediateGovernor, timeLockedGovernor, feeRecipient] = await ethers.getSigners();
-    globalParameters = await globalParametersFactory.deploy(
+    DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
+    [immediateGovernor, timeLockedGovernor] = await ethers.getSigners();
+    const tokenA = await erc20.deploy({
+      name: 'WBTC',
+      symbol: 'WBTC',
+      decimals: 8,
+    });
+    const tokenB = await erc20.deploy({
+      name: 'DAI',
+      symbol: 'DAI',
+      decimals: 18,
+    });
+    DCAHub = await DCAHubFactory.deploy(
+      tokenA.address,
+      tokenB.address,
       immediateGovernor.address,
       timeLockedGovernor.address,
-      feeRecipient.address,
-      wallet.generateRandomAddress(),
-      wallet.generateRandomAddress()
+      constants.NOT_ZERO_ADDRESS,
+      constants.NOT_ZERO_ADDRESS
     );
     snapshotId = await snapshot.take();
   });
@@ -42,7 +52,7 @@ contract('DCAGlobalParameters', () => {
     when('not granting from role admin', () => {
       let grantRoleTx: Promise<TransactionResponse>;
       given(async () => {
-        grantRoleTx = globalParameters.connect(timeLockedGovernor).grantRole(IMMEDIATE_ROLE, wallet.generateRandomAddress());
+        grantRoleTx = DCAHub.connect(timeLockedGovernor).grantRole(IMMEDIATE_ROLE, wallet.generateRandomAddress());
       });
       then('tx is reverted', async () => {
         await expect(grantRoleTx).to.be.revertedWith(
@@ -53,10 +63,10 @@ contract('DCAGlobalParameters', () => {
     when('granting from admin of role', () => {
       const newDudeWithRole = wallet.generateRandomAddress();
       given(async () => {
-        await globalParameters.connect(immediateGovernor).grantRole(IMMEDIATE_ROLE, newDudeWithRole);
+        await DCAHub.connect(immediateGovernor).grantRole(IMMEDIATE_ROLE, newDudeWithRole);
       });
       then('grants immediate role to new address', async () => {
-        expect(await globalParameters.hasRole(IMMEDIATE_ROLE, newDudeWithRole)).to.be.true;
+        expect(await DCAHub.hasRole(IMMEDIATE_ROLE, newDudeWithRole)).to.be.true;
       });
     });
   });
@@ -65,7 +75,7 @@ contract('DCAGlobalParameters', () => {
     when('not granting from role admin', () => {
       let grantRoleTx: Promise<TransactionResponse>;
       given(async () => {
-        grantRoleTx = globalParameters.connect(immediateGovernor).grantRole(TIME_LOCKED_ROLE, wallet.generateRandomAddress());
+        grantRoleTx = DCAHub.connect(immediateGovernor).grantRole(TIME_LOCKED_ROLE, wallet.generateRandomAddress());
       });
       then('tx is reverted', async () => {
         await expect(grantRoleTx).to.be.revertedWith(
@@ -76,10 +86,10 @@ contract('DCAGlobalParameters', () => {
     when('granting from admin of role', () => {
       const newDudeWithRole = wallet.generateRandomAddress();
       given(async () => {
-        await globalParameters.connect(timeLockedGovernor).grantRole(TIME_LOCKED_ROLE, newDudeWithRole);
+        await DCAHub.connect(timeLockedGovernor).grantRole(TIME_LOCKED_ROLE, newDudeWithRole);
       });
       then('grants timelocked role to new address', async () => {
-        expect(await globalParameters.hasRole(TIME_LOCKED_ROLE, newDudeWithRole)).to.be.true;
+        expect(await DCAHub.hasRole(TIME_LOCKED_ROLE, newDudeWithRole)).to.be.true;
       });
     });
   });
