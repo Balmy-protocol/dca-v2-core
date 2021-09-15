@@ -7,11 +7,7 @@ import '../../DCAHub/DCAHubParameters.sol';
 contract DCAHubParametersMock is DCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
-  constructor(
-    IDCAGlobalParameters _globalParameters,
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB
-  ) DCAHubParameters(_globalParameters, _tokenA, _tokenB) {}
+  constructor(IERC20Metadata _tokenA, IERC20Metadata _tokenB) DCAHubParameters(_tokenA, _tokenB) {}
 
   // Mocks setters
   function internalBalanceOf(address _token) external view returns (uint256) {
@@ -77,11 +73,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     performedSwaps[_tokenA][_tokenB][_swapInterval] = _performedSwaps;
   }
 
-  function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external view returns (uint256) {
+  function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external pure returns (uint256) {
     return _getFeeFromAmount(_feeAmount, _amount);
-  }
-
-  function feePrecision() external view returns (uint24) {
-    return _feePrecision;
   }
 }

@@ -5,7 +5,6 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
-import '../interfaces/IDCAGlobalParameters.sol';
 import '../interfaces/IDCAHub.sol';
 import '../libraries/CommonErrors.sol';
 
@@ -15,10 +14,9 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
-  uint24 internal _feePrecision;
+  uint24 public constant FEE_PRECISION = 10000;
 
   // Basic setup
-  IDCAGlobalParameters public override globalParameters;
   IERC20Metadata public override tokenA;
   IERC20Metadata public override tokenB;
 
@@ -35,15 +33,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => uint256) internal _balances; // token => balance
 
-  constructor(
-    IDCAGlobalParameters _globalParameters,
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB
-  ) {
-    if (address(_globalParameters) == address(0) || address(_tokenA) == address(0) || address(_tokenB) == address(0))
-      revert CommonErrors.ZeroAddress();
-    globalParameters = _globalParameters;
-    _feePrecision = globalParameters.FEE_PRECISION();
+  constructor(IERC20Metadata _tokenA, IERC20Metadata _tokenB) {
+    if (address(_tokenA) == address(0) || address(_tokenB) == address(0)) revert CommonErrors.ZeroAddress();
     tokenA = _tokenA;
     tokenB = _tokenB;
   }
@@ -58,7 +49,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
       : _activeSwapIntervals[_tokenB][_tokenA].contains(_activeSwapInterval);
   }
 
-  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal view returns (uint256) {
-    return (_amount * _feeAmount) / _feePrecision / 100;
+  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
+    return (_amount * _feeAmount) / FEE_PRECISION / 100;
   }
 }

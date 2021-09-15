@@ -6,9 +6,9 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '../interfaces/IDCAHubSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 import './utils/Math.sol';
-import './DCAHubParameters.sol';
+import './DCAHubConfigHandler.sol';
 
-abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHubSwapHandler {
+abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
   using SafeERC20 for IERC20Metadata;
   using EnumerableSet for EnumerableSet.UintSet;
 
@@ -184,12 +184,16 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   error InvalidPairs();
   error InvalidTokens();
 
-  function _getNextSwapInfo(
-    address[] calldata _tokens,
-    PairIndexes[] calldata _pairs,
-    uint32 _swapFee,
-    ITimeWeightedOracle _oracle
-  ) internal view virtual returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
+  function _getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
+    internal
+    view
+    virtual
+    returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation)
+  {
+    // Note: we are caching these variables in memory so we can read storage only once (it's cheaper that way)
+    uint32 _swapFee = swapFee;
+    ITimeWeightedOracle _oracle = oracle;
+
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
@@ -259,7 +263,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
 
       if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
         // We are un-applying the fee here
-        uint256 _neededWithoutFee = (_neededWithFee * _feePrecision * 100) / (_feePrecision * 100 - _swapFee);
+        uint256 _neededWithoutFee = (_neededWithFee * FEE_PRECISION * 100) / (FEE_PRECISION * 100 - _swapFee);
 
         // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
         int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
@@ -295,8 +299,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     view
     returns (NextSwapInfo memory _swapInformation)
   {
-    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    (SwapInfo memory _internalSwapInformation, ) = _getNextSwapInfo(_tokens, _pairsToSwap, _swapParameters.swapFee, _swapParameters.oracle);
+    (SwapInfo memory _internalSwapInformation, ) = _getNextSwapInfo(_tokens, _pairsToSwap);
 
     _swapInformation.pairs = _internalSwapInformation.pairs;
     _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
@@ -323,15 +326,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint256[] memory _borrow,
     address _to,
     bytes memory _data
-  ) public nonReentrant {
-    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    if (_swapParameters.isPaused) revert CommonErrors.Paused();
-
+  ) public nonReentrant whenNotPaused {
     SwapInfo memory _swapInformation;
 
     {
       RatioWithFee[] memory _internalSwapInformation;
-      (_swapInformation, _internalSwapInformation) = _getNextSwapInfo(_tokens, _pairsToSwap, _swapParameters.swapFee, _swapParameters.oracle);
+      (_swapInformation, _internalSwapInformation) = _getNextSwapInfo(_tokens, _pairsToSwap);
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
@@ -391,6 +391,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     }
 
     // Emit event
-    emit Swapped(msg.sender, _to, _swapInformation, _borrow, _swapParameters.swapFee);
+    emit Swapped(msg.sender, _to, _swapInformation, _borrow, swapFee);
   }
 }
