@@ -130,24 +130,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    uint32 _swapFee,
     ITimeWeightedOracle _oracle
-  )
-    internal
-    view
-    virtual
-    returns (
-      uint256 _ratioAToB,
-      uint256 _ratioBToA,
-      uint256 _ratioAToBWithFee,
-      uint256 _ratioBToAWithFee
-    )
-  {
+  ) internal view virtual returns (uint256 _ratioAToB, uint256 _ratioBToA) {
     _ratioBToA = _oracle.quote(_tokenB, uint128(_magnitudeB), _tokenA);
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
-
-    _ratioAToBWithFee = _ratioAToB - _getFeeFromAmount(_swapFee, _ratioAToB);
-    _ratioBToAWithFee = _ratioBToA - _getFeeFromAmount(_swapFee, _ratioBToA);
   }
 
   struct PairIndexes {
@@ -168,12 +154,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32[] intervalsInSwap;
   }
 
-  // TODO: Explore if re-calculating the ratios with fee in swap is cheaper than passing them around
-  struct RatioWithFee {
-    uint256 ratioAToBWithFee;
-    uint256 ratioBToAWithFee;
-  }
-
   struct InternalTokenInfo {
     uint8 indexTokenA;
     uint8 indexTokenB;
@@ -188,7 +168,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     internal
     view
     virtual
-    returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation)
+    returns (SwapInfo memory _swapInformation)
   {
     // Note: we are caching these variables in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
@@ -197,7 +177,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
-    _internalSwapInformation = new RatioWithFee[](_pairs.length);
 
     for (uint256 i; i < _pairs.length; i++) {
       InternalTokenInfo memory _tokenInfo;
@@ -231,22 +210,24 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _total[_tokenInfo.indexTokenA] += _amountToSwapTokenA;
       _total[_tokenInfo.indexTokenB] += _amountToSwapTokenB;
 
-      (
-        _swapInformation.pairs[i].ratioAToB,
-        _swapInformation.pairs[i].ratioBToA,
-        _internalSwapInformation[i].ratioAToBWithFee,
-        _internalSwapInformation[i].ratioBToAWithFee
-      ) = _calculateRatio(
+      (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA) = _calculateRatio(
         _swapInformation.pairs[i].tokenA,
         _swapInformation.pairs[i].tokenB,
         _tokenInfo.magnitudeA,
         _tokenInfo.magnitudeB,
-        _swapFee,
         _oracle
       );
 
-      _needed[_tokenInfo.indexTokenA] += _convertTo(_tokenInfo.magnitudeB, _amountToSwapTokenB, _internalSwapInformation[i].ratioBToAWithFee);
-      _needed[_tokenInfo.indexTokenB] += _convertTo(_tokenInfo.magnitudeA, _amountToSwapTokenA, _internalSwapInformation[i].ratioAToBWithFee);
+      _needed[_tokenInfo.indexTokenA] += _convertTo(
+        _tokenInfo.magnitudeB,
+        _amountToSwapTokenB,
+        _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA)
+      );
+      _needed[_tokenInfo.indexTokenB] += _convertTo(
+        _tokenInfo.magnitudeA,
+        _amountToSwapTokenA,
+        _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB)
+      );
     }
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
@@ -299,7 +280,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     view
     returns (NextSwapInfo memory _swapInformation)
   {
-    (SwapInfo memory _internalSwapInformation, ) = _getNextSwapInfo(_tokens, _pairsToSwap);
+    SwapInfo memory _internalSwapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
 
     _swapInformation.pairs = _internalSwapInformation.pairs;
     _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
@@ -328,10 +309,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     bytes memory _data
   ) public nonReentrant whenNotPaused {
     SwapInfo memory _swapInformation;
+    // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
+    uint32 _swapFee = swapFee;
 
     {
-      RatioWithFee[] memory _internalSwapInformation;
-      (_swapInformation, _internalSwapInformation) = _getNextSwapInfo(_tokens, _pairsToSwap);
+      _swapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
@@ -342,8 +324,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
             _swapInformation.pairs[i].tokenA,
             _swapInformation.pairs[i].tokenB,
             _swapInformation.pairs[i].intervalsInSwap[j],
-            _internalSwapInformation[i].ratioAToBWithFee,
-            _internalSwapInformation[i].ratioBToAWithFee,
+            _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB),
+            _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA),
             _timestamp
           );
           j++;
@@ -391,6 +373,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
 
     // Emit event
-    emit Swapped(msg.sender, _to, _swapInformation, _borrow, swapFee);
+    emit Swapped(msg.sender, _to, _swapInformation, _borrow, _swapFee);
   }
 }

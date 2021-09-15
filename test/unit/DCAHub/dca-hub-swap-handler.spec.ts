@@ -13,7 +13,7 @@ import { snapshot } from '@test-utils/evm';
 import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
-const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
+const APPLY_FEE = (bn: BigNumber) => bn.mul(994).div(1000);
 
 contract('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
@@ -307,16 +307,15 @@ contract('DCAHubSwapHandler', () => {
 
   describe('_calculateRatio', () => {
     when('function is called', () => {
-      let ratioAToB: BigNumber, ratioAToBWithFee: BigNumber;
-      let ratioBToA: BigNumber, ratioBToAWithFee: BigNumber;
+      let ratioAToB: BigNumber;
+      let ratioBToA: BigNumber;
       given(async () => {
         await setOracleData({ ratioBToA: tokenA.asUnits(0.6) });
-        [ratioAToB, ratioBToA, ratioAToBWithFee, ratioBToAWithFee] = await DCAHubSwapHandler.calculateRatio(
+        [ratioAToB, ratioBToA] = await DCAHubSwapHandler.calculateRatio(
           tokenA.address,
           tokenB.address,
           tokenA.magnitude,
           tokenB.magnitude,
-          6000,
           timeWeightedOracle.address
         );
       });
@@ -324,10 +323,6 @@ contract('DCAHubSwapHandler', () => {
         const expectedRatioBToA = tokenA.asUnits(0.6);
         expect(ratioAToB).to.equal(tokenA.magnitude.mul(tokenB.magnitude).div(expectedRatioBToA));
         expect(ratioBToA).to.equal(expectedRatioBToA);
-      });
-      then('ratios with fee are also calculated correctly', () => {
-        expect(ratioAToBWithFee).to.equal(APPLY_FEE(ratioAToB));
-        expect(ratioBToAWithFee).to.equal(APPLY_FEE(ratioBToA));
       });
     });
   });
@@ -348,7 +343,6 @@ contract('DCAHubSwapHandler', () => {
       when(title, () => {
         let expectedRatios: Map<string, { ratioAToB: BigNumber; ratioBToA: BigNumber }>;
         let swapInformation: SwapInformation;
-        let ratiosWithFees: RatiosWithFee[];
 
         given(async () => {
           expectedRatios = new Map();
@@ -370,7 +364,7 @@ contract('DCAHubSwapHandler', () => {
             pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address })),
             []
           );
-          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(tokens, pairIndexes);
+          swapInformation = await DCAHubSwapHandler.internalGetNextSwapInfo(tokens, pairIndexes);
         });
 
         then('ratios are expose correctly', () => {
@@ -378,16 +372,6 @@ contract('DCAHubSwapHandler', () => {
             const { ratioAToB, ratioBToA } = expectedRatios.get(pair.tokenA + pair.tokenB)!;
             expect(pair.ratioAToB).to.equal(ratioAToB);
             expect(pair.ratioBToA).to.equal(ratioBToA);
-          }
-        });
-
-        then('ratios with fees are expose correctly', () => {
-          for (let i = 0; i < ratiosWithFees.length; i++) {
-            const { tokenA, tokenB } = swapInformation.pairs[i];
-            const { ratioAToBWithFee, ratioBToAWithFee } = ratiosWithFees[i];
-            const { ratioAToB, ratioBToA } = expectedRatios.get(tokenA + tokenB)!;
-            expect(ratioAToBWithFee).to.equal(APPLY_FEE(ratioAToB));
-            expect(ratioBToAWithFee).to.equal(APPLY_FEE(ratioBToA));
           }
         });
 
@@ -830,7 +814,7 @@ contract('DCAHubSwapHandler', () => {
         for (const [token, balance] of internalBalances) {
           await DCAHubSwapHandler.setInternalBalance(token, balance);
         }
-        await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation, []);
+        await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation);
 
         result = await DCAHubSwapHandler.getNextSwapInfo([tokenA.address, tokenB.address, tokenC.address], [{ indexTokenA: 0, indexTokenB: 1 }]);
       });
@@ -914,10 +898,6 @@ contract('DCAHubSwapHandler', () => {
             tokens: mappedTokens,
             pairs: mappedPairs,
           };
-          const ratiosWithFee = mappedPairs.map(({ ratioAToB, ratioBToA }) => ({
-            ratioAToBWithFee: APPLY_FEE(ratioAToB),
-            ratioBToAWithFee: APPLY_FEE(ratioBToA),
-          }));
 
           initialBalances = new Map([
             [
@@ -960,7 +940,7 @@ contract('DCAHubSwapHandler', () => {
           }
 
           await DCAHubSwapHandler.setBlockTimestamp(BLOCK_TIMESTAMP);
-          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs }, ratiosWithFee);
+          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs });
 
           const { tokens: tokensInput, pairIndexes } = buildSwapInput(mappedPairs, []);
           for (const { token, toProvide } of tokens) {
@@ -1110,17 +1090,13 @@ contract('DCAHubSwapHandler', () => {
             ratioBToA: BigNumber.from(300000),
             intervalsInSwap,
           }));
-          const ratiosWithFee = mappedPairs.map(({ ratioAToB, ratioBToA }) => ({
-            ratioAToBWithFee: APPLY_FEE(ratioAToB),
-            ratioBToAWithFee: APPLY_FEE(ratioBToA),
-          }));
 
           const tokensToMint = [...(initialBalanceHub ?? []), ...(amountProvided ?? [])];
           for (const { token, amount } of tokensToMint) {
             await token().mint(DCAHubSwapHandler.address, token().asUnits(amount));
           }
 
-          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs }, ratiosWithFee);
+          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs });
           await context?.();
 
           ({ tokens: tokensInput, pairIndexes: pairIndexesInput } = buildSwapInput(mappedPairs, []));
@@ -1346,10 +1322,6 @@ contract('DCAHubSwapHandler', () => {
             tokens: mappedTokens,
             pairs: mappedPairs,
           };
-          const ratiosWithFee = mappedPairs.map(({ ratioAToB, ratioBToA }) => ({
-            ratioAToBWithFee: APPLY_FEE(ratioAToB),
-            ratioBToAWithFee: APPLY_FEE(ratioBToA),
-          }));
           borrow = tokens.map(({ token, borrow }) => (!!borrow ? token().asUnits(borrow!) : constants.ZERO));
 
           initialBalances = new Map([
@@ -1398,7 +1370,7 @@ contract('DCAHubSwapHandler', () => {
             Array.from(calleeBalances.values())
           );
           await DCAHubSwapHandler.setBlockTimestamp(BLOCK_TIMESTAMP);
-          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs }, ratiosWithFee);
+          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs });
 
           // @ts-ignore
           tx = await DCAHubSwapHandler.connect(swapper)['swap(address[],(uint8,uint8)[],uint256[],address,bytes)'](
@@ -1567,10 +1539,6 @@ contract('DCAHubSwapHandler', () => {
             ratioBToA: BigNumber.from(300000),
             intervalsInSwap,
           }));
-          const ratiosWithFee = mappedPairs.map(({ ratioAToB, ratioBToA }) => ({
-            ratioAToBWithFee: APPLY_FEE(ratioAToB),
-            ratioBToAWithFee: APPLY_FEE(ratioBToA),
-          }));
           const mappedBorrow = tokens
             .filter(({ borrow }) => !!borrow)
             .map(({ token, borrow }) => ({
@@ -1597,7 +1565,7 @@ contract('DCAHubSwapHandler', () => {
             await DCAHubSwapCallee.returnSpecificAmounts(tokens, amounts);
           }
 
-          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs }, ratiosWithFee);
+          await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs });
           await context?.();
 
           ({ tokens: tokensInput, pairIndexes: pairIndexesInput, borrow: borrowInput } = buildSwapInput(mappedPairs, mappedBorrow));
