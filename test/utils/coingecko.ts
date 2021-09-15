@@ -8,9 +8,11 @@ type CoingeckoDataPoints = {
 };
 
 export const getCoingeckoDataPoints = async (coin: string, currency: string, from: number, to: number): Promise<CoingeckoDataPoints> => {
-  const coingeckoDatapoints = (
-    await axios.get(`https://api.coingecko.com/api/v3/coins/${coin}/market_chart/range?vs_currency=${currency}&from=${from}&to=${to}`)
-  ).data as CoingeckoDataPoints;
+  const response = await axios.get(
+    `https://api.coingecko.com/api/v3/coins/${coin}/market_chart/range?vs_currency=${currency}&from=${from}&to=${to}`
+  );
+  console.log('status', response.status);
+  const coingeckoDatapoints = response.data as CoingeckoDataPoints;
   return coingeckoDatapoints;
 };
 
