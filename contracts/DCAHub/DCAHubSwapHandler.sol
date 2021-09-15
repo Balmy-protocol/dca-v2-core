@@ -186,8 +186,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       _swapInformation.pairs[i].tokenA = _tokens[indexTokenA];
       _swapInformation.pairs[i].tokenB = _tokens[indexTokenB];
-      uint120 _magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
-      uint120 _magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
+      uint128 _magnitudeA = _magnitudes[_swapInformation.pairs[i].tokenA];
+      uint128 _magnitudeB = _magnitudes[_swapInformation.pairs[i].tokenB];
       // TODO: Check if it is cheaper to store magnitude for all tokens, instead of calculating it each time
 
       uint256 _amountToSwapTokenA;
@@ -282,6 +282,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
   function swap(address[] calldata _tokens, PairIndexes[] calldata _pairsToSwap) external {
     swap(_tokens, _pairsToSwap, new uint256[](_tokens.length), msg.sender, '');
+  }
+
+  mapping(address => uint128) internal _magnitudes;
+
+  function setMagnitude(address _address, uint8 _decimals) external {
+    _magnitudes[_address] = uint128(10**_decimals);
   }
 
   function swap(

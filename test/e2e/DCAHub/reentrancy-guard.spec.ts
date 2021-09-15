@@ -54,6 +54,9 @@ contract('DCAHub', () => {
         constants.NOT_ZERO_ADDRESS,
         TimeWeightedOracle.address
       );
+      for (const token of [tokenA, tokenB]) {
+        await DCAHub.setMagnitude(token.address, token.amountOfDecimals);
+      }
       await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
       snapshotId = await snapshot.take();
     });
