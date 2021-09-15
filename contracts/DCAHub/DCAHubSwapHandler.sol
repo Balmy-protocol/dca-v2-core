@@ -186,24 +186,24 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       _swapInformation.pairs[i].tokenA = _tokens[indexTokenA];
       _swapInformation.pairs[i].tokenB = _tokens[indexTokenB];
-      uint120 _magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
-      uint120 _magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
+      uint120 _magnitudeA = uint120(10**IERC20Metadata(_tokens[indexTokenA]).decimals());
+      uint120 _magnitudeB = uint120(10**IERC20Metadata(_tokens[indexTokenB]).decimals());
       // TODO: Check if it is cheaper to store magnitude for all tokens, instead of calculating it each time
 
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;
 
       (_amountToSwapTokenA, _amountToSwapTokenB, _swapInformation.pairs[i].intervalsInSwap) = _getTotalAmountsToSwap(
-        _swapInformation.pairs[i].tokenA,
-        _swapInformation.pairs[i].tokenB
+        _tokens[indexTokenA],
+        _tokens[indexTokenB]
       );
 
       _total[indexTokenA] += _amountToSwapTokenA;
       _total[indexTokenB] += _amountToSwapTokenB;
 
       (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA) = _calculateRatio(
-        _swapInformation.pairs[i].tokenA,
-        _swapInformation.pairs[i].tokenB,
+        _tokens[indexTokenA],
+        _tokens[indexTokenB],
         _magnitudeA,
         _magnitudeB,
         _oracle
