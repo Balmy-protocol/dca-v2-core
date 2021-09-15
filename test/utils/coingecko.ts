@@ -12,6 +12,7 @@ export const getCoingeckoDataPoints = async (coin: string, currency: string, fro
     `https://api.coingecko.com/api/v3/coins/${coin}/market_chart/range?vs_currency=${currency}&from=${from}&to=${to}`
   );
   console.log('status', response.status);
+  console.log('response', response);
   const coingeckoDatapoints = response.data as CoingeckoDataPoints;
   return coingeckoDatapoints;
 };
