@@ -47,7 +47,15 @@ contract('DCAHub', () => {
         constants.NOT_ZERO_ADDRESS,
         timeWeightedOracle.address
       );
-      DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+      DCAHub = await DCAHubFactory.deploy(
+        DCAGlobalParameters.address,
+        tokenA.address,
+        tokenB.address,
+        governor.address,
+        governor.address,
+        constants.NOT_ZERO_ADDRESS,
+        timeWeightedOracle.address
+      );
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
       await setInitialBalance(alice, { tokenA: 0, tokenB: 200 });
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });

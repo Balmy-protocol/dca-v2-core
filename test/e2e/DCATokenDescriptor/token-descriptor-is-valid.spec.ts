@@ -61,7 +61,15 @@ contract('DCATokenDescriptor', () => {
       DCATokenDescriptor.address,
       TimeWeightedOracle.address
     );
-    DCAHub = await DCAHubContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+    DCAHub = await DCAHubContract.deploy(
+      DCAGlobalParameters.address,
+      tokenA.address,
+      tokenB.address,
+      governor.address,
+      constants.NOT_ZERO_ADDRESS,
+      DCATokenDescriptor.address,
+      TimeWeightedOracle.address
+    );
     await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));

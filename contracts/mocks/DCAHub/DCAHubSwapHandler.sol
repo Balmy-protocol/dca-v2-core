@@ -2,9 +2,9 @@
 pragma solidity ^0.8.6;
 
 import '../../DCAHub/DCAHubSwapHandler.sol';
-import './DCAHubParameters.sol';
+import './DCAHubConfigHandler.sol';
 
-contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
+contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   struct RegisterSwapCall {
     uint256 ratioAToB;
     uint256 ratioBToA;
@@ -30,8 +30,15 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
   constructor(
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB,
-    IDCAGlobalParameters _globalParameters
-  ) DCAHubParametersMock(_globalParameters, _tokenA, _tokenB) DCAHubSwapHandler() {
+    IDCAGlobalParameters _globalParameters,
+    address _immediateGovernor,
+    address _timeLockedGovernor,
+    IDCATokenDescriptor _nftDescriptor,
+    ITimeWeightedOracle _oracle
+  )
+    DCAHubConfigHandlerMock(_tokenA, _tokenB, _globalParameters, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
+    DCAHubSwapHandler()
+  {
     /* */
   }
 
@@ -108,25 +115,24 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubParametersMock {
     _affectedIntervals = _amounts.intervalsInSwap;
   }
 
-  function internalGetNextSwapInfo(
-    address[] calldata _tokens,
-    PairIndexes[] calldata _pairs,
-    uint32 _swapFee,
-    ITimeWeightedOracle _oracle
-  ) external view returns (SwapInfo memory, RatioWithFee[] memory) {
-    return _getNextSwapInfo(_tokens, _pairs, _swapFee, _oracle);
+  function internalGetNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
+    external
+    view
+    returns (SwapInfo memory, RatioWithFee[] memory)
+  {
+    return _getNextSwapInfo(_tokens, _pairs);
   }
 
-  function _getNextSwapInfo(
-    address[] calldata _tokens,
-    PairIndexes[] calldata _pairs,
-    uint32 _swapFee,
-    ITimeWeightedOracle _oracle
-  ) internal view override returns (SwapInfo memory, RatioWithFee[] memory) {
+  function _getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
+    internal
+    view
+    override
+    returns (SwapInfo memory, RatioWithFee[] memory)
+  {
     if (_swapInformation.tokens.length > 0) {
       return (_swapInformation, _internalSwapInformation);
     } else {
-      return super._getNextSwapInfo(_tokens, _pairs, _swapFee, _oracle);
+      return super._getNextSwapInfo(_tokens, _pairs);
     }
   }
 

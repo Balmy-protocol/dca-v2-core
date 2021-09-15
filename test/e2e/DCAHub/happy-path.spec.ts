@@ -73,8 +73,17 @@ contract('DCAHub', () => {
         constants.NOT_ZERO_ADDRESS,
         timeWeightedOracle.address
       );
-      DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+      DCAHub = await DCAHubFactory.deploy(
+        DCAGlobalParameters.address,
+        tokenA.address,
+        tokenB.address,
+        governor.address,
+        governor.address,
+        constants.NOT_ZERO_ADDRESS,
+        timeWeightedOracle.address
+      );
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
+      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);
 
@@ -302,6 +311,7 @@ contract('DCAHub', () => {
 
     async function setSwapFee(fee: number) {
       await DCAGlobalParameters.setSwapFee(fee * 10000);
+      await DCAHub.setSwapFee(fee * 10000);
     }
 
     async function addFundsToPosition(position: UserPositionDefinition, args: { newSwaps: number } & ({ tokenA: number } | { tokenB: number })) {

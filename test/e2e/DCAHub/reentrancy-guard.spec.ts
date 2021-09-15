@@ -61,7 +61,15 @@ contract('DCAHub', () => {
         constants.NOT_ZERO_ADDRESS,
         TimeWeightedOracle.address
       );
-      DCAHub = await DCAHubFactory.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
+      DCAHub = await DCAHubFactory.deploy(
+        DCAGlobalParameters.address,
+        tokenA.address,
+        tokenB.address,
+        governor.address,
+        constants.NOT_ZERO_ADDRESS,
+        constants.NOT_ZERO_ADDRESS,
+        TimeWeightedOracle.address
+      );
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
       snapshotId = await snapshot.take();
     });

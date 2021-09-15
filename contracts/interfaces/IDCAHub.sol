@@ -24,7 +24,7 @@ interface IDCAHubParameters {
 
 /// @title The interface for all position related matters in a DCA pair
 /// @notice These methods allow users to create, modify and terminate their positions
-interface IDCAHubPositionHandler is IERC721, IDCAHubParameters {
+interface IDCAHubPositionHandler is IDCAHubParameters {
   /// @notice The position of a certain user
   struct UserPosition {
     // The token that the user deposited and will be swapped in exchange for "to"

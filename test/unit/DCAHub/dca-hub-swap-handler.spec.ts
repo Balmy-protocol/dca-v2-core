@@ -2,17 +2,10 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, BigNumberish, Contract } from 'ethers';
 import { ethers } from 'hardhat';
-import {
-  DCAGlobalParametersMock__factory,
-  DCAGlobalParametersMock,
-  DCAHubSwapHandlerMock,
-  DCAHubSwapHandlerMock__factory,
-  TimeWeightedOracleMock,
-  TimeWeightedOracleMock__factory,
-} from '@typechained';
+import { DCAHubSwapHandlerMock, DCAHubSwapHandlerMock__factory, TimeWeightedOracleMock, TimeWeightedOracleMock__factory } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, bn, behaviours } from '@test-utils';
-import { given, then, when } from '@test-utils/bdd';
+import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { TokenContract } from '@test-utils/erc20';
@@ -22,26 +15,20 @@ import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.sub(CALCULATE_FEE(bn));
 
-describe('DCAHubSwapHandler', () => {
+contract('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
-  let feeRecipient: SignerWithAddress;
   let swapper: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
   let DCAHubSwapHandlerContract: DCAHubSwapHandlerMock__factory;
   let DCAHubSwapHandler: DCAHubSwapHandlerMock;
   let timeWeightedOracleContract: TimeWeightedOracleMock__factory;
   let timeWeightedOracle: TimeWeightedOracleMock;
-  let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
-  let DCAGlobalParameters: DCAGlobalParametersMock;
   let snapshotId: string;
   const SWAP_INTERVAL = moment.duration(1, 'days').as('seconds');
   const SWAP_INTERVAL_2 = moment.duration(2, 'days').as('seconds');
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient, swapper] = await ethers.getSigners();
-    DCAGlobalParametersContract = await ethers.getContractFactory(
-      'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
-    );
+    [owner, swapper] = await ethers.getSigners();
     DCAHubSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubSwapHandler.sol:DCAHubSwapHandlerMock');
     timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
 
@@ -59,17 +46,14 @@ describe('DCAHubSwapHandler', () => {
     [tokenA, tokenB, tokenC] = tokens.sort((a, b) => a.address.localeCompare(b.address));
 
     timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
-      owner.address,
-      owner.address,
-      feeRecipient.address,
-      constants.NOT_ZERO_ADDRESS,
-      timeWeightedOracle.address
-    );
     DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
-      DCAGlobalParameters.address // global parameters
+      constants.NOT_ZERO_ADDRESS,
+      owner.address,
+      owner.address,
+      constants.NOT_ZERO_ADDRESS,
+      timeWeightedOracle.address
     );
     snapshotId = await snapshot.take();
   });
@@ -387,12 +371,7 @@ describe('DCAHubSwapHandler', () => {
             pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address })),
             []
           );
-          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(
-            tokens,
-            pairIndexes,
-            6000,
-            timeWeightedOracle.address
-          );
+          [swapInformation, ratiosWithFees] = await DCAHubSwapHandler.internalGetNextSwapInfo(tokens, pairIndexes);
         });
 
         then('ratios are expose correctly', () => {
@@ -465,7 +444,7 @@ describe('DCAHubSwapHandler', () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAHubSwapHandler,
             func: 'internalGetNextSwapInfo',
-            args: [tokens.map((token) => token().address), pairs, 6000, timeWeightedOracle.address],
+            args: [tokens.map((token) => token().address), pairs],
             message: error,
           });
         });
@@ -1222,10 +1201,10 @@ describe('DCAHubSwapHandler', () => {
 
     failedSwapTest({
       title: 'swapping is paused',
-      context: () => DCAGlobalParameters.pause(),
+      context: () => DCAHubSwapHandler.pause(),
       tokens: [],
       pairs: [],
-      error: 'Paused',
+      error: 'Pausable: paused',
     });
 
     failedSwapTest({
@@ -1705,10 +1684,10 @@ describe('DCAHubSwapHandler', () => {
 
     failedFlashSwapTest({
       title: 'swapping is paused',
-      context: () => DCAGlobalParameters.pause(),
+      context: () => DCAHubSwapHandler.pause(),
       tokens: [],
       pairs: [],
-      error: 'Paused',
+      error: 'Pausable: paused',
     });
 
     failedFlashSwapTest({
