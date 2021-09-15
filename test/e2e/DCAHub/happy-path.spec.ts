@@ -70,9 +70,6 @@ contract('DCAHub', () => {
         constants.NOT_ZERO_ADDRESS,
         timeWeightedOracle.address
       );
-      for (const token of [tokenA, tokenB]) {
-        await DCAHub.setMagnitude(token.address, token.amountOfDecimals);
-      }
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);

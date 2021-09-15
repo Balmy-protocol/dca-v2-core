@@ -41,9 +41,6 @@ contract('DCAHub', () => {
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
-    for (const token of [tokenA, tokenB]) {
-      await DCAHub.setMagnitude(token.address, token.amountOfDecimals);
-    }
     snapshotId = await snapshot.take();
   });
 

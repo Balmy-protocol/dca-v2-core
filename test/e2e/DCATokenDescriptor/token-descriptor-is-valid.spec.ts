@@ -56,9 +56,6 @@ contract('DCATokenDescriptor', () => {
       DCATokenDescriptor.address,
       TimeWeightedOracle.address
     );
-    for (const token of [tokenA, tokenB]) {
-      await DCAHub.setMagnitude(token.address, token.amountOfDecimals);
-    }
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
