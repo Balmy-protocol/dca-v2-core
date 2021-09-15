@@ -24,7 +24,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   mapping(address => mapping(address => TotalAmountsToSwap)) private _totalAmountsToSwap; // tokenA => tokenB => total amounts
 
   SwapInfo private _swapInformation;
-  RatioWithFee[] private _internalSwapInformation;
   uint32 private _customTimestamp;
 
   constructor(
@@ -111,22 +110,13 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     _affectedIntervals = _amounts.intervalsInSwap;
   }
 
-  function internalGetNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
-    external
-    view
-    returns (SwapInfo memory, RatioWithFee[] memory)
-  {
+  function internalGetNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs) external view returns (SwapInfo memory) {
     return _getNextSwapInfo(_tokens, _pairs);
   }
 
-  function _getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
-    internal
-    view
-    override
-    returns (SwapInfo memory, RatioWithFee[] memory)
-  {
+  function _getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs) internal view override returns (SwapInfo memory) {
     if (_swapInformation.tokens.length > 0) {
-      return (_swapInformation, _internalSwapInformation);
+      return _swapInformation;
     } else {
       return super._getNextSwapInfo(_tokens, _pairs);
     }
@@ -227,17 +217,13 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     _amountToSwap[_tokenA][_tokenB][_swapInterval] = [_amountTokenA, _amountTokenB];
   }
 
-  function setInternalGetNextSwapInfo(SwapInfo memory __swapInformation, RatioWithFee[] memory __internalSwapInformation) external {
+  function setInternalGetNextSwapInfo(SwapInfo memory __swapInformation) external {
     for (uint256 i; i < __swapInformation.tokens.length; i++) {
       _swapInformation.tokens.push(__swapInformation.tokens[i]);
     }
 
     for (uint256 i; i < __swapInformation.pairs.length; i++) {
       _swapInformation.pairs.push(__swapInformation.pairs[i]);
-    }
-
-    for (uint256 i; i < __internalSwapInformation.length; i++) {
-      _internalSwapInformation.push(__internalSwapInformation[i]);
     }
   }
 
