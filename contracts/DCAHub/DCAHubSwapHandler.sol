@@ -190,6 +190,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     virtual
     returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation)
   {
+    uint32 _swapFee = swapFee;
+    ITimeWeightedOracle _oracle = oracle;
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
@@ -237,8 +239,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         _swapInformation.pairs[i].tokenB,
         _tokenInfo.magnitudeA,
         _tokenInfo.magnitudeB,
-        swapFee,
-        oracle
+        _swapFee,
+        _oracle
       );
 
       _needed[_tokenInfo.indexTokenA] += _convertTo(_tokenInfo.magnitudeB, _amountToSwapTokenB, _internalSwapInformation[i].ratioBToAWithFee);
@@ -259,10 +261,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
         // We are un-applying the fee here
-        uint256 _neededWithoutFee = (_neededWithFee * FEE_PRECISION * 100) / (FEE_PRECISION * 100 - swapFee);
+        uint256 _neededWithoutFee = (_neededWithFee * FEE_PRECISION * 100) / (FEE_PRECISION * 100 - _swapFee);
 
         // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
-        int256 _platformFee = int256(_getFeeFromAmount(swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
+        int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
 
         // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
         int256 _diff = int256(_totalBeingSwapped) - int256(_neededWithFee);
