@@ -130,24 +130,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    uint32 _swapFee,
     ITimeWeightedOracle _oracle
-  )
-    internal
-    view
-    virtual
-    returns (
-      uint256 _ratioAToB,
-      uint256 _ratioBToA,
-      uint256 _ratioAToBWithFee,
-      uint256 _ratioBToAWithFee
-    )
-  {
+  ) internal view virtual returns (uint256 _ratioAToB, uint256 _ratioBToA) {
     _ratioBToA = _oracle.quote(_tokenB, uint128(_magnitudeB), _tokenA);
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
-
-    _ratioAToBWithFee = _applyFeeToAmount(_swapFee, _ratioAToB);
-    _ratioBToAWithFee = _applyFeeToAmount(_swapFee, _ratioBToA);
   }
 
   struct PairIndexes {
@@ -224,19 +210,24 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _total[_tokenInfo.indexTokenA] += _amountToSwapTokenA;
       _total[_tokenInfo.indexTokenB] += _amountToSwapTokenB;
 
-      uint256 _ratioAToBWithFee;
-      uint256 _ratioBToAWithFee;
-      (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA, _ratioAToBWithFee, _ratioBToAWithFee) = _calculateRatio(
+      (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA) = _calculateRatio(
         _swapInformation.pairs[i].tokenA,
         _swapInformation.pairs[i].tokenB,
         _tokenInfo.magnitudeA,
         _tokenInfo.magnitudeB,
-        _swapFee,
         _oracle
       );
 
-      _needed[_tokenInfo.indexTokenA] += _convertTo(_tokenInfo.magnitudeB, _amountToSwapTokenB, _ratioBToAWithFee);
-      _needed[_tokenInfo.indexTokenB] += _convertTo(_tokenInfo.magnitudeA, _amountToSwapTokenA, _ratioAToBWithFee);
+      _needed[_tokenInfo.indexTokenA] += _convertTo(
+        _tokenInfo.magnitudeB,
+        _amountToSwapTokenB,
+        _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA)
+      );
+      _needed[_tokenInfo.indexTokenB] += _convertTo(
+        _tokenInfo.magnitudeA,
+        _amountToSwapTokenA,
+        _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB)
+      );
     }
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);

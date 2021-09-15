@@ -307,16 +307,15 @@ contract('DCAHubSwapHandler', () => {
 
   describe('_calculateRatio', () => {
     when('function is called', () => {
-      let ratioAToB: BigNumber, ratioAToBWithFee: BigNumber;
-      let ratioBToA: BigNumber, ratioBToAWithFee: BigNumber;
+      let ratioAToB: BigNumber;
+      let ratioBToA: BigNumber;
       given(async () => {
         await setOracleData({ ratioBToA: tokenA.asUnits(0.6) });
-        [ratioAToB, ratioBToA, ratioAToBWithFee, ratioBToAWithFee] = await DCAHubSwapHandler.calculateRatio(
+        [ratioAToB, ratioBToA] = await DCAHubSwapHandler.calculateRatio(
           tokenA.address,
           tokenB.address,
           tokenA.magnitude,
           tokenB.magnitude,
-          6000,
           timeWeightedOracle.address
         );
       });
@@ -324,10 +323,6 @@ contract('DCAHubSwapHandler', () => {
         const expectedRatioBToA = tokenA.asUnits(0.6);
         expect(ratioAToB).to.equal(tokenA.magnitude.mul(tokenB.magnitude).div(expectedRatioBToA));
         expect(ratioBToA).to.equal(expectedRatioBToA);
-      });
-      then('ratios with fee are also calculated correctly', () => {
-        expect(ratioAToBWithFee).to.equal(APPLY_FEE(ratioAToB));
-        expect(ratioBToAWithFee).to.equal(APPLY_FEE(ratioBToA));
       });
     });
   });

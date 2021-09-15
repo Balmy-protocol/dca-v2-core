@@ -127,19 +127,9 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    uint32 _swapFee,
     ITimeWeightedOracle _oracle
-  )
-    external
-    view
-    returns (
-      uint256,
-      uint256,
-      uint256,
-      uint256
-    )
-  {
-    return _calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _swapFee, _oracle);
+  ) external view returns (uint256, uint256) {
+    return _calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _oracle);
   }
 
   function _calculateRatio(
@@ -147,26 +137,13 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    uint32 _swapFee,
     ITimeWeightedOracle _oracle
-  )
-    internal
-    view
-    override
-    returns (
-      uint256 _ratioAToB,
-      uint256 _ratioBToA,
-      uint256 _ratioAToBWithFee,
-      uint256 _ratioBToAWithFee
-    )
-  {
+  ) internal view override returns (uint256 _ratioAToB, uint256 _ratioBToA) {
     _ratioBToA = _ratios[_tokenB][_tokenA];
     if (_ratioBToA == 0) {
-      return super._calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _swapFee, _oracle);
+      return super._calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _oracle);
     }
     _ratioAToB = (_magnitudeA * _magnitudeB) / _ratioBToA;
-    _ratioAToBWithFee = _ratioAToB - _getFeeFromAmount(_swapFee, _ratioAToB);
-    _ratioBToAWithFee = _ratioBToA - _getFeeFromAmount(_swapFee, _ratioBToA);
   }
 
   // Used to register calls
