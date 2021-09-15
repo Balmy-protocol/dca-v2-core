@@ -831,7 +831,7 @@ contract('DCAPositionHandler', () => {
     });
   });
 
-  describe('removeFundsFromPosition', () => {
+  describe.only('removeFundsFromPosition', () => {
     const NEW_SWAPS_TO_PERFORM_5 = 5;
     const AMOUNT_TO_REMOVE_1 = 1;
 
@@ -859,7 +859,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    when('removing funds but with 0 swaps', () => {
+    when('removing funds but with 0 swaps and amount to remove is not enough', () => {
       then('tx is reverted with message', async () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
@@ -875,13 +875,22 @@ contract('DCAPositionHandler', () => {
     erc721PermissionTest(({ token, contract, dcaId }) => contract.removeFundsFromPosition(dcaId, token.asUnits(1), 2));
 
     modifyPositionTest({
-      title: `removing all funds from a position`,
+      title: `removing all funds from a position and setting 0 swaps`,
       initialRate: POSITION_RATE_5,
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 0,
-      newSwaps: NEW_SWAPS_TO_PERFORM_5,
+      newSwaps: 0,
       exec: ({ token, dcaId, newSwaps }) =>
         removeFundsFromPosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, newSwaps),
+    });
+
+    modifyPositionTest({
+      title: `removing all funds from a position and setting a positive number of swaps`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 0,
+      newSwaps: 0,
+      exec: ({ token, dcaId }) => removeFundsFromPosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, 10),
     });
 
     modifyPositionTest({
