@@ -12,32 +12,29 @@ library NFTDescriptor {
   using Strings for uint32;
 
   struct ConstructTokenURIParams {
-    address pair;
-    address tokenA;
-    address tokenB;
-    uint8 tokenADecimals;
-    uint8 tokenBDecimals;
-    string tokenASymbol;
-    string tokenBSymbol;
+    uint256 tokenId;
+    address fromToken;
+    address toToken;
+    uint8 fromDecimals;
+    uint8 toDecimals;
+    string fromSymbol;
+    string toSymbol;
     string swapInterval;
     uint32 swapsExecuted;
     uint32 swapsLeft;
-    uint256 tokenId;
     uint256 swapped;
     uint256 remaining;
     uint160 rate;
-    bool fromA;
   }
 
   function constructTokenURI(ConstructTokenURIParams memory _params) internal pure returns (string memory) {
     string memory _name = _generateName(_params);
 
     string memory _description = _generateDescription(
-      _params.tokenASymbol,
-      _params.tokenBSymbol,
-      addressToString(_params.pair),
-      addressToString(_params.tokenA),
-      addressToString(_params.tokenB),
+      _params.fromSymbol,
+      _params.toSymbol,
+      addressToString(_params.fromToken),
+      addressToString(_params.toToken),
       _params.swapInterval,
       _params.tokenId
     );
@@ -80,34 +77,31 @@ library NFTDescriptor {
   }
 
   function _generateDescription(
-    string memory _tokenASymbol,
-    string memory _tokenBSymbol,
-    string memory _pairAddress,
-    string memory _tokenAAddress,
-    string memory _tokenBAddress,
+    string memory _fromSymbol,
+    string memory _toSymbol,
+    string memory _fromAddress,
+    string memory _toAddress,
     string memory _interval,
     uint256 _tokenId
   ) private pure returns (string memory) {
     string memory _part1 = string(
       abi.encodePacked(
-        'This NFT represents a position in a Mean Finance DCA ',
-        _escapeQuotes(_tokenASymbol),
-        '-',
-        _escapeQuotes(_tokenBSymbol),
-        ' pair. The owner of this NFT can modify or redeem the position.\\n\\nPair Address: ',
-        _pairAddress,
-        '\\n',
-        _escapeQuotes(_tokenASymbol)
+        'This NFT represents a DCA position in Mean Finance, where ',
+        _escapeQuotes(_fromSymbol),
+        ' will be swapped for ',
+        _escapeQuotes(_toSymbol),
+        '. The owner of this NFT can modify or redeem the position.\\n\\n',
+        _escapeQuotes(_fromSymbol)
       )
     );
     string memory _part2 = string(
       abi.encodePacked(
         ' Address: ',
-        _tokenAAddress,
+        _fromAddress,
         '\\n',
-        _escapeQuotes(_tokenBSymbol),
+        _escapeQuotes(_toSymbol),
         ' Address: ',
-        _tokenBAddress,
+        _toAddress,
         '\\nSwap interval: ',
         _interval,
         '\\nToken ID: ',
@@ -126,9 +120,9 @@ library NFTDescriptor {
           'Mean Finance DCA - ',
           _params.swapInterval,
           ' - ',
-          _escapeQuotes(_params.tokenASymbol),
-          '/',
-          _escapeQuotes(_params.tokenBSymbol)
+          _escapeQuotes(_params.fromSymbol),
+          unicode' ➔ ',
+          _escapeQuotes(_params.toSymbol)
         )
       );
   }
@@ -260,40 +254,27 @@ library NFTDescriptor {
   }
 
   function _generateSVGImage(ConstructTokenURIParams memory _params) private pure returns (string memory svg) {
-    string memory _fromSymbol;
-    string memory _toSymbol;
-    uint8 _fromDecimals;
-    uint8 _toDecimals;
-    if (_params.fromA) {
-      _fromSymbol = _escapeQuotes(_params.tokenASymbol);
-      _fromDecimals = _params.tokenADecimals;
-      _toSymbol = _escapeQuotes(_params.tokenBSymbol);
-      _toDecimals = _params.tokenBDecimals;
-    } else {
-      _fromSymbol = _escapeQuotes(_params.tokenBSymbol);
-      _fromDecimals = _params.tokenBDecimals;
-      _toSymbol = _escapeQuotes(_params.tokenASymbol);
-      _toDecimals = _params.tokenADecimals;
-    }
+    string memory _fromSymbol = _escapeQuotes(_params.fromSymbol);
+    string memory _toSymbol = _escapeQuotes(_params.toSymbol);
     NFTSVG.SVGParams memory _svgParams = NFTSVG.SVGParams({
       tokenId: _params.tokenId,
-      tokenA: addressToString(_params.tokenA),
-      tokenB: addressToString(_params.tokenB),
-      tokenASymbol: _escapeQuotes(_params.tokenASymbol),
-      tokenBSymbol: _escapeQuotes(_params.tokenBSymbol),
+      fromToken: addressToString(_params.fromToken),
+      toToken: addressToString(_params.toToken),
+      fromSymbol: _fromSymbol,
+      toSymbol: _toSymbol,
       interval: _params.swapInterval,
       swapsExecuted: _params.swapsExecuted,
       swapsLeft: _params.swapsLeft,
-      swapped: string(abi.encodePacked(fixedPointToDecimalString(_params.swapped, _toDecimals), ' ', _toSymbol)),
+      swapped: string(abi.encodePacked(fixedPointToDecimalString(_params.swapped, _params.toDecimals), ' ', _toSymbol)),
       averagePrice: string(
         abi.encodePacked(
-          fixedPointToDecimalString(_params.swapsExecuted > 0 ? _params.swapped / _params.swapsExecuted : 0, _toDecimals),
+          fixedPointToDecimalString(_params.swapsExecuted > 0 ? _params.swapped / _params.swapsExecuted : 0, _params.toDecimals),
           ' ',
           _toSymbol
         )
       ),
-      remaining: string(abi.encodePacked(fixedPointToDecimalString(_params.remaining, _fromDecimals), ' ', _fromSymbol)),
-      rate: string(abi.encodePacked(fixedPointToDecimalString(_params.rate, _fromDecimals), ' ', _fromSymbol))
+      remaining: string(abi.encodePacked(fixedPointToDecimalString(_params.remaining, _params.fromDecimals), ' ', _fromSymbol)),
+      rate: string(abi.encodePacked(fixedPointToDecimalString(_params.rate, _params.fromDecimals), ' ', _fromSymbol))
     });
 
     return NFTSVG.generateSVG(_svgParams);

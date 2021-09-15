@@ -6,9 +6,9 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '../interfaces/IDCAHubLoanCallee.sol';
 import '../libraries/CommonErrors.sol';
 
-import './DCAHubParameters.sol';
+import './DCAHubConfigHandler.sol';
 
-abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubParameters, IDCAHubLoanHandler {
+abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubLoanHandler {
   using SafeERC20 for IERC20Metadata;
 
   function availableToBorrow(address[] calldata _tokens) external view returns (uint256[] memory _available) {
@@ -24,28 +24,26 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     Loan[] calldata _loan,
     address _to,
     bytes calldata _data
-  ) external nonReentrant {
-    IDCAGlobalParameters.LoanParameters memory _loanParameters = globalParameters.loanParameters();
-
-    if (_loanParameters.isPaused) revert CommonErrors.Paused();
+  ) external nonReentrant whenNotPaused {
+    // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
+    uint32 _loanFee = loanFee;
 
     // Transfer tokens
     for (uint256 i; i < _loan.length; i++) {
       // TODO: Fail if tokens are not sorted (that way, we can detect duplicates)
 
-      // TODO: Think if we want to revert with a nicer message when there aren't enough funds, or if we just let it fail during transfer
       IERC20Metadata(_loan[i].token).safeTransfer(_to, _loan[i].amount);
     }
 
     // Make call
-    IDCAHubLoanCallee(_to).DCAHubLoanCall(msg.sender, _loan, _loanParameters.loanFee, _data);
+    IDCAHubLoanCallee(_to).DCAHubLoanCall(msg.sender, _loan, _loanFee, _data);
 
     for (uint256 i; i < _loan.length; i++) {
       uint256 _beforeBalance = _balances[_loan[i].token];
       uint256 _afterBalance = IERC20Metadata(_loan[i].token).balanceOf(address(this));
 
       // Make sure that they sent the tokens back
-      if (_afterBalance < _beforeBalance + _getFeeFromAmount(_loanParameters.loanFee, _loan[i].amount)) {
+      if (_afterBalance < _beforeBalance + _getFeeFromAmount(_loanFee, _loan[i].amount)) {
         revert CommonErrors.LiquidityNotReturned();
       }
 
@@ -57,6 +55,6 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     }
 
     // Emit event
-    emit Loaned(msg.sender, _to, _loan, _loanParameters.loanFee);
+    emit Loaned(msg.sender, _to, _loan, _loanFee);
   }
 }

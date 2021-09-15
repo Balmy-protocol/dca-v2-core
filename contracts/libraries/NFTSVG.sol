@@ -10,10 +10,10 @@ library NFTSVG {
   using Strings for uint32;
 
   struct SVGParams {
-    string tokenA;
-    string tokenB;
-    string tokenASymbol;
-    string tokenBSymbol;
+    string fromToken;
+    string toToken;
+    string fromSymbol;
+    string toSymbol;
     string interval;
     uint32 swapsExecuted;
     uint32 swapsLeft;
@@ -32,9 +32,9 @@ library NFTSVG {
           _generateStyleDefs(params.swapsExecuted, params.swapsLeft),
           _generateSVGDefs(),
           _generateSVGBackground(),
-          _generateSVGCardMantle(params.tokenASymbol, params.tokenBSymbol, params.interval),
+          _generateSVGCardMantle(params.fromSymbol, params.toSymbol, params.interval),
           _generateSVGPositionData(params.tokenId, params.swapped, params.averagePrice, params.remaining, params.rate),
-          _generateSVGBorderText(params.tokenA, params.tokenB, params.tokenASymbol, params.tokenBSymbol),
+          _generateSVGBorderText(params.fromToken, params.toToken, params.fromSymbol, params.toSymbol),
           _generateSVGLinesAndMainLogo(),
           _generageSVGProgressArea(params.swapsExecuted, params.swapsLeft),
           '</svg>'
@@ -64,21 +64,21 @@ library NFTSVG {
   }
 
   function _generateSVGBorderText(
-    string memory _tokenA,
-    string memory _tokenB,
-    string memory _tokenASymbol,
-    string memory _tokenBSymbol
+    string memory _fromToken,
+    string memory _toToken,
+    string memory _fromSymbol,
+    string memory _toSymbol
   ) private pure returns (string memory svg) {
-    string memory _tokenAText = string(abi.encodePacked(_tokenA, ' - ', _tokenASymbol));
-    string memory _tokenBText = string(abi.encodePacked(_tokenB, ' - ', _tokenBSymbol));
+    string memory _fromText = string(abi.encodePacked(_fromToken, ' - ', _fromSymbol));
+    string memory _toText = string(abi.encodePacked(_toToken, ' - ', _toSymbol));
 
     svg = string(
       abi.encodePacked(
         '<text text-rendering="optimizeSpeed">',
-        _generateTextWithPath('-100', _tokenAText),
-        _generateTextWithPath('0', _tokenAText),
-        _generateTextWithPath('50', _tokenBText),
-        _generateTextWithPath('-50', _tokenBText),
+        _generateTextWithPath('-100', _fromText),
+        _generateTextWithPath('0', _fromText),
+        _generateTextWithPath('50', _toText),
+        _generateTextWithPath('-50', _toText),
         '</text>'
       )
     );
@@ -97,17 +97,17 @@ library NFTSVG {
   }
 
   function _generateSVGCardMantle(
-    string memory _tokenASymbol,
-    string memory _tokenBSymbol,
+    string memory _fromSymbol,
+    string memory _toSymbol,
     string memory _interval
   ) private pure returns (string memory svg) {
     svg = string(
       abi.encodePacked(
         '<text><tspan x="68.3549" y="146.2414" class="st36 st38 st39 st40">',
-        _tokenASymbol,
-        '/',
-        _tokenBSymbol,
-        '</tspan></text><text x="68.3549" y="225.9683" class="st36 st49 st50">',
+        _fromSymbol,
+        unicode'<tspan style="font-size: 40px;" dy="-5"> ➔ </tspan><tspan y="146.2414">',
+        _toSymbol,
+        '</tspan></tspan></text><text x="68.3549" y="225.9683" class="st36 st49 st50">',
         _interval,
         '</text>'
       )

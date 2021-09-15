@@ -4,9 +4,9 @@ pragma solidity ^0.8.6;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
-import './DCAHubParameters.sol';
+import './DCAHubConfigHandler.sol';
 
-abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, IDCAHubPositionHandler, ERC721 {
+abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPositionHandler, ERC721 {
   // TODO: Explore if we can make reduce the storage size
   struct DCA {
     uint32 swapWhereLastUpdated; // Includes both modify and withdraw
@@ -53,9 +53,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     if (_owner == address(0)) revert CommonErrors.ZeroAddress();
     if (_tokenAddress != address(tokenA) && _tokenAddress != address(tokenB)) revert InvalidToken();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    if (
-      !_activeSwapIntervals[address(tokenA)][address(tokenB)].contains(_swapInterval) && !globalParameters.isSwapIntervalAllowed(_swapInterval)
-    ) revert InvalidInterval();
+    if (!this.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
     uint256 _amount = _rate * _amountOfSwaps;
     IERC20Metadata(_tokenAddress).safeTransferFrom(msg.sender, address(this), _amount);
     _balances[_tokenAddress] += _amount;
@@ -241,10 +239,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     emit Modified(msg.sender, _positionId, _newRate, _startingSwap, _finalSwap);
   }
 
-  function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    return globalParameters.nftDescriptor().tokenURI(this, tokenId);
-  }
-
   /** Helper function to modify a position */
   function _modifyRateAndSwaps(
     uint256 _dcaId,
@@ -396,5 +390,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubParameters, ID
     uint32 _swapInterval
   ) internal view returns (uint32) {
     return (_from < _to) ? performedSwaps[_from][_to][_swapInterval] : performedSwaps[_to][_from][_swapInterval];
+  }
+
+  // TODO: Remove when we remove ERC721
+  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, AccessControl) returns (bool) {
+    return super.supportsInterface(interfaceId);
   }
 }

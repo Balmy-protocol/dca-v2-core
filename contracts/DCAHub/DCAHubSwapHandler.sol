@@ -6,9 +6,9 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '../interfaces/IDCAHubSwapCallee.sol';
 import '../libraries/CommonErrors.sol';
 import './utils/Math.sol';
-import './DCAHubParameters.sol';
+import './DCAHubConfigHandler.sol';
 
-abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHubSwapHandler {
+abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
   using SafeERC20 for IERC20Metadata;
   using EnumerableSet for EnumerableSet.UintSet;
 
@@ -54,9 +54,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
   function _convertTo(
     uint256 _fromTokenMagnitude,
     uint256 _amountFrom,
-    uint256 _rateFromTo
+    uint256 _rateFromTo,
+    uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    _amountTo = (_amountFrom * _rateFromTo) / _fromTokenMagnitude;
+    _amountTo = (_amountFrom * _applyFeeToAmount(_swapFee, _rateFromTo)) / _fromTokenMagnitude;
   }
 
   struct Pair {
@@ -130,24 +131,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    uint32 _swapFee,
     ITimeWeightedOracle _oracle
-  )
-    internal
-    view
-    virtual
-    returns (
-      uint256 _ratioAToB,
-      uint256 _ratioBToA,
-      uint256 _ratioAToBWithFee,
-      uint256 _ratioBToAWithFee
-    )
-  {
+  ) internal view virtual returns (uint256 _ratioAToB, uint256 _ratioBToA) {
     _ratioBToA = _oracle.quote(_tokenB, uint128(_magnitudeB), _tokenA);
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
-
-    _ratioAToBWithFee = _ratioAToB - _getFeeFromAmount(_swapFee, _ratioAToB);
-    _ratioBToAWithFee = _ratioBToA - _getFeeFromAmount(_swapFee, _ratioBToA);
   }
 
   struct PairIndexes {
@@ -168,53 +155,39 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint32[] intervalsInSwap;
   }
 
-  // TODO: Explore if re-calculating the ratios with fee in swap is cheaper than passing them around
-  struct RatioWithFee {
-    uint256 ratioAToBWithFee;
-    uint256 ratioBToAWithFee;
-  }
-
-  struct InternalTokenInfo {
-    uint8 indexTokenA;
-    uint8 indexTokenB;
-    uint120 magnitudeA; // 36 decimals max amount supported
-    uint120 magnitudeB; // 36 decimals max amount supported
-  }
-
   error InvalidPairs();
   error InvalidTokens();
 
-  function _getNextSwapInfo(
-    address[] calldata _tokens,
-    PairIndexes[] calldata _pairs,
-    uint32 _swapFee,
-    ITimeWeightedOracle _oracle
-  ) internal view virtual returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation) {
+  function _getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
+    internal
+    view
+    virtual
+    returns (SwapInfo memory _swapInformation)
+  {
+    // Note: we are caching these variables in memory so we can read storage only once (it's cheaper that way)
+    uint32 _swapFee = swapFee;
+    ITimeWeightedOracle _oracle = oracle;
+
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
-    _internalSwapInformation = new RatioWithFee[](_pairs.length);
 
     for (uint256 i; i < _pairs.length; i++) {
-      InternalTokenInfo memory _tokenInfo;
-      _tokenInfo.indexTokenA = _pairs[i].indexTokenA;
-      _tokenInfo.indexTokenB = _pairs[i].indexTokenB;
-
+      uint8 indexTokenA = _pairs[i].indexTokenA;
+      uint8 indexTokenB = _pairs[i].indexTokenB;
       if (
-        _tokenInfo.indexTokenA >= _tokenInfo.indexTokenB ||
+        indexTokenA >= indexTokenB ||
         (i > 0 &&
-          (_tokenInfo.indexTokenA < _pairs[i - 1].indexTokenA ||
-            (_tokenInfo.indexTokenA == _pairs[i - 1].indexTokenA && _tokenInfo.indexTokenB <= _pairs[i - 1].indexTokenB)))
+          (indexTokenA < _pairs[i - 1].indexTokenA || (indexTokenA == _pairs[i - 1].indexTokenA && indexTokenB <= _pairs[i - 1].indexTokenB)))
       ) {
         // Note: this confusing condition verifies that the pairs are sorted, first by token A, and then by token B
         revert InvalidPairs();
       }
 
-      _swapInformation.pairs[i].tokenA = _tokens[_tokenInfo.indexTokenA];
-      _swapInformation.pairs[i].tokenB = _tokens[_tokenInfo.indexTokenB];
-      _tokenInfo.magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
-      _tokenInfo.magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
-      // TODO: Check if it is cheaper to store magnitude for all tokens, instead of calculating it each time
+      _swapInformation.pairs[i].tokenA = _tokens[indexTokenA];
+      _swapInformation.pairs[i].tokenB = _tokens[indexTokenB];
+      uint120 _magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
+      uint120 _magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
 
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;
@@ -224,25 +197,19 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
         _swapInformation.pairs[i].tokenB
       );
 
-      _total[_tokenInfo.indexTokenA] += _amountToSwapTokenA;
-      _total[_tokenInfo.indexTokenB] += _amountToSwapTokenB;
+      _total[indexTokenA] += _amountToSwapTokenA;
+      _total[indexTokenB] += _amountToSwapTokenB;
 
-      (
-        _swapInformation.pairs[i].ratioAToB,
-        _swapInformation.pairs[i].ratioBToA,
-        _internalSwapInformation[i].ratioAToBWithFee,
-        _internalSwapInformation[i].ratioBToAWithFee
-      ) = _calculateRatio(
+      (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA) = _calculateRatio(
         _swapInformation.pairs[i].tokenA,
         _swapInformation.pairs[i].tokenB,
-        _tokenInfo.magnitudeA,
-        _tokenInfo.magnitudeB,
-        _swapFee,
+        _magnitudeA,
+        _magnitudeB,
         _oracle
       );
 
-      _needed[_tokenInfo.indexTokenA] += _convertTo(_tokenInfo.magnitudeB, _amountToSwapTokenB, _internalSwapInformation[i].ratioBToAWithFee);
-      _needed[_tokenInfo.indexTokenB] += _convertTo(_tokenInfo.magnitudeA, _amountToSwapTokenA, _internalSwapInformation[i].ratioAToBWithFee);
+      _needed[indexTokenA] += _convertTo(_magnitudeB, _amountToSwapTokenB, _swapInformation.pairs[i].ratioBToA, _swapFee);
+      _needed[indexTokenB] += _convertTo(_magnitudeA, _amountToSwapTokenA, _swapInformation.pairs[i].ratioAToB, _swapFee);
     }
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
@@ -259,7 +226,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
 
       if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
         // We are un-applying the fee here
-        uint256 _neededWithoutFee = (_neededWithFee * _feePrecision * 100) / (_feePrecision * 100 - _swapFee);
+        uint256 _neededWithoutFee = (_neededWithFee * FEE_PRECISION * 100) / (FEE_PRECISION * 100 - _swapFee);
 
         // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
         int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
@@ -295,8 +262,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     view
     returns (NextSwapInfo memory _swapInformation)
   {
-    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    (SwapInfo memory _internalSwapInformation, ) = _getNextSwapInfo(_tokens, _pairsToSwap, _swapParameters.swapFee, _swapParameters.oracle);
+    SwapInfo memory _internalSwapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
 
     _swapInformation.pairs = _internalSwapInformation.pairs;
     _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
@@ -323,15 +289,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     uint256[] memory _borrow,
     address _to,
     bytes memory _data
-  ) public nonReentrant {
-    IDCAGlobalParameters.SwapParameters memory _swapParameters = globalParameters.swapParameters();
-    if (_swapParameters.isPaused) revert CommonErrors.Paused();
-
+  ) public nonReentrant whenNotPaused {
     SwapInfo memory _swapInformation;
+    // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
+    uint32 _swapFee = swapFee;
 
     {
-      RatioWithFee[] memory _internalSwapInformation;
-      (_swapInformation, _internalSwapInformation) = _getNextSwapInfo(_tokens, _pairsToSwap, _swapParameters.swapFee, _swapParameters.oracle);
+      _swapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
@@ -342,8 +306,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
             _swapInformation.pairs[i].tokenA,
             _swapInformation.pairs[i].tokenB,
             _swapInformation.pairs[i].intervalsInSwap[j],
-            _internalSwapInformation[i].ratioAToBWithFee,
-            _internalSwapInformation[i].ratioBToAWithFee,
+            _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB),
+            _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA),
             _timestamp
           );
           j++;
@@ -360,7 +324,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
       if (_amountToSend > 0) {
-        // TODO: Think if we want to revert with a nicer message when there aren't enough funds, or if we just let it fail during transfer
         IERC20Metadata(_swapInformation.tokens[i].token).safeTransfer(_to, _amountToSend);
       }
     }
@@ -391,6 +354,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     }
 
     // Emit event
-    emit Swapped(msg.sender, _to, _swapInformation, _borrow, _swapParameters.swapFee);
+    emit Swapped(msg.sender, _to, _swapInformation, _borrow, _swapFee);
   }
 }

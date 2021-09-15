@@ -82,5 +82,5 @@ function getUniqueTokens(pairs: Pair[], borrow: Borrow[]): TokenAddress[] {
     tokenSet.add(token);
   }
 
-  return [...tokenSet].sort();
+  return [...tokenSet].sort((a, b) => a.localeCompare(b));
 }
