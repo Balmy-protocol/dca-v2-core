@@ -188,7 +188,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _swapInformation.pairs[i].tokenB = _tokens[indexTokenB];
       uint120 _magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
       uint120 _magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
-      // TODO: Check if it is cheaper to store magnitude for all tokens, instead of calculating it each time
 
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;
