@@ -65,7 +65,7 @@ describe('Governable', function () {
       let setPendingGovernorTx: TransactionResponse;
       let pendingGovernor: string;
       given(async () => {
-        pendingGovernor = await wallet.generateRandomAddress();
+        pendingGovernor = wallet.generateRandomAddress();
         setPendingGovernorTx = await governable.setPendingGovernorInternal(pendingGovernor);
       });
       then('sets pending governor', async () => {
@@ -100,7 +100,7 @@ describe('Governable', function () {
       let acceptPendingGovernorTx: TransactionResponse;
       let pendingGovernor: string;
       given(async () => {
-        pendingGovernor = await wallet.generateRandomAddress();
+        pendingGovernor = wallet.generateRandomAddress();
         await governable.setPendingGovernor(pendingGovernor);
         acceptPendingGovernorTx = await governable.acceptPendingGovernorInternal();
       });
@@ -127,7 +127,7 @@ describe('Governable', function () {
   describe('isGovernor', () => {
     when('not querying for governor address', () => {
       then('returns false', async () => {
-        expect(await governable.isGovernor(await wallet.generateRandomAddress())).to.be.false;
+        expect(await governable.isGovernor(wallet.generateRandomAddress())).to.be.false;
       });
     });
     when('querying for governor address', () => {
@@ -139,13 +139,13 @@ describe('Governable', function () {
   describe('isPendingGovernor', () => {
     when('not querying for pending governor address', () => {
       then('returns false', async () => {
-        expect(await governable.isPendingGovernor(await wallet.generateRandomAddress())).to.be.false;
+        expect(await governable.isPendingGovernor(wallet.generateRandomAddress())).to.be.false;
       });
     });
     when('querying for pending governor address', () => {
       let pendingGovernor: string;
       given(async () => {
-        pendingGovernor = await wallet.generateRandomAddress();
+        pendingGovernor = wallet.generateRandomAddress();
         await governable.setPendingGovernor(pendingGovernor);
       });
       then('returns true', async () => {

@@ -18,59 +18,45 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubParameters, IDCAHu
     }
   }
 
+  event Loaned(address indexed sender, address indexed to, IDCAHub.Loan[] loan, uint32 fee);
+
   function loan(
-    uint256 _amountToBorrowTokenA,
-    uint256 _amountToBorrowTokenB,
+    Loan[] calldata _loan,
     address _to,
     bytes calldata _data
-  ) external override nonReentrant {
-    if (_amountToBorrowTokenA == 0 && _amountToBorrowTokenB == 0) revert ZeroLoan();
-
+  ) external nonReentrant {
     IDCAGlobalParameters.LoanParameters memory _loanParameters = globalParameters.loanParameters();
 
     if (_loanParameters.isPaused) revert CommonErrors.Paused();
 
-    uint256 _beforeBalanceTokenA = _balances[address(tokenA)];
-    uint256 _beforeBalanceTokenB = _balances[address(tokenB)];
+    // Transfer tokens
+    for (uint256 i; i < _loan.length; i++) {
+      // TODO: Fail if tokens are not sorted (that way, we can detect duplicates)
 
-    if (_amountToBorrowTokenA > _beforeBalanceTokenA || _amountToBorrowTokenB > _beforeBalanceTokenB)
-      revert CommonErrors.InsufficientLiquidity();
-
-    // Calculate fees
-    uint256 _feeTokenA = _amountToBorrowTokenA > 0 ? _getFeeFromAmount(_loanParameters.loanFee, _amountToBorrowTokenA) : 0;
-    uint256 _feeTokenB = _amountToBorrowTokenB > 0 ? _getFeeFromAmount(_loanParameters.loanFee, _amountToBorrowTokenB) : 0;
-
-    if (_amountToBorrowTokenA > 0) tokenA.safeTransfer(_to, _amountToBorrowTokenA);
-    if (_amountToBorrowTokenB > 0) tokenB.safeTransfer(_to, _amountToBorrowTokenB);
+      // TODO: Think if we want to revert with a nicer message when there aren't enough funds, or if we just let it fail during transfer
+      IERC20Metadata(_loan[i].token).safeTransfer(_to, _loan[i].amount);
+    }
 
     // Make call
-    IDCAHubLoanCallee(_to).DCAHubLoanCall(
-      msg.sender,
-      tokenA,
-      tokenB,
-      _amountToBorrowTokenA,
-      _amountToBorrowTokenB,
-      _feeTokenA,
-      _feeTokenB,
-      _data
-    );
+    IDCAHubLoanCallee(_to).DCAHubLoanCall(msg.sender, _loan, _loanParameters.loanFee, _data);
 
-    uint256 _afterBalanceTokenA = tokenA.balanceOf(address(this));
-    uint256 _afterBalanceTokenB = tokenB.balanceOf(address(this));
+    for (uint256 i; i < _loan.length; i++) {
+      uint256 _beforeBalance = _balances[_loan[i].token];
+      uint256 _afterBalance = IERC20Metadata(_loan[i].token).balanceOf(address(this));
 
-    // Make sure that they sent the tokens back
-    if (_afterBalanceTokenA < (_beforeBalanceTokenA + _feeTokenA) || _afterBalanceTokenB < (_beforeBalanceTokenB + _feeTokenB))
-      revert CommonErrors.LiquidityNotReturned();
+      // Make sure that they sent the tokens back
+      if (_afterBalance < _beforeBalance + _getFeeFromAmount(_loanParameters.loanFee, _loan[i].amount)) {
+        revert CommonErrors.LiquidityNotReturned();
+      }
 
-    {
-      // Send fees and extra (if any)
-      uint256 _toFeeRecipientTokenA = _afterBalanceTokenA - _beforeBalanceTokenA;
-      uint256 _toFeeRecipientTokenB = _afterBalanceTokenB - _beforeBalanceTokenB;
-      if (_toFeeRecipientTokenA > 0) tokenA.safeTransfer(_loanParameters.feeRecipient, _toFeeRecipientTokenA);
-      if (_toFeeRecipientTokenB > 0) tokenB.safeTransfer(_loanParameters.feeRecipient, _toFeeRecipientTokenB);
+      // Update balance
+      _balances[_loan[i].token] = _afterBalance;
+
+      // Update platform balance
+      platformBalance[_loan[i].token] += _afterBalance - _beforeBalance;
     }
 
     // Emit event
-    emit Loaned(msg.sender, _to, _amountToBorrowTokenA, _amountToBorrowTokenB, _loanParameters.loanFee);
+    emit Loaned(msg.sender, _to, _loan, _loanParameters.loanFee);
   }
 }
