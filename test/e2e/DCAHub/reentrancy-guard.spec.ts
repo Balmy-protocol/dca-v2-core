@@ -71,6 +71,7 @@ contract('DCAHub', () => {
         TimeWeightedOracle.address
       );
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
+      await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
       snapshotId = await snapshot.take();
     });
 

@@ -24,7 +24,7 @@ contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCA
   {}
 
   // TODO: Remove when we remove ERC721
-  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, AccessControl) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view virtual override(DCAHubPositionHandler, AccessControl) returns (bool) {
     return super.supportsInterface(interfaceId);
   }
 }

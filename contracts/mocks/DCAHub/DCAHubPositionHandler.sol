@@ -3,14 +3,21 @@
 pragma solidity ^0.8.6;
 
 import '../../DCAHub/DCAHubPositionHandler.sol';
-import './DCAHubParameters.sol';
+import './DCAHubConfigHandler.sol';
 
-contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubParametersMock {
+contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandlerMock {
   constructor(
     IDCAGlobalParameters _globalParameters,
     IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB
-  ) DCAHubParametersMock(_globalParameters, _tokenA, _tokenB) DCAHubPositionHandler(_tokenA, _tokenB) {
+    IERC20Metadata _tokenB,
+    address _immediateGovernor,
+    address _timeLockedGovernor,
+    IDCATokenDescriptor _nftDescriptor,
+    ITimeWeightedOracle _oracle
+  )
+    DCAHubConfigHandlerMock(_tokenA, _tokenB, _globalParameters, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
+    DCAHubPositionHandler(_tokenA, _tokenB)
+  {
     /* */
   }
 
@@ -31,5 +38,10 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubParametersMoc
 
   function setLastUpdated(uint256 _dcaId, uint32 _lastUpdated) external {
     _userPositions[_dcaId].swapWhereLastUpdated = _lastUpdated;
+  }
+
+  // TODO: Remove when we remove ERC721
+  function supportsInterface(bytes4 interfaceId) public view virtual override(DCAHubPositionHandler, AccessControl) returns (bool) {
+    return super.supportsInterface(interfaceId);
   }
 }

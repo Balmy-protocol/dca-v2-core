@@ -57,6 +57,7 @@ contract('DCAHub', () => {
         timeWeightedOracle.address
       );
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
+      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
       await setInitialBalance(alice, { tokenA: 0, tokenB: 200 });
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(swapper, { tokenA: 2000, tokenB: 2000 });

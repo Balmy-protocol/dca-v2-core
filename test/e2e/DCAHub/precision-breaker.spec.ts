@@ -62,6 +62,7 @@ contract('DCAHub', () => {
       );
       await DCAGlobalParameters.setSwapFee(swapFee * 10000);
       await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
+      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(alice, { tokenA: 0, tokenB: 10000 });
       await setInitialBalance(swapper1, { tokenA: 2000, tokenB: 2000 });

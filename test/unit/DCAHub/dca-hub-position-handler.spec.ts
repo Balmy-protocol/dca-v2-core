@@ -1,22 +1,17 @@
-import { BigNumber, Contract, ContractFactory } from 'ethers';
+import { BigNumber, Contract } from 'ethers';
 import { ethers } from 'hardhat';
-import {
-  DCAGlobalParametersMock__factory,
-  DCAGlobalParametersMock,
-  DCAHubPositionHandlerMock__factory,
-  DCAHubPositionHandlerMock,
-} from '@typechained';
+import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock } from '@typechained';
 import { erc20, behaviours, constants, wallet } from '@test-utils';
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
-import { when, then, given } from '@test-utils/bdd';
+import { when, then, given, contract } from '@test-utils/bdd';
 import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 import { snapshot } from '@test-utils/evm';
 
-describe('DCAPositionHandler', () => {
+contract('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
   const POSITION_RATE_5 = 5;
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
@@ -33,31 +28,27 @@ describe('DCAPositionHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAPositionHandlerContract: DCAHubPositionHandlerMock__factory;
   let DCAPositionHandler: DCAHubPositionHandlerMock;
-  let DCAGlobalParametersContract: DCAGlobalParametersMock__factory;
-  let DCAGlobalParameters: DCAGlobalParametersMock;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner, approved, stranger] = await ethers.getSigners();
     DCAPositionHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubPositionHandler.sol:DCAHubPositionHandlerMock');
-    DCAGlobalParametersContract = await ethers.getContractFactory(
-      'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
-    );
 
     const deploy = (decimals: number) => erc20.deploy({ name: 'A name', symbol: 'SYMB', decimals });
 
     const tokens = await Promise.all([deploy(12), deploy(16)]);
     [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
-    DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
-      owner.address,
-      owner.address,
+    await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
+    await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
+    DCAPositionHandler = await DCAPositionHandlerContract.deploy(
       constants.NOT_ZERO_ADDRESS,
+      tokenA.address,
+      tokenB.address,
+      owner.address,
+      owner.address,
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
-    await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
-    await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
-    DCAPositionHandler = await DCAPositionHandlerContract.deploy(DCAGlobalParameters.address, tokenA.address, tokenB.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
@@ -69,7 +60,7 @@ describe('DCAPositionHandler', () => {
     await tokenA.mint(approved.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenA.approveInternal(approved.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
-    await DCAGlobalParameters.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
+    await DCAPositionHandler.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
     snapshotId = await snapshot.take();
   });
 
@@ -135,7 +126,7 @@ describe('DCAPositionHandler', () => {
 
     when('making a deposit with non-allowed interval', async () => {
       given(async () => {
-        await DCAGlobalParameters.removeSwapIntervalsFromAllowedList([SWAP_INTERVAL]);
+        await DCAPositionHandler.removeSwapIntervalsFromAllowedList([SWAP_INTERVAL]);
       });
       then('tx is reverted with messasge', async () => {
         await depositShouldRevert({

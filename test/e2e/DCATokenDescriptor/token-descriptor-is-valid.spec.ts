@@ -70,6 +70,7 @@ contract('DCATokenDescriptor', () => {
       DCATokenDescriptor.address,
       TimeWeightedOracle.address
     );
+    await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
     await DCAGlobalParameters.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
