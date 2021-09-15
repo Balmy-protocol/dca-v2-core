@@ -59,32 +59,31 @@ contract('DCATokenDescriptor', () => {
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
-    await tokenA.approveInternal(governor.address, DCAHub.address, tokenA.asUnits(1000));
+    await tokenB.approveInternal(governor.address, DCAHub.address, tokenB.asUnits(1000));
     await tokenB.mint(governor.address, tokenB.asUnits(1000));
   });
 
   it('Validate tokenURI result', async () => {
     // Deposit
-    const response = await DCAHub.deposit(governor.address, tokenA.address, tokenA.asUnits(10), 2, swapInterval);
+    const response = await DCAHub.deposit(governor.address, tokenB.address, tokenB.asUnits(10), 2, swapInterval);
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
 
     // Execute one swap
-    await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
     await swap();
 
     // Get token uri
     const result1 = await DCAHub.tokenURI(tokenId);
+    console.log(result1);
     const { name: name1, description: description1, image: image1 } = extractJSONFromURI(result1);
 
-    expect(name1).to.equal('Mean Finance DCA - Daily - TKNA/TKNB');
+    expect(name1).to.equal('Mean Finance DCA - Daily - TKNB ➔ TKNA');
     expect(description1).to.equal(
-      `This NFT represents a position in a Mean Finance DCA TKNA-TKNB pair. The owner of this NFT can modify or redeem the position.\n\nPair Address: ${DCAHub.address.toLowerCase()}\nTKNA Address: ${tokenA.address.toLowerCase()}\nTKNB Address: ${tokenB.address.toLowerCase()}\nSwap interval: Daily\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
+      `This NFT represents a DCA position in Mean Finance, where TKNB will be swapped for TKNA. The owner of this NFT can modify or redeem the position.\n\nTKNB Address: ${tokenB.address.toLowerCase()}\nTKNA Address: ${tokenA.address.toLowerCase()}\nSwap interval: Daily\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
     );
     expect(isValidSvgImage(image1)).to.be.true;
 
     // Execute the last swap and withdraw
     await evm.advanceTimeAndBlock(swapInterval);
-    await tokenB.transfer(DCAHub.address, tokenB.asUnits(20));
     await swap();
     await DCAHub.withdrawSwapped(tokenId, wallet.generateRandomAddress());
 
@@ -98,6 +97,7 @@ contract('DCATokenDescriptor', () => {
   });
 
   async function swap() {
+    await tokenA.transfer(DCAHub.address, tokenA.asUnits(20));
     const { tokens, pairIndexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
     // @ts-ignore
     await DCAHub['swap(address[],(uint8,uint8)[])'](tokens, pairIndexes);
