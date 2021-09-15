@@ -268,7 +268,4 @@ interface IDCAHubLoanHandler {
   }
 }
 
-interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler {
-  // TODO: Move to another place
-  function intervalDescription(uint32 _swapInterval) external view returns (string memory _description);
-}
+interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler {}
