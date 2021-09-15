@@ -154,13 +154,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32[] intervalsInSwap;
   }
 
-  struct InternalTokenInfo {
-    uint8 indexTokenA;
-    uint8 indexTokenB;
-    uint120 magnitudeA; // 36 decimals max amount supported
-    uint120 magnitudeB; // 36 decimals max amount supported
-  }
-
   error InvalidPairs();
   error InvalidTokens();
 
@@ -179,24 +172,20 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
 
     for (uint256 i; i < _pairs.length; i++) {
-      InternalTokenInfo memory _tokenInfo;
-      _tokenInfo.indexTokenA = _pairs[i].indexTokenA;
-      _tokenInfo.indexTokenB = _pairs[i].indexTokenB;
-
       if (
-        _tokenInfo.indexTokenA >= _tokenInfo.indexTokenB ||
+        _pairs[i].indexTokenA >= _pairs[i].indexTokenB ||
         (i > 0 &&
-          (_tokenInfo.indexTokenA < _pairs[i - 1].indexTokenA ||
-            (_tokenInfo.indexTokenA == _pairs[i - 1].indexTokenA && _tokenInfo.indexTokenB <= _pairs[i - 1].indexTokenB)))
+          (_pairs[i].indexTokenA < _pairs[i - 1].indexTokenA ||
+            (_pairs[i].indexTokenA == _pairs[i - 1].indexTokenA && _pairs[i].indexTokenB <= _pairs[i - 1].indexTokenB)))
       ) {
         // Note: this confusing condition verifies that the pairs are sorted, first by token A, and then by token B
         revert InvalidPairs();
       }
 
-      _swapInformation.pairs[i].tokenA = _tokens[_tokenInfo.indexTokenA];
-      _swapInformation.pairs[i].tokenB = _tokens[_tokenInfo.indexTokenB];
-      _tokenInfo.magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
-      _tokenInfo.magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
+      _swapInformation.pairs[i].tokenA = _tokens[_pairs[i].indexTokenA];
+      _swapInformation.pairs[i].tokenB = _tokens[_pairs[i].indexTokenB];
+      uint120 _magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
+      uint120 _magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
       // TODO: Check if it is cheaper to store magnitude for all tokens, instead of calculating it each time
 
       uint256 _amountToSwapTokenA;
@@ -207,24 +196,24 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         _swapInformation.pairs[i].tokenB
       );
 
-      _total[_tokenInfo.indexTokenA] += _amountToSwapTokenA;
-      _total[_tokenInfo.indexTokenB] += _amountToSwapTokenB;
+      _total[_pairs[i].indexTokenA] += _amountToSwapTokenA;
+      _total[_pairs[i].indexTokenB] += _amountToSwapTokenB;
 
       (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA) = _calculateRatio(
         _swapInformation.pairs[i].tokenA,
         _swapInformation.pairs[i].tokenB,
-        _tokenInfo.magnitudeA,
-        _tokenInfo.magnitudeB,
+        _magnitudeA,
+        _magnitudeB,
         _oracle
       );
 
-      _needed[_tokenInfo.indexTokenA] += _convertTo(
-        _tokenInfo.magnitudeB,
+      _needed[_pairs[i].indexTokenA] += _convertTo(
+        _magnitudeB,
         _amountToSwapTokenB,
         _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA)
       );
-      _needed[_tokenInfo.indexTokenB] += _convertTo(
-        _tokenInfo.magnitudeA,
+      _needed[_pairs[i].indexTokenB] += _convertTo(
+        _magnitudeA,
         _amountToSwapTokenA,
         _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB)
       );
@@ -342,7 +331,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
       if (_amountToSend > 0) {
-        // TODO: Think if we want to revert with a nicer message when there aren't enough funds, or if we just let it fail during transfer
         IERC20Metadata(_swapInformation.tokens[i].token).safeTransfer(_to, _amountToSend);
       }
     }
