@@ -831,7 +831,7 @@ contract('DCAPositionHandler', () => {
     });
   });
 
-  describe.only('removeFundsFromPosition', () => {
+  describe('removeFundsFromPosition', () => {
     const NEW_SWAPS_TO_PERFORM_5 = 5;
     const AMOUNT_TO_REMOVE_1 = 1;
 
