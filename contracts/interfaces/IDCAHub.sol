@@ -268,37 +268,10 @@ interface IDCAHubSwapHandler {
 /// @title The interface for all loan related matters in a DCA pair
 /// @notice These methods allow users to ask how much is available for loans, and also to execute them
 interface IDCAHubLoanHandler {
-  /// @notice Emitted when a flash loan is executed
-  /// @param sender The address of the user that initiated the loan
-  /// @param to The address that received the loan
-  /// @param amountBorrowedTokenA How much was borrowed in token A
-  /// @param amountBorrowedTokenB How much was borrowed in token B
-  /// @param loanFee How much was charged as a fee
-  event Loaned(address indexed sender, address indexed to, uint256 amountBorrowedTokenA, uint256 amountBorrowedTokenB, uint32 loanFee);
-
-  // @notice Thrown when trying to execute a flash loan but without actually asking for tokens
-  error ZeroLoan();
-
-  /// @notice Returns the amount of tokens that can be asked for during a flash loan
-  /// @return _amountToBorrowTokenA The amount of token A that is available for borrowing
-  /// @return _amountToBorrowTokenB The amount of token B that is available for borrowing
-  function availableToBorrow() external view returns (uint256 _amountToBorrowTokenA, uint256 _amountToBorrowTokenB);
-
-  /// @notice Executes a flash loan, sending the required amounts to the specified loan recipient
-  /// @dev Will revert:
-  /// With ZeroLoan if both _amountToBorrowTokenA & _amountToBorrowTokenB are 0
-  /// With Paused if loans are paused by protocol
-  /// With InsufficientLiquidity if asked for more that reserves
-  /// @param _amountToBorrowTokenA The amount to borrow in token A
-  /// @param _amountToBorrowTokenB The amount to borrow in token B
-  /// @param _to Address that will receive the loan. This address should be a contract that implements IDCAHubLoanCallee
-  /// @param _data Any data that should be passed through to the callback
-  function loan(
-    uint256 _amountToBorrowTokenA,
-    uint256 _amountToBorrowTokenB,
-    address _to,
-    bytes calldata _data
-  ) external;
+  struct Loan {
+    address token;
+    uint256 amount;
+  }
 }
 
 interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler {}

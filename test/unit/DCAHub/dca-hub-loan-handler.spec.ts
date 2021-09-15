@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { BigNumber, Contract, ContractFactory, utils } from 'ethers';
+import { BigNumber, Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { DCAGlobalParametersMock__factory, DCAGlobalParametersMock, DCAHubLoanHandlerMock__factory, DCAHubLoanHandlerMock } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
@@ -8,13 +8,13 @@ import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';
+import { readArgFromEventOrFail } from '@test-utils/event-utils';
 
 const WITH_FEE = (bn: BigNumber) => bn.add(CALCULATE_FEE(bn));
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(1).div(1000);
 
 describe('DCAHubLoanHandler', () => {
   let owner: SignerWithAddress;
-  let feeRecipient: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubLoanHandlerContract: DCAHubLoanHandlerMock__factory;
   let DCAHubLoanHandler: DCAHubLoanHandlerMock;
@@ -23,7 +23,7 @@ describe('DCAHubLoanHandler', () => {
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    [owner, feeRecipient] = await ethers.getSigners();
+    [owner] = await ethers.getSigners();
     DCAGlobalParametersContract = await ethers.getContractFactory(
       'contracts/mocks/DCAGlobalParameters/DCAGlobalParameters.sol:DCAGlobalParametersMock'
     );
@@ -39,7 +39,7 @@ describe('DCAHubLoanHandler', () => {
     DCAGlobalParameters = await DCAGlobalParametersContract.deploy(
       owner.address,
       owner.address,
-      feeRecipient.address,
+      constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
@@ -60,7 +60,7 @@ describe('DCAHubLoanHandler', () => {
 
     when('checking how much is available to borrow', () => {
       then('the amounts are the internal balances', async () => {
-        const [availableToBorrowA, availableToBorrowB] = await DCAHubLoanHandler.availableToBorrow();
+        const [availableToBorrowA, availableToBorrowB] = await DCAHubLoanHandler.availableToBorrow([tokenA.address, tokenB.address]);
         expect(availableToBorrowA).to.equal(balanceTokenA);
         expect(availableToBorrowB).to.equal(balanceTokenB);
       });
@@ -75,19 +75,16 @@ describe('DCAHubLoanHandler', () => {
 
     given(async () => {
       const DCAHubLoanCalleeContract = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:DCAHubLoanCalleeMock');
-      DCAHubLoanCallee = await DCAHubLoanCalleeContract.deploy(CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE);
+      DCAHubLoanCallee = await DCAHubLoanCalleeContract.deploy();
+      await DCAHubLoanCallee.setInitialBalances(
+        [tokenA.address, tokenB.address],
+        [CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE]
+      );
       await tokenA.mint(DCAHubLoanCallee.address, CALLEE_TOKEN_A_INITIAL_BALANCE);
       await tokenB.mint(DCAHubLoanCallee.address, CALLEE_TOKEN_B_INITIAL_BALANCE);
       await tokenA.mint(DCAHubLoanHandler.address, PAIR_TOKEN_A_INITIAL_BALANCE);
       await tokenB.mint(DCAHubLoanHandler.address, PAIR_TOKEN_B_INITIAL_BALANCE);
       await DCAHubLoanHandler.setInternalBalances(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE);
-    });
-
-    flashLoanFailedTest({
-      title: 'no amount is borrowed',
-      amountToBorrowTokenA: () => constants.ZERO,
-      amountToBorrowTokenB: () => constants.ZERO,
-      errorMessage: 'ZeroLoan',
     });
 
     flashLoanFailedTest({
@@ -102,14 +99,14 @@ describe('DCAHubLoanHandler', () => {
       title: 'caller intends to borrow more than available in a',
       amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE.add(1),
       amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE,
-      errorMessage: 'InsufficientLiquidity',
+      errorMessage: 'ERC20: transfer amount exceeds balance',
     });
 
     flashLoanFailedTest({
       title: 'caller intends to borrow more than available in b',
       amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
       amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE.add(1),
-      errorMessage: 'InsufficientLiquidity',
+      errorMessage: 'ERC20: transfer amount exceeds balance',
     });
 
     flashLoanNotReturnedTest({
@@ -128,59 +125,26 @@ describe('DCAHubLoanHandler', () => {
       amountToReturnTokenB: () => WITH_FEE(PAIR_TOKEN_B_INITIAL_BALANCE).sub(1),
     });
 
-    when('doing a reentrant attack with loan', () => {
-      let tx: Promise<TransactionResponse>;
-      given(async () => {
-        const reentrantDCAHubLoanCalleFactory = await ethers.getContractFactory(
-          'contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock'
-        );
-        const reentrantDCAHubSwapCallee = await reentrantDCAHubLoanCalleFactory.deploy();
-        await reentrantDCAHubSwapCallee.setAttack(
-          (
-            await DCAHubLoanHandler.populateTransaction.loan(
-              PAIR_TOKEN_A_INITIAL_BALANCE,
-              PAIR_TOKEN_B_INITIAL_BALANCE,
-              reentrantDCAHubSwapCallee.address,
-              BYTES
-            )
-          ).data
-        );
-        tx = DCAHubLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, reentrantDCAHubSwapCallee.address, BYTES);
-      });
-      then('tx is reverted', async () => {
-        await expect(tx).to.be.revertedWith('ReentrancyGuard: reentrant call');
-      });
-    });
-
     when('flash loans are used', () => {
       const tokenAFee = CALCULATE_FEE(PAIR_TOKEN_A_INITIAL_BALANCE);
       const tokenBFee = CALCULATE_FEE(PAIR_TOKEN_B_INITIAL_BALANCE);
+      let loan: { token: string; amount: BigNumber }[];
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await DCAHubLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAHubLoanCallee.address, BYTES);
+        loan = [
+          { token: tokenA.address, amount: PAIR_TOKEN_A_INITIAL_BALANCE },
+          { token: tokenB.address, amount: PAIR_TOKEN_B_INITIAL_BALANCE },
+        ];
+        tx = await DCAHubLoanHandler.loan(loan, DCAHubLoanCallee.address, BYTES);
       });
 
       then('callee is called', async () => {
-        const {
-          pair,
-          sender,
-          tokenA: tokenAParam,
-          tokenB: tokenBParam,
-          amountBorrowedTokenA,
-          amountBorrowedTokenB,
-          feeTokenA,
-          feeTokenB,
-          data,
-        } = await DCAHubLoanCallee.getLastCall();
-        expect(pair).to.equal(DCAHubLoanHandler.address);
+        const { hub, sender, loan, loanFee, data } = await DCAHubLoanCallee.lastCall();
+        expect(hub).to.equal(DCAHubLoanHandler.address);
         expect(sender).to.equal(owner.address);
-        expect(tokenAParam).to.equal(tokenA.address);
-        expect(tokenBParam).to.equal(tokenB.address);
-        expect(amountBorrowedTokenA).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
-        expect(amountBorrowedTokenB).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
-        expect(feeTokenA).to.equal(tokenAFee);
-        expect(feeTokenB).to.equal(tokenBFee);
+        expect(loan).to.eql(loan);
+        expect(loanFee).to.equal(1000);
         expect(data).to.equal(ethers.utils.hexlify(BYTES));
       });
 
@@ -192,26 +156,34 @@ describe('DCAHubLoanHandler', () => {
         expect(calleeTokenBBalance).to.equal(CALLEE_TOKEN_B_INITIAL_BALANCE.sub(tokenBFee));
       });
 
-      then('pair balance stays the same', async () => {
-        const pairTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
-        const pairTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
+      then(`hub's balance is increased correctly`, async () => {
+        const hubTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
+        const hubTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
 
-        expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
-        expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
+        expect(hubTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee));
+        expect(hubTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee));
       });
 
-      then('fee recipient balance is modified correctly', async () => {
-        const feeRecipientTokenABalance = await tokenA.balanceOf(feeRecipient.address);
-        const feeRecipientTokenBBalance = await tokenB.balanceOf(feeRecipient.address);
+      then('extra tokens are considered as platform balance', async () => {
+        const platformBalanceTokenA = await DCAHubLoanHandler.platformBalance(tokenA.address);
+        const platformBalanceTokenB = await DCAHubLoanHandler.platformBalance(tokenB.address);
 
-        expect(feeRecipientTokenABalance).to.equal(tokenAFee);
-        expect(feeRecipientTokenBBalance).to.equal(tokenBFee);
+        expect(platformBalanceTokenA).to.equal(tokenAFee);
+        expect(platformBalanceTokenB).to.equal(tokenBFee);
       });
 
       then('event is emitted', async () => {
-        await expect(tx)
-          .to.emit(DCAHubLoanHandler, 'Loaned')
-          .withArgs(owner.address, DCAHubLoanCallee.address, PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, 1000);
+        const sender = await readArgFromEventOrFail(tx, 'Loaned', 'sender');
+        const to = await readArgFromEventOrFail(tx, 'Loaned', 'to');
+        const emittedLoan: any = await readArgFromEventOrFail(tx, 'Loaned', 'loan');
+        const fee = await readArgFromEventOrFail(tx, 'Loaned', 'fee');
+        expect(sender).to.equal(owner.address);
+        expect(to).to.equal(DCAHubLoanCallee.address);
+        expect(fee).to.equal(1000);
+        for (let i = 0; i < emittedLoan.length; i++) {
+          expect(emittedLoan[i].token).to.equal(loan[i].token);
+          expect(emittedLoan[i].amount).to.equal(loan[i].amount);
+        }
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -220,30 +192,36 @@ describe('DCAHubLoanHandler', () => {
     when('more tokens than expected are returned', () => {
       const tokenAFee = CALCULATE_FEE(PAIR_TOKEN_A_INITIAL_BALANCE);
       const tokenBFee = CALCULATE_FEE(PAIR_TOKEN_B_INITIAL_BALANCE);
-      let tx: TransactionResponse;
 
       given(async () => {
         await DCAHubLoanCallee.returnSpecificAmounts(
-          PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee).add(1),
-          PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee).add(1)
+          [tokenA.address, tokenB.address],
+          [PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee).add(1), PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee).add(1)]
         );
-        tx = await DCAHubLoanHandler.loan(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE, DCAHubLoanCallee.address, BYTES);
+        await DCAHubLoanHandler.loan(
+          [
+            { token: tokenA.address, amount: PAIR_TOKEN_A_INITIAL_BALANCE },
+            { token: tokenB.address, amount: PAIR_TOKEN_B_INITIAL_BALANCE },
+          ],
+          DCAHubLoanCallee.address,
+          BYTES
+        );
       });
 
-      then('pair balance stays the same', async () => {
-        const pairTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
-        const pairTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
+      then(`hub's balance is increased correctly`, async () => {
+        const hubTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
+        const hubTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
 
-        expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
-        expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
+        expect(hubTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE.add(tokenAFee).add(1));
+        expect(hubTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE.add(tokenBFee).add(1));
       });
 
-      then('extra tokens are sent to fee recipient', async () => {
-        const feeRecipientTokenABalance = await tokenA.balanceOf(feeRecipient.address);
-        const feeRecipientTokenBBalance = await tokenB.balanceOf(feeRecipient.address);
+      then('extra tokens are considered as platform balance', async () => {
+        const platformBalanceTokenA = await DCAHubLoanHandler.platformBalance(tokenA.address);
+        const platformBalanceTokenB = await DCAHubLoanHandler.platformBalance(tokenB.address);
 
-        expect(feeRecipientTokenABalance).to.equal(tokenAFee.add(1));
-        expect(feeRecipientTokenBBalance).to.equal(tokenBFee.add(1));
+        expect(platformBalanceTokenA).to.equal(tokenAFee.add(1));
+        expect(platformBalanceTokenB).to.equal(tokenBFee.add(1));
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -274,38 +252,22 @@ describe('DCAHubLoanHandler', () => {
             await context();
           }
           if (amountToReturnTokenA && amountToReturnTokenB) {
-            await DCAHubLoanCallee.returnSpecificAmounts(amountToReturnTokenA(), amountToReturnTokenB());
+            await DCAHubLoanCallee.returnSpecificAmounts([tokenA.address, tokenB.address], [amountToReturnTokenA(), amountToReturnTokenB()]);
           }
-          tx = DCAHubLoanHandler.loan(amountToBorrowTokenA(), amountToBorrowTokenB(), DCAHubLoanCallee.address, BYTES);
+          tx = DCAHubLoanHandler.loan(
+            [
+              { token: tokenA.address, amount: amountToBorrowTokenA() },
+              { token: tokenB.address, amount: amountToBorrowTokenB() },
+            ],
+            DCAHubLoanCallee.address,
+            BYTES
+          );
           await behaviours.waitForTxAndNotThrow(tx);
         });
 
         then('tx is reverted', async () => {
           await expect(tx).to.be.revertedWith(errorMessage);
         });
-
-        then('callee state is not modified', async () => {
-          const wasCalled = await DCAHubLoanCallee.wasThereACall();
-          expect(wasCalled).to.be.false;
-        });
-
-        then('callee balance is not modified', async () => {
-          const calleeTokenABalance = await tokenA.balanceOf(DCAHubLoanCallee.address);
-          const calleeTokenBBalance = await tokenB.balanceOf(DCAHubLoanCallee.address);
-
-          expect(calleeTokenABalance).to.equal(CALLEE_TOKEN_A_INITIAL_BALANCE);
-          expect(calleeTokenBBalance).to.equal(CALLEE_TOKEN_B_INITIAL_BALANCE);
-        });
-
-        then('pair balance is not modified', async () => {
-          const pairTokenABalance = await tokenA.balanceOf(DCAHubLoanHandler.address);
-          const pairTokenBBalance = await tokenB.balanceOf(DCAHubLoanHandler.address);
-
-          expect(pairTokenABalance).to.equal(PAIR_TOKEN_A_INITIAL_BALANCE);
-          expect(pairTokenBBalance).to.equal(PAIR_TOKEN_B_INITIAL_BALANCE);
-        });
-
-        thenInternalBalancesAreTheSameAsTokenBalances();
       });
     }
 

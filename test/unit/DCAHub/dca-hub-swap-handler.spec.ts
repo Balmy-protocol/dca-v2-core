@@ -113,7 +113,7 @@ describe('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setSwapAmountDelta(tokenA(), tokenB(), SWAP_INTERVAL, nextSwapNumber + 1, NEXT_DELTA_FROM_A_TO_B);
         await DCAHubSwapHandler.setSwapAmountDelta(tokenB(), tokenA(), SWAP_INTERVAL, nextSwapNumber, amountToSwapTokenB);
         await DCAHubSwapHandler.setSwapAmountDelta(tokenB(), tokenA(), SWAP_INTERVAL, nextSwapNumber + 1, NEXT_DELTA_FROM_B_TO_A);
-        await DCAHubSwapHandler.setPerformedSwaps(SWAP_INTERVAL, nextSwapNumber - 1);
+        await DCAHubSwapHandler.setPerformedSwaps(tokenA(), tokenB(), SWAP_INTERVAL, nextSwapNumber - 1);
 
         if (previous) {
           await DCAHubSwapHandler.setAcummRatio(tokenA(), tokenB(), SWAP_INTERVAL, nextSwapNumber - 1, previous.accumRatioAToB);
@@ -197,7 +197,7 @@ describe('DCAHubSwapHandler', () => {
 
       given(async () => {
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
-        await DCAHubSwapHandler.setPerformedSwaps(SWAP_INTERVAL, NEXT_SWAP - 1);
+        await DCAHubSwapHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, NEXT_SWAP - 1);
         await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, NEXT_AVAILABLE);
         await DCAHubSwapHandler.registerSwap(
           tokenA.address,
