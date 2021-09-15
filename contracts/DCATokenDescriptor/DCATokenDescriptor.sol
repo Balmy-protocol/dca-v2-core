@@ -15,7 +15,6 @@ contract DCATokenDescriptor is IDCATokenDescriptor {
       NFTDescriptor.constructTokenURI(
         NFTDescriptor.ConstructTokenURIParams({
           tokenId: _tokenId,
-          contractAddress: address(_hub),
           fromToken: address(_userPosition.from),
           toToken: address(_userPosition.to),
           fromDecimals: _userPosition.from.decimals(),

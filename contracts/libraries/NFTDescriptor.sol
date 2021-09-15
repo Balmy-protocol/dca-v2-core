@@ -12,7 +12,6 @@ library NFTDescriptor {
   using Strings for uint32;
 
   struct ConstructTokenURIParams {
-    address contractAddress;
     uint256 tokenId;
     address fromToken;
     address toToken;
@@ -34,7 +33,6 @@ library NFTDescriptor {
     string memory _description = _generateDescription(
       _params.fromSymbol,
       _params.toSymbol,
-      addressToString(_params.contractAddress),
       addressToString(_params.fromToken),
       addressToString(_params.toToken),
       _params.swapInterval,
@@ -81,7 +79,6 @@ library NFTDescriptor {
   function _generateDescription(
     string memory _fromSymbol,
     string memory _toSymbol,
-    string memory _contractAddress,
     string memory _fromAddress,
     string memory _toAddress,
     string memory _interval,
@@ -93,9 +90,7 @@ library NFTDescriptor {
         _escapeQuotes(_fromSymbol),
         ' will be swapped for ',
         _escapeQuotes(_toSymbol),
-        '. The owner of this NFT can modify or redeem the position.\\n\\nContract Address: ',
-        _contractAddress,
-        '\\n',
+        '. The owner of this NFT can modify or redeem the position.\\n\\n',
         _escapeQuotes(_fromSymbol)
       )
     );
