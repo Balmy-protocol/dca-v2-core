@@ -190,8 +190,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     virtual
     returns (SwapInfo memory _swapInformation, RatioWithFee[] memory _internalSwapInformation)
   {
+    // Note: we are caching these variables in memory so we can only read storage once
     uint32 _swapFee = swapFee;
     ITimeWeightedOracle _oracle = oracle;
+
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
