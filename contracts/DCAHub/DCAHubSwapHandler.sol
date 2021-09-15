@@ -57,7 +57,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _rateFromTo,
     uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    _amountTo = _applyFeeToAmount(_swapFee, (_amountFrom * _rateFromTo) / _fromTokenMagnitude);
+    _amountTo = (_amountFrom * _applyFeeToAmount(_swapFee, _rateFromTo)) / _fromTokenMagnitude;
   }
 
   struct Pair {
