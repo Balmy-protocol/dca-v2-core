@@ -65,10 +65,8 @@ contract('DCAHub', () => {
     describe('loan', () => {
       const rateTokenA = 50;
       const swapsTokenA = 13;
-      let totalTokenA: BigNumber;
       let reentrantDCAHubLoanCallee: ReentrantDCAHubLoanCalleeMock;
       given(async () => {
-        totalTokenA = tokenA.asUnits(rateTokenA).mul(swapsTokenA);
         await deposit({
           token: () => tokenA,
           depositor: dude,
@@ -182,35 +180,19 @@ contract('DCAHub', () => {
       });
 
       testReentrantAttack({
-        title: 'trying to do a reentrancy attack through modifying rate',
-        funcAndSignature,
-        args,
-        attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.modifyRate(0, 0)).data!,
-      });
-
-      testReentrantAttack({
-        title: 'trying to do a reentrancy attack through modifying swaps',
-        funcAndSignature,
-        args,
-        attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.modifySwaps(0, 0)).data!,
-      });
-
-      testReentrantAttack({
-        title: 'trying to do a reentrancy attack through modifying rate and swaps',
-        funcAndSignature,
-        args,
-        attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.modifyRateAndSwaps(0, 0, 0)).data!,
-      });
-
-      testReentrantAttack({
         title: 'trying to do a reentrancy attack through addFundsToPosition',
         funcAndSignature,
         args,
         attackerContract,
         attack: async () => (await DCAHub.populateTransaction.addFundsToPosition(0, 0, 0)).data!,
+      });
+
+      testReentrantAttack({
+        title: 'trying to do a reentrancy attack through removeFundsFromPosition',
+        funcAndSignature,
+        args,
+        attackerContract,
+        attack: async () => (await DCAHub.populateTransaction.removeFundsFromPosition(0, 0, 0)).data!,
       });
 
       testReentrantAttack({

@@ -16,23 +16,11 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandler
   )
     DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
     DCAHubPositionHandler(_tokenA, _tokenB)
-  {
-    /* */
-  }
+  {}
 
   // PositionHandler
   function internalPosition(uint256 _dcaId) external view returns (DCA memory _dca) {
     _dca = _userPositions[_dcaId];
-  }
-
-  function modifyPosition(
-    uint256 _dcaId,
-    uint256 _totalNecessary,
-    uint256 _unswapped,
-    uint160 _newRate,
-    uint32 _newAmountOfSwaps
-  ) external {
-    _modifyPosition(_dcaId, _totalNecessary, _unswapped, _newRate, _newAmountOfSwaps);
   }
 
   function setLastUpdated(uint256 _dcaId, uint32 _lastUpdated) external {
