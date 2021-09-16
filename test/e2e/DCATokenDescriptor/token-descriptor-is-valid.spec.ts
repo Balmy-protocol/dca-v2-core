@@ -73,7 +73,6 @@ contract('DCATokenDescriptor', () => {
 
     // Get token uri
     const result1 = await DCAHub.tokenURI(tokenId);
-    console.log(result1);
     const { name: name1, description: description1, image: image1 } = extractJSONFromURI(result1);
 
     expect(name1).to.equal('Mean Finance DCA - Daily - TKNB ➔ TKNA');

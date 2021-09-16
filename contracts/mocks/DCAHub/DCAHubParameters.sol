@@ -14,12 +14,6 @@ contract DCAHubParametersMock is DCAHubParameters {
     return _balances[_token];
   }
 
-  // TODO: Remove when no longer used
-  function setInternalBalances(uint256 _amountTokenA, uint256 _amountTokenB) external {
-    _balances[address(tokenA)] = _amountTokenA;
-    _balances[address(tokenB)] = _amountTokenB;
-  }
-
   function setInternalBalance(address _token, uint256 _amount) external {
     _balances[_token] = _amount;
   }

@@ -33,11 +33,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     address _timeLockedGovernor,
     IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
-  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle) DCAHubSwapHandler() {
-    /* */
-  }
-
-  // SwapHandler
+  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle) DCAHubSwapHandler() {}
 
   function registerSwap(
     address _tokenA,
@@ -204,12 +200,12 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     }
   }
 
-  function setNextSwapAvailable(uint32 _swapInterval, uint32 _nextSwapAvailable) external {
-    // TODO: stop using tokenA & tokenB and receive as parameters
-    if (address(tokenA) < address(tokenB)) {
-      nextSwapAvailable[address(tokenA)][address(tokenB)][_swapInterval] = _nextSwapAvailable;
-    } else {
-      nextSwapAvailable[address(tokenB)][address(tokenA)][_swapInterval] = _nextSwapAvailable;
-    }
+  function setNextSwapAvailable(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval,
+    uint32 _nextSwapAvailable
+  ) external {
+    nextSwapAvailable[_tokenA][_tokenB][_swapInterval] = _nextSwapAvailable;
   }
 }

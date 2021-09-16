@@ -52,10 +52,8 @@ contract('DCAPositionHandler', () => {
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await tokenB.mint(DCAPositionHandler.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
-    await DCAPositionHandler.setInternalBalances(
-      tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT),
-      tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT)
-    );
+    await DCAPositionHandler.setInternalBalance(tokenA.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
+    await DCAPositionHandler.setInternalBalance(tokenB.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await tokenA.mint(approved.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenA.approveInternal(approved.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
@@ -1201,10 +1199,8 @@ contract('DCAPositionHandler', () => {
     await DCAPositionHandler.setAcummRatio(fromTokenReal.address, toToken.address, SWAP_INTERVAL, swap, toToken.asUnits(ratio));
     await fromTokenReal.burn(DCAPositionHandler.address, fromTokenReal.asUnits(amount));
     await toToken.mint(DCAPositionHandler.address, toToken.asUnits(amount * ratio));
-    await DCAPositionHandler.setInternalBalances(
-      await tokenA.balanceOf(DCAPositionHandler.address),
-      await tokenB.balanceOf(DCAPositionHandler.address)
-    );
+    await DCAPositionHandler.setInternalBalance(tokenA.address, await tokenA.balanceOf(DCAPositionHandler.address));
+    await DCAPositionHandler.setInternalBalance(tokenB.address, await tokenB.balanceOf(DCAPositionHandler.address));
   }
 
   function modifyRate(token: TokenContract, dcaId: BigNumber, rate: number): Promise<TransactionResponse> {

@@ -50,7 +50,8 @@ describe('DCAHubLoanHandler', () => {
     let balanceTokenA: BigNumber, balanceTokenB: BigNumber;
     given(async () => {
       [balanceTokenA, balanceTokenB] = [tokenA.asUnits(10), tokenB.asUnits(100)];
-      await DCAHubLoanHandler.setInternalBalances(balanceTokenA, balanceTokenB);
+      await DCAHubLoanHandler.setInternalBalance(tokenA.address, balanceTokenA);
+      await DCAHubLoanHandler.setInternalBalance(tokenB.address, balanceTokenB);
     });
 
     when('checking how much is available to borrow', () => {
@@ -79,7 +80,8 @@ describe('DCAHubLoanHandler', () => {
       await tokenB.mint(DCAHubLoanCallee.address, CALLEE_TOKEN_B_INITIAL_BALANCE);
       await tokenA.mint(DCAHubLoanHandler.address, PAIR_TOKEN_A_INITIAL_BALANCE);
       await tokenB.mint(DCAHubLoanHandler.address, PAIR_TOKEN_B_INITIAL_BALANCE);
-      await DCAHubLoanHandler.setInternalBalances(PAIR_TOKEN_A_INITIAL_BALANCE, PAIR_TOKEN_B_INITIAL_BALANCE);
+      await DCAHubLoanHandler.setInternalBalance(tokenA.address, PAIR_TOKEN_A_INITIAL_BALANCE);
+      await DCAHubLoanHandler.setInternalBalance(tokenB.address, PAIR_TOKEN_B_INITIAL_BALANCE);
     });
 
     flashLoanFailedTest({

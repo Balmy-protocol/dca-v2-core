@@ -181,7 +181,7 @@ contract('DCAHubSwapHandler', () => {
       given(async () => {
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
         await DCAHubSwapHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, NEXT_SWAP - 1);
-        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, NEXT_AVAILABLE);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, NEXT_AVAILABLE);
         await DCAHubSwapHandler.registerSwap(
           tokenA.address,
           tokenB.address,
@@ -249,7 +249,7 @@ contract('DCAHubSwapHandler', () => {
     when('no swap interval can be swapped right now', () => {
       given(async () => {
         await DCAHubSwapHandler.setBlockTimestamp(10);
-        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, 20);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 20);
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
       });
@@ -266,8 +266,8 @@ contract('DCAHubSwapHandler', () => {
     when('only some swap intervals can be swapped', () => {
       given(async () => {
         await DCAHubSwapHandler.setBlockTimestamp(15);
-        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, 20);
-        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL_2, 10);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 20);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL_2, 10);
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
@@ -286,8 +286,8 @@ contract('DCAHubSwapHandler', () => {
     when('all swap intervals can be swapped', () => {
       given(async () => {
         await DCAHubSwapHandler.setBlockTimestamp(20);
-        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL, 10);
-        await DCAHubSwapHandler.setNextSwapAvailable(SWAP_INTERVAL_2, 15);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 10);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL_2, 15);
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
         await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
@@ -1901,7 +1901,7 @@ contract('DCAHubSwapHandler', () => {
           for (const { tokenA, tokenB, intervals } of pairs) {
             for (const { interval, nextAvailable } of intervals) {
               await DCAHubSwapHandler.addActiveSwapInterval(tokenA().address, tokenB().address, interval);
-              await DCAHubSwapHandler.setNextSwapAvailable(interval, nextAvailable);
+              await DCAHubSwapHandler.setNextSwapAvailable(tokenA().address, tokenB().address, interval, nextAvailable);
             }
           }
           await DCAHubSwapHandler.setBlockTimestamp(currentTimestamp);
