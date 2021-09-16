@@ -157,7 +157,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit Terminated(msg.sender, _recipientUnswapped, _recipientSwapped, _dcaId, _unswapped, _swapped);
   }
 
-  function addFundsToPosition(
+  function increasePosition(
     uint256 _positionId,
     uint256 _amount,
     uint32 _newAmountOfSwaps
@@ -165,7 +165,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _modify(_positionId, _amount, _newAmountOfSwaps, true);
   }
 
-  function removeFundsFromPosition(
+  function reducePosition(
     uint256 _positionId,
     uint256 _amount,
     uint32 _newAmountOfSwaps

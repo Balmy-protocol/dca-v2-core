@@ -186,7 +186,7 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
   /// @param _dcaId The position's id
   /// @param _amount Amounts of funds to add to the position
   /// @param _newSwaps The new amount of swaps
-  function addFundsToPosition(
+  function increasePosition(
     uint256 _dcaId,
     uint256 _amount,
     uint32 _newSwaps

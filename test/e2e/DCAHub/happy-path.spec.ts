@@ -157,7 +157,7 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(sarahsPosition2);
       await assertHubBalanceDifferencesAre({ tokenA: +1500, tokenB: +400 });
 
-      await removeFundsFromPosition(johnsPosition, { amount: 400, newSwaps: 8 });
+      await reducePosition(johnsPosition, { amount: 400, newSwaps: 8 });
       await assertPositionIsConsistent(johnsPosition, {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatio1, fee: swapFee1 }, { rate: 100, ratio: swapRatio2, fee: swapFee1 }),
       });
@@ -207,7 +207,7 @@ contract('DCAHub', () => {
       await assertPlatformBalanceIncreasedBy({ tokenA: +1.8497, tokenB: +0.7997 });
       await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: -1.8497, tokenB: -0.7997 });
 
-      await addFundsToPosition(johnsPosition, { newSwaps: 10, amount: 100 });
+      await increasePosition(johnsPosition, { newSwaps: 10, amount: 100 });
 
       await assertPositionIsConsistentWithNothingToWithdraw(johnsPosition);
       await assertHubBalanceDifferencesAre({ tokenA: +100 });
@@ -298,10 +298,10 @@ contract('DCAHub', () => {
       await DCAHub.setSwapFee(fee * 10000);
     }
 
-    async function addFundsToPosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
+    async function increasePosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
       const token = position.from.address === tokenA.address ? tokenA : tokenB;
       await token.connect(position.owner).approve(DCAHub.address, token.asUnits(args.amount).mul(args.newSwaps));
-      const response = await DCAHub.connect(position.owner).addFundsToPosition(position.id, token.asUnits(args.amount), args.newSwaps);
+      const response = await DCAHub.connect(position.owner).increasePosition(position.id, token.asUnits(args.amount), args.newSwaps);
       position.amountOfSwaps = BigNumber.from(args.newSwaps);
       position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }
@@ -370,10 +370,10 @@ contract('DCAHub', () => {
       return DCAHub.getNextSwapInfo(tokens, pairIndexes);
     }
 
-    async function removeFundsFromPosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
+    async function reducePosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
       const token = position.from.address === tokenA.address ? tokenA : tokenB;
       await token.connect(position.owner).approve(DCAHub.address, token.asUnits(args.amount).mul(args.newSwaps));
-      const response = await DCAHub.connect(position.owner).removeFundsFromPosition(position.id, token.asUnits(args.amount), args.newSwaps);
+      const response = await DCAHub.connect(position.owner).reducePosition(position.id, token.asUnits(args.amount), args.newSwaps);
       position.amountOfSwaps = BigNumber.from(args.newSwaps);
       position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }

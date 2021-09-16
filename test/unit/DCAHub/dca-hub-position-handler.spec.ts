@@ -625,7 +625,7 @@ contract('DCAPositionHandler', () => {
     });
   });
 
-  describe('addFundsToPosition', () => {
+  describe('increasePosition', () => {
     const NEW_SWAPS_TO_PERFORM_5 = 5;
     const EXTRA_AMOUNT_TO_ADD_1 = 1;
 
@@ -633,7 +633,7 @@ contract('DCAPositionHandler', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'addFundsToPosition',
+          func: 'increasePosition',
           args: [100, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
           message: 'InvalidPosition',
         });
@@ -646,14 +646,14 @@ contract('DCAPositionHandler', () => {
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'addFundsToPosition',
+          func: 'increasePosition',
           args: [dcaId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), 0],
           message: 'ZeroSwaps',
         });
       });
     });
 
-    erc721PermissionTest(({ token, contract, dcaId }) => contract.addFundsToPosition(dcaId, token.asUnits(1), 2));
+    erc721PermissionTest(({ token, contract, dcaId }) => contract.increasePosition(dcaId, token.asUnits(1), 2));
 
     modifyPositionTest({
       title: `adding more funds to the position`,
@@ -661,7 +661,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 + EXTRA_AMOUNT_TO_ADD_1) / NEW_SWAPS_TO_PERFORM_5, // We are subtracting one to the positions to perform, because there was one trade already
       newSwaps: NEW_SWAPS_TO_PERFORM_5,
-      exec: ({ token, dcaId, newSwaps }) => addFundsToPosition(token, dcaId, EXTRA_AMOUNT_TO_ADD_1, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => increasePosition(token, dcaId, EXTRA_AMOUNT_TO_ADD_1, newSwaps),
     });
 
     modifyPositionTest({
@@ -670,11 +670,11 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 9,
       newSwaps: 5,
-      exec: ({ token, dcaId, newSwaps }) => addFundsToPosition(token, dcaId, 0, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => increasePosition(token, dcaId, 0, newSwaps),
     });
   });
 
-  describe('removeFundsFromPosition', () => {
+  describe('reducePosition', () => {
     const NEW_SWAPS_TO_PERFORM_5 = 5;
     const AMOUNT_TO_REMOVE_1 = 1;
 
@@ -682,7 +682,7 @@ contract('DCAPositionHandler', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'removeFundsFromPosition',
+          func: 'reducePosition',
           args: [100, tokenA.asUnits(AMOUNT_TO_REMOVE_1), POSITION_SWAPS_TO_PERFORM_10],
           message: 'InvalidPosition',
         });
@@ -695,7 +695,7 @@ contract('DCAPositionHandler', () => {
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'removeFundsFromPosition',
+          func: 'reducePosition',
           args: [dcaId, tokenA.asUnits(POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10).add(1), 0],
           message:
             'VM Exception while processing transaction: reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)',
@@ -709,14 +709,14 @@ contract('DCAPositionHandler', () => {
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'removeFundsFromPosition',
+          func: 'reducePosition',
           args: [dcaId, tokenA.asUnits(AMOUNT_TO_REMOVE_1), 0],
           message: 'ZeroSwaps',
         });
       });
     });
 
-    erc721PermissionTest(({ token, contract, dcaId }) => contract.removeFundsFromPosition(dcaId, token.asUnits(1), 2));
+    erc721PermissionTest(({ token, contract, dcaId }) => contract.reducePosition(dcaId, token.asUnits(1), 2));
 
     modifyPositionTest({
       title: `using remove funds to re-organize the unswapped balance`,
@@ -724,7 +724,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 9,
       newSwaps: 5,
-      exec: ({ token, dcaId, newSwaps }) => removeFundsFromPosition(token, dcaId, 0, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => reducePosition(token, dcaId, 0, newSwaps),
     });
 
     modifyPositionTest({
@@ -733,8 +733,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 0,
       newSwaps: 0,
-      exec: ({ token, dcaId, newSwaps }) =>
-        removeFundsFromPosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => reducePosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, newSwaps),
     });
 
     modifyPositionTest({
@@ -743,7 +742,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 0,
       newSwaps: 0,
-      exec: ({ token, dcaId }) => removeFundsFromPosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, 10),
+      exec: ({ token, dcaId }) => reducePosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, 10),
     });
 
     modifyPositionTest({
@@ -752,7 +751,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 - AMOUNT_TO_REMOVE_1) / NEW_SWAPS_TO_PERFORM_5, // We are subtracting one to the positions to perform, because there was one trade already
       newSwaps: NEW_SWAPS_TO_PERFORM_5,
-      exec: ({ token, dcaId, newSwaps }) => removeFundsFromPosition(token, dcaId, AMOUNT_TO_REMOVE_1, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => reducePosition(token, dcaId, AMOUNT_TO_REMOVE_1, newSwaps),
     });
   });
 
@@ -1032,12 +1031,12 @@ contract('DCAPositionHandler', () => {
     await DCAPositionHandler.setInternalBalance(tokenB.address, await tokenB.balanceOf(DCAPositionHandler.address));
   }
 
-  function addFundsToPosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
-    return DCAPositionHandler.addFundsToPosition(dcaId, token.asUnits(amount), swaps);
+  function increasePosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
+    return DCAPositionHandler.increasePosition(dcaId, token.asUnits(amount), swaps);
   }
 
-  function removeFundsFromPosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
-    return DCAPositionHandler.removeFundsFromPosition(dcaId, token.asUnits(amount), swaps);
+  function reducePosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
+    return DCAPositionHandler.reducePosition(dcaId, token.asUnits(amount), swaps);
   }
 
   function withdrawSwapped(dcaId: BigNumber, recipient: string): Promise<TransactionResponse> {
