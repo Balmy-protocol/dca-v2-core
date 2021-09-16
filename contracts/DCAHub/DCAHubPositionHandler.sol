@@ -201,7 +201,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _newAmountOfSwaps,
     bool _increase
   ) internal {
-    if (_amount == 0) revert ZeroAmount();
     _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
 
     DCA memory _userDCA = _userPositions[_positionId];

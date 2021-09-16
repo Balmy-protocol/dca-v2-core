@@ -793,19 +793,6 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    when('adding 0 funds to a position', () => {
-      then('tx is reverted with message', async () => {
-        const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
-
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAPositionHandler,
-          func: 'addFundsToPosition',
-          args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'ZeroAmount',
-        });
-      });
-    });
-
     when('adding funds but with 0 swaps', () => {
       then('tx is reverted with message', async () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
@@ -829,6 +816,15 @@ contract('DCAPositionHandler', () => {
       newSwaps: NEW_SWAPS_TO_PERFORM_5,
       exec: ({ token, dcaId, newSwaps }) => addFundsToPosition(token, dcaId, EXTRA_AMOUNT_TO_ADD_1, newSwaps),
     });
+
+    modifyPositionTest({
+      title: `using add funds to re-organize the unswapped balance`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 9,
+      newSwaps: 5,
+      exec: ({ token, dcaId, newSwaps }) => addFundsToPosition(token, dcaId, 0, newSwaps),
+    });
   });
 
   describe('removeFundsFromPosition', () => {
@@ -846,15 +842,16 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    when('removing 0 funds from a position', () => {
+    when('trying to remove more funds than available from a position', () => {
       then('tx is reverted with message', async () => {
         const { dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'removeFundsFromPosition',
-          args: [dcaId, 0, POSITION_SWAPS_TO_PERFORM_10],
-          message: 'ZeroAmount',
+          args: [dcaId, tokenA.asUnits(POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10).add(1), 0],
+          message:
+            'VM Exception while processing transaction: reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)',
         });
       });
     });
@@ -873,6 +870,15 @@ contract('DCAPositionHandler', () => {
     });
 
     erc721PermissionTest(({ token, contract, dcaId }) => contract.removeFundsFromPosition(dcaId, token.asUnits(1), 2));
+
+    modifyPositionTest({
+      title: `using remove funds to re-organize the unswapped balance`,
+      initialRate: POSITION_RATE_5,
+      initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
+      newRate: 9,
+      newSwaps: 5,
+      exec: ({ token, dcaId, newSwaps }) => removeFundsFromPosition(token, dcaId, 0, newSwaps),
+    });
 
     modifyPositionTest({
       title: `removing all funds from a position and setting 0 swaps`,
