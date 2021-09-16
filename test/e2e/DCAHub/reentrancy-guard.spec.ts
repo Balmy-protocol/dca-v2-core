@@ -190,7 +190,7 @@ contract('DCAHub', () => {
       });
 
       testReentrantAttack({
-        title: 'trying to do a reentrancy attack through addFundsToPosition',
+        title: 'trying to do a reentrancy attack through removeFundsFromPosition',
         funcAndSignature,
         args,
         attackerContract,
