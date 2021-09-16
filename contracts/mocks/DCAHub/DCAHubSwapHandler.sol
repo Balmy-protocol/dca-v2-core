@@ -20,7 +20,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
   mapping(address => mapping(address => mapping(uint32 => uint256[2]))) private _amountToSwap;
-  mapping(address => mapping(address => uint256)) private _ratios; // from => to => ratio(from -> to)
+  mapping(address => mapping(address => uint128)) private _ratios; // from => to => ratio(from -> to)
   mapping(address => mapping(address => TotalAmountsToSwap)) private _totalAmountsToSwap; // tokenA => tokenB => total amounts
 
   SwapInfo private _swapInformation;
@@ -128,7 +128,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     uint256 _magnitudeA,
     uint256 _magnitudeB,
     ITimeWeightedOracle _oracle
-  ) external view returns (uint256, uint256) {
+  ) external view returns (uint128, uint128) {
     return _calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _oracle);
   }
 
@@ -138,12 +138,12 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     uint256 _magnitudeA,
     uint256 _magnitudeB,
     ITimeWeightedOracle _oracle
-  ) internal view override returns (uint256 _ratioAToB, uint256 _ratioBToA) {
+  ) internal view override returns (uint128 _ratioAToB, uint128 _ratioBToA) {
     _ratioBToA = _ratios[_tokenB][_tokenA];
     if (_ratioBToA == 0) {
       return super._calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _oracle);
     }
-    _ratioAToB = (_magnitudeA * _magnitudeB) / _ratioBToA;
+    _ratioAToB = uint128((_magnitudeA * _magnitudeB) / _ratioBToA);
   }
 
   // Used to register calls
@@ -164,7 +164,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   function setRatio(
     address _tokenA,
     address _tokenB,
-    uint256 _ratioBToA
+    uint128 _ratioBToA
   ) external {
     _ratios[_tokenB][_tokenA] = _ratioBToA;
   }

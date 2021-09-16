@@ -125,16 +125,15 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     // TODO: If _totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0, consider making _intervalsInSwap a length 0 array
   }
 
-  // TODO: Check if using smaller uint sizes for ratios and magnitudes is cheaper
   function _calculateRatio(
     address _tokenA,
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
     ITimeWeightedOracle _oracle
-  ) internal view virtual returns (uint256 _ratioAToB, uint256 _ratioBToA) {
-    _ratioBToA = _oracle.quote(_tokenB, uint128(_magnitudeB), _tokenA);
-    _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
+  ) internal view virtual returns (uint128 _ratioAToB, uint128 _ratioBToA) {
+    _ratioBToA = uint128(_oracle.quote(_tokenB, uint128(_magnitudeB), _tokenA));
+    _ratioAToB = uint128((_magnitudeB * _magnitudeA) / _ratioBToA);
   }
 
   struct PairIndexes {
@@ -150,8 +149,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   struct PairInSwap {
     address tokenA;
     address tokenB;
-    uint256 ratioAToB;
-    uint256 ratioBToA;
+    uint128 ratioAToB;
+    uint128 ratioBToA;
     uint32[] intervalsInSwap;
   }
 
