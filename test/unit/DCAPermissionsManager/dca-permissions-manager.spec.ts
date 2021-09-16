@@ -9,7 +9,7 @@ import { Permission } from 'js-lib/types';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 
-contract.only('DCAPermissionsManager', () => {
+contract('DCAPermissionsManager', () => {
   let hub: SignerWithAddress;
   let DCAPermissionsManagerFactory: DCAPermissionsManager__factory;
   let DCAPermissionsManager: DCAPermissionsManager;
