@@ -184,8 +184,15 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _amount,
     uint32 _newAmountOfSwaps
   ) external override nonReentrant {
-    if (_newAmountOfSwaps == 0) revert ZeroSwaps();
     _modify(_positionId, _amount, _newAmountOfSwaps, true);
+  }
+
+  function removeFundsFromPosition(
+    uint256 _positionId,
+    uint256 _amount,
+    uint32 _newAmountOfSwaps
+  ) external nonReentrant {
+    _modify(_positionId, _amount, _newAmountOfSwaps, false);
   }
 
   function _modify(
@@ -194,18 +201,16 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _newAmountOfSwaps,
     bool _increase
   ) internal {
-    if (_amount == 0) revert ZeroAmount();
     _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
 
     DCA memory _userDCA = _userPositions[_positionId];
 
     uint32 _performedSwaps = _getPerformedSwaps(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
-    uint160 _newRate;
-    if (_newAmountOfSwaps > 0) {
-      uint256 _unswapped = (_userDCA.finalSwap <= _performedSwaps) ? 0 : (_userDCA.finalSwap - _performedSwaps) * _userDCA.rate;
-      uint256 _total = _increase ? _unswapped + _amount : _unswapped - _amount;
-      _newRate = uint160(_total / _newAmountOfSwaps);
-    }
+    uint256 _unswapped = (_userDCA.finalSwap <= _performedSwaps) ? 0 : (_userDCA.finalSwap - _performedSwaps) * _userDCA.rate;
+    uint256 _total = _increase ? _unswapped + _amount : _unswapped - _amount;
+    if (_total != 0 && _newAmountOfSwaps == 0) revert ZeroSwaps();
+    if (_total == 0 && _newAmountOfSwaps > 0) _newAmountOfSwaps = 0;
+    uint160 _newRate = _newAmountOfSwaps == 0 ? 0 : uint160(_total / _newAmountOfSwaps);
 
     uint256 _swapped = _calculateSwapped(_userDCA);
     if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
@@ -272,7 +277,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   function _assertPositionExistsAndCanBeOperatedByCaller(uint256 _dcaId) internal view {
-    if (_userPositions[_dcaId].rate == 0) revert InvalidPosition();
+    if (_userPositions[_dcaId].swapInterval == 0) revert InvalidPosition();
     if (!_isApprovedOrOwner(msg.sender, _dcaId)) revert UnauthorizedCaller();
   }
 
