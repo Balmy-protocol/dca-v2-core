@@ -2,6 +2,7 @@
 pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
 enum Permission {
   INCREASE,
@@ -35,13 +36,19 @@ contract DCAPermissionsManager is ERC721 {
     Permission[] permissions;
   }
 
+  struct TokenInfo {
+    mapping(address => uint8) permissions;
+    EnumerableSet.AddressSet operators;
+  }
+
   event Minted(uint256 id, address owner, PermissionSet[] permissions);
 
   using PermissionMath for Permission[];
   using PermissionMath for uint8;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   address public hub;
-  mapping(uint256 => mapping(address => uint8)) internal _operators;
+  mapping(uint256 => TokenInfo) internal _tokens;
 
   constructor() ERC721('Mean Finance DCA', 'DCA') {}
 
@@ -68,13 +75,26 @@ contract DCAPermissionsManager is ERC721 {
     address _address,
     Permission _permission
   ) external view returns (bool) {
-    return ownerOf(_id) == _address || _operators[_id][_address].hasPermission(_permission);
+    return ownerOf(_id) == _address || _tokens[_id].permissions[_address].hasPermission(_permission);
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
     for (uint256 i; i < _permissions.length; i++) {
       if (_permissions[i].operator == address(0)) revert ZeroAddress();
-      _operators[_id][_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+      _tokens[_id].operators.add(_permissions[i].operator);
+      _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
     }
+  }
+
+  function _beforeTokenTransfer(
+    address,
+    address,
+    uint256 _id
+  ) internal override {
+    TokenInfo storage _info = _tokens[_id];
+    for (uint256 i; i < _info.operators.length(); i++) {
+      delete _info.permissions[_info.operators.at(i)];
+    }
+    delete _info.operators;
   }
 }
