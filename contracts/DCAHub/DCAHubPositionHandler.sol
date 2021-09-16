@@ -157,28 +157,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit Terminated(msg.sender, _recipientUnswapped, _recipientSwapped, _dcaId, _unswapped, _swapped);
   }
 
-  function modifyRate(uint256 _dcaId, uint160 _newRate) external override nonReentrant {
-    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-    // TODO: Avoid revert here when finalSwap < performedSwaps
-    uint32 _swapsLeft = _userPositions[_dcaId].finalSwap -
-      _getPerformedSwaps(_userPositions[_dcaId].from, _userPositions[_dcaId].to, _userPositions[_dcaId].swapInterval);
-    if (_swapsLeft == 0) revert PositionCompleted();
-
-    _modifyRateAndSwaps(_dcaId, _newRate, _swapsLeft);
-  }
-
-  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) external override nonReentrant {
-    _modifyRateAndSwaps(_dcaId, _userPositions[_dcaId].rate, _newSwaps);
-  }
-
-  function modifyRateAndSwaps(
-    uint256 _dcaId,
-    uint160 _newRate,
-    uint32 _newAmountOfSwaps
-  ) external override nonReentrant {
-    _modifyRateAndSwaps(_dcaId, _newRate, _newAmountOfSwaps);
-  }
-
   function addFundsToPosition(
     uint256 _positionId,
     uint256 _amount,
@@ -234,46 +212,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     }
 
     emit Modified(msg.sender, _positionId, _newRate, _startingSwap, _finalSwap);
-  }
-
-  /** Helper function to modify a position */
-  function _modifyRateAndSwaps(
-    uint256 _dcaId,
-    uint160 _newRate,
-    uint32 _newAmountOfSwaps
-  ) internal {
-    _modifyPosition(_dcaId, _newRate * _newAmountOfSwaps, _calculateUnswapped(_dcaId), _newRate, _newAmountOfSwaps);
-  }
-
-  function _modifyPosition(
-    uint256 _dcaId,
-    uint256 _totalNecessary,
-    uint256 _unswapped,
-    uint160 _newRate,
-    uint32 _newAmountOfSwaps
-  ) internal {
-    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-    address _from = _userPositions[_dcaId].from;
-    address _to = _userPositions[_dcaId].to;
-
-    uint256 _swapped = _calculateSwapped(_dcaId);
-    if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
-
-    uint32 _swapInterval = _userPositions[_dcaId].swapInterval;
-    _removePosition(_dcaId);
-    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_dcaId, _from, _to, _newRate, _newAmountOfSwaps, uint248(_swapped), _swapInterval);
-
-    if (_totalNecessary > _unswapped) {
-      // We need to ask for more funds
-      IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _totalNecessary - _unswapped);
-      _balances[_from] += _totalNecessary - _unswapped;
-    } else if (_totalNecessary < _unswapped) {
-      // We need to return to the owner the amount that won't be used anymore
-      _balances[_from] -= _unswapped - _totalNecessary;
-      IERC20Metadata(_from).safeTransfer(msg.sender, _unswapped - _totalNecessary);
-    }
-
-    emit Modified(msg.sender, _dcaId, _newRate, _startingSwap, _finalSwap);
   }
 
   function _assertPositionExistsAndCanBeOperatedByCaller(uint256 _dcaId) internal view {

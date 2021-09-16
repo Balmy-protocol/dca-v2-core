@@ -175,44 +175,6 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
   /// @return _swappedTokenB How much was withdrawn in token B
   function withdrawSwappedMany(uint256[] calldata _dcaIds, address _recipient) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
 
-  /// @notice Modifies the rate of a position. Could request more funds or return deposited funds
-  /// depending on whether the new rate is greater than the previous one.
-  /// @dev Will revert:
-  /// With InvalidPosition if _dcaId is invalid
-  /// With UnauthorizedCaller if the caller doesn't have access to the position
-  /// With PositionCompleted if position has already been completed
-  /// With ZeroRate if _newRate is zero
-  /// With MandatoryWithdraw if the user must execute a withdraw before modifying their position
-  /// @param _dcaId The position's id
-  /// @param _newRate The new rate to set
-  function modifyRate(uint256 _dcaId, uint160 _newRate) external;
-
-  /// @notice Modifies the amount of swaps of a position. Could request more funds or return
-  /// deposited funds depending on whether the new amount of swaps is greater than the swaps left.
-  /// @dev Will revert:
-  /// With InvalidPosition if _dcaId is invalid
-  /// With UnauthorizedCaller if the caller doesn't have access to the position
-  /// With MandatoryWithdraw if the user must execute a withdraw before modifying their position
-  /// @param _dcaId The position's id
-  /// @param _newSwaps The new amount of swaps
-  function modifySwaps(uint256 _dcaId, uint32 _newSwaps) external;
-
-  /// @notice Modifies both the rate and amount of swaps of a position. Could request more funds or return
-  /// deposited funds depending on whether the new parameters require more or less than the the unswapped funds.
-  /// @dev Will revert:
-  /// With InvalidPosition if _dcaId is invalid
-  /// With UnauthorizedCaller if the caller doesn't have access to the position
-  /// With ZeroRate if _newRate is zero
-  /// With MandatoryWithdraw if the user must execute a withdraw before modifying their position
-  /// @param _dcaId The position's id
-  /// @param _newRate The new rate to set
-  /// @param _newSwaps The new amount of swaps
-  function modifyRateAndSwaps(
-    uint256 _dcaId,
-    uint160 _newRate,
-    uint32 _newSwaps
-  ) external;
-
   /// @notice Takes the unswapped balance, adds the new deposited funds and modifies the position so that
   /// it is executed in _newSwaps swaps
   /// @dev Will revert:

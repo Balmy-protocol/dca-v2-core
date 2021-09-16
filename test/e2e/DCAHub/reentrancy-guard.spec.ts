@@ -182,27 +182,11 @@ contract('DCAHub', () => {
       });
 
       testReentrantAttack({
-        title: 'trying to do a reentrancy attack through modifying rate',
+        title: 'trying to do a reentrancy attack through addFundsToPosition',
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.modifyRate(0, 0)).data!,
-      });
-
-      testReentrantAttack({
-        title: 'trying to do a reentrancy attack through modifying swaps',
-        funcAndSignature,
-        args,
-        attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.modifySwaps(0, 0)).data!,
-      });
-
-      testReentrantAttack({
-        title: 'trying to do a reentrancy attack through modifying rate and swaps',
-        funcAndSignature,
-        args,
-        attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.modifyRateAndSwaps(0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.addFundsToPosition(0, 0, 0)).data!,
       });
 
       testReentrantAttack({
@@ -210,7 +194,7 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.addFundsToPosition(0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.removeFundsFromPosition(0, 0, 0)).data!,
       });
 
       testReentrantAttack({
