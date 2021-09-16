@@ -65,10 +65,8 @@ contract('DCAHub', () => {
     describe('loan', () => {
       const rateTokenA = 50;
       const swapsTokenA = 13;
-      let totalTokenA: BigNumber;
       let reentrantDCAHubLoanCallee: ReentrantDCAHubLoanCalleeMock;
       given(async () => {
-        totalTokenA = tokenA.asUnits(rateTokenA).mul(swapsTokenA);
         await deposit({
           token: () => tokenA,
           depositor: dude,
