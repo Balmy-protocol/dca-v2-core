@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.7 <0.9.0;
 
 library Math {
   function tryMul(uint256 a, uint256 b) internal pure returns (bool, uint256) {
