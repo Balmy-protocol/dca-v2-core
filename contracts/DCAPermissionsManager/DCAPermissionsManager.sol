@@ -36,11 +36,6 @@ contract DCAPermissionsManager is ERC721 {
     Permission[] permissions;
   }
 
-  struct TokenInfo {
-    mapping(address => uint8) permissions;
-    EnumerableSet.AddressSet operators;
-  }
-
   event Minted(uint256 id, address owner, PermissionSet[] permissions);
 
   using PermissionMath for Permission[];
@@ -48,7 +43,8 @@ contract DCAPermissionsManager is ERC721 {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   address public hub;
-  mapping(uint256 => TokenInfo) internal _tokens;
+  mapping(uint256 => mapping(address => uint8)) public permissions;
+  mapping(uint256 => EnumerableSet.AddressSet) internal _operators;
 
   constructor() ERC721('Mean Finance DCA', 'DCA') {}
 
@@ -75,14 +71,14 @@ contract DCAPermissionsManager is ERC721 {
     address _address,
     Permission _permission
   ) external view returns (bool) {
-    return ownerOf(_id) == _address || _tokens[_id].permissions[_address].hasPermission(_permission);
+    return ownerOf(_id) == _address || permissions[_id][_address].hasPermission(_permission);
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
     for (uint256 i; i < _permissions.length; i++) {
       if (_permissions[i].operator == address(0)) revert ZeroAddress();
-      _tokens[_id].operators.add(_permissions[i].operator);
-      _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+      _operators[_id].add(_permissions[i].operator);
+      permissions[_id][_permissions[i].operator] = _permissions[i].permissions.toUInt8();
     }
   }
 
@@ -91,10 +87,10 @@ contract DCAPermissionsManager is ERC721 {
     address,
     uint256 _id
   ) internal override {
-    TokenInfo storage _info = _tokens[_id];
-    for (uint256 i; i < _info.operators.length(); i++) {
-      delete _info.permissions[_info.operators.at(i)];
+    EnumerableSet.AddressSet storage _listOfOperators = _operators[_id];
+    for (uint256 i; i < _listOfOperators.length(); i++) {
+      delete permissions[_id][_listOfOperators.at(i)];
     }
-    delete _info.operators;
+    delete _operators[_id];
   }
 }
