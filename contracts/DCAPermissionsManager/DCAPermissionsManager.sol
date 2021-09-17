@@ -28,8 +28,8 @@ library PermissionMath {
 contract DCAPermissionsManager is ERC721 {
   error HubAlreadySet();
   error ZeroAddress();
-  error IdAlreadyInUse();
-  error OnlyHubCanMint();
+  error OnlyHubCanExecute();
+  error NotOwner();
 
   struct PermissionSet {
     address operator;
@@ -42,6 +42,7 @@ contract DCAPermissionsManager is ERC721 {
   }
 
   event Minted(uint256 id, address owner, PermissionSet[] permissions);
+  event Modified(uint256 id, PermissionSet[] permissions);
 
   using PermissionMath for Permission[];
   using PermissionMath for uint8;
@@ -63,7 +64,7 @@ contract DCAPermissionsManager is ERC721 {
     address _owner,
     PermissionSet[] calldata _permissions
   ) external {
-    if (msg.sender != hub) revert OnlyHubCanMint();
+    if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
     _setPermissions(_id, _permissions);
 
@@ -78,11 +79,28 @@ contract DCAPermissionsManager is ERC721 {
     return ownerOf(_id) == _address || _tokens[_id].permissions[_address].hasPermission(_permission);
   }
 
+  function burn(uint256 _id) external {
+    if (msg.sender != hub) revert OnlyHubCanExecute();
+    _burn(_id);
+  }
+
+  // Note: Callers can clear permissions by sending an empty array
+  function modify(uint256 _id, PermissionSet[] calldata _permissions) external {
+    if (msg.sender != ownerOf(_id)) revert NotOwner();
+    _setPermissions(_id, _permissions);
+    emit Modified(_id, _permissions);
+  }
+
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
     for (uint256 i; i < _permissions.length; i++) {
       if (_permissions[i].operator == address(0)) revert ZeroAddress();
-      _tokens[_id].operators.add(_permissions[i].operator);
-      _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+      if (_permissions[i].permissions.length == 0) {
+        _tokens[_id].operators.remove(_permissions[i].operator);
+        delete _tokens[_id].permissions[_permissions[i].operator];
+      } else {
+        _tokens[_id].operators.add(_permissions[i].operator);
+        _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+      }
     }
   }
 
