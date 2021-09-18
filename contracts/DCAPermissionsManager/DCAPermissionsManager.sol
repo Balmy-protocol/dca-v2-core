@@ -51,6 +51,11 @@ contract DCAPermissionsManager is ERC721, EIP712 {
   using EnumerableSet for EnumerableSet.AddressSet;
 
   bytes32 public constant PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
+  bytes32 public constant PERMISSION_PERMIT_TYPEHASH =
+    keccak256(
+      'PermissionPermit(PermissionSet[] permissions,uint256 tokenId,uint256 nonce,uint256 deadline)PermissionSet(address operator,uint8[] permissions)'
+    );
+  bytes32 public constant PERMISSION_SET_TYPEHASH = keccak256('PermissionSet(address operator,uint8[] permissions)');
   address public hub;
   mapping(address => uint256) public nonces;
   mapping(uint256 => TokenInfo) internal _tokens;
@@ -89,8 +94,7 @@ contract DCAPermissionsManager is ERC721, EIP712 {
   // Note: Callers can clear permissions by sending an empty array
   function modify(uint256 _id, PermissionSet[] calldata _permissions) external {
     if (msg.sender != ownerOf(_id)) revert NotOwner();
-    _setPermissions(_id, _permissions);
-    emit Modified(_id, _permissions);
+    _modify(_id, _permissions);
   }
 
   // solhint-disable-next-line func-name-mixedcase
@@ -116,6 +120,50 @@ contract DCAPermissionsManager is ERC721, EIP712 {
     if (_signer != _owner) revert InvalidSignature();
 
     _approve(_spender, _tokenId);
+  }
+
+  function permissionPermit(
+    PermissionSet[] calldata _permissions,
+    uint256 _tokenId,
+    uint256 _deadline,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+  ) public virtual {
+    if (block.timestamp > _deadline) revert ExpiredDeadline();
+
+    address _owner = ownerOf(_tokenId);
+    bytes32 _structHash = keccak256(
+      abi.encode(PERMISSION_PERMIT_TYPEHASH, keccak256(_encode(_permissions)), _tokenId, nonces[_owner]++, _deadline)
+    );
+    bytes32 _hash = _hashTypedDataV4(_structHash);
+
+    address _signer = ECDSA.recover(_hash, _v, _r, _s);
+    if (_signer != _owner) revert InvalidSignature();
+
+    _modify(_tokenId, _permissions);
+  }
+
+  function _encode(PermissionSet[] calldata _permissions) internal pure returns (bytes memory _result) {
+    for (uint256 i; i < _permissions.length; i++) {
+      _result = bytes.concat(_result, keccak256(_encode(_permissions[i])));
+    }
+  }
+
+  function _encode(PermissionSet calldata _permission) internal pure returns (bytes memory _result) {
+    _result = abi.encode(PERMISSION_SET_TYPEHASH, _permission.operator, keccak256(_encode(_permission.permissions)));
+  }
+
+  function _encode(Permission[] calldata _permissions) internal pure returns (bytes memory _result) {
+    _result = new bytes(_permissions.length * 32);
+    for (uint256 i; i < _permissions.length; i++) {
+      _result[(_permissions.length - i) * 32 - 1] = bytes1(uint8(_permissions[i]));
+    }
+  }
+
+  function _modify(uint256 _id, PermissionSet[] calldata _permissions) internal {
+    _setPermissions(_id, _permissions);
+    emit Modified(_id, _permissions);
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
