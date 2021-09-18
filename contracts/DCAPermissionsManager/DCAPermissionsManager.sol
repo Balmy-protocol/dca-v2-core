@@ -93,7 +93,6 @@ contract DCAPermissionsManager is ERC721 {
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
     for (uint256 i; i < _permissions.length; i++) {
-      if (_permissions[i].operator == address(0)) revert ZeroAddress();
       if (_permissions[i].permissions.length == 0) {
         _tokens[_id].operators.remove(_permissions[i].operator);
         delete _tokens[_id].permissions[_permissions[i].operator];
@@ -110,9 +109,10 @@ contract DCAPermissionsManager is ERC721 {
     uint256 _id
   ) internal override {
     TokenInfo storage _info = _tokens[_id];
-    for (uint256 i; i < _info.operators.length(); i++) {
-      delete _info.permissions[_info.operators.at(i)];
+    while (_info.operators.length() > 0) {
+      address _operator = _info.operators.at(0);
+      delete _info.permissions[_operator];
+      _info.operators.remove(_operator);
     }
-    delete _info.operators;
   }
 }
