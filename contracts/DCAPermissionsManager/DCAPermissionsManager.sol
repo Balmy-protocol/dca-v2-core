@@ -2,6 +2,7 @@
 pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
 enum Permission {
   INCREASE,
@@ -27,21 +28,28 @@ library PermissionMath {
 contract DCAPermissionsManager is ERC721 {
   error HubAlreadySet();
   error ZeroAddress();
-  error IdAlreadyInUse();
-  error OnlyHubCanMint();
+  error OnlyHubCanExecute();
+  error NotOwner();
 
   struct PermissionSet {
     address operator;
     Permission[] permissions;
   }
 
+  struct TokenInfo {
+    mapping(address => uint8) permissions;
+    EnumerableSet.AddressSet operators;
+  }
+
   event Minted(uint256 id, address owner, PermissionSet[] permissions);
+  event Modified(uint256 id, PermissionSet[] permissions);
 
   using PermissionMath for Permission[];
   using PermissionMath for uint8;
+  using EnumerableSet for EnumerableSet.AddressSet;
 
   address public hub;
-  mapping(uint256 => mapping(address => uint8)) internal _operators;
+  mapping(uint256 => TokenInfo) internal _tokens;
 
   constructor() ERC721('Mean Finance DCA', 'DCA') {}
 
@@ -56,7 +64,7 @@ contract DCAPermissionsManager is ERC721 {
     address _owner,
     PermissionSet[] calldata _permissions
   ) external {
-    if (msg.sender != hub) revert OnlyHubCanMint();
+    if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
     _setPermissions(_id, _permissions);
 
@@ -68,13 +76,43 @@ contract DCAPermissionsManager is ERC721 {
     address _address,
     Permission _permission
   ) external view returns (bool) {
-    return ownerOf(_id) == _address || _operators[_id][_address].hasPermission(_permission);
+    return ownerOf(_id) == _address || _tokens[_id].permissions[_address].hasPermission(_permission);
+  }
+
+  function burn(uint256 _id) external {
+    if (msg.sender != hub) revert OnlyHubCanExecute();
+    _burn(_id);
+  }
+
+  // Note: Callers can clear permissions by sending an empty array
+  function modify(uint256 _id, PermissionSet[] calldata _permissions) external {
+    if (msg.sender != ownerOf(_id)) revert NotOwner();
+    _setPermissions(_id, _permissions);
+    emit Modified(_id, _permissions);
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
     for (uint256 i; i < _permissions.length; i++) {
-      if (_permissions[i].operator == address(0)) revert ZeroAddress();
-      _operators[_id][_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+      if (_permissions[i].permissions.length == 0) {
+        _tokens[_id].operators.remove(_permissions[i].operator);
+        delete _tokens[_id].permissions[_permissions[i].operator];
+      } else {
+        _tokens[_id].operators.add(_permissions[i].operator);
+        _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+      }
+    }
+  }
+
+  function _beforeTokenTransfer(
+    address,
+    address,
+    uint256 _id
+  ) internal override {
+    TokenInfo storage _info = _tokens[_id];
+    while (_info.operators.length() > 0) {
+      address _operator = _info.operators.at(0);
+      delete _info.permissions[_operator];
+      _info.operators.remove(_operator);
     }
   }
 }
