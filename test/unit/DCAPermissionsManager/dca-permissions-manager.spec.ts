@@ -132,6 +132,13 @@ contract('DCAPermissionsManager', () => {
         tx = await DCAPermissionsManager.mint(TOKEN_ID, OWNER, [{ operator: OPERATOR, permissions: [Permission.WITHDRAW] }]);
       });
 
+      then('owner has all permisisons', async () => {
+        expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OWNER, Permission.INCREASE)).to.be.true;
+        expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OWNER, Permission.REDUCE)).to.be.true;
+        expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OWNER, Permission.TERMINATE)).to.be.true;
+        expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OWNER, Permission.WITHDRAW)).to.be.true;
+      });
+
       then('permissions are assigned properly', async () => {
         expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OPERATOR, Permission.WITHDRAW)).to.be.true;
       });
@@ -152,17 +159,6 @@ contract('DCAPermissionsManager', () => {
         const balance = await DCAPermissionsManager.balanceOf(OWNER);
         expect(tokenOwner).to.equal(OWNER);
         expect(balance).to.equal(TOKEN_ID);
-      });
-
-      then('event is emitted', async () => {
-        const id = await readArgFromEventOrFail(tx, 'Minted', 'id');
-        const owner = await readArgFromEventOrFail(tx, 'Minted', 'owner');
-        const permissions: any = await readArgFromEventOrFail(tx, 'Minted', 'permissions');
-        expect(id).to.equal(TOKEN_ID);
-        expect(owner).to.equal(OWNER);
-        expect(permissions.length).to.equal(1);
-        expect(permissions[0].operator).to.equal(OPERATOR);
-        expect(permissions[0].permissions).to.eql([Permission.WITHDRAW]);
       });
     });
   });

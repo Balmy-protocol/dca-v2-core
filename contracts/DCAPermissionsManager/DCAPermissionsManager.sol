@@ -41,7 +41,6 @@ contract DCAPermissionsManager is ERC721 {
     EnumerableSet.AddressSet operators;
   }
 
-  event Minted(uint256 id, address owner, PermissionSet[] permissions);
   event Modified(uint256 id, PermissionSet[] permissions);
 
   using PermissionMath for Permission[];
@@ -67,8 +66,6 @@ contract DCAPermissionsManager is ERC721 {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
     _setPermissions(_id, _permissions);
-
-    emit Minted(_id, _owner, _permissions);
   }
 
   function hasPermission(
