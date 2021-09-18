@@ -261,9 +261,12 @@ contract('DCAPermissionsManager', () => {
 
     modifyTest({
       when: 'permissions are added for a new operators',
-      initial: [],
-      modify: [{ operator: OPERATOR_1, permissions: [Permission.TERMINATE] }],
-      expected: [{ operator: OPERATOR_1, permissions: [Permission.TERMINATE] }],
+      initial: [{ operator: OPERATOR_1, permissions: [Permission.TERMINATE] }],
+      modify: [{ operator: OPERATOR_2, permissions: [Permission.REDUCE] }],
+      expected: [
+        { operator: OPERATOR_1, permissions: [Permission.TERMINATE] },
+        { operator: OPERATOR_2, permissions: [Permission.REDUCE] },
+      ],
     });
 
     modifyTest({
