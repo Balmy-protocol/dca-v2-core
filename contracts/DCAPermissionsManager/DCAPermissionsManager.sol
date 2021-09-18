@@ -3,6 +3,7 @@ pragma solidity ^0.8.6;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
 
 enum Permission {
   INCREASE,
@@ -25,11 +26,13 @@ library PermissionMath {
 }
 
 // Note: ideally, this would be part of the DCAHub. However, since we've reached the max bytecode size, we needed to make it its own contract
-contract DCAPermissionsManager is ERC721 {
+contract DCAPermissionsManager is ERC721, EIP712 {
   error HubAlreadySet();
   error ZeroAddress();
   error OnlyHubCanExecute();
   error NotOwner();
+  error ExpiredDeadline();
+  error InvalidSignature();
 
   struct PermissionSet {
     address operator;
@@ -47,10 +50,12 @@ contract DCAPermissionsManager is ERC721 {
   using PermissionMath for uint8;
   using EnumerableSet for EnumerableSet.AddressSet;
 
+  bytes32 public constant PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
   address public hub;
+  mapping(address => uint256) public nonces;
   mapping(uint256 => TokenInfo) internal _tokens;
 
-  constructor() ERC721('Mean Finance DCA', 'DCA') {}
+  constructor() ERC721('Mean Finance DCA', 'DCA') EIP712('Mean Finance DCA', '1') {}
 
   function setHub(address _hub) external {
     if (_hub == address(0)) revert ZeroAddress();
@@ -86,6 +91,31 @@ contract DCAPermissionsManager is ERC721 {
     if (msg.sender != ownerOf(_id)) revert NotOwner();
     _setPermissions(_id, _permissions);
     emit Modified(_id, _permissions);
+  }
+
+  // solhint-disable-next-line func-name-mixedcase
+  function DOMAIN_SEPARATOR() external view returns (bytes32) {
+    return _domainSeparatorV4();
+  }
+
+  function permit(
+    address _spender,
+    uint256 _tokenId,
+    uint256 _deadline,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+  ) public virtual {
+    if (block.timestamp > _deadline) revert ExpiredDeadline();
+
+    address _owner = ownerOf(_tokenId);
+    bytes32 _structHash = keccak256(abi.encode(PERMIT_TYPEHASH, _spender, _tokenId, nonces[_owner]++, _deadline));
+    bytes32 _hash = _hashTypedDataV4(_structHash);
+
+    address _signer = ECDSA.recover(_hash, _v, _r, _s);
+    if (_signer != _owner) revert InvalidSignature();
+
+    _approve(_spender, _tokenId);
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
