@@ -119,7 +119,7 @@ contract('DCAPermissionsManager', () => {
           contract: DCAPermissionsManager.connect(await wallet.generateRandom()),
           func: 'mint',
           args: [TOKEN_ID, constants.NOT_ZERO_ADDRESS, []],
-          message: 'OnlyHubCanMint',
+          message: 'OnlyHubCanExecute',
         });
       });
     });
@@ -194,5 +194,140 @@ contract('DCAPermissionsManager', () => {
         expect(operators).to.be.empty;
       });
     });
+  });
+  describe('burn', () => {
+    const TOKEN_ID = 1;
+    const OPERATOR = constants.NOT_ZERO_ADDRESS;
+    const OWNER = wallet.generateRandomAddress();
+
+    given(async () => {
+      await DCAPermissionsManager.mint(TOKEN_ID, OWNER, [{ operator: OPERATOR, permissions: [Permission.WITHDRAW] }]);
+    });
+
+    when('caller is not the hub', () => {
+      then('reverts with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPermissionsManager.connect(await wallet.generateRandom()),
+          func: 'burn',
+          args: [TOKEN_ID],
+          message: 'OnlyHubCanExecute',
+        });
+      });
+    });
+
+    when('the hub is the caller', () => {
+      given(async () => {
+        await DCAPermissionsManager.burn(TOKEN_ID);
+      });
+
+      then('nft is burned', async () => {
+        const balance = await DCAPermissionsManager.balanceOf(OWNER);
+        expect(balance).to.equal(0);
+      });
+
+      then('asking for permission reverts', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPermissionsManager,
+          func: 'hasPermission',
+          args: [TOKEN_ID, OPERATOR, Permission.WITHDRAW],
+          message: 'ERC721: owner query for nonexistent token',
+        });
+      });
+
+      then('operators list is now empty', async () => {
+        const operators = await DCAPermissionsManager.operators(TOKEN_ID);
+        expect(operators).to.be.empty;
+      });
+    });
+  });
+  describe('modify', () => {
+    const TOKEN_ID = 1;
+    const [OPERATOR_1, OPERATOR_2] = ['0x0000000000000000000000000000000000000001', '0x0000000000000000000000000000000000000002'];
+
+    when('caller is not the owner', () => {
+      given(async () => {
+        const owner = await wallet.generateRandom();
+        await DCAPermissionsManager.mint(TOKEN_ID, owner.address, []);
+      });
+      then('reverts with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPermissionsManager.connect(await wallet.generateRandom()),
+          func: 'modify',
+          args: [TOKEN_ID, []],
+          message: 'NotOwner',
+        });
+      });
+    });
+
+    modifyTest({
+      when: 'permissions are added for a new operators',
+      initial: [{ operator: OPERATOR_1, permissions: [Permission.TERMINATE] }],
+      modify: [{ operator: OPERATOR_2, permissions: [Permission.REDUCE] }],
+      expected: [
+        { operator: OPERATOR_1, permissions: [Permission.TERMINATE] },
+        { operator: OPERATOR_2, permissions: [Permission.REDUCE] },
+      ],
+    });
+
+    modifyTest({
+      when: 'permissions are modified for existing operators',
+      initial: [{ operator: OPERATOR_1, permissions: [Permission.WITHDRAW] }],
+      modify: [
+        { operator: OPERATOR_1, permissions: [Permission.INCREASE] },
+        { operator: OPERATOR_2, permissions: [Permission.REDUCE] },
+      ],
+      expected: [
+        { operator: OPERATOR_1, permissions: [Permission.INCREASE] },
+        { operator: OPERATOR_2, permissions: [Permission.REDUCE] },
+      ],
+    });
+
+    modifyTest({
+      when: 'permissions are removed for existing operators',
+      initial: [{ operator: OPERATOR_1, permissions: [Permission.WITHDRAW] }],
+      modify: [{ operator: OPERATOR_1, permissions: [] }],
+      expected: [{ operator: OPERATOR_1, permissions: [] }],
+    });
+
+    type Permissions = { operator: string; permissions: Permission[] }[];
+    function modifyTest({
+      when: title,
+      initial,
+      modify,
+      expected,
+    }: {
+      when: string;
+      initial: Permissions;
+      modify: Permissions;
+      expected: Permissions;
+    }) {
+      when(title, () => {
+        let tx: TransactionResponse;
+        given(async () => {
+          const owner = await wallet.generateRandom();
+          await DCAPermissionsManager.mint(TOKEN_ID, owner.address, initial);
+          tx = await DCAPermissionsManager.connect(owner).modify(TOKEN_ID, modify);
+        });
+        then('then permissions are updated correctly', async () => {
+          const operators = await DCAPermissionsManager.operators(TOKEN_ID);
+          for (const { operator, permissions } of expected) {
+            for (const permission of [Permission.INCREASE, Permission.REDUCE, Permission.TERMINATE, Permission.WITHDRAW]) {
+              expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, operator, permission)).to.equal(permissions.includes(permission));
+            }
+            expect(operators.includes(operator)).to.equal(permissions.length > 0);
+          }
+        });
+        then('event is emitted', async () => {
+          const id = await readArgFromEventOrFail(tx, 'Modified', 'id');
+          const permissions: any = await readArgFromEventOrFail(tx, 'Modified', 'permissions');
+          expect(id).to.equal(TOKEN_ID);
+          expect(permissions.length).to.equal(modify.length);
+          for (let i = 0; i < modify.length; i++) {
+            expect(permissions[i].operator).to.equal(modify[i].operator);
+            expect(permissions[i].permissions).to.eql(modify[i].permissions);
+          }
+        });
+      });
+    }
   });
 });
