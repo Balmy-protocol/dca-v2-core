@@ -373,7 +373,7 @@ contract('DCAPositionHandler', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'withdrawSwappedMany',
-          args: [[0], constants.ZERO_ADDRESS],
+          args: [[], constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -384,17 +384,38 @@ contract('DCAPositionHandler', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'withdrawSwappedMany',
-          args: [[100], recipient],
+          args: [[{ token: constants.NOT_ZERO_ADDRESS, positionIds: [100] }], recipient],
           message: 'InvalidPosition',
         });
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwappedMany([dcaId], recipient));
+    when('position is grouped under the wrong token', () => {
+      let dcaId: BigNumber;
+      given(async () => {
+        ({ dcaId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        }));
+      });
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'withdrawSwappedMany',
+          args: [[{ token: constants.NOT_ZERO_ADDRESS, positionIds: [dcaId] }], recipient],
+          message: 'PositionDoesNotMatchToken',
+        });
+      });
+    });
+
+    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwappedMany([{ token: tokenB.address, positionIds: [dcaId] }], recipient));
 
     when(`withdrawing swapped with positions that didn't have swaps executed`, () => {
       let response: TransactionResponse;
       let dcaId1: BigNumber, dcaId2: BigNumber;
+      let input: PositionSet[];
 
       given(async () => {
         ({ dcaId: dcaId1 } = await deposit({
@@ -409,11 +430,26 @@ contract('DCAPositionHandler', () => {
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
         }));
-        response = await withdrawSwappedMany([dcaId1, dcaId2], owner.address);
+        input = [
+          { token: tokenA.address, positionIds: [dcaId2] },
+          { token: tokenB.address, positionIds: [dcaId1] },
+        ];
+        response = await DCAPositionHandler.withdrawSwappedMany(input, recipient);
       });
 
       then('event is emitted', async () => {
-        await expect(response).to.emit(DCAPositionHandler, 'WithdrewMany').withArgs(owner.address, owner.address, [dcaId1, dcaId2], 0, 0);
+        const withdrawer = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrawer');
+        const withdrawRecipient = await readArgFromEventOrFail(response, 'WithdrewMany', 'recipient');
+        const positions = await readArgFromEventOrFail<any>(response, 'WithdrewMany', 'positions');
+        const withdrew = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrew');
+        expect(withdrawer).to.equal(owner.address);
+        expect(withdrawRecipient).to.equal(recipient);
+        expect(withdrew).to.eql([constants.ZERO, constants.ZERO]);
+        expect(positions.length).to.equal(2);
+        expect(positions[0].token).to.equal(input[0].token);
+        expect(positions[0].positionIds).to.eql(input[0].positionIds);
+        expect(positions[1].token).to.equal(input[1].token);
+        expect(positions[1].positionIds).to.eql(input[1].positionIds);
       });
 
       then('no token transfer was made', async () => {
@@ -457,6 +493,7 @@ contract('DCAPositionHandler', () => {
       const POSITION_RATE_3 = 3;
       let response: TransactionResponse;
       let dcaId1: BigNumber, dcaId2: BigNumber;
+      let input: PositionSet[];
 
       given(async () => {
         ({ dcaId: dcaId1 } = await deposit({
@@ -484,7 +521,11 @@ contract('DCAPositionHandler', () => {
           fromToken: tokenB,
         });
 
-        response = await withdrawSwappedMany([dcaId1, dcaId2], recipient);
+        input = [
+          { token: tokenA.address, positionIds: [dcaId2] },
+          { token: tokenB.address, positionIds: [dcaId1] },
+        ];
+        response = await DCAPositionHandler.withdrawSwappedMany(input, recipient);
       });
 
       then('swapped tokens are sent to the user', async () => {
@@ -516,13 +557,23 @@ contract('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         const swappedA = tokenA.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_3);
         const swappedB = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-        await expect(response)
-          .to.emit(DCAPositionHandler, 'WithdrewMany')
-          .withArgs(owner.address, recipient, [dcaId1, dcaId2], swappedA, swappedB);
+        const withdrawer = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrawer');
+        const withdrawRecipient = await readArgFromEventOrFail(response, 'WithdrewMany', 'recipient');
+        const positions = await readArgFromEventOrFail<any>(response, 'WithdrewMany', 'positions');
+        const withdrew = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrew');
+        expect(withdrawer).to.equal(owner.address);
+        expect(withdrawRecipient).to.equal(recipient);
+        expect(withdrew).to.eql([swappedA, swappedB]);
+        expect(positions.length).to.equal(2);
+        expect(positions[0].token).to.equal(input[0].token);
+        expect(positions[0].positionIds).to.eql(input[0].positionIds);
+        expect(positions[1].token).to.equal(input[1].token);
+        expect(positions[1].positionIds).to.eql(input[1].positionIds);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
+    type PositionSet = { token: string; positionIds: BigNumber[] };
   });
 
   describe('terminate', () => {
@@ -1041,10 +1092,6 @@ contract('DCAPositionHandler', () => {
 
   function withdrawSwapped(dcaId: BigNumber, recipient: string): Promise<TransactionResponse> {
     return DCAPositionHandler.withdrawSwapped(dcaId, recipient);
-  }
-
-  function withdrawSwappedMany(dcaIds: BigNumber[], recipient: string): Promise<TransactionResponse> {
-    return DCAPositionHandler.withdrawSwappedMany(dcaIds, recipient);
   }
 
   function terminate(dcaId: BigNumber, recipientUnswapped: string, recipientSwapped: string): Promise<TransactionResponse> {

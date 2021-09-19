@@ -90,41 +90,25 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit Withdrew(msg.sender, _recipient, _dcaId, _to, _swapped);
   }
 
-  // { to: token, ids: BigNumber[] }[]
-  function withdrawSwappedMany(uint256[] calldata _dcaIds, address _recipient)
-    external
-    override
-    nonReentrant
-    returns (uint256 _swappedTokenA, uint256 _swappedTokenB)
-  {
+  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external override nonReentrant {
     if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
-    for (uint256 i; i < _dcaIds.length; i++) {
-      uint256 _dcaId = _dcaIds[i];
-      _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
-      uint256 _swappedDCA = _calculateSwapped(_dcaId);
-      if (_userPositions[_dcaId].to == address(tokenB)) {
-        _swappedTokenB += _swappedDCA;
-      } else {
-        _swappedTokenA += _swappedDCA;
+    uint256[] memory _swapped = new uint256[](_positions.length);
+    for (uint256 i; i < _positions.length; i++) {
+      address _token = _positions[i].token;
+      for (uint256 j; j < _positions[i].positionIds.length; j++) {
+        uint256 _positionId = _positions[i].positionIds[j];
+        _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
+        DCA memory _userPosition = _userPositions[_positions[i].positionIds[j]];
+        if (_userPosition.to != _token) revert PositionDoesNotMatchToken();
+        uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapInterval);
+        _swapped[i] += _calculateSwapped(_userPosition, _performedSwaps);
+        _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
+        _userPositions[_positionId].swappedBeforeModified = 0;
       }
-      _userPositions[_dcaId].swapWhereLastUpdated = _getPerformedSwaps(
-        _userPositions[_dcaId].from,
-        _userPositions[_dcaId].to,
-        _userPositions[_dcaId].swapInterval
-      );
-      _userPositions[_dcaId].swappedBeforeModified = 0;
+      _balances[_token] -= _swapped[i];
+      IERC20Metadata(_token).safeTransfer(_recipient, _swapped[i]);
     }
-
-    if (_swappedTokenA > 0) {
-      _balances[address(tokenA)] -= _swappedTokenA;
-      tokenA.safeTransfer(_recipient, _swappedTokenA);
-    }
-
-    if (_swappedTokenB > 0) {
-      _balances[address(tokenB)] -= _swappedTokenB;
-      tokenB.safeTransfer(_recipient, _swappedTokenB);
-    }
-    emit WithdrewMany(msg.sender, _recipient, _dcaIds, _swappedTokenA, _swappedTokenB);
+    emit WithdrewMany(msg.sender, _recipient, _positions, _swapped);
   }
 
   function terminate(
@@ -132,6 +116,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _recipientUnswapped,
     address _recipientSwapped
   ) external override nonReentrant {
+    // TODO: Check if it's cheaper to load the whole DCA struct to memory once
     if (_recipientUnswapped == address(0) || _recipientSwapped == address(0)) revert CommonErrors.ZeroAddress();
 
     _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
@@ -190,7 +175,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_total == 0 && _newAmountOfSwaps > 0) _newAmountOfSwaps = 0;
     uint160 _newRate = _newAmountOfSwaps == 0 ? 0 : uint160(_total / _newAmountOfSwaps);
 
-    uint256 _swapped = _calculateSwapped(_userDCA);
+    uint256 _swapped = _calculateSwapped(_userDCA, _performedSwaps);
     if (_swapped > type(uint248).max) revert MandatoryWithdraw(); // You should withdraw before modifying, to avoid losing funds
 
     _removeFromDelta(_userDCA.from, _userDCA.to, _userDCA.swapInterval, _performedSwaps, _userDCA.finalSwap, int160(_userDCA.rate));
@@ -287,6 +272,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
   function _calculateSwapped(DCA memory _userDCA) internal view returns (uint256 _swapped) {
     uint32 _performedSwaps = _getPerformedSwaps(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
+    _swapped = _calculateSwapped(_userDCA, _performedSwaps);
+  }
+
+  function _calculateSwapped(DCA memory _userDCA, uint32 _performedSwaps) internal view returns (uint256 _swapped) {
     uint32 _newestSwapToConsider = _performedSwaps < _userDCA.finalSwap ? _performedSwaps : _userDCA.finalSwap;
 
     if (_userDCA.swapWhereLastUpdated > _newestSwapToConsider) {

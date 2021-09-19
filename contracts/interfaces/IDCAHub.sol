@@ -39,6 +39,11 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
     uint160 rate;
   }
 
+  struct PositionSet {
+    address token;
+    uint256[] positionIds;
+  }
+
   /// @notice Emitted when a position is terminated
   /// @param user The address of the user that terminated the position
   /// @param recipientUnswapped The address of the user that will receive the unswapped tokens
@@ -86,10 +91,9 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
   /// @param withdrawer The address of the user that executed the withdraws
   /// @param recipient The address of the user that will receive the withdrawn tokens
-  /// @param dcaIds The ids of the positions that were affected
-  /// @param swappedTokenA The total amount that was withdrawn in token A
-  /// @param swappedTokenB The total amount that was withdrawn in token B
-  event WithdrewMany(address indexed withdrawer, address indexed recipient, uint256[] dcaIds, uint256 swappedTokenA, uint256 swappedTokenB);
+  /// @param positions The positions to withdraw from
+  /// @param withdrew The total amount that was withdrawn from each token
+  event WithdrewMany(address indexed withdrawer, address indexed recipient, PositionSet[] positions, uint256[] withdrew);
 
   /// @notice Emitted when a position is modified
   /// @param user The address of the user that modified the position
@@ -122,6 +126,8 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
 
   /// @notice Thrown when a user tries to modify the rate of a position that has already been completed
   error PositionCompleted();
+
+  error PositionDoesNotMatchToken();
 
   /// @notice Thrown when a user tries to modify a position that has too much swapped balance. This error
   /// is thrown so that the user doesn't lose any funds. The error indicates that the user must perform a withdraw
@@ -164,16 +170,7 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
   /// @return _swapped How much was withdrawn
   function withdrawSwapped(uint256 _dcaId, address _recipient) external returns (uint256 _swapped);
 
-  /// @notice Withdraws all swapped tokens from many positions
-  /// @dev Will revert:
-  /// With ZeroAddress if recipient is zero
-  /// With InvalidPosition if any of the ids in _dcaIds is invalid
-  /// With UnauthorizedCaller if the caller doesn't have access to any of the positions in _dcaIds
-  /// @param _dcaIds The positions' ids
-  /// @param _recipient The address to withdraw swapped tokens to
-  /// @return _swappedTokenA How much was withdrawn in token A
-  /// @return _swappedTokenB How much was withdrawn in token B
-  function withdrawSwappedMany(uint256[] calldata _dcaIds, address _recipient) external returns (uint256 _swappedTokenA, uint256 _swappedTokenB);
+  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external;
 
   /// @notice Takes the unswapped balance, adds the new deposited funds and modifies the position so that
   /// it is executed in _newSwaps swaps
