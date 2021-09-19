@@ -15,18 +15,19 @@ import { fromRpcSig } from 'ethereumjs-util';
 
 contract('DCAPermissionsManager', () => {
   const NFT_NAME = 'Mean Finance DCA';
-  let hub: SignerWithAddress;
+  const NFT_DESCRIPTOR = wallet.generateRandomAddress();
+  let hub: SignerWithAddress, governor: SignerWithAddress;
   let DCAPermissionsManagerFactory: DCAPermissionsManagerMock__factory;
   let DCAPermissionsManager: DCAPermissionsManagerMock;
   let snapshotId: string;
   let chainId: BigNumber;
 
   before('Setup accounts and contracts', async () => {
-    [hub] = await ethers.getSigners();
+    [hub, governor] = await ethers.getSigners();
     DCAPermissionsManagerFactory = await ethers.getContractFactory(
       'contracts/mocks/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManagerMock'
     );
-    DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy();
+    DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     await DCAPermissionsManager.setHub(hub.address);
     snapshotId = await snapshot.take();
     chainId = BigNumber.from((await ethers.provider.getNetwork()).chainId);
@@ -39,7 +40,7 @@ contract('DCAPermissionsManager', () => {
   describe('constructor', () => {
     let DCAPermissionsManager: DCAPermissionsManagerMock;
     given(async () => {
-      DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy();
+      DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     });
     when('manager is deployed', () => {
       then('hub is zero address', async () => {
@@ -57,11 +58,22 @@ contract('DCAPermissionsManager', () => {
       then('initial nonce is 0', async () => {
         expect(await DCAPermissionsManager.nonces(hub.address)).to.equal(0);
       });
-
+      then('NFT descriptor is set', async () => {
+        expect(await DCAPermissionsManager.nftDescriptor()).to.equal(NFT_DESCRIPTOR);
+      });
       then('domain separator is the expected', async () => {
         expect(await DCAPermissionsManager.DOMAIN_SEPARATOR()).to.equal(
           await domainSeparator(NFT_NAME, '1', chainId, DCAPermissionsManager.address)
         );
+      });
+    });
+    when('nft descriptor is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAPermissionsManagerFactory,
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
       });
     });
   });
@@ -82,7 +94,7 @@ contract('DCAPermissionsManager', () => {
       const ADDRESS = wallet.generateRandomAddress();
       let DCAPermissionsManager: DCAPermissionsManagerMock;
       given(async () => {
-        DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy();
+        DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
         await DCAPermissionsManager.setHub(ADDRESS);
       });
       then('hub is set correctly', async () => {
@@ -616,6 +628,37 @@ contract('DCAPermissionsManager', () => {
       nonce: BigNumber;
       deadline: BigNumber;
     };
+  });
+
+  describe('setNFTDescriptor', () => {
+    when('address is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPermissionsManager.connect(governor),
+          func: 'setNFTDescriptor',
+          args: [constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('address is not zero', () => {
+      then('sets nftDescriptor and emits event with correct arguments', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAPermissionsManager.connect(governor),
+          getterFunc: 'nftDescriptor',
+          setterFunc: 'setNFTDescriptor',
+          variable: constants.NOT_ZERO_ADDRESS,
+          eventEmitted: 'NFTDescriptorSet',
+        });
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAPermissionsManager,
+      funcAndSignature: 'setNFTDescriptor(address)',
+      params: [constants.NOT_ZERO_ADDRESS],
+      governor: () => governor,
+    });
   });
 
   const EIP712Domain = [
