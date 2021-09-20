@@ -8,18 +8,12 @@ import '../interfaces/IDCAPermissionManager.sol';
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the pair's current values
 interface IDCAHubParameters {
-  /// @notice Returns the token A contract
-  /// @return The contract for token A
-  function tokenA() external view returns (IERC20Metadata);
-
-  /// @notice Returns the token B contract
-  /// @return The contract for token B
-  function tokenB() external view returns (IERC20Metadata);
+  // TODO: See if we end up adding something. If not, delete
 }
 
 /// @title The interface for all position related matters in a DCA pair
 /// @notice These methods allow users to create, modify and terminate their positions
-interface IDCAHubPositionHandler is IDCAHubParameters {
+interface IDCAHubPositionHandler {
   /// @notice The position of a certain user
   struct UserPosition {
     // The token that the user deposited and will be swapped in exchange for "to"

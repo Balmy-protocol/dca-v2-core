@@ -7,8 +7,6 @@ import '../../DCAHub/DCAHubParameters.sol';
 contract DCAHubParametersMock is DCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
-  constructor(IERC20Metadata _tokenA, IERC20Metadata _tokenB) DCAHubParameters(_tokenA, _tokenB) {}
-
   // Mocks setters
   function internalBalanceOf(address _token) external view returns (uint256) {
     return _balances[_token];

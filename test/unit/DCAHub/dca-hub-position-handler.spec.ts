@@ -46,14 +46,7 @@ contract('DCAPositionHandler', () => {
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
     DCAPermissionManager = await smock.fake('DCAPermissionsManager');
-    DCAPositionHandler = await DCAPositionHandlerContract.deploy(
-      tokenA.address,
-      tokenB.address,
-      owner.address,
-      owner.address,
-      constants.NOT_ZERO_ADDRESS,
-      DCAPermissionManager.address
-    );
+    DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, DCAPermissionManager.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
@@ -75,18 +68,12 @@ contract('DCAPositionHandler', () => {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAPositionHandlerContract,
-          args: [tokenA.address, tokenB.address, owner.address, owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
     });
     when('contract is initiated', () => {
-      then('name and symbol are created based on token pair', async () => {
-        const name = await DCAPositionHandler.name();
-        const symbol = await DCAPositionHandler.symbol();
-        expect(name).to.equal(`DCA: ${await tokenA.symbol()} - ${await tokenB.symbol()}`);
-        expect(symbol).to.equal('DCA');
-      });
       then('permission manager is set correctly', async () => {
         expect(await DCAPositionHandler.permissionManager()).to.equal(DCAPermissionManager.address);
       });

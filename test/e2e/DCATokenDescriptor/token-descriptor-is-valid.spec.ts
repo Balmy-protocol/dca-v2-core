@@ -57,8 +57,6 @@ contract('DCATokenDescriptor', () => {
     DCATokenDescriptor = await DCATokenDescriptorFactory.deploy();
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
     DCAHub = await DCAHubContract.deploy(
-      tokenA.address,
-      tokenB.address,
       governor.address,
       constants.NOT_ZERO_ADDRESS,
       TimeWeightedOracle.address,

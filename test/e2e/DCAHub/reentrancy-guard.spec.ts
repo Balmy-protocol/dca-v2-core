@@ -54,8 +54,6 @@ contract('DCAHub', () => {
       TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(0, 0);
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(
-        tokenA.address,
-        tokenB.address,
         governor.address,
         constants.NOT_ZERO_ADDRESS,
         TimeWeightedOracle.address,

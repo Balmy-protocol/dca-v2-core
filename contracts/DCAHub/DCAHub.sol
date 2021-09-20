@@ -10,20 +10,9 @@ import './DCAHubConfigHandler.sol';
 // TODO: Implement interface again
 contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCAHubPositionHandler, DCAHubLoanHandler {
   constructor(
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
     ITimeWeightedOracle _oracle,
     IDCAPermissionManager _permissionManager
-  )
-    DCAHubParameters(_tokenA, _tokenB)
-    DCAHubPositionHandler(_tokenA, _tokenB, _permissionManager)
-    DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle)
-  {}
-
-  // TODO: Remove when we remove ERC721
-  function supportsInterface(bytes4 interfaceId) public view virtual override(DCAHubPositionHandler, AccessControl) returns (bool) {
-    return super.supportsInterface(interfaceId);
-  }
+  ) DCAHubPositionHandler(_permissionManager) DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle) {}
 }
