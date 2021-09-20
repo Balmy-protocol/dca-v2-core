@@ -14,10 +14,11 @@ contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCA
     IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
-    ITimeWeightedOracle _oracle
+    ITimeWeightedOracle _oracle,
+    IDCAPermissionManager _permissionManager
   )
     DCAHubParameters(_tokenA, _tokenB)
-    DCAHubPositionHandler(_tokenA, _tokenB)
+    DCAHubPositionHandler(_tokenA, _tokenB, _permissionManager)
     DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle)
   {}
 

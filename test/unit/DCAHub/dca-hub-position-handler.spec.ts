@@ -1,8 +1,8 @@
 import { BigNumber, Contract } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock } from '@typechained';
+import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermissionsManager } from '@typechained';
 import { erc20, behaviours, constants, wallet } from '@test-utils';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { when, then, given, contract } from '@test-utils/bdd';
@@ -10,6 +10,9 @@ import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 import { snapshot } from '@test-utils/evm';
+import { FakeContract, smock } from '@defi-wonderland/smock';
+
+chai.use(smock.matchers);
 
 contract('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
@@ -28,6 +31,7 @@ contract('DCAPositionHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAPositionHandlerContract: DCAHubPositionHandlerMock__factory;
   let DCAPositionHandler: DCAHubPositionHandlerMock;
+  let DCAPermissionManager: FakeContract<DCAPermissionsManager>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -40,12 +44,14 @@ contract('DCAPositionHandler', () => {
     [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
+    DCAPermissionManager = await smock.fake('DCAPermissionsManager');
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(
       tokenA.address,
       tokenB.address,
       owner.address,
       owner.address,
-      constants.NOT_ZERO_ADDRESS
+      constants.NOT_ZERO_ADDRESS,
+      DCAPermissionManager.address
     );
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
@@ -65,6 +71,15 @@ contract('DCAPositionHandler', () => {
   });
 
   describe('constructor', () => {
+    when('permission manager is zero address', () => {
+      then('deployment is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAPositionHandlerContract,
+          args: [tokenA.address, tokenB.address, owner.address, owner.address, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
     when('contract is initiated', () => {
       then('name and symbol are created based on token pair', async () => {
         const name = await DCAPositionHandler.name();
@@ -72,77 +87,103 @@ contract('DCAPositionHandler', () => {
         expect(name).to.equal(`DCA: ${await tokenA.symbol()} - ${await tokenB.symbol()}`);
         expect(symbol).to.equal('DCA');
       });
+      then('permission manager is set correctly', async () => {
+        expect(await DCAPositionHandler.permissionManager()).to.equal(DCAPermissionManager.address);
+      });
     });
   });
 
   describe('deposit', () => {
     const depositShouldRevert = ({
       owner,
-      address,
-      rate,
+      from,
+      to,
+      amount,
+      interval,
       swaps,
       error,
     }: {
       owner: string;
-      address: string;
-      rate: number;
+      from: string;
+      to: string;
+      amount: number;
       swaps: number;
+      interval: number;
       error: string;
     }) =>
       behaviours.txShouldRevertWithMessage({
         contract: DCAPositionHandler,
         func: 'deposit',
-        args: [owner, address, rate, swaps, SWAP_INTERVAL],
+        args: [from, to, amount, swaps, interval, owner, []],
         message: error,
       });
 
-    when('making a deposit to a zero address recipient', () => {
+    when('making a deposit to a zero address from', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          owner: constants.ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
+          from: constants.ZERO_ADDRESS,
+          to: constants.NOT_ZERO_ADDRESS,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
+          interval: SWAP_INTERVAL,
           error: 'ZeroAddress',
         });
       });
     });
 
-    when('making a deposit with an unknown token address', () => {
+    when('making a deposit to a zero address to', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: constants.NOT_ZERO_ADDRESS,
+          to: constants.ZERO_ADDRESS,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: constants.NOT_ZERO_ADDRESS,
-          rate: POSITION_RATE_5,
+          amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'InvalidToken',
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAddress',
+        });
+      });
+    });
+
+    when('making a deposit to a zero address owner', () => {
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: constants.NOT_ZERO_ADDRESS,
+          to: constants.NOT_ZERO_ADDRESS,
+          owner: constants.ZERO_ADDRESS,
+          amount: 10,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAddress',
         });
       });
     });
 
     when('making a deposit with non-allowed interval', async () => {
-      given(async () => {
-        await DCAPositionHandler.removeSwapIntervalsFromAllowedList([SWAP_INTERVAL]);
-      });
       then('tx is reverted with messasge', async () => {
         await depositShouldRevert({
+          from: constants.NOT_ZERO_ADDRESS,
+          to: constants.NOT_ZERO_ADDRESS,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
-          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          amount: 10,
+          swaps: 10,
+          interval: 0,
           error: 'InvalidInterval',
         });
       });
     });
 
-    when('making a deposit with 0 rate', () => {
+    when('making a deposit with 0 amount', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: constants.NOT_ZERO_ADDRESS,
+          to: constants.NOT_ZERO_ADDRESS,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: 0,
+          amount: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'ZeroRate',
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAmount',
         });
       });
     });
@@ -150,10 +191,12 @@ contract('DCAPositionHandler', () => {
     when('making a deposit with 0 swaps', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: constants.NOT_ZERO_ADDRESS,
+          to: constants.NOT_ZERO_ADDRESS,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
+          amount: 10,
           swaps: 0,
+          interval: SWAP_INTERVAL,
           error: 'ZeroSwaps',
         });
       });
@@ -179,6 +222,7 @@ contract('DCAPositionHandler', () => {
             nftOwner,
             1,
             tokenA.address,
+            tokenB.address,
             tokenA.asUnits(POSITION_RATE_5),
             PERFORMED_SWAPS_10 + 1,
             SWAP_INTERVAL,
@@ -241,11 +285,8 @@ contract('DCAPositionHandler', () => {
         expect(deltaLastDay).to.equal(0);
       });
 
-      then('nft is created and assigned to owner', async () => {
-        const tokenOwner = await DCAPositionHandler.ownerOf(dcaId);
-        const balance = await DCAPositionHandler.balanceOf(nftOwner);
-        expect(tokenOwner).to.equal(nftOwner);
-        expect(balance).to.equal(1);
+      then('permission manager is called correctly', async () => {
+        expect(DCAPermissionManager.mint).to.have.been.calledWith(dcaId, nftOwner, []);
       });
 
       then('interval is now active', async () => {
@@ -666,9 +707,8 @@ contract('DCAPositionHandler', () => {
         });
       });
 
-      then('nft is burned', async () => {
-        const balance = await DCAPositionHandler.balanceOf(owner.address);
-        expect(balance).to.equal(0);
+      then('permission manager is called correctly', async () => {
+        expect(DCAPermissionManager.burn).to.have.been.calledWith(dcaId);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -1103,7 +1143,16 @@ contract('DCAPositionHandler', () => {
   }
 
   async function deposit({ owner, token, rate, swaps }: { owner: string; token: TokenContract; rate: number; swaps: number }) {
-    const response: TransactionResponse = await DCAPositionHandler.deposit(owner, token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
+    const to = tokenA == token ? tokenB : tokenA;
+    const response: TransactionResponse = await DCAPositionHandler.deposit(
+      token.address,
+      to.address,
+      token.asUnits(rate).mul(swaps),
+      swaps,
+      SWAP_INTERVAL,
+      owner,
+      []
+    );
     const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
     return { response, dcaId };
   }

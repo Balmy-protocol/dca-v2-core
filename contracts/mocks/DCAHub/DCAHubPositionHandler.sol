@@ -6,13 +6,18 @@ import '../../DCAHub/DCAHubPositionHandler.sol';
 import './DCAHubConfigHandler.sol';
 
 contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandlerMock {
+  // TODO: Try to stop taking all governors + oracle and just pass zero address here
   constructor(
     IERC20Metadata _tokenA,
     IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
-    ITimeWeightedOracle _oracle
-  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _oracle) DCAHubPositionHandler(_tokenA, _tokenB) {}
+    ITimeWeightedOracle _oracle,
+    IDCAPermissionManager _permissionManager
+  )
+    DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _oracle)
+    DCAHubPositionHandler(_tokenA, _tokenB, _permissionManager)
+  {}
 
   // PositionHandler
   function internalPosition(uint256 _dcaId) external view returns (DCA memory _dca) {

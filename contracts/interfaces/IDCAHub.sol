@@ -3,6 +3,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
+import '../interfaces/IDCAPermissionManager.sol';
 
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the pair's current values
@@ -65,6 +66,7 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
   /// @param owner The address of the user that will own the position
   /// @param dcaId The id of the position that was created
   /// @param fromToken The address of the "from" token
+  /// @param toToken The address of the "to" token
   /// @param rate How many "from" tokens need to be traded in each swap
   /// @param startingSwap The number of the swap when the position will be executed for the first time
   /// @param swapInterval How frequently the position's swaps should be executed
@@ -74,6 +76,7 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
     address indexed owner,
     uint256 dcaId,
     address fromToken,
+    address toToken,
     uint160 rate,
     uint32 startingSwap,
     uint32 swapInterval,
@@ -139,25 +142,14 @@ interface IDCAHubPositionHandler is IDCAHubParameters {
   /// @return _position The position itself
   function userPosition(uint256 _dcaId) external view returns (UserPosition memory _position);
 
-  /// @notice Creates a new position
-  /// @dev Will revert:
-  /// With ZeroAddress if _owner is zero
-  /// With InvalidToken if _tokenAddress is neither token A nor token B
-  /// With ZeroRate if _rate is zero
-  /// With ZeroSwaps if _amountOfSwaps is zero
-  /// With InvalidInterval if _swapInterval is not a valid swap interval
-  /// @param _owner The address of the owner of the created position (nft)
-  /// @param _tokenAddress The address of the token that will be deposited
-  /// @param _rate How many "from" tokens need to be traded in each swap
-  /// @param _amountOfSwaps How many swaps to execute for this position
-  /// @param _swapInterval How frequently the position's swaps should be executed
-  /// @return _dcaId The id of the created position
   function deposit(
-    address _owner,
-    address _tokenAddress,
-    uint160 _rate,
+    address _from,
+    address _to,
+    uint256 _amount,
     uint32 _amountOfSwaps,
-    uint32 _swapInterval
+    uint32 _swapInterval,
+    address _owner,
+    IDCAPermissionManager.PermissionSet[] calldata _permissions
   ) external returns (uint256 _dcaId);
 
   /// @notice Withdraws all swapped tokens from a position to a recipient
