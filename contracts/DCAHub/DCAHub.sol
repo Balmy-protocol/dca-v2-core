@@ -14,20 +14,15 @@ contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCA
     IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
   )
     DCAHubParameters(_tokenA, _tokenB)
     DCAHubPositionHandler(_tokenA, _tokenB)
-    DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
+    DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle)
   {}
 
   // TODO: Remove when we remove ERC721
   function supportsInterface(bytes4 interfaceId) public view virtual override(DCAHubPositionHandler, AccessControl) returns (bool) {
     return super.supportsInterface(interfaceId);
-  }
-
-  function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    return nftDescriptor.tokenURI(this, tokenId);
   }
 }

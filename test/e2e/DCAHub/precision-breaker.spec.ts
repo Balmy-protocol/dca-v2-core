@@ -42,14 +42,7 @@ contract('DCAHub', () => {
         decimals: 18,
       });
       timeWeightedOracle = await smock.fake(IUniswapV3OracleAggregatorABI);
-      DCAHub = await DCAHubFactory.deploy(
-        tokenA.address,
-        tokenB.address,
-        governor.address,
-        governor.address,
-        constants.NOT_ZERO_ADDRESS,
-        timeWeightedOracle.address
-      );
+      DCAHub = await DCAHubFactory.deploy(tokenA.address, tokenB.address, governor.address, governor.address, timeWeightedOracle.address);
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(alice, { tokenA: 0, tokenB: 10000 });

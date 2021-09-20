@@ -51,7 +51,6 @@ contract('DCAHub', () => {
         tokenB.address,
         governor.address,
         constants.NOT_ZERO_ADDRESS,
-        constants.NOT_ZERO_ADDRESS,
         TimeWeightedOracle.address
       );
       await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);

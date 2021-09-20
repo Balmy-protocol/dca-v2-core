@@ -10,7 +10,6 @@ contract DCAHubLoanHandlerMock is DCAHubLoanHandler, DCAHubConfigHandlerMock {
     IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
-  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle) {}
+  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _oracle) {}
 }

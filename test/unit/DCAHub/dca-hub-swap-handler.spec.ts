@@ -51,7 +51,6 @@ contract('DCAHubSwapHandler', () => {
       tokenB.address,
       owner.address,
       owner.address,
-      constants.NOT_ZERO_ADDRESS,
       timeWeightedOracle.address
     );
     snapshotId = await snapshot.take();

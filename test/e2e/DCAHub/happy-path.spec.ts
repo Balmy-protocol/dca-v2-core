@@ -62,14 +62,7 @@ contract('DCAHub', () => {
 
       timeWeightedOracle = await timeWeightedOracleFactory.deploy(0, 0);
       await setSwapRatio(swapRatio1);
-      DCAHub = await DCAHubFactory.deploy(
-        tokenA.address,
-        tokenB.address,
-        governor.address,
-        governor.address,
-        constants.NOT_ZERO_ADDRESS,
-        timeWeightedOracle.address
-      );
+      DCAHub = await DCAHubFactory.deploy(tokenA.address, tokenB.address, governor.address, governor.address, timeWeightedOracle.address);
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);

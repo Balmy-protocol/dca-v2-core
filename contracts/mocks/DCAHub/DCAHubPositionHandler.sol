@@ -11,12 +11,8 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandler
     IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
-  )
-    DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
-    DCAHubPositionHandler(_tokenA, _tokenB)
-  {}
+  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _oracle) DCAHubPositionHandler(_tokenA, _tokenB) {}
 
   // PositionHandler
   function internalPosition(uint256 _dcaId) external view returns (DCA memory _dca) {

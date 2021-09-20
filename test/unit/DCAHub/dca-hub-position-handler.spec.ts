@@ -45,7 +45,6 @@ contract('DCAPositionHandler', () => {
       tokenB.address,
       owner.address,
       owner.address,
-      constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));

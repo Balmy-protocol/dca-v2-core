@@ -36,7 +36,6 @@ describe('DCAHubLoanHandler', () => {
       tokenB.address,
       owner.address,
       owner.address,
-      constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
     snapshotId = await snapshot.take();
