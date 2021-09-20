@@ -2,7 +2,6 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '../interfaces/IDCAPermissionManager.sol';
 
 /// @title The interface for all state related queries
