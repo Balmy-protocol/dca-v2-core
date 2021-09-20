@@ -9,21 +9,28 @@ import { Permission } from 'js-lib/types';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { Wallet } from '@ethersproject/wallet';
+import { BigNumber } from '@ethersproject/bignumber';
+import { _TypedDataEncoder } from '@ethersproject/hash';
+import { fromRpcSig } from 'ethereumjs-util';
 
 contract('DCAPermissionsManager', () => {
-  let hub: SignerWithAddress;
+  const NFT_NAME = 'Mean Finance DCA';
+  const NFT_DESCRIPTOR = wallet.generateRandomAddress();
+  let hub: SignerWithAddress, governor: SignerWithAddress;
   let DCAPermissionsManagerFactory: DCAPermissionsManagerMock__factory;
   let DCAPermissionsManager: DCAPermissionsManagerMock;
   let snapshotId: string;
+  let chainId: BigNumber;
 
   before('Setup accounts and contracts', async () => {
-    [hub] = await ethers.getSigners();
+    [hub, governor] = await ethers.getSigners();
     DCAPermissionsManagerFactory = await ethers.getContractFactory(
       'contracts/mocks/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManagerMock'
     );
-    DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy();
+    DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     await DCAPermissionsManager.setHub(hub.address);
     snapshotId = await snapshot.take();
+    chainId = BigNumber.from((await ethers.provider.getNetwork()).chainId);
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -33,7 +40,7 @@ contract('DCAPermissionsManager', () => {
   describe('constructor', () => {
     let DCAPermissionsManager: DCAPermissionsManagerMock;
     given(async () => {
-      DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy();
+      DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     });
     when('manager is deployed', () => {
       then('hub is zero address', async () => {
@@ -42,11 +49,31 @@ contract('DCAPermissionsManager', () => {
       });
       then('name is correct', async () => {
         const name = await DCAPermissionsManager.name();
-        expect(name).to.equal('Mean Finance DCA');
+        expect(name).to.equal(NFT_NAME);
       });
       then('symbol is correct', async () => {
         const symbol = await DCAPermissionsManager.symbol();
         expect(symbol).to.equal('DCA');
+      });
+      then('initial nonce is 0', async () => {
+        expect(await DCAPermissionsManager.nonces(hub.address)).to.equal(0);
+      });
+      then('NFT descriptor is set', async () => {
+        expect(await DCAPermissionsManager.nftDescriptor()).to.equal(NFT_DESCRIPTOR);
+      });
+      then('domain separator is the expected', async () => {
+        expect(await DCAPermissionsManager.DOMAIN_SEPARATOR()).to.equal(
+          await domainSeparator(NFT_NAME, '1', chainId, DCAPermissionsManager.address)
+        );
+      });
+    });
+    when('nft descriptor is zero address', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAPermissionsManagerFactory,
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
       });
     });
   });
@@ -67,7 +94,7 @@ contract('DCAPermissionsManager', () => {
       const ADDRESS = wallet.generateRandomAddress();
       let DCAPermissionsManager: DCAPermissionsManagerMock;
       given(async () => {
-        DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy();
+        DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
         await DCAPermissionsManager.setHub(ADDRESS);
       });
       then('hub is set correctly', async () => {
@@ -326,4 +353,322 @@ contract('DCAPermissionsManager', () => {
       });
     }
   });
+
+  describe('permit', () => {
+    const TOKEN_ID = 1;
+    const SPENDER = wallet.generateRandomAddress();
+    let owner: Wallet, stranger: Wallet;
+
+    given(async () => {
+      owner = await wallet.generateRandom();
+      stranger = await wallet.generateRandom();
+      await DCAPermissionsManager.mint(TOKEN_ID, owner.address, []);
+    });
+
+    when(`owner tries to execute a permit`, () => {
+      let response: TransactionResponse;
+
+      given(async () => {
+        response = await signAndPermit({ signer: owner, spender: SPENDER });
+      });
+
+      then('spender is registered as approved', async () => {
+        expect(await DCAPermissionsManager.getApproved(TOKEN_ID)).to.be.equal(SPENDER);
+      });
+
+      then('nonces is increased', async () => {
+        expect(await DCAPermissionsManager.nonces(owner.address)).to.be.equal(1);
+      });
+
+      then('event is emitted', async () => {
+        await expect(response).to.emit(DCAPermissionsManager, 'Approval').withArgs(owner.address, SPENDER, TOKEN_ID);
+      });
+    });
+
+    permitFailsTest({
+      when: 'some stranger tries to permit',
+      exec: () => signAndPermit({ signer: stranger }),
+      txFailsWith: 'InvalidSignature',
+    });
+
+    permitFailsTest({
+      when: 'permit is expired',
+      exec: () => signAndPermit({ signer: owner, deadline: BigNumber.from(0) }),
+      txFailsWith: 'ExpiredDeadline',
+    });
+
+    permitFailsTest({
+      when: 'signer signed something differently',
+      exec: async () => {
+        const data = withDefaults({ signer: owner, deadline: constants.MAX_UINT_256 });
+        const signature = await getSignature(data);
+        return permit({ ...data, deadline: constants.MAX_UINT_256.sub(1) }, signature);
+      },
+      txFailsWith: 'InvalidSignature',
+    });
+
+    permitFailsTest({
+      when: 'signature is reused',
+      exec: async () => {
+        const data = withDefaults({ signer: owner });
+        const signature = await getSignature(data);
+        await permit(data, signature);
+        return permit(data, signature);
+      },
+      txFailsWith: 'InvalidSignature',
+    });
+
+    function permitFailsTest({
+      when: title,
+      exec,
+      txFailsWith: errorMessage,
+    }: {
+      when: string;
+      exec: () => Promise<TransactionResponse>;
+      txFailsWith: string;
+    }) {
+      when(title, () => {
+        let tx: Promise<TransactionResponse>;
+        given(() => {
+          tx = exec();
+        });
+        then('tx reverts with message', async () => {
+          await behaviours.checkTxRevertedWithMessage({ tx, message: errorMessage });
+        });
+      });
+    }
+
+    async function signAndPermit(options: Pick<OperationData, 'signer'> & Partial<OperationData>) {
+      const data = withDefaults(options);
+      const signature = await getSignature(data);
+      return permit(data, signature);
+    }
+
+    async function permit(data: OperationData, { v, r, s }: { v: number; r: Buffer; s: Buffer }) {
+      return DCAPermissionsManager.permit(data.spender, TOKEN_ID, data.deadline, v, r, s);
+    }
+
+    function withDefaults(options: Pick<OperationData, 'signer'> & Partial<OperationData>): OperationData {
+      return {
+        nonce: BigNumber.from(0),
+        deadline: constants.MAX_UINT_256,
+        spender: SPENDER,
+        ...options,
+      };
+    }
+
+    const Permit = [
+      { name: 'spender', type: 'address' },
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+    ];
+
+    async function getSignature(options: OperationData) {
+      const { domain, types, value } = buildPermitData(options);
+      const signature = await options.signer._signTypedData(domain, types, value);
+      return fromRpcSig(signature);
+    }
+
+    function buildPermitData(options: OperationData) {
+      return {
+        primaryType: 'Permit',
+        types: { Permit },
+        domain: { name: NFT_NAME, version: '1', chainId, verifyingContract: DCAPermissionsManager.address },
+        value: { tokenId: TOKEN_ID, ...options },
+      };
+    }
+
+    type OperationData = {
+      signer: Wallet;
+      spender: string;
+      nonce: BigNumber;
+      deadline: BigNumber;
+    };
+  });
+
+  describe('permissionPermit', () => {
+    const TOKEN_ID = 1;
+    const OPERATOR = wallet.generateRandomAddress();
+    let owner: Wallet, stranger: Wallet;
+
+    given(async () => {
+      owner = await wallet.generateRandom();
+      stranger = await wallet.generateRandom();
+      await DCAPermissionsManager.mint(TOKEN_ID, owner.address, []);
+    });
+
+    when(`owner tries to execute a permission permit`, () => {
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await signAndPermit({ signer: owner, permissions: [{ operator: OPERATOR, permissions: [Permission.TERMINATE] }] });
+      });
+
+      then('operator gains permission', async () => {
+        expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OPERATOR, Permission.TERMINATE)).to.be.true;
+      });
+
+      then('nonces is increased', async () => {
+        expect(await DCAPermissionsManager.nonces(owner.address)).to.be.equal(1);
+      });
+
+      then('event is emitted', async () => {
+        const id = await readArgFromEventOrFail(tx, 'Modified', 'id');
+        const permissions: any = await readArgFromEventOrFail(tx, 'Modified', 'permissions');
+        expect(id).to.equal(TOKEN_ID);
+        expect(permissions.length).to.equal(1);
+        expect(permissions[0].operator).to.equal(OPERATOR);
+        expect(permissions[0].permissions).to.eql([Permission.TERMINATE]);
+      });
+    });
+
+    permitFailsTest({
+      when: 'some stranger tries to permit',
+      exec: () => signAndPermit({ signer: stranger }),
+      txFailsWith: 'InvalidSignature',
+    });
+
+    permitFailsTest({
+      when: 'permit is expired',
+      exec: () => signAndPermit({ signer: owner, deadline: BigNumber.from(0) }),
+      txFailsWith: 'ExpiredDeadline',
+    });
+
+    permitFailsTest({
+      when: 'signer signed something differently',
+      exec: async () => {
+        const data = withDefaults({ signer: owner, deadline: constants.MAX_UINT_256 });
+        const signature = await getSignature(data);
+        return permissionPermit({ ...data, deadline: constants.MAX_UINT_256.sub(1) }, signature);
+      },
+      txFailsWith: 'InvalidSignature',
+    });
+
+    permitFailsTest({
+      when: 'signature is reused',
+      exec: async () => {
+        const data = withDefaults({ signer: owner });
+        const signature = await getSignature(data);
+        await permissionPermit(data, signature);
+        return permissionPermit(data, signature);
+      },
+      txFailsWith: 'InvalidSignature',
+    });
+
+    function permitFailsTest({
+      when: title,
+      exec,
+      txFailsWith: errorMessage,
+    }: {
+      when: string;
+      exec: () => Promise<TransactionResponse>;
+      txFailsWith: string;
+    }) {
+      when(title, () => {
+        let tx: Promise<TransactionResponse>;
+        given(() => {
+          tx = exec();
+        });
+        then('tx reverts with message', async () => {
+          await behaviours.checkTxRevertedWithMessage({ tx, message: errorMessage });
+        });
+      });
+    }
+
+    async function signAndPermit(options: Pick<OperationData, 'signer'> & Partial<OperationData>) {
+      const data = withDefaults(options);
+      const signature = await getSignature(data);
+      return permissionPermit(data, signature);
+    }
+
+    async function permissionPermit(data: OperationData, { v, r, s }: { v: number; r: Buffer; s: Buffer }) {
+      return DCAPermissionsManager.permissionPermit(data.permissions, TOKEN_ID, data.deadline, v, r, s);
+    }
+
+    function withDefaults(options: Pick<OperationData, 'signer'> & Partial<OperationData>): OperationData {
+      return {
+        nonce: BigNumber.from(0),
+        deadline: constants.MAX_UINT_256,
+        permissions: [],
+        ...options,
+      };
+    }
+
+    const PermissionSet = [
+      { name: 'operator', type: 'address' },
+      { name: 'permissions', type: 'uint8[]' },
+    ];
+
+    const PermissionPermit = [
+      { name: 'permissions', type: 'PermissionSet[]' },
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+    ];
+
+    async function getSignature(options: OperationData) {
+      const { domain, types, value } = buildPermitData(options);
+      const signature = await options.signer._signTypedData(domain, types, value);
+      return fromRpcSig(signature);
+    }
+
+    function buildPermitData(options: OperationData) {
+      return {
+        primaryType: 'PermissionPermit',
+        types: { PermissionSet, PermissionPermit },
+        domain: { name: NFT_NAME, version: '1', chainId, verifyingContract: DCAPermissionsManager.address },
+        value: { tokenId: TOKEN_ID, ...options },
+      };
+    }
+
+    type OperationData = {
+      signer: Wallet;
+      permissions: { operator: string; permissions: Permission[] }[];
+      nonce: BigNumber;
+      deadline: BigNumber;
+    };
+  });
+
+  describe('setNFTDescriptor', () => {
+    when('address is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPermissionsManager.connect(governor),
+          func: 'setNFTDescriptor',
+          args: [constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+    when('address is not zero', () => {
+      then('sets nftDescriptor and emits event with correct arguments', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAPermissionsManager.connect(governor),
+          getterFunc: 'nftDescriptor',
+          setterFunc: 'setNFTDescriptor',
+          variable: constants.NOT_ZERO_ADDRESS,
+          eventEmitted: 'NFTDescriptorSet',
+        });
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => DCAPermissionsManager,
+      funcAndSignature: 'setNFTDescriptor(address)',
+      params: [constants.NOT_ZERO_ADDRESS],
+      governor: () => governor,
+    });
+  });
+
+  const EIP712Domain = [
+    { name: 'name', type: 'string' },
+    { name: 'version', type: 'string' },
+    { name: 'chainId', type: 'uint256' },
+    { name: 'verifyingContract', type: 'address' },
+  ];
+
+  async function domainSeparator(name: string, version: string, chainId: BigNumber, verifyingContract: string) {
+    return _TypedDataEncoder.hashStruct('EIP712Domain', { EIP712Domain }, { name, version, chainId, verifyingContract });
+  }
 });
