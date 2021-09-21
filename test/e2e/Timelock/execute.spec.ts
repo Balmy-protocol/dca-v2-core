@@ -24,7 +24,6 @@ contract('Timelock', () => {
 
   let snapshotId: string;
 
-  const nftDescriptor = wallet.generateRandomAddress();
   const oracle = wallet.generateRandomAddress();
 
   const VALUE = 0;
@@ -44,7 +43,7 @@ contract('Timelock', () => {
       symbol: 'DAI',
       decimals: 18,
     });
-    DCAHub = await DCAHubFactory.deploy(tokenA.address, tokenB.address, immediateGovernor.address, timelock.address, nftDescriptor, oracle);
+    DCAHub = await DCAHubFactory.deploy(immediateGovernor.address, timelock.address, oracle, constants.NOT_ZERO_ADDRESS);
     snapshotId = await snapshot.take();
   });
 

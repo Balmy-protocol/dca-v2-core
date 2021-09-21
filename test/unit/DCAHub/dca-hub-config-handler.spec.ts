@@ -9,23 +9,16 @@ import { snapshot } from '@test-utils/evm';
 import { DCAHubConfigHandlerMock, DCAHubConfigHandlerMock__factory } from '@typechained';
 
 contract('DCAHubConfigHandler', () => {
-  let owner: SignerWithAddress, timeLockedOwner: SignerWithAddress, nftDescriptor: SignerWithAddress, oracle: SignerWithAddress;
+  let owner: SignerWithAddress, timeLockedOwner: SignerWithAddress, oracle: SignerWithAddress;
   let DCAHubConfigHandlerFactory: DCAHubConfigHandlerMock__factory;
   let DCAHubConfigHandler: DCAHubConfigHandlerMock;
   let immediateRole: string, timeLockedRole: string;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    [owner, timeLockedOwner, nftDescriptor, oracle] = await ethers.getSigners();
+    [owner, timeLockedOwner, oracle] = await ethers.getSigners();
     DCAHubConfigHandlerFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubConfigHandler.sol:DCAHubConfigHandlerMock');
-    DCAHubConfigHandler = await DCAHubConfigHandlerFactory.deploy(
-      constants.NOT_ZERO_ADDRESS,
-      constants.NOT_ZERO_ADDRESS,
-      owner.address,
-      timeLockedOwner.address,
-      nftDescriptor.address,
-      oracle.address
-    );
+    DCAHubConfigHandler = await DCAHubConfigHandlerFactory.deploy(owner.address, timeLockedOwner.address, oracle.address);
     immediateRole = await DCAHubConfigHandler.IMMEDIATE_ROLE();
     timeLockedRole = await DCAHubConfigHandler.TIME_LOCKED_ROLE();
     snapshotId = await snapshot.take();
@@ -40,14 +33,7 @@ contract('DCAHubConfigHandler', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAHubConfigHandlerFactory,
-          args: [
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-          ],
+          args: [constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -56,30 +42,7 @@ contract('DCAHubConfigHandler', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAHubConfigHandlerFactory,
-          args: [
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-          ],
-          message: 'ZeroAddress',
-        });
-      });
-    });
-    when('nft descriptor is zero address', () => {
-      then('tx is reverted with reason error', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCAHubConfigHandlerFactory,
-          args: [
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-          ],
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -88,14 +51,7 @@ contract('DCAHubConfigHandler', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAHubConfigHandlerFactory,
-          args: [
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.ZERO_ADDRESS,
-          ],
+          args: [constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -103,14 +59,7 @@ contract('DCAHubConfigHandler', () => {
     when('all arguments are valid', () => {
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAHubConfigHandlerFactory, [
-          constants.NOT_ZERO_ADDRESS,
-          constants.NOT_ZERO_ADDRESS,
-          owner.address,
-          timeLockedOwner.address,
-          nftDescriptor.address,
-          oracle.address,
-        ]);
+        const deployment = await contracts.deploy(DCAHubConfigHandlerFactory, [owner.address, timeLockedOwner.address, oracle.address]);
         deployedContract = deployment.contract;
       });
       then('sets immediate governor correctly', async () => {
@@ -119,47 +68,12 @@ contract('DCAHubConfigHandler', () => {
       then('sets time locked governor correctly', async () => {
         expect(await deployedContract.hasRole(timeLockedRole, timeLockedOwner.address)).to.be.true;
       });
-      then('sets nft descriptor correctly', async () => {
-        expect(await deployedContract.nftDescriptor()).to.equal(nftDescriptor.address);
-      });
       then('sets oracle correctly', async () => {
         expect(await deployedContract.oracle()).to.equal(oracle.address);
       });
       then('contract starts as unpaused', async () => {
         expect(await deployedContract.paused()).to.be.false;
       });
-    });
-  });
-
-  describe('setNFTDescriptor', () => {
-    when('address is zero', () => {
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler,
-          func: 'setNFTDescriptor',
-          args: [constants.ZERO_ADDRESS],
-          message: 'ZeroAddress',
-        });
-      });
-    });
-    when('address is not zero', () => {
-      then('sets nftDescriptor and emits event with correct arguments', async () => {
-        await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAHubConfigHandler,
-          getterFunc: 'nftDescriptor',
-          setterFunc: 'setNFTDescriptor',
-          variable: constants.NOT_ZERO_ADDRESS,
-          eventEmitted: 'NFTDescriptorSet',
-        });
-      });
-    });
-
-    behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => DCAHubConfigHandler,
-      funcAndSignature: 'setNFTDescriptor(address)',
-      params: [constants.NOT_ZERO_ADDRESS],
-      addressWithRole: () => owner,
-      role: () => immediateRole,
     });
   });
 

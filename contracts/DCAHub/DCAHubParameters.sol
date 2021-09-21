@@ -21,10 +21,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;
 
-  // Basic setup
-  IERC20Metadata public override tokenA;
-  IERC20Metadata public override tokenB;
-
   // Tracking
   // TODO: See if there is a way to optimize all these mappings
   mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => int256)))) public swapAmountDelta; // from token => to token => swap interval => swap number => delta
@@ -35,12 +31,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => uint256) internal _balances; // token => balance
-
-  constructor(IERC20Metadata _tokenA, IERC20Metadata _tokenB) {
-    if (address(_tokenA) == address(0) || address(_tokenB) == address(0)) revert CommonErrors.ZeroAddress();
-    tokenA = _tokenA;
-    tokenB = _tokenB;
-  }
 
   function isSwapIntervalActive(
     address _tokenA,
