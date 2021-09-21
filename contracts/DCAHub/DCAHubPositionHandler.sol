@@ -274,7 +274,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _swapInterval
   ) internal view returns (uint32) {
     // TODO: Check if it's better to just receive the in-memory DCA
-    return (_from < _to) ? performedSwaps[_from][_to][_swapInterval] : performedSwaps[_to][_from][_swapInterval];
+    return (_from < _to) ? pairInfo[_from][_to][_swapInterval].performedSwaps : pairInfo[_to][_from][_swapInterval].performedSwaps;
   }
 
   // TODO: Remove when we remove ERC721

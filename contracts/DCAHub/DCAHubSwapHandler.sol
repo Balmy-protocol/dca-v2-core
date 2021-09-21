@@ -20,7 +20,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _ratioBToA,
     uint32 _timestamp
   ) internal virtual {
-    uint32 _swapToRegister = performedSwaps[_tokenA][_tokenB][_swapInterval] + 1;
+    uint32 _swapToRegister = pairInfo[_tokenA][_tokenB][_swapInterval].performedSwaps + 1;
     int256 _swappedTokenA = swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
     int256 _swappedTokenB = swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
     if (_swappedTokenA > 0 || _swappedTokenB > 0) {
@@ -34,8 +34,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1] += _swappedTokenB;
       delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister];
       delete swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister];
-      performedSwaps[_tokenA][_tokenB][_swapInterval] = _swapToRegister;
-      nextSwapAvailable[_tokenA][_tokenB][_swapInterval] = ((_timestamp / _swapInterval) + 1) * _swapInterval;
+      pairInfo[_tokenA][_tokenB][_swapInterval] = PairInfo({
+        performedSwaps: _swapToRegister,
+        nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval
+      });
     } else {
       _activeSwapIntervals[_tokenA][_tokenB].remove(_swapInterval);
     }
@@ -46,7 +48,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address _tokenB,
     uint32 _swapInterval
   ) internal view virtual returns (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) {
-    uint32 _nextSwap = performedSwaps[_tokenA][_tokenB][_swapInterval] + 1;
+    uint32 _nextSwap = pairInfo[_tokenA][_tokenB][_swapInterval].performedSwaps + 1;
     _amountToSwapTokenA = uint256(swapAmountDelta[_tokenA][_tokenB][_swapInterval][_nextSwap]);
     _amountToSwapTokenB = uint256(swapAmountDelta[_tokenB][_tokenA][_swapInterval][_nextSwap]);
   }
@@ -83,7 +85,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _secondsUntil = type(uint32).max;
     for (uint256 i; i < _activeSwapIntervals[_tokenA][_tokenB].length(); i++) {
       uint32 _swapInterval = uint32(_activeSwapIntervals[_tokenA][_tokenB].at(i));
-      uint32 _nextAvailable = nextSwapAvailable[_tokenA][_tokenB][_swapInterval];
+      uint32 _nextAvailable = pairInfo[_tokenA][_tokenB][_swapInterval].nextSwapAvailable;
       if (_nextAvailable <= _timestamp) {
         return 0;
       } else {
@@ -114,7 +116,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _intervalsInSwap = new uint32[](_swapIntervals.length());
     for (uint256 i; i < _intervalsInSwap.length; i++) {
       uint32 _swapInterval = uint32(_swapIntervals.at(i));
-      if (nextSwapAvailable[_tokenA][_tokenB][_swapInterval] <= _getTimestamp()) {
+      if (pairInfo[_tokenA][_tokenB][_swapInterval].nextSwapAvailable <= _getTimestamp()) {
         (uint256 _amountToSwapTokenA, uint256 _amountToSwapTokenB) = _getAmountToSwap(_tokenA, _tokenB, _swapInterval);
         _intervalsInSwap[_intervalCount++] = _swapInterval;
         _totalAmountToSwapTokenA += _amountToSwapTokenA;

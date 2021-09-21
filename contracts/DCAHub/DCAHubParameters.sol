@@ -11,6 +11,11 @@ import '../libraries/CommonErrors.sol';
 import './utils/Math.sol';
 
 abstract contract DCAHubParameters is IDCAHubParameters {
+  struct PairInfo {
+    uint32 performedSwaps;
+    uint32 nextSwapAvailable;
+  }
+
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
@@ -25,8 +30,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => int256)))) public swapAmountDelta; // from token => to token => swap interval => swap number => delta
   mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => uint256)))) public accumRatio; // from token => to token => swap interval => swap number => accum
 
-  mapping(address => mapping(address => mapping(uint32 => uint32))) public performedSwaps; // token A => token B => swap interval => performed swaps
-  mapping(address => mapping(address => mapping(uint32 => uint32))) public nextSwapAvailable; // token A => token B => swap interval => timestamp
+  mapping(address => mapping(address => mapping(uint32 => PairInfo))) public pairInfo; // token A => token B => swap interval => token info
   mapping(address => mapping(address => EnumerableSet.UintSet)) internal _activeSwapIntervals; // token A => token B => active swap intervals
 
   mapping(address => uint256) public platformBalance; // token => balance

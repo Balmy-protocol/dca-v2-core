@@ -123,12 +123,22 @@ contract('DCAHubSwapHandler', () => {
         expect(accumRatioBToA).to.equal(0);
       });
       then('performed swaps is not incremented', async () => {
-        expect(await DCAHubSwapHandler.performedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(NEXT_SWAP - 1);
+        expect(await getPerformedSwaps(tokenA, tokenB, SWAP_INTERVAL)).to.equal(NEXT_SWAP - 1);
       });
       then('next available is not updated', async () => {
-        expect(await DCAHubSwapHandler.nextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.equal(NEXT_AVAILABLE);
+        expect(await nextSwapAvailable(tokenA, tokenB, SWAP_INTERVAL)).to.equal(NEXT_AVAILABLE);
       });
     });
+
+    async function getPerformedSwaps(tokenA: TokenContract, tokenB: TokenContract, swapInterval: number) {
+      const { performedSwaps } = await DCAHubSwapHandler.pairInfo(tokenA.address, tokenB.address, swapInterval);
+      return performedSwaps;
+    }
+
+    async function nextSwapAvailable(tokenA: TokenContract, tokenB: TokenContract, swapInterval: number) {
+      const { nextSwapAvailable } = await DCAHubSwapHandler.pairInfo(tokenA.address, tokenB.address, swapInterval);
+      return nextSwapAvailable;
+    }
 
     function registerSwapTest({
       title,
@@ -238,12 +248,12 @@ contract('DCAHubSwapHandler', () => {
         });
 
         then('performed swaps is incremented', async () => {
-          expect(await DCAHubSwapHandler.performedSwaps(tokenA().address, tokenB().address, SWAP_INTERVAL)).to.equal(nextSwapNumber);
+          expect(await getPerformedSwaps(tokenA(), tokenB(), SWAP_INTERVAL)).to.equal(nextSwapNumber);
         });
 
         then('next available is updated', async () => {
           const nextTimestamp = (Math.floor(blockTimestamp / SWAP_INTERVAL) + 1) * SWAP_INTERVAL;
-          expect(await DCAHubSwapHandler.nextSwapAvailable(tokenA().address, tokenB().address, SWAP_INTERVAL)).to.equal(nextTimestamp);
+          expect(await nextSwapAvailable(tokenA(), tokenB(), SWAP_INTERVAL)).to.equal(nextTimestamp);
         });
       });
     }

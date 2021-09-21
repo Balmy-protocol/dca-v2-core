@@ -64,7 +64,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     uint32 _swapInterval,
     uint32 _performedSwaps
   ) external {
-    performedSwaps[_tokenA][_tokenB][_swapInterval] = _performedSwaps;
+    pairInfo[_tokenA][_tokenB][_swapInterval].performedSwaps = _performedSwaps;
   }
 
   function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external pure returns (uint256) {
