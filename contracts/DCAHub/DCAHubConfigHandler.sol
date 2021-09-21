@@ -29,7 +29,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   uint32 public loanFee = 1000; // 0.1%
   uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
   mapping(uint32 => string) public intervalDescription;
-  uint32[] internal _allowedSwapIntervals; // TODO: Explore possibility of avoid array
+  uint32[] internal _allowedSwapIntervals; // TODO: Explore possibility of avoiding array
 
   constructor(
     address _immediateGovernor,

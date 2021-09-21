@@ -255,26 +255,36 @@ contract('DCAHubConfigHandler', () => {
       });
     });
     when('one of the intervals was already allowed', () => {
-      beforeEach(async () => {
+      given(async () => {
         await DCAHubConfigHandler.addSwapIntervalsToAllowedList([10, 11], ['something', 'something']);
       });
       then('tx is no op', async () => {
         await DCAHubConfigHandler.addSwapIntervalsToAllowedList([10, 11], ['something', 'something']);
       });
     });
-    when('swap intervals are not zero and were not previously allowed', () => {
-      then('adds swap intervals to allowed list and emits event', async () => {
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(1)).to.be.false;
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(100)).to.be.false;
-        const intervalsToBeAdded = [1, 100];
-        const descriptions = ['d1', 'd2'];
-        await expect(DCAHubConfigHandler.addSwapIntervalsToAllowedList(intervalsToBeAdded, descriptions))
-          .to.emit(DCAHubConfigHandler, 'SwapIntervalsAllowed')
-          .withArgs(intervalsToBeAdded, descriptions);
+    when('valid swap intervals are added', () => {
+      const INTERVALS = [1, 3, 5];
+      const DESCRIPTIONS = ['1', '3', '5'];
+      let tx: TransactionResponse;
+      given(async () => {
+        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([2, 4], ['2', '4']);
+        tx = await DCAHubConfigHandler.addSwapIntervalsToAllowedList(INTERVALS, DESCRIPTIONS);
+      });
+      then('intervals are added', async () => {
         expect(await DCAHubConfigHandler.isSwapIntervalAllowed(1)).to.be.true;
-        expect(await DCAHubConfigHandler.intervalDescription(1)).to.equal('d1');
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(100)).to.be.true;
-        expect(await DCAHubConfigHandler.intervalDescription(100)).to.equal('d2');
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(3)).to.be.true;
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(5)).to.be.true;
+      });
+      then('description is recorded correctly', async () => {
+        expect(await DCAHubConfigHandler.intervalDescription(1)).to.equal('1');
+        expect(await DCAHubConfigHandler.intervalDescription(3)).to.equal('3');
+        expect(await DCAHubConfigHandler.intervalDescription(5)).to.equal('5');
+      });
+      then('they are sorted', async () => {
+        expect(await DCAHubConfigHandler.allowedSwapIntervals()).to.eql([1, 2, 3, 4, 5]);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCAHubConfigHandler, 'SwapIntervalsAllowed').withArgs(INTERVALS, DESCRIPTIONS);
       });
     });
     behaviours.shouldBeExecutableOnlyByRole({
