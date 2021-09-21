@@ -296,8 +296,8 @@ contract('DCAHubConfigHandler', () => {
     });
   });
   describe('removeSwapIntervalsFromAllowedList', () => {
-    beforeEach(async () => {
-      await DCAHubConfigHandler.addSwapIntervalsToAllowedList([1], ['description']);
+    given(async () => {
+      await DCAHubConfigHandler.addSwapIntervalsToAllowedList([1, 2, 3, 4, 5], ['d1', 'd2', 'd3', 'd4', 'd5']);
     });
     when('swap interval was not previously allowed', () => {
       then('tx is no op', async () => {
@@ -308,17 +308,24 @@ contract('DCAHubConfigHandler', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await DCAHubConfigHandler.removeSwapIntervalsFromAllowedList([1]);
+        tx = await DCAHubConfigHandler.removeSwapIntervalsFromAllowedList([1, 3, 5]);
       });
 
       then('event is emitted', async () => {
-        await expect(tx).to.emit(DCAHubConfigHandler, 'SwapIntervalsForbidden').withArgs([1]);
+        await expect(tx).to.emit(DCAHubConfigHandler, 'SwapIntervalsForbidden').withArgs([1, 3, 5]);
       });
       then('interval is no longer allowed', async () => {
         expect(await DCAHubConfigHandler.isSwapIntervalAllowed(1)).to.be.false;
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(3)).to.be.false;
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(5)).to.be.false;
       });
       then('description is empty', async () => {
         expect(await DCAHubConfigHandler.intervalDescription(1)).to.be.empty;
+        expect(await DCAHubConfigHandler.intervalDescription(3)).to.be.empty;
+        expect(await DCAHubConfigHandler.intervalDescription(5)).to.be.empty;
+      });
+      then('interval was removed from list', async () => {
+        expect(await DCAHubConfigHandler.allowedSwapIntervals()).to.eql([2, 4]);
       });
     });
     behaviours.shouldBeExecutableOnlyByRole({
