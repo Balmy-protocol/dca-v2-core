@@ -28,14 +28,16 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         accumRatioAToB: _accumRatio.accumRatioAToB + _ratioAToB,
         accumRatioBToA: _accumRatio.accumRatioBToA + _ratioBToA
       });
-      unchecked {
-        swapData[_tokenA][_tokenB][_swapInterval] = SwapData({
-          performedSwaps: _swapData.performedSwaps + 1,
-          nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
-          nextAmountToSwapAToB: _swapData.nextAmountToSwapAToB + uint256(_swapDelta.swapDeltaAToB),
-          nextAmountToSwapBToA: _swapData.nextAmountToSwapBToA + uint256(_swapDelta.swapDeltaBToA)
-        });
-      }
+      swapData[_tokenA][_tokenB][_swapInterval] = SwapData({
+        performedSwaps: _swapData.performedSwaps + 1,
+        nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
+        nextAmountToSwapAToB: _swapDelta.swapDeltaAToB < 0
+          ? _swapData.nextAmountToSwapAToB - uint128(-_swapDelta.swapDeltaAToB)
+          : _swapData.nextAmountToSwapAToB + uint128(_swapDelta.swapDeltaAToB),
+        nextAmountToSwapBToA: _swapDelta.swapDeltaBToA < 0
+          ? _swapData.nextAmountToSwapBToA - uint128(-_swapDelta.swapDeltaBToA)
+          : _swapData.nextAmountToSwapBToA + uint128(_swapDelta.swapDeltaBToA)
+      });
       delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 2];
     } else {
       _activeSwapIntervals[_tokenA][_tokenB].remove(_swapInterval);

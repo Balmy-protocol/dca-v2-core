@@ -236,10 +236,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) internal {
     if (_from < _to) {
       swapData[_from][_to][_swapInterval].nextAmountToSwapAToB += _rate;
-      swapAmountDelta[_from][_to][_swapInterval][_finalSwap + 1].swapDeltaAToB -= int160(_rate);
+      swapAmountDelta[_from][_to][_swapInterval][_finalSwap + 1].swapDeltaAToB -= int128(int160(_rate));
     } else {
       swapData[_to][_from][_swapInterval].nextAmountToSwapBToA += _rate;
-      swapAmountDelta[_to][_from][_swapInterval][_finalSwap + 1].swapDeltaBToA -= int160(_rate);
+      swapAmountDelta[_to][_from][_swapInterval][_finalSwap + 1].swapDeltaBToA -= int128(int160(_rate));
     }
   }
 
@@ -247,13 +247,13 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_userPosition.finalSwap > _performedSwaps) {
       if (_userPosition.from < _userPosition.to) {
         swapData[_userPosition.from][_userPosition.to][_userPosition.swapInterval].nextAmountToSwapAToB -= _userPosition.rate;
-        swapAmountDelta[_userPosition.from][_userPosition.to][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaAToB -= int160(
-          _userPosition.rate
+        swapAmountDelta[_userPosition.from][_userPosition.to][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaAToB -= int128(
+          int160(_userPosition.rate)
         );
       } else {
         swapData[_userPosition.to][_userPosition.from][_userPosition.swapInterval].nextAmountToSwapBToA -= _userPosition.rate;
-        swapAmountDelta[_userPosition.to][_userPosition.from][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaBToA -= int160(
-          _userPosition.rate
+        swapAmountDelta[_userPosition.to][_userPosition.from][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaBToA -= int128(
+          int160(_userPosition.rate)
         );
       }
     }

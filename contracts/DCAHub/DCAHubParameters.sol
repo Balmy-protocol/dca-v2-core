@@ -19,8 +19,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   }
 
   struct SwapDelta {
-    int256 swapDeltaAToB;
-    int256 swapDeltaBToA;
+    int128 swapDeltaAToB;
+    int128 swapDeltaBToA;
   }
 
   struct AccumRatio {

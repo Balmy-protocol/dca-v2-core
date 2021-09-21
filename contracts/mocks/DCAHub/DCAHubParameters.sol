@@ -41,8 +41,8 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _swapInterval,
     uint32 _swap,
-    int256 _deltaAToB,
-    int256 _deltaBToA
+    int128 _deltaAToB,
+    int128 _deltaBToA
   ) external {
     swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swap] = SwapDelta(_deltaAToB, _deltaBToA);
   }
