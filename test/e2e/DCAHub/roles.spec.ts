@@ -34,10 +34,9 @@ contract('DCAHub', () => {
       decimals: 18,
     });
     DCAHub = await DCAHubFactory.deploy(
-      tokenA.address,
-      tokenB.address,
       immediateGovernor.address,
       timeLockedGovernor.address,
+      constants.NOT_ZERO_ADDRESS,
       constants.NOT_ZERO_ADDRESS
     );
     snapshotId = await snapshot.take();

@@ -55,14 +55,13 @@ contract('DCATokenDescriptor', () => {
     });
     TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(tokenA.asUnits(1), tokenA.amountOfDecimals); // Rate is 1 token A = 1 token B
     DCATokenDescriptor = await DCATokenDescriptorFactory.deploy();
+    DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
     DCAHub = await DCAHubContract.deploy(
-      tokenA.address,
-      tokenB.address,
       governor.address,
       constants.NOT_ZERO_ADDRESS,
-      TimeWeightedOracle.address
+      TimeWeightedOracle.address,
+      DCAPermissionsManager.address
     );
-    DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
     await DCAPermissionsManager.setHub(DCAHub.address);
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
@@ -71,10 +70,9 @@ contract('DCATokenDescriptor', () => {
     await tokenB.mint(governor.address, tokenB.asUnits(1000));
   });
 
-  // TODO: Remove skip when the hub mints NFT on position creation. This won't work until that happens
-  it.skip('Validate tokenURI result', async () => {
+  it('Validate tokenURI result', async () => {
     // Deposit
-    const response = await DCAHub.deposit(governor.address, tokenB.address, tokenB.asUnits(10), 2, swapInterval);
+    const response = await DCAHub.deposit(tokenB.address, tokenA.address, tokenB.asUnits(20), 2, swapInterval, governor.address, []);
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
 
     // Execute one swap

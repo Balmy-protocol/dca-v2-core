@@ -1,8 +1,8 @@
-import { BigNumber, Contract } from 'ethers';
+import { BigNumber, Contract, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock } from '@typechained';
+import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermissionsManager } from '@typechained';
 import { erc20, behaviours, constants, wallet } from '@test-utils';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { when, then, given, contract } from '@test-utils/bdd';
@@ -10,6 +10,10 @@ import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 import { snapshot } from '@test-utils/evm';
+import { FakeContract, smock } from '@defi-wonderland/smock';
+import { Permission } from 'js-lib/types';
+
+chai.use(smock.matchers);
 
 contract('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
@@ -24,14 +28,15 @@ contract('DCAPositionHandler', () => {
   const INITIAL_TOKEN_B_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_B_BALANCE_USER = 100;
 
-  let owner: SignerWithAddress, approved: SignerWithAddress, stranger: SignerWithAddress;
+  let owner: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAPositionHandlerContract: DCAHubPositionHandlerMock__factory;
   let DCAPositionHandler: DCAHubPositionHandlerMock;
+  let DCAPermissionManager: FakeContract<DCAPermissionsManager>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    [owner, approved, stranger] = await ethers.getSigners();
+    [owner] = await ethers.getSigners();
     DCAPositionHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubPositionHandler.sol:DCAHubPositionHandlerMock');
 
     const deploy = (decimals: number) => erc20.deploy({ name: 'A name', symbol: 'SYMB', decimals });
@@ -40,21 +45,14 @@ contract('DCAPositionHandler', () => {
     [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
-    DCAPositionHandler = await DCAPositionHandlerContract.deploy(
-      tokenA.address,
-      tokenB.address,
-      owner.address,
-      owner.address,
-      constants.NOT_ZERO_ADDRESS
-    );
+    DCAPermissionManager = await smock.fake('DCAPermissionsManager');
+    DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, DCAPermissionManager.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await tokenB.mint(DCAPositionHandler.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await DCAPositionHandler.setInternalBalance(tokenA.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await DCAPositionHandler.setInternalBalance(tokenB.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
-    await tokenA.mint(approved.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
-    await tokenA.approveInternal(approved.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
     await DCAPositionHandler.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
     snapshotId = await snapshot.take();
@@ -62,15 +60,22 @@ contract('DCAPositionHandler', () => {
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
+    DCAPermissionManager.hasPermission.returns(true);
   });
 
   describe('constructor', () => {
+    when('permission manager is zero address', () => {
+      then('deployment is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAPositionHandlerContract,
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
     when('contract is initiated', () => {
-      then('name and symbol are created based on token pair', async () => {
-        const name = await DCAPositionHandler.name();
-        const symbol = await DCAPositionHandler.symbol();
-        expect(name).to.equal(`DCA: ${await tokenA.symbol()} - ${await tokenB.symbol()}`);
-        expect(symbol).to.equal('DCA');
+      then('permission manager is set correctly', async () => {
+        expect(await DCAPositionHandler.permissionManager()).to.equal(DCAPermissionManager.address);
       });
     });
   });
@@ -78,71 +83,94 @@ contract('DCAPositionHandler', () => {
   describe('deposit', () => {
     const depositShouldRevert = ({
       owner,
-      address,
-      rate,
+      from,
+      to,
+      amount,
+      interval,
       swaps,
       error,
     }: {
       owner: string;
-      address: string;
-      rate: number;
+      from: string;
+      to: string;
+      amount: number;
       swaps: number;
+      interval: number;
       error: string;
     }) =>
       behaviours.txShouldRevertWithMessage({
         contract: DCAPositionHandler,
         func: 'deposit',
-        args: [owner, address, rate, swaps, SWAP_INTERVAL],
+        args: [from, to, amount, swaps, interval, owner, []],
         message: error,
       });
 
-    when('making a deposit to a zero address recipient', () => {
+    when('making a deposit to a zero address from', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          owner: constants.ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
+          from: constants.ZERO_ADDRESS,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
+          interval: SWAP_INTERVAL,
           error: 'ZeroAddress',
         });
       });
     });
 
-    when('making a deposit with an unknown token address', () => {
+    when('making a deposit to a zero address to', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: constants.ZERO_ADDRESS,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: constants.NOT_ZERO_ADDRESS,
-          rate: POSITION_RATE_5,
+          amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'InvalidToken',
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAddress',
+        });
+      });
+    });
+
+    when('making a deposit to a zero address owner', () => {
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.ZERO_ADDRESS,
+          amount: 10,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAddress',
         });
       });
     });
 
     when('making a deposit with non-allowed interval', async () => {
-      given(async () => {
-        await DCAPositionHandler.removeSwapIntervalsFromAllowedList([SWAP_INTERVAL]);
-      });
       then('tx is reverted with messasge', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
-          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          amount: 10,
+          swaps: 10,
+          interval: 0,
           error: 'InvalidInterval',
         });
       });
     });
 
-    when('making a deposit with 0 rate', () => {
+    when('making a deposit with 0 amount', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: 0,
+          amount: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'ZeroRate',
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAmount',
         });
       });
     });
@@ -150,11 +178,27 @@ contract('DCAPositionHandler', () => {
     when('making a deposit with 0 swaps', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
+          amount: 10,
           swaps: 0,
+          interval: SWAP_INTERVAL,
           error: 'ZeroSwaps',
+        });
+      });
+    });
+
+    when('making a deposit with 0 swaps', () => {
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenA.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 20,
+          interval: SWAP_INTERVAL,
+          error: 'InvalidToken',
         });
       });
     });
@@ -179,6 +223,7 @@ contract('DCAPositionHandler', () => {
             nftOwner,
             1,
             tokenA.address,
+            tokenB.address,
             tokenA.asUnits(POSITION_RATE_5),
             PERFORMED_SWAPS_10 + 1,
             SWAP_INTERVAL,
@@ -241,11 +286,8 @@ contract('DCAPositionHandler', () => {
         expect(deltaLastDay).to.equal(0);
       });
 
-      then('nft is created and assigned to owner', async () => {
-        const tokenOwner = await DCAPositionHandler.ownerOf(dcaId);
-        const balance = await DCAPositionHandler.balanceOf(nftOwner);
-        expect(tokenOwner).to.equal(nftOwner);
-        expect(balance).to.equal(1);
+      then('permission manager is called correctly', async () => {
+        expect(DCAPermissionManager.mint).to.have.been.calledWith(dcaId, nftOwner, []);
       });
 
       then('interval is now active', async () => {
@@ -281,7 +323,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwapped(dcaId, recipient));
+    permissionTest(Permission.WITHDRAW, ({ contract, dcaId }) => contract.withdrawSwapped(dcaId, recipient));
 
     when(`withdrawing swapped with position that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -409,7 +451,9 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwappedMany([{ token: tokenB.address, positionIds: [dcaId] }], recipient));
+    permissionTest(Permission.WITHDRAW, ({ contract, dcaId }) =>
+      contract.withdrawSwappedMany([{ token: tokenB.address, positionIds: [dcaId] }], recipient)
+    );
 
     when(`withdrawing swapped with positions that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -612,7 +656,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.terminate(dcaId, recipientUnswapped, recipientSwapped));
+    permissionTest(Permission.TERMINATE, ({ contract, dcaId }) => contract.terminate(dcaId, recipientUnswapped, recipientSwapped));
 
     when(`terminating a valid position`, () => {
       const swappedWhenTerminated = RATE_PER_UNIT_5 * POSITION_RATE_5;
@@ -666,9 +710,8 @@ contract('DCAPositionHandler', () => {
         });
       });
 
-      then('nft is burned', async () => {
-        const balance = await DCAPositionHandler.balanceOf(owner.address);
-        expect(balance).to.equal(0);
+      then('permission manager is called correctly', async () => {
+        expect(DCAPermissionManager.burn).to.have.been.calledWith(dcaId);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
@@ -703,7 +746,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    erc721PermissionTest(({ token, contract, dcaId }) => contract.increasePosition(dcaId, token.asUnits(1), 2));
+    permissionTest(Permission.INCREASE, ({ token, contract, dcaId }) => contract.increasePosition(dcaId, token.asUnits(1), 2));
 
     modifyPositionTest({
       title: `adding more funds to the position`,
@@ -766,7 +809,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    erc721PermissionTest(({ token, contract, dcaId }) => contract.reducePosition(dcaId, token.asUnits(1), 2));
+    permissionTest(Permission.REDUCE, ({ token, contract, dcaId }) => contract.reducePosition(dcaId, token.asUnits(1), 2));
 
     modifyPositionTest({
       title: `using remove funds to re-organize the unswapped balance`,
@@ -915,49 +958,42 @@ contract('DCAPositionHandler', () => {
     );
   }
 
-  /**
-   * Verify that approved addresses can also execute the action, but that other addresses can't
-   */
-  function erc721PermissionTest(
+  function permissionTest(
+    permission: Permission,
     execute: (params: { token: TokenContract; contract: Contract; dcaId: BigNumber }) => Promise<TransactionResponse>
   ) {
-    when(`executing address is approved for position`, () => {
+    let operator: Wallet;
+
+    given(async () => {
+      operator = await wallet.generateRandom();
+      await tokenA.mint(operator.address, tokenA.asUnits(1000));
+      await tokenA.connect(operator).approve(DCAPositionHandler.address, tokenA.asUnits(1000));
+    });
+
+    when(`executing address has permission`, () => {
       let dcaId: BigNumber;
 
       given(async () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
-        await DCAPositionHandler.approve(approved.address, dcaId);
+        DCAPermissionManager.hasPermission.returns(({ _permission }: { _permission: Permission }) => permission === _permission);
       });
 
-      then('they can execute the operation even if they are not the owner', async () => {
-        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(approved), dcaId });
+      then('they can execute the operation', async () => {
+        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(operator), dcaId });
         await expect(result).to.not.be.reverted;
       });
     });
 
-    when(`executing address is approved for all`, () => {
+    when(`executing address doesn't have permission`, () => {
       let dcaId: BigNumber;
 
       given(async () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
-        await DCAPositionHandler.setApprovalForAll(approved.address, true);
-      });
-
-      then('they can execute the operation even if they are not the owner', async () => {
-        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(approved), dcaId });
-        await expect(result).to.not.be.reverted;
-      });
-    });
-
-    when(`executing address isn't approved`, () => {
-      let dcaId: BigNumber;
-
-      given(async () => {
-        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        DCAPermissionManager.hasPermission.returns(false);
       });
 
       then('operation is reverted', async () => {
-        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(stranger), dcaId });
+        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(operator), dcaId });
         await expect(result).to.be.revertedWith('UnauthorizedCaller');
       });
     });
@@ -1103,7 +1139,16 @@ contract('DCAPositionHandler', () => {
   }
 
   async function deposit({ owner, token, rate, swaps }: { owner: string; token: TokenContract; rate: number; swaps: number }) {
-    const response: TransactionResponse = await DCAPositionHandler.deposit(owner, token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
+    const to = tokenA == token ? tokenB : tokenA;
+    const response: TransactionResponse = await DCAPositionHandler.deposit(
+      token.address,
+      to.address,
+      token.asUnits(rate).mul(swaps),
+      swaps,
+      SWAP_INTERVAL,
+      owner,
+      []
+    );
     const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
     return { response, dcaId };
   }

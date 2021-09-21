@@ -18,13 +18,7 @@ contract('DCAHubConfigHandler', () => {
   before('Setup accounts and contracts', async () => {
     [owner, timeLockedOwner, oracle] = await ethers.getSigners();
     DCAHubConfigHandlerFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubConfigHandler.sol:DCAHubConfigHandlerMock');
-    DCAHubConfigHandler = await DCAHubConfigHandlerFactory.deploy(
-      constants.NOT_ZERO_ADDRESS,
-      constants.NOT_ZERO_ADDRESS,
-      owner.address,
-      timeLockedOwner.address,
-      oracle.address
-    );
+    DCAHubConfigHandler = await DCAHubConfigHandlerFactory.deploy(owner.address, timeLockedOwner.address, oracle.address);
     immediateRole = await DCAHubConfigHandler.IMMEDIATE_ROLE();
     timeLockedRole = await DCAHubConfigHandler.TIME_LOCKED_ROLE();
     snapshotId = await snapshot.take();
@@ -39,13 +33,7 @@ contract('DCAHubConfigHandler', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAHubConfigHandlerFactory,
-          args: [
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-          ],
+          args: [constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -54,13 +42,7 @@ contract('DCAHubConfigHandler', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAHubConfigHandlerFactory,
-          args: [
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-          ],
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -69,13 +51,7 @@ contract('DCAHubConfigHandler', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAHubConfigHandlerFactory,
-          args: [
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.NOT_ZERO_ADDRESS,
-            constants.ZERO_ADDRESS,
-          ],
+          args: [constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -83,13 +59,7 @@ contract('DCAHubConfigHandler', () => {
     when('all arguments are valid', () => {
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAHubConfigHandlerFactory, [
-          constants.NOT_ZERO_ADDRESS,
-          constants.NOT_ZERO_ADDRESS,
-          owner.address,
-          timeLockedOwner.address,
-          oracle.address,
-        ]);
+        const deployment = await contracts.deploy(DCAHubConfigHandlerFactory, [owner.address, timeLockedOwner.address, oracle.address]);
         deployedContract = deployment.contract;
       });
       then('sets immediate governor correctly', async () => {

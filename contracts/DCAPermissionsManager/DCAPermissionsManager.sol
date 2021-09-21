@@ -127,6 +127,10 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     emit NFTDescriptorSet(_descriptor);
   }
 
+  function tokenURI(uint256 _tokenId) public view override returns (string memory) {
+    return nftDescriptor.tokenURI(hub, _tokenId);
+  }
+
   function _encode(PermissionSet[] calldata _permissions) internal pure returns (bytes memory _result) {
     for (uint256 i; i < _permissions.length; i++) {
       _result = bytes.concat(_result, keccak256(_encode(_permissions[i])));
