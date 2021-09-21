@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import './DCAHubConfigHandler.sol';
 
-abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPositionHandler, ERC721 {
+abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPositionHandler {
   // TODO: Explore if we can make reduce the storage size
   struct DCA {
     uint32 swapWhereLastUpdated; // Includes both modify and withdraw
@@ -25,11 +24,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   mapping(uint256 => DCA) internal _userPositions;
   uint256 internal _idCounter;
 
-  constructor(
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB,
-    IDCAPermissionManager _permissionManager
-  ) ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA') {
+  constructor(IDCAPermissionManager _permissionManager) {
     if (address(_permissionManager) == address(0)) revert CommonErrors.ZeroAddress();
     permissionManager = _permissionManager;
   }
@@ -67,7 +62,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint160 _rate = uint160(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
-    _mint(_owner, _idCounter); // TODO: Delete when we change the way we check for permissions
     if (_from < _to) {
       _activeSwapIntervals[_from][_to].add(_swapInterval);
     } else {
@@ -81,8 +75,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   function withdrawSwapped(uint256 _dcaId, address _recipient) external override nonReentrant returns (uint256 _swapped) {
     if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
 
-    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
     DCA memory _userPosition = _userPositions[_dcaId];
+    _assertPositionExistsAndCallerHasPermission(_dcaId, _userPosition, IDCAPermissionManager.Permission.WITHDRAW);
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapInterval);
     _swapped = _calculateSwapped(_userPosition, _performedSwaps);
 
@@ -102,8 +96,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       address _token = _positions[i].token;
       for (uint256 j; j < _positions[i].positionIds.length; j++) {
         uint256 _positionId = _positions[i].positionIds[j];
-        _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
         DCA memory _userPosition = _userPositions[_positions[i].positionIds[j]];
+        _assertPositionExistsAndCallerHasPermission(_positionId, _userPosition, IDCAPermissionManager.Permission.WITHDRAW);
         if (_userPosition.to != _token) revert PositionDoesNotMatchToken();
         uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapInterval);
         _swapped[i] += _calculateSwapped(_userPosition, _performedSwaps);
@@ -123,8 +117,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) external override nonReentrant {
     if (_recipientUnswapped == address(0) || _recipientSwapped == address(0)) revert CommonErrors.ZeroAddress();
 
-    _assertPositionExistsAndCanBeOperatedByCaller(_dcaId);
     DCA memory _userPosition = _userPositions[_dcaId];
+    _assertPositionExistsAndCallerHasPermission(_dcaId, _userPosition, IDCAPermissionManager.Permission.TERMINATE);
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapInterval);
 
     uint256 _swapped = _calculateSwapped(_userPosition, _performedSwaps);
@@ -132,7 +126,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     _removeFromDelta(_userPosition, _performedSwaps);
     delete _userPositions[_dcaId];
-    _burn(_dcaId); // TODO: Delete when we change the way we check for permissions
     permissionManager.burn(_dcaId);
 
     if (_swapped > 0) {
@@ -170,9 +163,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _newAmountOfSwaps,
     bool _increase
   ) internal {
-    _assertPositionExistsAndCanBeOperatedByCaller(_positionId);
-
     DCA memory _userDCA = _userPositions[_positionId];
+    _assertPositionExistsAndCallerHasPermission(
+      _positionId,
+      _userDCA,
+      _increase ? IDCAPermissionManager.Permission.INCREASE : IDCAPermissionManager.Permission.REDUCE
+    );
 
     uint32 _performedSwaps = _getPerformedSwaps(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
     uint256 _unswapped = _calculateUnswapped(_userDCA, _performedSwaps);
@@ -205,9 +201,13 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit Modified(msg.sender, _positionId, _newRate, _startingSwap, _finalSwap);
   }
 
-  function _assertPositionExistsAndCanBeOperatedByCaller(uint256 _dcaId) internal view {
-    if (_userPositions[_dcaId].swapInterval == 0) revert InvalidPosition();
-    if (!_isApprovedOrOwner(msg.sender, _dcaId)) revert UnauthorizedCaller();
+  function _assertPositionExistsAndCallerHasPermission(
+    uint256 _positionId,
+    DCA memory _userPosition,
+    IDCAPermissionManager.Permission _permission
+  ) internal view {
+    if (_userPosition.swapInterval == 0) revert InvalidPosition();
+    if (!permissionManager.hasPermission(_positionId, msg.sender, _permission)) revert UnauthorizedCaller();
   }
 
   function _addPosition(
@@ -279,10 +279,5 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) internal view returns (uint32) {
     // TODO: Check if it's better to just receive the in-memory DCA
     return (_from < _to) ? performedSwaps[_from][_to][_swapInterval] : performedSwaps[_to][_from][_swapInterval];
-  }
-
-  // TODO: Remove when we remove ERC721
-  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, AccessControl) returns (bool) {
-    return super.supportsInterface(interfaceId);
   }
 }

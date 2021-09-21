@@ -43,14 +43,7 @@ contract('Timelock', () => {
       symbol: 'DAI',
       decimals: 18,
     });
-    DCAHub = await DCAHubFactory.deploy(
-      tokenA.address,
-      tokenB.address,
-      immediateGovernor.address,
-      timelock.address,
-      oracle,
-      constants.NOT_ZERO_ADDRESS
-    );
+    DCAHub = await DCAHubFactory.deploy(immediateGovernor.address, timelock.address, oracle, constants.NOT_ZERO_ADDRESS);
     snapshotId = await snapshot.take();
   });
 
