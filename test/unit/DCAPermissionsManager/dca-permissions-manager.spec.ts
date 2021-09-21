@@ -341,7 +341,7 @@ contract('DCAPermissionsManager', () => {
           }
         });
         then('event is emitted', async () => {
-          const id = await readArgFromEventOrFail(tx, 'Modified', 'id');
+          const id = await readArgFromEventOrFail(tx, 'Modified', 'tokenId');
           const permissions: any = await readArgFromEventOrFail(tx, 'Modified', 'permissions');
           expect(id).to.equal(TOKEN_ID);
           expect(permissions.length).to.equal(modify.length);
@@ -514,7 +514,7 @@ contract('DCAPermissionsManager', () => {
       });
 
       then('event is emitted', async () => {
-        const id = await readArgFromEventOrFail(tx, 'Modified', 'id');
+        const id = await readArgFromEventOrFail(tx, 'Modified', 'tokenId');
         const permissions: any = await readArgFromEventOrFail(tx, 'Modified', 'permissions');
         expect(id).to.equal(TOKEN_ID);
         expect(permissions.length).to.equal(1);

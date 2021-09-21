@@ -11,6 +11,8 @@ import {
   DCAHubSwapCalleeMock__factory,
   DCAHubLoanCalleeMock,
   DCAHubLoanCalleeMock__factory,
+  DCAPermissionsManager,
+  DCAPermissionsManager__factory,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
@@ -34,6 +36,7 @@ contract('DCAHub', () => {
     let timeWeightedOracleFactory: TimeWeightedOracleMock__factory, timeWeightedOracle: TimeWeightedOracleMock;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
     let DCAHubLoanCalleeFactory: DCAHubLoanCalleeMock__factory, DCAHubLoanCallee: DCAHubLoanCalleeMock;
+    let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
 
     // Global variables
     const swapFee1: number = 0.3;
@@ -45,6 +48,9 @@ contract('DCAHub', () => {
       timeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
       DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
       DCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:DCAHubLoanCalleeMock');
+      DCAPermissionsManagerFactory = await ethers.getContractFactory(
+        'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
+      );
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -61,15 +67,10 @@ contract('DCAHub', () => {
       });
 
       timeWeightedOracle = await timeWeightedOracleFactory.deploy(0, 0);
+      DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       await setSwapRatio(swapRatio1);
-      DCAHub = await DCAHubFactory.deploy(
-        tokenA.address,
-        tokenB.address,
-        governor.address,
-        governor.address,
-        constants.NOT_ZERO_ADDRESS,
-        timeWeightedOracle.address
-      );
+      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
+      await DCAPermissionsManager.setHub(DCAHub.address);
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);
@@ -394,21 +395,24 @@ contract('DCAHub', () => {
       swapInterval: number;
       swaps: number;
     }): Promise<UserPositionDefinition> {
+      const toToken = token.address === tokenA.address ? tokenB : tokenA;
       await token.mint(depositor.address, token.asUnits(rate).mul(swaps));
       await token.connect(depositor).approve(DCAHub.address, token.asUnits(rate).mul(swaps));
       const response: TransactionResponse = await DCAHub.connect(depositor).deposit(
-        depositor.address,
         token.address,
-        token.asUnits(rate),
+        toToken.address,
+        token.asUnits(rate).mul(swaps),
         swaps,
-        swapInterval
+        swapInterval,
+        depositor.address,
+        []
       );
       const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
       return {
         id: positionId,
         owner: depositor,
         from: token,
-        to: token.address === tokenA.address ? tokenB : tokenA,
+        to: toToken,
         swapInterval: BigNumber.from(swapInterval),
         rate: token.asUnits(rate),
         amountOfSwaps: BigNumber.from(swaps),

@@ -5,63 +5,30 @@ import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
 import '../interfaces/IDCATokenDescriptor.sol';
+import '../interfaces/IDCAPermissionManager.sol';
+import '../libraries/PermissionMath.sol';
 import '../utils/Governable.sol';
 
-enum Permission {
-  INCREASE,
-  REDUCE,
-  WITHDRAW,
-  TERMINATE
-}
-
-library PermissionMath {
-  function toUInt8(Permission[] memory _permissions) internal pure returns (uint8 _representation) {
-    for (uint256 i; i < _permissions.length; i++) {
-      _representation += uint8(2**uint8(_permissions[i]));
-    }
-  }
-
-  function hasPermission(uint8 _representation, Permission _permission) internal pure returns (bool) {
-    uint256 _bitMask = 2**uint256(_permission);
-    return (_representation & _bitMask) == _bitMask;
-  }
-}
-
 // Note: ideally, this would be part of the DCAHub. However, since we've reached the max bytecode size, we needed to make it its own contract
-contract DCAPermissionsManager is ERC721, EIP712, Governable {
-  error HubAlreadySet();
-  error ZeroAddress();
-  error OnlyHubCanExecute();
-  error NotOwner();
-  error ExpiredDeadline();
-  error InvalidSignature();
-
-  struct PermissionSet {
-    address operator;
-    Permission[] permissions;
-  }
-
+contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionManager {
   struct TokenInfo {
     mapping(address => uint8) permissions;
     EnumerableSet.AddressSet operators;
   }
 
-  event Modified(uint256 id, PermissionSet[] permissions);
-  event NFTDescriptorSet(IDCATokenDescriptor descriptor);
-
   using PermissionMath for Permission[];
   using PermissionMath for uint8;
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  bytes32 public constant PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
-  bytes32 public constant PERMISSION_PERMIT_TYPEHASH =
+  bytes32 public constant override PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
+  bytes32 public constant override PERMISSION_PERMIT_TYPEHASH =
     keccak256(
       'PermissionPermit(PermissionSet[] permissions,uint256 tokenId,uint256 nonce,uint256 deadline)PermissionSet(address operator,uint8[] permissions)'
     );
-  bytes32 public constant PERMISSION_SET_TYPEHASH = keccak256('PermissionSet(address operator,uint8[] permissions)');
-  IDCATokenDescriptor public nftDescriptor;
-  address public hub;
-  mapping(address => uint256) public nonces;
+  bytes32 public constant override PERMISSION_SET_TYPEHASH = keccak256('PermissionSet(address operator,uint8[] permissions)');
+  IDCATokenDescriptor public override nftDescriptor;
+  address public override hub;
+  mapping(address => uint256) public override nonces;
   mapping(uint256 => TokenInfo) internal _tokens;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
@@ -73,7 +40,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable {
     nftDescriptor = _descriptor;
   }
 
-  function setHub(address _hub) external {
+  function setHub(address _hub) external override {
     if (_hub == address(0)) revert ZeroAddress();
     if (hub != address(0)) revert HubAlreadySet();
     hub = _hub;
@@ -83,7 +50,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable {
     uint256 _id,
     address _owner,
     PermissionSet[] calldata _permissions
-  ) external {
+  ) external override {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
     _setPermissions(_id, _permissions);
@@ -93,23 +60,22 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable {
     uint256 _id,
     address _address,
     Permission _permission
-  ) external view returns (bool) {
+  ) external view override returns (bool) {
     return ownerOf(_id) == _address || _tokens[_id].permissions[_address].hasPermission(_permission);
   }
 
-  function burn(uint256 _id) external {
+  function burn(uint256 _id) external override {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _burn(_id);
   }
 
-  // Note: Callers can clear permissions by sending an empty array
-  function modify(uint256 _id, PermissionSet[] calldata _permissions) external {
+  function modify(uint256 _id, PermissionSet[] calldata _permissions) external override {
     if (msg.sender != ownerOf(_id)) revert NotOwner();
     _modify(_id, _permissions);
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function DOMAIN_SEPARATOR() external view returns (bytes32) {
+  function DOMAIN_SEPARATOR() external view override returns (bytes32) {
     return _domainSeparatorV4();
   }
 
@@ -120,7 +86,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public virtual {
+  ) external override {
     if (block.timestamp > _deadline) revert ExpiredDeadline();
 
     address _owner = ownerOf(_tokenId);
@@ -140,7 +106,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable {
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) public virtual {
+  ) external override {
     if (block.timestamp > _deadline) revert ExpiredDeadline();
 
     address _owner = ownerOf(_tokenId);
@@ -155,10 +121,14 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable {
     _modify(_tokenId, _permissions);
   }
 
-  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external onlyGovernor {
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external override onlyGovernor {
     if (address(_descriptor) == address(0)) revert ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);
+  }
+
+  function tokenURI(uint256 _tokenId) public view override returns (string memory) {
+    return nftDescriptor.tokenURI(hub, _tokenId);
   }
 
   function _encode(PermissionSet[] calldata _permissions) internal pure returns (bytes memory _result) {
