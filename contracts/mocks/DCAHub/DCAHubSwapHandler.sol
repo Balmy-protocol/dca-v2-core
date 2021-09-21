@@ -19,7 +19,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
 
   mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
-  mapping(address => mapping(address => mapping(uint32 => uint256[2]))) private _amountToSwap;
   mapping(address => mapping(address => uint256)) private _ratios; // from => to => ratio(from -> to)
   mapping(address => mapping(address => TotalAmountsToSwap)) private _totalAmountsToSwap; // tokenA => tokenB => total amounts
 
@@ -43,33 +42,12 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     _registerSwap(_tokenA, _tokenB, _swapInterval, _ratioAToB, _ratioBToA, _timestamp);
   }
 
-  function getAmountToSwap(
-    address _from,
-    address _to,
-    uint32 _swapInterval
-  ) external view returns (uint256, uint256) {
-    return _getAmountToSwap(_from, _to, _swapInterval);
-  }
-
   function setBlockTimestamp(uint32 _blockTimestamp) external {
     _customTimestamp = _blockTimestamp;
   }
 
   function _getTimestamp() internal view override returns (uint32 _blockTimestamp) {
     _blockTimestamp = (_customTimestamp > 0) ? _customTimestamp : super._getTimestamp();
-  }
-
-  function _getAmountToSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) internal view override returns (uint256, uint256) {
-    uint256[2] memory _amounts = _amountToSwap[_tokenA][_tokenB][_swapInterval];
-    if (_amounts[0] == 0 && _amounts[1] == 0) {
-      return super._getAmountToSwap(_tokenA, _tokenB, _swapInterval);
-    } else {
-      return (_amounts[0], _amounts[1]);
-    }
   }
 
   function getTotalAmountsToSwap(address _tokenA, address _tokenB)
@@ -175,16 +153,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     for (uint256 i = 0; i < _intervalsInSwap.length; i++) {
       _totalAmountsToSwap[_tokenA][_tokenB].intervalsInSwap.push(_intervalsInSwap[i]);
     }
-  }
-
-  function setAmountToSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval,
-    uint256 _amountTokenA,
-    uint256 _amountTokenB
-  ) external {
-    _amountToSwap[_tokenA][_tokenB][_swapInterval] = [_amountTokenA, _amountTokenB];
   }
 
   function setInternalGetNextSwapInfo(SwapInfo memory __swapInformation) external {

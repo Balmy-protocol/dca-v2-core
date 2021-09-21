@@ -164,7 +164,13 @@ contract('DCAHubSwapHandler', () => {
 
       when(title, () => {
         given(async () => {
-          await DCAHubSwapHandler.setSwapAmountDelta(tokenA().address, tokenB().address, SWAP_INTERVAL, nextSwapNumber, amountToSwapTokenA);
+          await DCAHubSwapHandler.setNextAmountsToSwap(
+            tokenA().address,
+            tokenB().address,
+            SWAP_INTERVAL,
+            amountToSwapTokenA,
+            amountToSwapTokenB
+          );
           await DCAHubSwapHandler.setSwapAmountDelta(
             tokenA().address,
             tokenB().address,
@@ -172,7 +178,7 @@ contract('DCAHubSwapHandler', () => {
             nextSwapNumber + 1,
             NEXT_DELTA_FROM_A_TO_B
           );
-          await DCAHubSwapHandler.setSwapAmountDelta(tokenB().address, tokenA().address, SWAP_INTERVAL, nextSwapNumber, amountToSwapTokenB);
+
           await DCAHubSwapHandler.setSwapAmountDelta(
             tokenB().address,
             tokenA().address,
@@ -203,40 +209,30 @@ contract('DCAHubSwapHandler', () => {
         });
 
         describe('token A to B', () => {
-          then('adds the current delta to the following one', async () => {
-            const deltaInNextSwap = await DCAHubSwapHandler.swapAmountDelta(
-              tokenA().address,
-              tokenB().address,
-              SWAP_INTERVAL,
-              nextSwapNumber + 1
-            );
-            expect(deltaInNextSwap).to.equal(bn.toBN(amountToSwapTokenA).add(NEXT_DELTA_FROM_A_TO_B));
+          then('adds the current delta to the next amount to swap', async () => {
+            const { nextAmountToSwapAToB } = await DCAHubSwapHandler.pairInfo(tokenA().address, tokenB().address, SWAP_INTERVAL);
+            expect(nextAmountToSwapAToB).to.equal(bn.toBN(amountToSwapTokenA).add(NEXT_DELTA_FROM_A_TO_B));
           });
           then('increments the rate per unit accumulator', async () => {
             const accumRatios = await DCAHubSwapHandler.accumRatio(tokenA().address, tokenB().address, SWAP_INTERVAL, nextSwapNumber);
             expect(accumRatios).to.equal(bn.toBN(ratioAToB).add(previous?.accumRatioAToB ?? 0));
           });
-          then('deletes swap amount delta of the executed swap', async () => {
-            expect(await DCAHubSwapHandler.swapAmountDelta(tokenA().address, tokenB().address, SWAP_INTERVAL, nextSwapNumber)).to.equal(0);
+          then('deletes swap amount delta of the following swap', async () => {
+            expect(await DCAHubSwapHandler.swapAmountDelta(tokenA().address, tokenB().address, SWAP_INTERVAL, nextSwapNumber + 1)).to.equal(0);
           });
         });
 
         describe('token B to A', () => {
-          then('adds the current delta to the following one', async () => {
-            const deltaInNextSwap = await DCAHubSwapHandler.swapAmountDelta(
-              tokenB().address,
-              tokenA().address,
-              SWAP_INTERVAL,
-              nextSwapNumber + 1
-            );
-            expect(deltaInNextSwap).to.equal(bn.toBN(amountToSwapTokenB).add(NEXT_DELTA_FROM_B_TO_A));
+          then('adds the current delta to the next amount to swap', async () => {
+            const { nextAmountToSwapBToA } = await DCAHubSwapHandler.pairInfo(tokenA().address, tokenB().address, SWAP_INTERVAL);
+            expect(nextAmountToSwapBToA).to.equal(bn.toBN(amountToSwapTokenB).add(NEXT_DELTA_FROM_B_TO_A));
           });
           then('increments the rate per unit accumulator', async () => {
             const accumRatios = await DCAHubSwapHandler.accumRatio(tokenB().address, tokenA().address, SWAP_INTERVAL, nextSwapNumber);
             expect(accumRatios).to.equal(bn.toBN(ratioBToA).add(previous?.accumRatioBToA ?? 0));
           });
-          then('deletes swap amount delta of the executed swap', async () => {
-            expect(await DCAHubSwapHandler.swapAmountDelta(tokenB().address, tokenA().address, SWAP_INTERVAL, nextSwapNumber)).to.equal(0);
+          then('deletes swap amount delta of the following swap', async () => {
+            expect(await DCAHubSwapHandler.swapAmountDelta(tokenB().address, tokenA().address, SWAP_INTERVAL, nextSwapNumber + 1)).to.equal(0);
           });
         });
 
@@ -287,7 +283,7 @@ contract('DCAHubSwapHandler', () => {
       given(async () => {
         await DCAHubSwapHandler.setBlockTimestamp(10);
         await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 20);
-        await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
+        await DCAHubSwapHandler.setNextAmountsToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
       });
       then('nothing is returned', async () => {
@@ -305,8 +301,8 @@ contract('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setBlockTimestamp(15);
         await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 20);
         await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL_2, 10);
-        await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
-        await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
+        await DCAHubSwapHandler.setNextAmountsToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
+        await DCAHubSwapHandler.setNextAmountsToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL_2);
       });
@@ -325,8 +321,8 @@ contract('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setBlockTimestamp(20);
         await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 10);
         await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL_2, 15);
-        await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
-        await DCAHubSwapHandler.setAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
+        await DCAHubSwapHandler.setNextAmountsToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, tokenA.asUnits(10), tokenB.asUnits(20));
+        await DCAHubSwapHandler.setNextAmountsToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL_2, tokenA.asUnits(30), tokenB.asUnits(50));
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
         await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL_2);
       });

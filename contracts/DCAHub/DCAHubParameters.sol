@@ -14,6 +14,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   struct PairInfo {
     uint32 performedSwaps;
     uint32 nextSwapAvailable;
+    uint256 nextAmountToSwapAToB;
+    uint256 nextAmountToSwapBToA;
   }
 
   using EnumerableSet for EnumerableSet.UintSet;

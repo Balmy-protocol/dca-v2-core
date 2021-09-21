@@ -56,6 +56,17 @@ contract DCAHubParametersMock is DCAHubParameters {
     accumRatio[_from][_to][_swapInterval][_swap] = _accumRatio;
   }
 
+  function setNextAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval,
+    uint256 _amountToSwapAToB,
+    uint256 _amountToSwapBToA
+  ) external {
+    pairInfo[_tokenA][_tokenB][_swapInterval].nextAmountToSwapAToB = _amountToSwapAToB;
+    pairInfo[_tokenA][_tokenB][_swapInterval].nextAmountToSwapBToA = _amountToSwapBToA;
+  }
+
   function setPerformedSwaps(
     address _tokenA,
     address _tokenB,

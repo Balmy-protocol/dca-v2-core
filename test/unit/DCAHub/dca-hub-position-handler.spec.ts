@@ -253,7 +253,7 @@ contract('DCAPositionHandler', () => {
 
       then('trade is recorded', async () => {
         const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
-        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
+        const { nextAmountToSwapAToB } = await DCAPositionHandler.pairInfo(tokenA.address, tokenB.address, SWAP_INTERVAL);
         const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
@@ -262,7 +262,7 @@ contract('DCAPositionHandler', () => {
         );
 
         expect(deltaPerformedSwaps).to.equal(0);
-        expect(deltaFirstDay).to.equal(tokenA.asUnits(POSITION_RATE_5));
+        expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(POSITION_RATE_5));
         expect(deltaLastDay).to.equal(tokenA.asUnits(POSITION_RATE_5).mul(-1));
       });
 
@@ -1086,7 +1086,7 @@ contract('DCAPositionHandler', () => {
       });
 
       then('new trade is recorded', async () => {
-        const deltaNextSwap = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_11 + 1);
+        const { nextAmountToSwapAToB } = await DCAPositionHandler.pairInfo(tokenA.address, tokenB.address, SWAP_INTERVAL);
         const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
@@ -1094,12 +1094,8 @@ contract('DCAPositionHandler', () => {
           PERFORMED_SWAPS_11 + newSwaps! + 1
         );
 
-        if (newSwaps! > 0) {
-          expect(deltaNextSwap).to.equal(tokenA.asUnits((newRate! - initialRate).toFixed(2)));
-          expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
-        } else {
-          expect(deltaLastSwap).to.equal(tokenA.asUnits(initialRate!).mul(-1));
-        }
+        expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(newRate!));
+        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
