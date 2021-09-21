@@ -178,7 +178,6 @@ contract('DCAHubSwapHandler', () => {
             nextSwapNumber + 1,
             NEXT_DELTA_FROM_A_TO_B
           );
-
           await DCAHubSwapHandler.setSwapAmountDelta(
             tokenB().address,
             tokenA().address,

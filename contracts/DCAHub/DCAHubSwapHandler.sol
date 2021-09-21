@@ -105,10 +105,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint8 _intervalCount;
     EnumerableSet.UintSet storage _swapIntervals = _activeSwapIntervals[_tokenA][_tokenB];
     _intervalsInSwap = new uint32[](_swapIntervals.length());
+    uint32 _blockTimestamp = _getTimestamp();
     for (uint256 i; i < _intervalsInSwap.length; i++) {
       uint32 _swapInterval = uint32(_swapIntervals.at(i));
       PairInfo memory _pairInfo = pairInfo[_tokenA][_tokenB][_swapInterval];
-      if (_pairInfo.nextSwapAvailable <= _getTimestamp()) {
+      if (_pairInfo.nextSwapAvailable <= _blockTimestamp) {
         _intervalsInSwap[_intervalCount++] = _swapInterval;
         _totalAmountToSwapTokenA += _pairInfo.nextAmountToSwapAToB;
         _totalAmountToSwapTokenB += _pairInfo.nextAmountToSwapBToA;
