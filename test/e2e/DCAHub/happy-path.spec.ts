@@ -453,9 +453,9 @@ contract('DCAHub', () => {
       let totalTokenB = constants.ZERO;
 
       for (const interval of intervalsInSwap) {
-        const { performedSwaps } = await DCAHub.pairInfo(tokenA.address, tokenB.address, interval);
-        totalTokenA = totalTokenA.add(await DCAHub.swapAmountDelta(tokenA.address, tokenB.address, interval, performedSwaps + 1));
-        totalTokenB = totalTokenB.add(await DCAHub.swapAmountDelta(tokenB.address, tokenA.address, interval, performedSwaps + 1));
+        const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.swapData(tokenA.address, tokenB.address, interval);
+        totalTokenA = totalTokenA.add(nextAmountToSwapAToB);
+        totalTokenB = totalTokenB.add(nextAmountToSwapBToA);
       }
 
       expect(totalTokenA).to.equal(tokenA.asUnits(expectedTokenA));
