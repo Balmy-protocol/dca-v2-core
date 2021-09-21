@@ -30,7 +30,7 @@ contract('DCAHubParameters', function () {
       initialAccount: await owner.getAddress(),
       initialAmount: utils.parseEther('1'),
     })) as ERC20Mock;
-    DCAHubParameters = await DCAHubParametersContract.deploy(tokenA.address, tokenB.address);
+    DCAHubParameters = await DCAHubParametersContract.deploy();
     snapshotId = await snapshot.take();
   });
 
@@ -39,37 +39,13 @@ contract('DCAHubParameters', function () {
   });
 
   describe('constructor', () => {
-    when('token A is zero address', () => {
-      then('deployment is reverted with reason', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCAHubParametersContract,
-          args: [constants.ZERO_ADDRESS, tokenB.address],
-          message: 'ZeroAddress',
-        });
-      });
-    });
-    when('token B is zero address', () => {
-      then('deployment is reverted with reason', async () => {
-        await behaviours.deployShouldRevertWithMessage({
-          contract: DCAHubParametersContract,
-          args: [tokenA.address, constants.ZERO_ADDRESS],
-          message: 'ZeroAddress',
-        });
-      });
-    });
     when('all arguments are valid', () => {
       let deploymentTx: TransactionResponse;
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAHubParametersContract, [tokenA.address, tokenB.address]);
+        const deployment = await contracts.deploy(DCAHubParametersContract, []);
         deploymentTx = deployment.tx;
         deployedContract = deployment.contract;
-      });
-      then('sets token A', async () => {
-        expect(await deployedContract.tokenA()).to.equal(tokenA.address);
-      });
-      then('sets token B', async () => {
-        expect(await deployedContract.tokenB()).to.equal(tokenB.address);
       });
       then('internal balance for token A starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenA.address)).to.equal(0);

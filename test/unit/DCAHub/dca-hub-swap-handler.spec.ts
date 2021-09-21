@@ -46,13 +46,7 @@ contract('DCAHubSwapHandler', () => {
     [tokenA, tokenB, tokenC] = tokens.sort((a, b) => a.address.localeCompare(b.address));
 
     timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
-    DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(
-      tokenA.address,
-      tokenB.address,
-      owner.address,
-      owner.address,
-      timeWeightedOracle.address
-    );
+    DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(owner.address, owner.address, timeWeightedOracle.address);
     snapshotId = await snapshot.take();
   });
 

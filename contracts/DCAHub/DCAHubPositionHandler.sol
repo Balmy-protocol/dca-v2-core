@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import './DCAHubConfigHandler.sol';
 
-abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPositionHandler, ERC721 {
+abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPositionHandler {
   // TODO: Explore if we can make reduce the storage size
   struct DCA {
     uint32 swapWhereLastUpdated; // Includes both modify and withdraw
@@ -25,11 +24,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   mapping(uint256 => DCA) internal _userPositions;
   uint256 internal _idCounter;
 
-  constructor(
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB,
-    IDCAPermissionManager _permissionManager
-  ) ERC721(string(abi.encodePacked('DCA: ', _tokenA.symbol(), ' - ', _tokenB.symbol())), 'DCA') {
+  constructor(IDCAPermissionManager _permissionManager) {
     if (address(_permissionManager) == address(0)) revert CommonErrors.ZeroAddress();
     permissionManager = _permissionManager;
   }
@@ -284,10 +279,5 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) internal view returns (uint32) {
     // TODO: Check if it's better to just receive the in-memory DCA
     return (_from < _to) ? performedSwaps[_from][_to][_swapInterval] : performedSwaps[_to][_from][_swapInterval];
-  }
-
-  // TODO: Remove when we remove ERC721
-  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, AccessControl) returns (bool) {
-    return super.supportsInterface(interfaceId);
   }
 }

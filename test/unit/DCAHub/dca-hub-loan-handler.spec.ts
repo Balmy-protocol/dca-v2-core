@@ -31,13 +31,7 @@ describe('DCAHubLoanHandler', () => {
       name: 'tokenB',
       symbol: 'TKNB',
     });
-    DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(
-      tokenA.address,
-      tokenB.address,
-      owner.address,
-      owner.address,
-      constants.NOT_ZERO_ADDRESS
-    );
+    DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(owner.address, owner.address, constants.NOT_ZERO_ADDRESS);
     snapshotId = await snapshot.take();
   });
 
