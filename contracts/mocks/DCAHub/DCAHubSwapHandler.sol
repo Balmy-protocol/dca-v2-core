@@ -27,13 +27,10 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   uint32 private _customTimestamp;
 
   constructor(
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
-  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle) DCAHubSwapHandler() {}
+  ) DCAHubConfigHandlerMock(_immediateGovernor, _timeLockedGovernor, _oracle) DCAHubSwapHandler() {}
 
   function registerSwap(
     address _tokenA,

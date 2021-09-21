@@ -2,14 +2,16 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import '../interfaces/IDCATokenDescriptor.sol';
 import '../DCAHub/DCAHub.sol';
 import '../libraries/NFTDescriptor.sol';
 
 /// @title Describes NFT token positions
 /// @notice Produces a string containing the data URI for a JSON metadata string
 contract DCATokenDescriptor is IDCATokenDescriptor {
-  function tokenURI(DCAHub _hub, uint256 _tokenId) external view override returns (string memory) {
-    IDCAHubPositionHandler.UserPosition memory _userPosition = _hub.userPosition(_tokenId);
+  function tokenURI(address _hub, uint256 _tokenId) external view override returns (string memory) {
+    // TODO: Stop using hub, and use interface when available
+    IDCAHubPositionHandler.UserPosition memory _userPosition = DCAHub(_hub).userPosition(_tokenId);
 
     return
       NFTDescriptor.constructTokenURI(
@@ -21,7 +23,7 @@ contract DCATokenDescriptor is IDCATokenDescriptor {
           toDecimals: _userPosition.to.decimals(),
           fromSymbol: _userPosition.from.symbol(),
           toSymbol: _userPosition.to.symbol(),
-          swapInterval: _hub.intervalDescription(_userPosition.swapInterval),
+          swapInterval: DCAHub(_hub).intervalDescription(_userPosition.swapInterval),
           swapsExecuted: _userPosition.swapsExecuted,
           swapped: _userPosition.swapped,
           swapsLeft: _userPosition.swapsLeft,
