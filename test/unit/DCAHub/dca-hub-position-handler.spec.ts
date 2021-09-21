@@ -109,7 +109,7 @@ contract('DCAPositionHandler', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
           from: constants.ZERO_ADDRESS,
-          to: constants.NOT_ZERO_ADDRESS,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
           amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -122,7 +122,7 @@ contract('DCAPositionHandler', () => {
     when('making a deposit to a zero address to', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          from: constants.NOT_ZERO_ADDRESS,
+          from: tokenA.address,
           to: constants.ZERO_ADDRESS,
           owner: constants.NOT_ZERO_ADDRESS,
           amount: 10,
@@ -136,8 +136,8 @@ contract('DCAPositionHandler', () => {
     when('making a deposit to a zero address owner', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          from: constants.NOT_ZERO_ADDRESS,
-          to: constants.NOT_ZERO_ADDRESS,
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.ZERO_ADDRESS,
           amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -150,8 +150,8 @@ contract('DCAPositionHandler', () => {
     when('making a deposit with non-allowed interval', async () => {
       then('tx is reverted with messasge', async () => {
         await depositShouldRevert({
-          from: constants.NOT_ZERO_ADDRESS,
-          to: constants.NOT_ZERO_ADDRESS,
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
           amount: 10,
           swaps: 10,
@@ -164,8 +164,8 @@ contract('DCAPositionHandler', () => {
     when('making a deposit with 0 amount', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          from: constants.NOT_ZERO_ADDRESS,
-          to: constants.NOT_ZERO_ADDRESS,
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
           amount: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
@@ -178,13 +178,27 @@ contract('DCAPositionHandler', () => {
     when('making a deposit with 0 swaps', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          from: constants.NOT_ZERO_ADDRESS,
-          to: constants.NOT_ZERO_ADDRESS,
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
           amount: 10,
           swaps: 0,
           interval: SWAP_INTERVAL,
           error: 'ZeroSwaps',
+        });
+      });
+    });
+
+    when('making a deposit with 0 swaps', () => {
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenA.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 20,
+          interval: SWAP_INTERVAL,
+          error: 'InvalidToken',
         });
       });
     });

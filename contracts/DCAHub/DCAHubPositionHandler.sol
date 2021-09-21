@@ -54,6 +54,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
   ) external override nonReentrant returns (uint256) {
     if (_from == address(0) || _to == address(0) || _owner == address(0)) revert CommonErrors.ZeroAddress();
+    if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     if (!this.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
