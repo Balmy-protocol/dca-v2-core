@@ -453,7 +453,7 @@ contract('DCAHub', () => {
       let totalTokenB = constants.ZERO;
 
       for (const interval of intervalsInSwap) {
-        const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.pairInfo(tokenA.address, tokenB.address, interval);
+        const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.swapData(tokenA.address, tokenB.address, interval);
         totalTokenA = totalTokenA.add(nextAmountToSwapAToB);
         totalTokenB = totalTokenB.add(nextAmountToSwapBToA);
       }

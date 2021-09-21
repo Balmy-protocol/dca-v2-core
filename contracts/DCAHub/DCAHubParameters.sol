@@ -28,19 +28,15 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     uint256 accumRatioBToA;
   }
 
-  struct PairInfo {
-    SwapData swapData;
-    mapping(uint32 => SwapDelta) swapAmountDelta;
-    mapping(uint32 => AccumRatio) accumRatio;
-  }
-
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;
 
   // Tracking
-  mapping(address => mapping(address => mapping(uint32 => PairInfo))) public pairInfo; // tokenA => token B => swap interval => pair data
+  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
+  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
+  mapping(address => mapping(address => mapping(uint32 => SwapData))) public swapData; // token A => token B => swap interval => swap data
   mapping(address => mapping(address => EnumerableSet.UintSet)) internal _activeSwapIntervals; // token A => token B => active swap intervals
 
   mapping(address => uint256) public platformBalance; // token => balance

@@ -235,26 +235,26 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint160 _rate
   ) internal {
     if (_from < _to) {
-      pairInfo[_from][_to][_swapInterval].swapData.nextAmountToSwapAToB += _rate;
-      pairInfo[_from][_to][_swapInterval].swapAmountDelta[_finalSwap + 1].swapDeltaAToB -= int160(_rate);
+      swapData[_from][_to][_swapInterval].nextAmountToSwapAToB += _rate;
+      swapAmountDelta[_from][_to][_swapInterval][_finalSwap + 1].swapDeltaAToB -= int160(_rate);
     } else {
-      pairInfo[_to][_from][_swapInterval].swapData.nextAmountToSwapBToA += _rate;
-      pairInfo[_to][_from][_swapInterval].swapAmountDelta[_finalSwap + 1].swapDeltaBToA -= int160(_rate);
+      swapData[_to][_from][_swapInterval].nextAmountToSwapBToA += _rate;
+      swapAmountDelta[_to][_from][_swapInterval][_finalSwap + 1].swapDeltaBToA -= int160(_rate);
     }
   }
 
   function _removeFromDelta(DCA memory _userPosition, uint32 _performedSwaps) internal {
     if (_userPosition.finalSwap > _performedSwaps) {
       if (_userPosition.from < _userPosition.to) {
-        pairInfo[_userPosition.from][_userPosition.to][_userPosition.swapInterval].swapData.nextAmountToSwapAToB -= _userPosition.rate;
-        pairInfo[_userPosition.from][_userPosition.to][_userPosition.swapInterval]
-          .swapAmountDelta[_userPosition.finalSwap + 1]
-          .swapDeltaAToB -= int160(_userPosition.rate);
+        swapData[_userPosition.from][_userPosition.to][_userPosition.swapInterval].nextAmountToSwapAToB -= _userPosition.rate;
+        swapAmountDelta[_userPosition.from][_userPosition.to][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaAToB -= int160(
+          _userPosition.rate
+        );
       } else {
-        pairInfo[_userPosition.to][_userPosition.from][_userPosition.swapInterval].swapData.nextAmountToSwapBToA -= _userPosition.rate;
-        pairInfo[_userPosition.to][_userPosition.from][_userPosition.swapInterval]
-          .swapAmountDelta[_userPosition.finalSwap + 1]
-          .swapDeltaBToA -= int160(_userPosition.rate);
+        swapData[_userPosition.to][_userPosition.from][_userPosition.swapInterval].nextAmountToSwapBToA -= _userPosition.rate;
+        swapAmountDelta[_userPosition.to][_userPosition.from][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaBToA -= int160(
+          _userPosition.rate
+        );
       }
     }
   }
@@ -274,12 +274,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _accumPerUnit;
     if (_userDCA.from < _userDCA.to) {
       _accumPerUnit =
-        pairInfo[_userDCA.from][_userDCA.to][_userDCA.swapInterval].accumRatio[_newestSwapToConsider].accumRatioAToB -
-        pairInfo[_userDCA.from][_userDCA.to][_userDCA.swapInterval].accumRatio[_userDCA.swapWhereLastUpdated].accumRatioAToB;
+        accumRatio[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_newestSwapToConsider].accumRatioAToB -
+        accumRatio[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_userDCA.swapWhereLastUpdated].accumRatioAToB;
     } else {
       _accumPerUnit =
-        pairInfo[_userDCA.to][_userDCA.from][_userDCA.swapInterval].accumRatio[_newestSwapToConsider].accumRatioBToA -
-        pairInfo[_userDCA.to][_userDCA.from][_userDCA.swapInterval].accumRatio[_userDCA.swapWhereLastUpdated].accumRatioBToA;
+        accumRatio[_userDCA.to][_userDCA.from][_userDCA.swapInterval][_newestSwapToConsider].accumRatioBToA -
+        accumRatio[_userDCA.to][_userDCA.from][_userDCA.swapInterval][_userDCA.swapWhereLastUpdated].accumRatioBToA;
     }
     uint256 _magnitude = 10**IERC20Metadata(_userDCA.from).decimals();
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);
@@ -298,7 +298,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _swapInterval
   ) internal view returns (uint32) {
     // TODO: Check if it's better to just receive the in-memory DCA
-    return
-      (_from < _to) ? pairInfo[_from][_to][_swapInterval].swapData.performedSwaps : pairInfo[_to][_from][_swapInterval].swapData.performedSwaps;
+    return (_from < _to) ? swapData[_from][_to][_swapInterval].performedSwaps : swapData[_to][_from][_swapInterval].performedSwaps;
   }
 }
