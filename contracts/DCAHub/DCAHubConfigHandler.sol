@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 
@@ -30,7 +29,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   uint32 public loanFee = 1000; // 0.1%
   uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
   mapping(uint32 => string) public intervalDescription;
-  EnumerableSet.UintSet internal _allowedSwapIntervals;
+  uint32[] internal _allowedSwapIntervals; // TODO: Explore possibility of avoid array
 
   constructor(
     address _immediateGovernor,
@@ -70,30 +69,29 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     for (uint256 i; i < _swapIntervals.length; i++) {
       if (_swapIntervals[i] == 0) revert ZeroInterval();
       if (bytes(_descriptions[i]).length == 0) revert EmptyDescription();
-      _allowedSwapIntervals.add(_swapIntervals[i]);
+      if (this.isSwapIntervalAllowed(_swapIntervals[i])) continue;
       intervalDescription[_swapIntervals[i]] = _descriptions[i];
+      _addSorted(_swapIntervals[i]);
     }
     emit SwapIntervalsAllowed(_swapIntervals, _descriptions);
   }
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      _allowedSwapIntervals.remove(_swapIntervals[i]);
+      uint8 _index = _find(_swapIntervals[i]);
+      if (_index == _swapIntervals.length) continue;
+      delete _allowedSwapIntervals[_index];
       delete intervalDescription[_swapIntervals[i]];
     }
     emit SwapIntervalsForbidden(_swapIntervals);
   }
 
-  function allowedSwapIntervals() external view returns (uint32[] memory __allowedSwapIntervals) {
-    uint256 _allowedSwapIntervalsLength = _allowedSwapIntervals.length();
-    __allowedSwapIntervals = new uint32[](_allowedSwapIntervalsLength);
-    for (uint256 i; i < _allowedSwapIntervalsLength; i++) {
-      __allowedSwapIntervals[i] = uint32(_allowedSwapIntervals.at(i));
-    }
+  function allowedSwapIntervals() external view returns (uint32[] memory) {
+    return _allowedSwapIntervals;
   }
 
   function isSwapIntervalAllowed(uint32 _swapInterval) external view returns (bool) {
-    return _allowedSwapIntervals.contains(_swapInterval);
+    return bytes(intervalDescription[_swapInterval]).length > 0;
   }
 
   function pause() external onlyRole(IMMEDIATE_ROLE) {
@@ -102,5 +100,23 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function unpause() external onlyRole(IMMEDIATE_ROLE) {
     _unpause();
+  }
+
+  function _find(uint32 _swapInterval) internal view returns (uint8 _index) {
+    while (_index < _allowedSwapIntervals.length && _allowedSwapIntervals[_index] != _swapInterval) {
+      _index++;
+    }
+  }
+
+  function _addSorted(uint32 _swapInterval) internal {
+    _allowedSwapIntervals.push(_swapInterval);
+    uint256 i = _allowedSwapIntervals.length - 1;
+    while (i > 0 && _allowedSwapIntervals[i - 1] >= _swapInterval) {
+      _allowedSwapIntervals[i] = _allowedSwapIntervals[i - 1];
+      i--;
+    }
+    if (i < _allowedSwapIntervals.length - 1) {
+      _allowedSwapIntervals[i] = _swapInterval;
+    }
   }
 }
