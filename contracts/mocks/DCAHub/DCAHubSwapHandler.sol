@@ -171,6 +171,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     uint32 _swapInterval,
     uint32 _nextSwapAvailable
   ) external {
-    pairInfo[_tokenA][_tokenB][_swapInterval].nextSwapAvailable = _nextSwapAvailable;
+    swapData[_tokenA][_tokenB][_swapInterval].nextSwapAvailable = _nextSwapAvailable;
   }
 }

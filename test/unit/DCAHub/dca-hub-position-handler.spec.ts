@@ -252,9 +252,14 @@ contract('DCAPositionHandler', () => {
       });
 
       then('trade is recorded', async () => {
-        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
-        const { nextAmountToSwapAToB } = await DCAPositionHandler.pairInfo(tokenA.address, tokenB.address, SWAP_INTERVAL);
-        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
+        const { swapDeltaAToB: deltaPerformedSwaps } = await DCAPositionHandler.swapAmountDelta(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL,
+          PERFORMED_SWAPS_10
+        );
+        const { nextAmountToSwapAToB } = await DCAPositionHandler.swapData(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        const { swapDeltaAToB: deltaLastDay } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL,
@@ -267,14 +272,19 @@ contract('DCAPositionHandler', () => {
       });
 
       then('other swap intervals remain unaffected', async () => {
-        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(
+        const { swapDeltaAToB: deltaPerformedSwaps } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL_2,
           PERFORMED_SWAPS_10
         );
-        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL_2, PERFORMED_SWAPS_10 + 1);
-        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
+        const { swapDeltaAToB: deltaFirstDay } = await DCAPositionHandler.swapAmountDelta(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL_2,
+          PERFORMED_SWAPS_10 + 1
+        );
+        const { swapDeltaAToB: deltaLastDay } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL_2,
@@ -369,8 +379,8 @@ contract('DCAPositionHandler', () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_5,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: POSITION_RATE_5,
         });
       });
 
@@ -553,15 +563,10 @@ contract('DCAPositionHandler', () => {
         }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_5,
-          fromToken: tokenA,
-        });
-        await performTrade({
-          swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_3,
-          fromToken: tokenB,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: POSITION_RATE_5,
+          ratioBToA: RATE_PER_UNIT_5,
+          amountBToA: POSITION_RATE_3,
         });
 
         input = [
@@ -670,8 +675,8 @@ contract('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_5,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: POSITION_RATE_5,
         });
 
         response = await terminate(dcaId, recipientUnswapped, recipientSwapped);
@@ -954,7 +959,8 @@ contract('DCAPositionHandler', () => {
       tokenB.address,
       SWAP_INTERVAL,
       onSwap,
-      BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate)
+      BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate),
+      0
     );
   }
 
@@ -1028,8 +1034,8 @@ contract('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: initialRate,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: initialRate,
         });
 
         response = await exec({
@@ -1074,7 +1080,7 @@ contract('DCAPositionHandler', () => {
       then('previous trade is rolled back', async () => {
         // If it happens that this condition is true, then the new last swap will match the previous last swap, making the delta not 0
         if (PERFORMED_SWAPS_10 + initialSwaps + 1 !== PERFORMED_SWAPS_11 + newSwaps! + 1) {
-          const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(
+          const { swapDeltaAToB: deltaLastSwap } = await DCAPositionHandler.swapAmountDelta(
             tokenA.address,
             tokenB.address,
             SWAP_INTERVAL,
@@ -1086,8 +1092,8 @@ contract('DCAPositionHandler', () => {
       });
 
       then('new trade is recorded', async () => {
-        const { nextAmountToSwapAToB } = await DCAPositionHandler.pairInfo(tokenA.address, tokenB.address, SWAP_INTERVAL);
-        const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(
+        const { nextAmountToSwapAToB } = await DCAPositionHandler.swapData(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        const { swapDeltaAToB: deltaLastSwap } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL,
@@ -1102,13 +1108,36 @@ contract('DCAPositionHandler', () => {
     });
   }
 
-  async function performTrade({ swap, ratio, amount, fromToken }: { swap: number; ratio: number; amount: number; fromToken?: TokenContract }) {
-    const fromTokenReal = fromToken ?? tokenA;
-    const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
+  async function performTrade({
+    swap,
+    ratioAToB,
+    amountAToB,
+    ratioBToA,
+    amountBToA,
+  }: {
+    swap: number;
+    ratioAToB?: number;
+    amountAToB?: number;
+    ratioBToA?: number;
+    amountBToA?: number;
+  }) {
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, swap);
-    await DCAPositionHandler.setAcummRatio(fromTokenReal.address, toToken.address, SWAP_INTERVAL, swap, toToken.asUnits(ratio));
-    await fromTokenReal.burn(DCAPositionHandler.address, fromTokenReal.asUnits(amount));
-    await toToken.mint(DCAPositionHandler.address, toToken.asUnits(amount * ratio));
+    await DCAPositionHandler.setAcummRatio(
+      tokenA.address,
+      tokenB.address,
+      SWAP_INTERVAL,
+      swap,
+      tokenB.asUnits(ratioAToB ?? 0),
+      tokenA.asUnits(ratioBToA ?? 0)
+    );
+    if (amountAToB) {
+      await tokenA.burn(DCAPositionHandler.address, tokenA.asUnits(amountAToB));
+      await tokenB.mint(DCAPositionHandler.address, tokenB.asUnits(amountAToB * ratioAToB!));
+    }
+    if (amountBToA) {
+      await tokenB.burn(DCAPositionHandler.address, tokenB.asUnits(amountBToA));
+      await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(amountBToA * ratioBToA!));
+    }
     await DCAPositionHandler.setInternalBalance(tokenA.address, await tokenA.balanceOf(DCAPositionHandler.address));
     await DCAPositionHandler.setInternalBalance(tokenB.address, await tokenB.balanceOf(DCAPositionHandler.address));
   }

@@ -20,25 +20,25 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _ratioBToA,
     uint32 _timestamp
   ) internal virtual {
-    PairInfo memory _pairInfo = pairInfo[_tokenA][_tokenB][_swapInterval];
-    if (_pairInfo.nextAmountToSwapAToB > 0 || _pairInfo.nextAmountToSwapBToA > 0) {
-      uint32 _swapToRegister = _pairInfo.performedSwaps + 1;
-      accumRatio[_tokenA][_tokenB][_swapInterval][_swapToRegister] =
-        accumRatio[_tokenA][_tokenB][_swapInterval][_swapToRegister - 1] +
-        _ratioAToB;
-      accumRatio[_tokenB][_tokenA][_swapInterval][_swapToRegister] =
-        accumRatio[_tokenB][_tokenA][_swapInterval][_swapToRegister - 1] +
-        _ratioBToA;
-      unchecked {
-        pairInfo[_tokenA][_tokenB][_swapInterval] = PairInfo({
-          performedSwaps: _swapToRegister,
-          nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
-          nextAmountToSwapAToB: _pairInfo.nextAmountToSwapAToB + uint256(swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister + 1]),
-          nextAmountToSwapBToA: _pairInfo.nextAmountToSwapBToA + uint256(swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1])
-        });
-      }
-      delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapToRegister + 1];
-      delete swapAmountDelta[_tokenB][_tokenA][_swapInterval][_swapToRegister + 1];
+    SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapInterval];
+    if (_swapData.nextAmountToSwapAToB > 0 || _swapData.nextAmountToSwapBToA > 0) {
+      AccumRatio memory _accumRatio = accumRatio[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps];
+      SwapDelta memory _swapDelta = swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 2];
+      accumRatio[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 1] = AccumRatio({
+        accumRatioAToB: _accumRatio.accumRatioAToB + _ratioAToB,
+        accumRatioBToA: _accumRatio.accumRatioBToA + _ratioBToA
+      });
+      swapData[_tokenA][_tokenB][_swapInterval] = SwapData({
+        performedSwaps: _swapData.performedSwaps + 1,
+        nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
+        nextAmountToSwapAToB: _swapDelta.swapDeltaAToB < 0
+          ? _swapData.nextAmountToSwapAToB - uint256(-_swapDelta.swapDeltaAToB)
+          : _swapData.nextAmountToSwapAToB + uint256(_swapDelta.swapDeltaAToB),
+        nextAmountToSwapBToA: _swapDelta.swapDeltaBToA < 0
+          ? _swapData.nextAmountToSwapBToA - uint256(-_swapDelta.swapDeltaBToA)
+          : _swapData.nextAmountToSwapBToA + uint256(_swapDelta.swapDeltaBToA)
+      });
+      delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 2];
     } else {
       _activeSwapIntervals[_tokenA][_tokenB].remove(_swapInterval);
     }
@@ -76,7 +76,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _secondsUntil = type(uint32).max;
     for (uint256 i; i < _activeSwapIntervals[_tokenA][_tokenB].length(); i++) {
       uint32 _swapInterval = uint32(_activeSwapIntervals[_tokenA][_tokenB].at(i));
-      uint32 _nextAvailable = pairInfo[_tokenA][_tokenB][_swapInterval].nextSwapAvailable;
+      uint32 _nextAvailable = swapData[_tokenA][_tokenB][_swapInterval].nextSwapAvailable;
       if (_nextAvailable <= _timestamp) {
         return 0;
       } else {
@@ -108,11 +108,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32 _blockTimestamp = _getTimestamp();
     for (uint256 i; i < _intervalsInSwap.length; i++) {
       uint32 _swapInterval = uint32(_swapIntervals.at(i));
-      PairInfo memory _pairInfo = pairInfo[_tokenA][_tokenB][_swapInterval];
-      if (_pairInfo.nextSwapAvailable <= _blockTimestamp) {
+      SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapInterval];
+      if (_swapData.nextSwapAvailable <= _blockTimestamp) {
         _intervalsInSwap[_intervalCount++] = _swapInterval;
-        _totalAmountToSwapTokenA += _pairInfo.nextAmountToSwapAToB;
-        _totalAmountToSwapTokenB += _pairInfo.nextAmountToSwapBToA;
+        _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
+        _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
       }
     }
 
