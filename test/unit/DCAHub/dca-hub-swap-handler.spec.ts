@@ -247,25 +247,6 @@ contract('DCAHubSwapHandler', () => {
     }
   });
 
-  describe('_getAmountToSwap', () => {
-    when('the function is called', () => {
-      const NEXT_SWAP = 1;
-      const AMOUNT_TO_SWAP_TOKEN_A = BigNumber.from(100000);
-      const AMOUNT_TO_SWAP_TOKEN_B = BigNumber.from(50000);
-
-      given(async () => {
-        await DCAHubSwapHandler.setSwapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, NEXT_SWAP, AMOUNT_TO_SWAP_TOKEN_A);
-        await DCAHubSwapHandler.setSwapAmountDelta(tokenB.address, tokenA.address, SWAP_INTERVAL, NEXT_SWAP, AMOUNT_TO_SWAP_TOKEN_B);
-      });
-
-      then('the result is whatever was stored on the delta mappings for the next swap', async () => {
-        const [amountToSwapTokenA, amountToSwapTokenB] = await DCAHubSwapHandler.getAmountToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL);
-        expect(amountToSwapTokenA).to.equal(AMOUNT_TO_SWAP_TOKEN_A);
-        expect(amountToSwapTokenB).to.equal(AMOUNT_TO_SWAP_TOKEN_B);
-      });
-    });
-  });
-
   describe('_getTotalAmountsToSwap', () => {
     when('there are no active swap intervals', () => {
       then('nothing is returned', async () => {
