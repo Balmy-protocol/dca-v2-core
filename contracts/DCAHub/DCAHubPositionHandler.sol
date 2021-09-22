@@ -18,7 +18,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   using SafeERC20 for IERC20Metadata;
-  using EnumerableSet for EnumerableSet.UintSet;
+  using IntervalsSet for IntervalsSet.Set;
 
   IDCAPermissionManager public permissionManager;
   mapping(uint256 => DCA) internal _userPositions;
@@ -34,7 +34,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapInterval);
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
-    _userPosition.swapInterval = _position.swapInterval;
+    _userPosition.swapInterval = SUPPORTED_SWAP_INTERVALS[_position.swapInterval];
     _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _position.finalSwap
       ? uint32(Math.min(_performedSwaps, _position.finalSwap)) - _position.swapWhereLastUpdated
       : 0;
@@ -57,19 +57,19 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    if (!this.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
+    uint8 _index = _getIndex(_swapInterval);
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     _balances[_from] += _amount;
     uint160 _rate = uint160(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
     if (_from < _to) {
-      _activeSwapIntervals[_from][_to].add(_swapInterval);
+      _activeSwapIntervals[_from][_to].add(_index);
     } else {
-      _activeSwapIntervals[_to][_from].add(_swapInterval);
+      _activeSwapIntervals[_to][_from].add(_index);
     }
-    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _swapInterval);
-    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingSwap, _swapInterval, _finalSwap);
+    _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _index);
+    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, 0, _swapInterval, 0);
     return _idCounter;
   }
 

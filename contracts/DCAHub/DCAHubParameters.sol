@@ -2,11 +2,11 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '../interfaces/IDCAHub.sol';
 import '../libraries/CommonErrors.sol';
+import '../libraries/IntervalsSet.sol';
 
 import './utils/Math.sol';
 
@@ -30,7 +30,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   error InvalidInterval2(); // TODO: update when we make the interface correctly
 
-  using EnumerableSet for EnumerableSet.UintSet;
+  using IntervalsSet for IntervalsSet.Set;
 
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;
@@ -53,7 +53,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
   mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
   mapping(address => mapping(address => mapping(uint32 => SwapData))) public swapData; // token A => token B => swap interval => swap data
-  mapping(address => mapping(address => EnumerableSet.UintSet)) internal _activeSwapIntervals; // token A => token B => active swap intervals
+  mapping(address => mapping(address => IntervalsSet.Set)) internal _activeSwapIntervals; // token A => token B => active swap intervals
 
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => uint256) internal _balances; // token => balance
@@ -69,7 +69,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   function isSwapIntervalActive(
     address _tokenA,
     address _tokenB,
-    uint32 _activeSwapInterval
+    uint8 _activeSwapInterval
   ) external view returns (bool _isIntervalActive) {
     _isIntervalActive = _tokenA < _tokenB
       ? _activeSwapIntervals[_tokenA][_tokenB].contains(_activeSwapInterval)

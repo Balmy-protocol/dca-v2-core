@@ -464,10 +464,11 @@ contract('DCAHub', () => {
 
     async function assertIntervalsToSwapNowAre(...swapIntervals: number[]): Promise<void> {
       const nextSwapInfo = await getNextSwapInfo();
-      const intervals = nextSwapInfo.pairs
+      const intervalIndexes = nextSwapInfo.pairs
         .map(({ intervalsInSwap }) => intervalsInSwap)
         .flat()
         .filter((interval) => interval > 0);
+      const intervals = await Promise.all(intervalIndexes.map((index) => DCAHub.SUPPORTED_SWAP_INTERVALS(index)));
       expect(intervals).to.eql(swapIntervals);
       if (swapIntervals.length > 0) {
         const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);

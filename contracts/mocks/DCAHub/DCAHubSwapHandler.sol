@@ -14,7 +14,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   struct TotalAmountsToSwap {
     uint256 amountTokenA;
     uint256 amountTokenB;
-    uint32[] intervalsInSwap;
+    uint8[] intervalsInSwap;
   }
 
   mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
@@ -34,7 +34,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   function registerSwap(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    uint8 _swapInterval,
     uint256 _ratioAToB,
     uint256 _ratioBToA,
     uint32 _timestamp
@@ -56,7 +56,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     returns (
       uint256,
       uint256,
-      uint32[] memory
+      uint8[] memory
     )
   {
     return _getTotalAmountsToSwap(_tokenA, _tokenB);
@@ -69,7 +69,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     returns (
       uint256 _totalAmountTokenA,
       uint256 _totalAmountTokenB,
-      uint32[] memory _affectedIntervals
+      uint8[] memory _affectedIntervals
     )
   {
     TotalAmountsToSwap memory _amounts = _totalAmountsToSwap[_tokenA][_tokenB];
@@ -121,7 +121,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   function _registerSwap(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    uint8 _swapInterval,
     uint256 _ratioAToB,
     uint256 _ratioBToA,
     uint32 _timestamp
@@ -145,7 +145,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     address _tokenB,
     uint256 _totalAmountTokenA,
     uint256 _totalAmountTokenB,
-    uint32[] memory _intervalsInSwap
+    uint8[] memory _intervalsInSwap
   ) external {
     _totalAmountsToSwap[_tokenA][_tokenB].amountTokenA = _totalAmountTokenA;
     _totalAmountsToSwap[_tokenA][_tokenB].amountTokenB = _totalAmountTokenB;

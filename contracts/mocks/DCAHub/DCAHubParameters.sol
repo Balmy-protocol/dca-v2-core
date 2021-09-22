@@ -5,7 +5,7 @@ pragma solidity >=0.8.7 <0.9.0;
 import '../../DCAHub/DCAHubParameters.sol';
 
 contract DCAHubParametersMock is DCAHubParameters {
-  using EnumerableSet for EnumerableSet.UintSet;
+  using IntervalsSet for IntervalsSet.Set;
 
   // Mocks setters
   function internalBalanceOf(address _token) external view returns (uint256) {
@@ -23,7 +23,7 @@ contract DCAHubParametersMock is DCAHubParameters {
   function addActiveSwapInterval(
     address _tokenA,
     address _tokenB,
-    uint32 _activeInterval
+    uint8 _activeInterval
   ) external {
     _activeSwapIntervals[_tokenA][_tokenB].add(_activeInterval);
   }
@@ -31,7 +31,7 @@ contract DCAHubParametersMock is DCAHubParameters {
   function removeActiveSwapInterval(
     address _tokenA,
     address _tokenB,
-    uint32 _activeInterval
+    uint8 _activeInterval
   ) external {
     _activeSwapIntervals[_tokenA][_tokenB].remove(_activeInterval);
   }
