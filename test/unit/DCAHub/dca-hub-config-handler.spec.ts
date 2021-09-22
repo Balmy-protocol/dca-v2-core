@@ -13,26 +13,6 @@ contract('DCAHubConfigHandler', () => {
   const FIVE_MINUTES = moment.duration(5, 'minutes').asSeconds();
   const ONE_HOUR = moment.duration(1, 'hour').asSeconds();
   const ONE_DAY = moment.duration(1, 'day').asSeconds();
-  const SUPPORTED_SWAP_INTERVALS = [
-    FIVE_MINUTES,
-    moment.duration(15, 'minutes').asSeconds(),
-    moment.duration(30, 'minutes').asSeconds(),
-    ONE_HOUR,
-    moment.duration(12, 'hours').asSeconds(),
-    ONE_DAY,
-    moment.duration(1, 'week').asSeconds(),
-    moment.duration(30, 'days').asSeconds(),
-  ];
-  const SWAP_INTERVALS_DESCRIPTIONS = [
-    'Every 5 minutes',
-    'Every 15 minutes',
-    'Evert 30 minutes',
-    'Hourly',
-    'Every 12 hours',
-    'Daily',
-    'Weekly',
-    'Monthy',
-  ];
 
   let owner: SignerWithAddress, timeLockedOwner: SignerWithAddress, oracle: SignerWithAddress;
   let DCAHubConfigHandlerFactory: DCAHubConfigHandlerMock__factory;
@@ -98,16 +78,6 @@ contract('DCAHubConfigHandler', () => {
       });
       then('contract starts as unpaused', async () => {
         expect(await deployedContract.paused()).to.be.false;
-      });
-      then('supported swap intervals are as expected', async () => {
-        for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
-          expect(await DCAHubConfigHandler.SUPPORTED_SWAP_INTERVALS(i)).to.equal(SUPPORTED_SWAP_INTERVALS[i]);
-        }
-      });
-      then('descriptions are as expected', async () => {
-        for (let i = 0; i < SWAP_INTERVALS_DESCRIPTIONS.length; i++) {
-          expect(await DCAHubConfigHandler.SWAP_INTERVALS_DESCRIPTIONS(i)).to.equal(SWAP_INTERVALS_DESCRIPTIONS[i]);
-        }
       });
     });
   });

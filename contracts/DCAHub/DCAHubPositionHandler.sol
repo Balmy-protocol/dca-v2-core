@@ -10,7 +10,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   struct DCA {
     uint32 swapWhereLastUpdated; // Includes both modify and withdraw
     uint32 finalSwap;
-    uint32 swapInterval;
+    uint32 swapInterval; // TODO: We can now store the index directly in a uint8
     uint160 rate;
     address from;
     address to;

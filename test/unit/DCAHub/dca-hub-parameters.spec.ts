@@ -7,8 +7,29 @@ import { contract, given, then, when } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import moment from 'moment';
 
 contract('DCAHubParameters', function () {
+  const SUPPORTED_SWAP_INTERVALS = [
+    moment.duration(5, 'minutes').asSeconds(),
+    moment.duration(15, 'minutes').asSeconds(),
+    moment.duration(30, 'minutes').asSeconds(),
+    moment.duration(1, 'hour').asSeconds(),
+    moment.duration(12, 'hours').asSeconds(),
+    moment.duration(1, 'day').asSeconds(),
+    moment.duration(1, 'week').asSeconds(),
+    moment.duration(30, 'days').asSeconds(),
+  ];
+  const SWAP_INTERVALS_DESCRIPTIONS = [
+    'Every 5 minutes',
+    'Every 15 minutes',
+    'Evert 30 minutes',
+    'Hourly',
+    'Every 12 hours',
+    'Daily',
+    'Weekly',
+    'Monthy',
+  ];
   let owner: SignerWithAddress;
   let tokenA: ERC20Mock, tokenB: ERC20Mock;
   let DCAHubParametersContract: DCAHubParametersMock__factory;
@@ -52,6 +73,16 @@ contract('DCAHubParameters', function () {
       });
       then('internal balance for token B starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
+      });
+      then('supported swap intervals are as expected', async () => {
+        for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
+          expect(await deployedContract.SUPPORTED_SWAP_INTERVALS(i)).to.equal(SUPPORTED_SWAP_INTERVALS[i]);
+        }
+      });
+      then('descriptions are as expected', async () => {
+        for (let i = 0; i < SWAP_INTERVALS_DESCRIPTIONS.length; i++) {
+          expect(await deployedContract.SWAP_INTERVALS_DESCRIPTIONS(i)).to.equal(SWAP_INTERVALS_DESCRIPTIONS[i]);
+        }
       });
     });
   });

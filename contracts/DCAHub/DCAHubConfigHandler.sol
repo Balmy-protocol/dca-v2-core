@@ -17,30 +17,14 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   event SwapIntervalsAllowed(uint32[] swapIntervals);
   event SwapIntervalsForbidden(uint32[] swapIntervals);
   error HighFee();
-  error InvalidInterval2(); // TODO: update when we make the interface correctly
 
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
-  // solhint-disable-next-line var-name-mixedcase
-  uint32[8] public SUPPORTED_SWAP_INTERVALS = [5 minutes, 15 minutes, 30 minutes, 1 hours, 12 hours, 1 days, 1 weeks, 30 days];
-  // TODO: If they are going to be hard-coded, maybe we want to move them to the descriptor directly?
-  // solhint-disable-next-line var-name-mixedcase
-  string[8] public SWAP_INTERVALS_DESCRIPTIONS = [
-    'Every 5 minutes',
-    'Every 15 minutes',
-    'Evert 30 minutes',
-    'Hourly',
-    'Every 12 hours',
-    'Daily',
-    'Weekly',
-    'Monthy'
-  ];
   ITimeWeightedOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
   uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
   bytes1 internal _allowedSwapIntervals;
-  mapping(uint32 => uint8) private _intervalIndex;
 
   constructor(
     address _immediateGovernor,
@@ -55,11 +39,6 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
     _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);
     oracle = _oracle;
-
-    for (uint8 i; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
-      // Note: we add one to the index to that we can differentiate intervals that were not set
-      _intervalIndex[SUPPORTED_SWAP_INTERVALS[i]] = i + 1;
-    }
   }
 
   function setOracle(ITimeWeightedOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
@@ -107,17 +86,5 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function unpause() external onlyRole(IMMEDIATE_ROLE) {
     _unpause();
-  }
-
-  /** Returns a byte where the only activated bit is in the same position as the swap interval's index */
-  function _getByteForSwapInterval(uint32 _swapInterval) internal view returns (bytes1 _mask) {
-    uint8 _index = _getIndex(_swapInterval);
-    _mask = (bytes1(uint8(1) << _index));
-  }
-
-  function _getIndex(uint32 _swapInterval) internal view returns (uint8 _index) {
-    _index = _intervalIndex[_swapInterval];
-    if (_index == 0) revert InvalidInterval2();
-    _index--;
   }
 }
