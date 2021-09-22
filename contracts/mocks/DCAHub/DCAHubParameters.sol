@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.7 <0.9.0;
 
 import '../../DCAHub/DCAHubParameters.sol';
 
 contract DCAHubParametersMock is DCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
-
-  constructor(IERC20Metadata _tokenA, IERC20Metadata _tokenB) DCAHubParameters(_tokenA, _tokenB) {}
 
   // Mocks setters
   function internalBalanceOf(address _token) external view returns (uint256) {
@@ -39,23 +37,36 @@ contract DCAHubParametersMock is DCAHubParameters {
   }
 
   function setSwapAmountDelta(
-    address _from,
-    address _to,
+    address _tokenA,
+    address _tokenB,
     uint32 _swapInterval,
     uint32 _swap,
-    int256 _value
+    int128 _deltaAToB,
+    int128 _deltaBToA
   ) external {
-    swapAmountDelta[_from][_to][_swapInterval][_swap] = _value;
+    swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swap] = SwapDelta(_deltaAToB, _deltaBToA);
   }
 
   function setAcummRatio(
-    address _from,
-    address _to,
+    address _tokenA,
+    address _tokenB,
     uint32 _swapInterval,
     uint32 _swap,
-    uint256 _accumRatio
+    uint256 _accumRatioAToB,
+    uint256 _accumRatioBToA
   ) external {
-    accumRatio[_from][_to][_swapInterval][_swap] = _accumRatio;
+    accumRatio[_tokenA][_tokenB][_swapInterval][_swap] = AccumRatio(_accumRatioAToB, _accumRatioBToA);
+  }
+
+  function setNextAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval,
+    uint256 _amountToSwapAToB,
+    uint256 _amountToSwapBToA
+  ) external {
+    swapData[_tokenA][_tokenB][_swapInterval].nextAmountToSwapAToB = _amountToSwapAToB;
+    swapData[_tokenA][_tokenB][_swapInterval].nextAmountToSwapBToA = _amountToSwapBToA;
   }
 
   function setPerformedSwaps(
@@ -64,7 +75,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     uint32 _swapInterval,
     uint32 _performedSwaps
   ) external {
-    performedSwaps[_tokenA][_tokenB][_swapInterval] = _performedSwaps;
+    swapData[_tokenA][_tokenB][_swapInterval].performedSwaps = _performedSwaps;
   }
 
   function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external pure returns (uint256) {

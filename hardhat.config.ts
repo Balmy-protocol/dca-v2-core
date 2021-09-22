@@ -74,7 +74,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.6',
+        version: '0.8.7',
         settings: {
           optimizer: {
             enabled: true,
@@ -109,6 +109,7 @@ const config: HardhatUserConfig = {
     coinmarketcap: process.env.COINMARKETCAP_API_KEY,
     enabled: true,
     outputFile: 'gasReporterOutput.json',
+    noColors: true,
   },
   preprocess: {
     eachLine: removeConsoleLog((hre) => hre.network.name !== 'hardhat'),

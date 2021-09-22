@@ -11,6 +11,8 @@ import {
   DCAHubSwapCalleeMock__factory,
   DCAHubLoanCalleeMock,
   DCAHubLoanCalleeMock__factory,
+  DCAPermissionsManager,
+  DCAPermissionsManager__factory,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
@@ -34,6 +36,7 @@ contract('DCAHub', () => {
     let timeWeightedOracleFactory: TimeWeightedOracleMock__factory, timeWeightedOracle: TimeWeightedOracleMock;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
     let DCAHubLoanCalleeFactory: DCAHubLoanCalleeMock__factory, DCAHubLoanCallee: DCAHubLoanCalleeMock;
+    let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
 
     // Global variables
     const swapFee1: number = 0.3;
@@ -45,6 +48,9 @@ contract('DCAHub', () => {
       timeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
       DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
       DCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:DCAHubLoanCalleeMock');
+      DCAPermissionsManagerFactory = await ethers.getContractFactory(
+        'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
+      );
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -61,15 +67,10 @@ contract('DCAHub', () => {
       });
 
       timeWeightedOracle = await timeWeightedOracleFactory.deploy(0, 0);
+      DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       await setSwapRatio(swapRatio1);
-      DCAHub = await DCAHubFactory.deploy(
-        tokenA.address,
-        tokenB.address,
-        governor.address,
-        governor.address,
-        constants.NOT_ZERO_ADDRESS,
-        timeWeightedOracle.address
-      );
+      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
+      await DCAPermissionsManager.setHub(DCAHub.address);
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);
@@ -157,7 +158,7 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(sarahsPosition2);
       await assertHubBalanceDifferencesAre({ tokenA: +1500, tokenB: +400 });
 
-      await removeFundsFromPosition(johnsPosition, { amount: 400, newSwaps: 8 });
+      await reducePosition(johnsPosition, { amount: 400, newSwaps: 8 });
       await assertPositionIsConsistent(johnsPosition, {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatio1, fee: swapFee1 }, { rate: 100, ratio: swapRatio2, fee: swapFee1 }),
       });
@@ -207,7 +208,7 @@ contract('DCAHub', () => {
       await assertPlatformBalanceIncreasedBy({ tokenA: +1.8497, tokenB: +0.7997 });
       await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: -1.8497, tokenB: -0.7997 });
 
-      await addFundsToPosition(johnsPosition, { newSwaps: 10, amount: 100 });
+      await increasePosition(johnsPosition, { newSwaps: 10, amount: 100 });
 
       await assertPositionIsConsistentWithNothingToWithdraw(johnsPosition);
       await assertHubBalanceDifferencesAre({ tokenA: +100 });
@@ -278,10 +279,13 @@ contract('DCAHub', () => {
     });
 
     async function withdrawMany(position1: UserPositionDefinition, ...otherPositions: UserPositionDefinition[]) {
-      await DCAHub.connect(position1.owner).withdrawSwappedMany(
-        [position1.id].concat(otherPositions.map(({ id }) => id)),
-        position1.owner.address
-      );
+      const positionMap: Map<string, Set<BigNumber>> = new Map();
+      for (const position of [position1, ...otherPositions]) {
+        if (!positionMap.has(position.to.address)) positionMap.set(position.to.address, new Set([position.id]));
+        else positionMap.get(position.to.address)!.add(position.id);
+      }
+      const input = Array.from(positionMap.entries()).map(([token, positionIds]) => ({ token, positionIds: Array.from(positionIds.values()) }));
+      await DCAHub.connect(position1.owner).withdrawSwappedMany(input, position1.owner.address);
 
       // Since the position is "resetted" with a withdraw, we need to reduce the amount of swaps
       for (const position of [position1].concat(otherPositions)) {
@@ -298,10 +302,10 @@ contract('DCAHub', () => {
       await DCAHub.setSwapFee(fee * 10000);
     }
 
-    async function addFundsToPosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
+    async function increasePosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
       const token = position.from.address === tokenA.address ? tokenA : tokenB;
       await token.connect(position.owner).approve(DCAHub.address, token.asUnits(args.amount).mul(args.newSwaps));
-      const response = await DCAHub.connect(position.owner).addFundsToPosition(position.id, token.asUnits(args.amount), args.newSwaps);
+      const response = await DCAHub.connect(position.owner).increasePosition(position.id, token.asUnits(args.amount), args.newSwaps);
       position.amountOfSwaps = BigNumber.from(args.newSwaps);
       position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }
@@ -370,10 +374,10 @@ contract('DCAHub', () => {
       return DCAHub.getNextSwapInfo(tokens, pairIndexes);
     }
 
-    async function removeFundsFromPosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
+    async function reducePosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
       const token = position.from.address === tokenA.address ? tokenA : tokenB;
       await token.connect(position.owner).approve(DCAHub.address, token.asUnits(args.amount).mul(args.newSwaps));
-      const response = await DCAHub.connect(position.owner).removeFundsFromPosition(position.id, token.asUnits(args.amount), args.newSwaps);
+      const response = await DCAHub.connect(position.owner).reducePosition(position.id, token.asUnits(args.amount), args.newSwaps);
       position.amountOfSwaps = BigNumber.from(args.newSwaps);
       position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }
@@ -391,21 +395,24 @@ contract('DCAHub', () => {
       swapInterval: number;
       swaps: number;
     }): Promise<UserPositionDefinition> {
+      const toToken = token.address === tokenA.address ? tokenB : tokenA;
       await token.mint(depositor.address, token.asUnits(rate).mul(swaps));
       await token.connect(depositor).approve(DCAHub.address, token.asUnits(rate).mul(swaps));
       const response: TransactionResponse = await DCAHub.connect(depositor).deposit(
-        depositor.address,
         token.address,
-        token.asUnits(rate),
+        toToken.address,
+        token.asUnits(rate).mul(swaps),
         swaps,
-        swapInterval
+        swapInterval,
+        depositor.address,
+        []
       );
       const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
       return {
         id: positionId,
         owner: depositor,
         from: token,
-        to: token.address === tokenA.address ? tokenB : tokenA,
+        to: toToken,
         swapInterval: BigNumber.from(swapInterval),
         rate: token.asUnits(rate),
         amountOfSwaps: BigNumber.from(swaps),
@@ -446,9 +453,9 @@ contract('DCAHub', () => {
       let totalTokenB = constants.ZERO;
 
       for (const interval of intervalsInSwap) {
-        const performedSwaps = await DCAHub.performedSwaps(tokenA.address, tokenB.address, interval);
-        totalTokenA = totalTokenA.add(await DCAHub.swapAmountDelta(tokenA.address, tokenB.address, interval, performedSwaps + 1));
-        totalTokenB = totalTokenB.add(await DCAHub.swapAmountDelta(tokenB.address, tokenA.address, interval, performedSwaps + 1));
+        const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.swapData(tokenA.address, tokenB.address, interval);
+        totalTokenA = totalTokenA.add(nextAmountToSwapAToB);
+        totalTokenB = totalTokenB.add(nextAmountToSwapBToA);
       }
 
       expect(totalTokenA).to.equal(tokenA.asUnits(expectedTokenA));

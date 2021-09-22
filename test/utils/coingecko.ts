@@ -11,15 +11,20 @@ export const getCoingeckoDataPoints = async (coin: string, currency: string, fro
   const response = await axios.get(
     `https://api.coingecko.com/api/v3/coins/${coin}/market_chart/range?vs_currency=${currency}&from=${from}&to=${to}`
   );
-  console.log('status', response.status);
-  console.log('response', response);
   const coingeckoDatapoints = response.data as CoingeckoDataPoints;
   return coingeckoDatapoints;
 };
 
 export const getLastPrice = async (coin: string, currency: string, from: number, to: number): Promise<number> => {
-  const coingeckoDataPoints = await getCoingeckoDataPoints(coin, currency, from, to);
-  return coingeckoDataPoints.prices[0][1];
+  return await getSimple(coin, currency);
+};
+
+type CoingeckoSimple = { [coin: string]: { [currency: string]: number } };
+
+export const getSimple = async (coin: string, currency: string): Promise<number> => {
+  const coingeckoSimple = (await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${coin}&vs_currencies=${currency}`))
+    .data as CoingeckoSimple;
+  return coingeckoSimple[coin][currency];
 };
 
 export const convertPriceToBigNumberWithDecimals = (price: number, decimals: number): BigNumber => {

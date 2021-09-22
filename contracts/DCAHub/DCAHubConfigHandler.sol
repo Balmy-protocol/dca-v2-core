@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
@@ -7,13 +7,11 @@ import '@openzeppelin/contracts/security/Pausable.sol';
 
 import './DCAHubParameters.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
-import '../interfaces/IDCATokenDescriptor.sol';
 import '../libraries/CommonErrors.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable {
   using EnumerableSet for EnumerableSet.UintSet;
 
-  event NFTDescriptorSet(IDCATokenDescriptor descriptor);
   event OracleSet(ITimeWeightedOracle oracle);
   event SwapFeeSet(uint32 feeSet);
   event LoanFeeSet(uint32 feeSet);
@@ -27,7 +25,6 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
 
-  IDCATokenDescriptor public nftDescriptor;
   ITimeWeightedOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
@@ -38,28 +35,16 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
   ) {
-    if (
-      _immediateGovernor == address(0) ||
-      _timeLockedGovernor == address(0) ||
-      address(_nftDescriptor) == address(0) ||
-      address(_oracle) == address(0)
-    ) revert CommonErrors.ZeroAddress();
+    if (_immediateGovernor == address(0) || _timeLockedGovernor == address(0) || address(_oracle) == address(0))
+      revert CommonErrors.ZeroAddress();
     _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
     _setupRole(TIME_LOCKED_ROLE, _timeLockedGovernor);
     // We set each role as its own admin, so they can assign new addresses with the same role
     _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
     _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);
-    nftDescriptor = _nftDescriptor;
     oracle = _oracle;
-  }
-
-  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external onlyRole(IMMEDIATE_ROLE) {
-    if (address(_descriptor) == address(0)) revert CommonErrors.ZeroAddress();
-    nftDescriptor = _descriptor;
-    emit NFTDescriptorSet(_descriptor);
   }
 
   function setOracle(ITimeWeightedOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {

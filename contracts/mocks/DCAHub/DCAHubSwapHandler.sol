@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.7 <0.9.0;
 
 import '../../DCAHub/DCAHubSwapHandler.sol';
 import './DCAHubConfigHandler.sol';
@@ -19,7 +19,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
 
   mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
-  mapping(address => mapping(address => mapping(uint32 => uint256[2]))) private _amountToSwap;
   mapping(address => mapping(address => uint256)) private _ratios; // from => to => ratio(from -> to)
   mapping(address => mapping(address => TotalAmountsToSwap)) private _totalAmountsToSwap; // tokenA => tokenB => total amounts
 
@@ -27,13 +26,10 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   uint32 private _customTimestamp;
 
   constructor(
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB,
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IDCATokenDescriptor _nftDescriptor,
     ITimeWeightedOracle _oracle
-  ) DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle) DCAHubSwapHandler() {}
+  ) DCAHubConfigHandlerMock(_immediateGovernor, _timeLockedGovernor, _oracle) DCAHubSwapHandler() {}
 
   function registerSwap(
     address _tokenA,
@@ -46,33 +42,12 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     _registerSwap(_tokenA, _tokenB, _swapInterval, _ratioAToB, _ratioBToA, _timestamp);
   }
 
-  function getAmountToSwap(
-    address _from,
-    address _to,
-    uint32 _swapInterval
-  ) external view returns (uint256, uint256) {
-    return _getAmountToSwap(_from, _to, _swapInterval);
-  }
-
   function setBlockTimestamp(uint32 _blockTimestamp) external {
     _customTimestamp = _blockTimestamp;
   }
 
   function _getTimestamp() internal view override returns (uint32 _blockTimestamp) {
     _blockTimestamp = (_customTimestamp > 0) ? _customTimestamp : super._getTimestamp();
-  }
-
-  function _getAmountToSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) internal view override returns (uint256, uint256) {
-    uint256[2] memory _amounts = _amountToSwap[_tokenA][_tokenB][_swapInterval];
-    if (_amounts[0] == 0 && _amounts[1] == 0) {
-      return super._getAmountToSwap(_tokenA, _tokenB, _swapInterval);
-    } else {
-      return (_amounts[0], _amounts[1]);
-    }
   }
 
   function getTotalAmountsToSwap(address _tokenA, address _tokenB)
@@ -180,16 +155,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     }
   }
 
-  function setAmountToSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval,
-    uint256 _amountTokenA,
-    uint256 _amountTokenB
-  ) external {
-    _amountToSwap[_tokenA][_tokenB][_swapInterval] = [_amountTokenA, _amountTokenB];
-  }
-
   function setInternalGetNextSwapInfo(SwapInfo memory __swapInformation) external {
     for (uint256 i; i < __swapInformation.tokens.length; i++) {
       _swapInformation.tokens.push(__swapInformation.tokens[i]);
@@ -206,6 +171,6 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     uint32 _swapInterval,
     uint32 _nextSwapAvailable
   ) external {
-    nextSwapAvailable[_tokenA][_tokenB][_swapInterval] = _nextSwapAvailable;
+    swapData[_tokenA][_tokenB][_swapInterval].nextSwapAvailable = _nextSwapAvailable;
   }
 }

@@ -2,7 +2,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHub, DCAHub__factory, IUniswapV3OracleAggregator } from '@typechained';
+import { DCAHub, DCAHub__factory, DCAPermissionsManager, DCAPermissionsManager__factory, IUniswapV3OracleAggregator } from '@typechained';
 import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -20,13 +20,14 @@ contract('DCAHub', () => {
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
     let timeWeightedOracle: FakeContract<IUniswapV3OracleAggregator>;
-
-    // Global variables
-    const swapFee: number = 0.6;
+    let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
 
     before('Setup accounts and contracts', async () => {
       [governor, alice, john, swapper1] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
+      DCAPermissionsManagerFactory = await ethers.getContractFactory(
+        'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
+      );
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -42,14 +43,9 @@ contract('DCAHub', () => {
         decimals: 18,
       });
       timeWeightedOracle = await smock.fake(IUniswapV3OracleAggregatorABI);
-      DCAHub = await DCAHubFactory.deploy(
-        tokenA.address,
-        tokenB.address,
-        governor.address,
-        governor.address,
-        constants.NOT_ZERO_ADDRESS,
-        timeWeightedOracle.address
-      );
+      DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
+      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
+      DCAPermissionsManager.setHub(DCAHub.address);
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR], ['1 hour']);
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(alice, { tokenA: 0, tokenB: 10000 });
@@ -59,10 +55,26 @@ contract('DCAHub', () => {
     when('all swaps are done', () => {
       given(async () => {
         await tokenB.connect(alice).approve(DCAHub.address, constants.MAX_UINT_256);
-        await DCAHub.connect(alice).deposit(alice.address, tokenB.address, BigNumber.from('89509558490300730500'), 3, SWAP_INTERVAL_1_HOUR);
+        await DCAHub.connect(alice).deposit(
+          tokenB.address,
+          tokenA.address,
+          BigNumber.from('89509558490300730500').mul(3),
+          3,
+          SWAP_INTERVAL_1_HOUR,
+          alice.address,
+          []
+        );
 
         await tokenB.connect(john).approve(DCAHub.address, constants.MAX_UINT_256);
-        await DCAHub.connect(john).deposit(john.address, tokenB.address, utils.parseEther('200'), 5, SWAP_INTERVAL_1_HOUR);
+        await DCAHub.connect(john).deposit(
+          tokenB.address,
+          tokenA.address,
+          utils.parseEther('200').mul(5),
+          5,
+          SWAP_INTERVAL_1_HOUR,
+          john.address,
+          []
+        );
 
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
         await timeWeightedOracle.quote.returns(BigNumber.from('2246'));

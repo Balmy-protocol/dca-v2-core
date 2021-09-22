@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
@@ -11,32 +11,36 @@ import '../libraries/CommonErrors.sol';
 import './utils/Math.sol';
 
 abstract contract DCAHubParameters is IDCAHubParameters {
+  struct SwapData {
+    uint32 performedSwaps;
+    uint32 nextSwapAvailable;
+    uint256 nextAmountToSwapAToB;
+    uint256 nextAmountToSwapBToA;
+  }
+
+  struct SwapDelta {
+    int256 swapDeltaAToB;
+    int256 swapDeltaBToA;
+  }
+
+  struct AccumRatio {
+    uint256 accumRatioAToB;
+    uint256 accumRatioBToA;
+  }
+
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;
 
-  // Basic setup
-  IERC20Metadata public override tokenA;
-  IERC20Metadata public override tokenB;
-
   // Tracking
-  // TODO: See if there is a way to optimize all these mappings
-  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => int256)))) public swapAmountDelta; // from token => to token => swap interval => swap number => delta
-  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => uint256)))) public accumRatio; // from token => to token => swap interval => swap number => accum
-
-  mapping(address => mapping(address => mapping(uint32 => uint32))) public performedSwaps; // token A => token B => swap interval => performed swaps
-  mapping(address => mapping(address => mapping(uint32 => uint32))) public nextSwapAvailable; // token A => token B => swap interval => timestamp
+  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
+  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
+  mapping(address => mapping(address => mapping(uint32 => SwapData))) public swapData; // token A => token B => swap interval => swap data
   mapping(address => mapping(address => EnumerableSet.UintSet)) internal _activeSwapIntervals; // token A => token B => active swap intervals
 
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => uint256) internal _balances; // token => balance
-
-  constructor(IERC20Metadata _tokenA, IERC20Metadata _tokenB) {
-    if (address(_tokenA) == address(0) || address(_tokenB) == address(0)) revert CommonErrors.ZeroAddress();
-    tokenA = _tokenA;
-    tokenB = _tokenB;
-  }
 
   function isSwapIntervalActive(
     address _tokenA,

@@ -18,8 +18,8 @@ contract.only('DCAHub', () => {
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory;
     let DCAHub: DCAHub;
-    let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
-    let TimeWeightedOracle: TimeWeightedOracleMock;
+    let timeWeightedOracleFactory: TimeWeightedOracleMock__factory;
+    let timeWeightedOracle: TimeWeightedOracleMock;
     let snapshotId: string;
 
     const SWAP_INTERVAL = moment.duration(10, 'minutes').as('seconds');
@@ -28,24 +28,17 @@ contract.only('DCAHub', () => {
     before('Setup accounts and contracts', async () => {
       [governor, dude] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
-      TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
+      timeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
 
       const deploy = () => erc20.deploy({ name: 'A name', symbol: 'SYMB' });
       const tokens = [await deploy(), await deploy()];
       [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
-      TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(0, 0);
-      DCAHub = await DCAHubFactory.deploy(
-        tokenA.address,
-        tokenB.address,
-        governor.address,
-        constants.NOT_ZERO_ADDRESS,
-        constants.NOT_ZERO_ADDRESS,
-        TimeWeightedOracle.address
-      );
+      timeWeightedOracle = await timeWeightedOracleFactory.deploy(0, 0);
+      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, constants.NOT_ZERO_ADDRESS);
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL], ['NULL']);
       await tokenA.mint(dude.address, DUDE_INITIAL_BALANCE);
       await tokenA.connect(dude).approve(DCAHub.address, tokenA.asUnits(200));
-      await DCAHub.connect(dude).deposit(dude.address, tokenA.address, tokenA.asUnits(200), 1, SWAP_INTERVAL);
+      // await DCAHub.connect(dude).deposit(tokenA.address, tokenB.address, tokenA.asUnits(200), 1, SWAP_INTERVAL, dude.address, []);
       snapshotId = await snapshot.take();
     });
 
@@ -54,24 +47,66 @@ contract.only('DCAHub', () => {
     });
 
     when('no swaps were performed', () => {
-      then('position gets increased');
-      when('swaps everything', () => {
-        then('positions is withdrawable');
-      });
+      canDeposit();
+      canWithdrawSwapped();
+      canReducePosition();
+      canIncreasePosition();
+      canTerminatePosition();
     });
 
     when('some swaps were performed', () => {
-      then('position gets increased');
-      when('swaps everything', () => {
-        then('positions is withdrawable');
-      });
+      canDeposit();
+      canWithdrawSwapped();
+      canReducePosition();
+      canIncreasePosition();
+      canTerminatePosition();
     });
 
     when('all swaps were performed', () => {
-      then('position gets increased');
-      when('swaps everything', () => {
-        then('positions is withdrawable');
-      });
+      canDeposit();
+      canWithdrawSwapped();
+      canReducePosition();
+      canIncreasePosition();
+      canTerminatePosition();
     });
   });
+
+  function canDeposit() {
+    describe('deposit', () => {
+      then('takes funds from depositor');
+      then('hub receives funds');
+      then('creates position for owner');
+    });
+  }
+
+  function canWithdrawSwapped() {
+    describe('withdrawSwapped', () => {
+      then('takes funds from hub');
+      then('funds are sent to recipient');
+    });
+  }
+
+  function canIncreasePosition() {
+    describe('increasePosition', () => {
+      then('takes funds from sender');
+      then('funds are sent to hub');
+      then('position gets modified');
+    });
+  }
+
+  function canReducePosition() {
+    describe('reducePosition', () => {
+      then('takes funds from hub');
+      then('funds are sent to sender');
+      then('position gets modified');
+    });
+  }
+
+  function canTerminatePosition() {
+    describe('terminate', () => {
+      then('swapped funds are returned to recipient');
+      then('unswapped funds are returned to recipient');
+      then('position gets deleted');
+    });
+  }
 });

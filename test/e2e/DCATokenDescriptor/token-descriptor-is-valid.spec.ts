@@ -9,6 +9,8 @@ import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import {
   DCAHub,
   DCAHub__factory,
+  DCAPermissionsManager,
+  DCAPermissionsManager__factory,
   DCATokenDescriptor,
   DCATokenDescriptor__factory,
   TimeWeightedOracleMock,
@@ -23,8 +25,10 @@ contract('DCATokenDescriptor', () => {
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubContract: DCAHub__factory;
   let DCAHub: DCAHub;
-  let DCATokenDescriptorContract: DCATokenDescriptor__factory;
+  let DCATokenDescriptorFactory: DCATokenDescriptor__factory;
   let DCATokenDescriptor: DCATokenDescriptor;
+  let DCAPermissionsManagerFactory: DCAPermissionsManager__factory;
+  let DCAPermissionsManager: DCAPermissionsManager;
   let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
   let TimeWeightedOracle: TimeWeightedOracleMock;
   const swapInterval = moment.duration(10, 'minutes').as('seconds');
@@ -32,7 +36,10 @@ contract('DCATokenDescriptor', () => {
   before('Setup accounts and contracts', async () => {
     [governor] = await ethers.getSigners();
     DCAHubContract = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
-    DCATokenDescriptorContract = await ethers.getContractFactory('contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor');
+    DCATokenDescriptorFactory = await ethers.getContractFactory('contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor');
+    DCAPermissionsManagerFactory = await ethers.getContractFactory(
+      'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
+    );
     TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
   });
 
@@ -47,15 +54,15 @@ contract('DCATokenDescriptor', () => {
       symbol: 'TKNB',
     });
     TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(tokenA.asUnits(1), tokenA.amountOfDecimals); // Rate is 1 token A = 1 token B
-    DCATokenDescriptor = await DCATokenDescriptorContract.deploy();
+    DCATokenDescriptor = await DCATokenDescriptorFactory.deploy();
+    DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
     DCAHub = await DCAHubContract.deploy(
-      tokenA.address,
-      tokenB.address,
       governor.address,
       constants.NOT_ZERO_ADDRESS,
-      DCATokenDescriptor.address,
-      TimeWeightedOracle.address
+      TimeWeightedOracle.address,
+      DCAPermissionsManager.address
     );
+    await DCAPermissionsManager.setHub(DCAHub.address);
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
@@ -65,14 +72,14 @@ contract('DCATokenDescriptor', () => {
 
   it('Validate tokenURI result', async () => {
     // Deposit
-    const response = await DCAHub.deposit(governor.address, tokenB.address, tokenB.asUnits(10), 2, swapInterval);
+    const response = await DCAHub.deposit(tokenB.address, tokenA.address, tokenB.asUnits(20), 2, swapInterval, governor.address, []);
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
 
     // Execute one swap
     await swap();
 
     // Get token uri
-    const result1 = await DCAHub.tokenURI(tokenId);
+    const result1 = await DCAPermissionsManager.tokenURI(tokenId);
     const { name: name1, description: description1, image: image1 } = extractJSONFromURI(result1);
 
     expect(name1).to.equal('Mean Finance DCA - Daily - TKNB ➔ TKNA');
@@ -87,7 +94,7 @@ contract('DCATokenDescriptor', () => {
     await DCAHub.withdrawSwapped(tokenId, wallet.generateRandomAddress());
 
     // Get token uri
-    const result2 = await DCAHub.tokenURI(tokenId);
+    const result2 = await DCAPermissionsManager.tokenURI(tokenId);
     const { name: name2, description: description2, image: image2 } = extractJSONFromURI(result2);
 
     expect(name2).to.equal(name1);

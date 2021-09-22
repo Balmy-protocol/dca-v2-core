@@ -1,21 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.7 <0.9.0;
 
 import '../../DCAHub/DCAHubPositionHandler.sol';
 import './DCAHubConfigHandler.sol';
 
 contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandlerMock {
-  constructor(
-    IERC20Metadata _tokenA,
-    IERC20Metadata _tokenB,
-    address _immediateGovernor,
-    address _timeLockedGovernor,
-    IDCATokenDescriptor _nftDescriptor,
-    ITimeWeightedOracle _oracle
-  )
-    DCAHubConfigHandlerMock(_tokenA, _tokenB, _immediateGovernor, _timeLockedGovernor, _nftDescriptor, _oracle)
-    DCAHubPositionHandler(_tokenA, _tokenB)
+  constructor(address _immediateGovernor, IDCAPermissionManager _permissionManager)
+    DCAHubConfigHandlerMock(_immediateGovernor, address(1), ITimeWeightedOracle(address(1)))
+    DCAHubPositionHandler(_permissionManager)
   {}
 
   // PositionHandler
@@ -25,10 +18,5 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandler
 
   function setLastUpdated(uint256 _dcaId, uint32 _lastUpdated) external {
     _userPositions[_dcaId].swapWhereLastUpdated = _lastUpdated;
-  }
-
-  // TODO: Remove when we remove ERC721
-  function supportsInterface(bytes4 interfaceId) public view virtual override(DCAHubPositionHandler, AccessControl) returns (bool) {
-    return super.supportsInterface(interfaceId);
   }
 }

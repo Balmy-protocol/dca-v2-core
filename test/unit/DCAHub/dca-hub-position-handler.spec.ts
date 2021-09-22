@@ -1,8 +1,8 @@
-import { BigNumber, Contract } from 'ethers';
+import { BigNumber, Contract, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock } from '@typechained';
+import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermissionsManager } from '@typechained';
 import { erc20, behaviours, constants, wallet } from '@test-utils';
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { when, then, given, contract } from '@test-utils/bdd';
@@ -10,6 +10,10 @@ import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 import { snapshot } from '@test-utils/evm';
+import { FakeContract, smock } from '@defi-wonderland/smock';
+import { Permission } from 'js-lib/types';
+
+chai.use(smock.matchers);
 
 contract('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
@@ -24,14 +28,15 @@ contract('DCAPositionHandler', () => {
   const INITIAL_TOKEN_B_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_B_BALANCE_USER = 100;
 
-  let owner: SignerWithAddress, approved: SignerWithAddress, stranger: SignerWithAddress;
+  let owner: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAPositionHandlerContract: DCAHubPositionHandlerMock__factory;
   let DCAPositionHandler: DCAHubPositionHandlerMock;
+  let DCAPermissionManager: FakeContract<DCAPermissionsManager>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    [owner, approved, stranger] = await ethers.getSigners();
+    [owner] = await ethers.getSigners();
     DCAPositionHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubPositionHandler.sol:DCAHubPositionHandlerMock');
 
     const deploy = (decimals: number) => erc20.deploy({ name: 'A name', symbol: 'SYMB', decimals });
@@ -40,22 +45,14 @@ contract('DCAPositionHandler', () => {
     [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
-    DCAPositionHandler = await DCAPositionHandlerContract.deploy(
-      tokenA.address,
-      tokenB.address,
-      owner.address,
-      owner.address,
-      constants.NOT_ZERO_ADDRESS,
-      constants.NOT_ZERO_ADDRESS
-    );
+    DCAPermissionManager = await smock.fake('DCAPermissionsManager');
+    DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, DCAPermissionManager.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await tokenB.mint(DCAPositionHandler.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await DCAPositionHandler.setInternalBalance(tokenA.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await DCAPositionHandler.setInternalBalance(tokenB.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
-    await tokenA.mint(approved.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
-    await tokenA.approveInternal(approved.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
     await DCAPositionHandler.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
     snapshotId = await snapshot.take();
@@ -63,15 +60,22 @@ contract('DCAPositionHandler', () => {
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
+    DCAPermissionManager.hasPermission.returns(true);
   });
 
   describe('constructor', () => {
+    when('permission manager is zero address', () => {
+      then('deployment is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: DCAPositionHandlerContract,
+          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
     when('contract is initiated', () => {
-      then('name and symbol are created based on token pair', async () => {
-        const name = await DCAPositionHandler.name();
-        const symbol = await DCAPositionHandler.symbol();
-        expect(name).to.equal(`DCA: ${await tokenA.symbol()} - ${await tokenB.symbol()}`);
-        expect(symbol).to.equal('DCA');
+      then('permission manager is set correctly', async () => {
+        expect(await DCAPositionHandler.permissionManager()).to.equal(DCAPermissionManager.address);
       });
     });
   });
@@ -79,71 +83,94 @@ contract('DCAPositionHandler', () => {
   describe('deposit', () => {
     const depositShouldRevert = ({
       owner,
-      address,
-      rate,
+      from,
+      to,
+      amount,
+      interval,
       swaps,
       error,
     }: {
       owner: string;
-      address: string;
-      rate: number;
+      from: string;
+      to: string;
+      amount: number;
       swaps: number;
+      interval: number;
       error: string;
     }) =>
       behaviours.txShouldRevertWithMessage({
         contract: DCAPositionHandler,
         func: 'deposit',
-        args: [owner, address, rate, swaps, SWAP_INTERVAL],
+        args: [from, to, amount, swaps, interval, owner, []],
         message: error,
       });
 
-    when('making a deposit to a zero address recipient', () => {
+    when('making a deposit to a zero address from', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
-          owner: constants.ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
+          from: constants.ZERO_ADDRESS,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
+          interval: SWAP_INTERVAL,
           error: 'ZeroAddress',
         });
       });
     });
 
-    when('making a deposit with an unknown token address', () => {
+    when('making a deposit to a zero address to', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: constants.ZERO_ADDRESS,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: constants.NOT_ZERO_ADDRESS,
-          rate: POSITION_RATE_5,
+          amount: 10,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'InvalidToken',
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAddress',
+        });
+      });
+    });
+
+    when('making a deposit to a zero address owner', () => {
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.ZERO_ADDRESS,
+          amount: 10,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAddress',
         });
       });
     });
 
     when('making a deposit with non-allowed interval', async () => {
-      given(async () => {
-        await DCAPositionHandler.removeSwapIntervalsFromAllowedList([SWAP_INTERVAL]);
-      });
       then('tx is reverted with messasge', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
-          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          amount: 10,
+          swaps: 10,
+          interval: 0,
           error: 'InvalidInterval',
         });
       });
     });
 
-    when('making a deposit with 0 rate', () => {
+    when('making a deposit with 0 amount', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: 0,
+          amount: 0,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
-          error: 'ZeroRate',
+          interval: SWAP_INTERVAL,
+          error: 'ZeroAmount',
         });
       });
     });
@@ -151,11 +178,27 @@ contract('DCAPositionHandler', () => {
     when('making a deposit with 0 swaps', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
           owner: constants.NOT_ZERO_ADDRESS,
-          address: tokenA.address,
-          rate: POSITION_RATE_5,
+          amount: 10,
           swaps: 0,
+          interval: SWAP_INTERVAL,
           error: 'ZeroSwaps',
+        });
+      });
+    });
+
+    when('making a deposit with 0 swaps', () => {
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenA.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 20,
+          interval: SWAP_INTERVAL,
+          error: 'InvalidToken',
         });
       });
     });
@@ -180,6 +223,7 @@ contract('DCAPositionHandler', () => {
             nftOwner,
             1,
             tokenA.address,
+            tokenB.address,
             tokenA.asUnits(POSITION_RATE_5),
             PERFORMED_SWAPS_10 + 1,
             SWAP_INTERVAL,
@@ -208,9 +252,14 @@ contract('DCAPositionHandler', () => {
       });
 
       then('trade is recorded', async () => {
-        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
-        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10 + 1);
-        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
+        const { swapDeltaAToB: deltaPerformedSwaps } = await DCAPositionHandler.swapAmountDelta(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL,
+          PERFORMED_SWAPS_10
+        );
+        const { nextAmountToSwapAToB } = await DCAPositionHandler.swapData(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        const { swapDeltaAToB: deltaLastDay } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL,
@@ -218,19 +267,24 @@ contract('DCAPositionHandler', () => {
         );
 
         expect(deltaPerformedSwaps).to.equal(0);
-        expect(deltaFirstDay).to.equal(tokenA.asUnits(POSITION_RATE_5));
+        expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(POSITION_RATE_5));
         expect(deltaLastDay).to.equal(tokenA.asUnits(POSITION_RATE_5).mul(-1));
       });
 
       then('other swap intervals remain unaffected', async () => {
-        const deltaPerformedSwaps = await DCAPositionHandler.swapAmountDelta(
+        const { swapDeltaAToB: deltaPerformedSwaps } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL_2,
           PERFORMED_SWAPS_10
         );
-        const deltaFirstDay = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL_2, PERFORMED_SWAPS_10 + 1);
-        const deltaLastDay = await DCAPositionHandler.swapAmountDelta(
+        const { swapDeltaAToB: deltaFirstDay } = await DCAPositionHandler.swapAmountDelta(
+          tokenA.address,
+          tokenB.address,
+          SWAP_INTERVAL_2,
+          PERFORMED_SWAPS_10 + 1
+        );
+        const { swapDeltaAToB: deltaLastDay } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL_2,
@@ -242,11 +296,8 @@ contract('DCAPositionHandler', () => {
         expect(deltaLastDay).to.equal(0);
       });
 
-      then('nft is created and assigned to owner', async () => {
-        const tokenOwner = await DCAPositionHandler.ownerOf(dcaId);
-        const balance = await DCAPositionHandler.balanceOf(nftOwner);
-        expect(tokenOwner).to.equal(nftOwner);
-        expect(balance).to.equal(1);
+      then('permission manager is called correctly', async () => {
+        expect(DCAPermissionManager.mint).to.have.been.calledWith(dcaId, nftOwner, []);
       });
 
       then('interval is now active', async () => {
@@ -282,7 +333,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwapped(dcaId, recipient));
+    permissionTest(Permission.WITHDRAW, ({ contract, dcaId }) => contract.withdrawSwapped(dcaId, recipient));
 
     when(`withdrawing swapped with position that didn't have swaps executed`, () => {
       let response: TransactionResponse;
@@ -328,8 +379,8 @@ contract('DCAPositionHandler', () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_5,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: POSITION_RATE_5,
         });
       });
 
@@ -373,7 +424,7 @@ contract('DCAPositionHandler', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'withdrawSwappedMany',
-          args: [[0], constants.ZERO_ADDRESS],
+          args: [[], constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -384,17 +435,40 @@ contract('DCAPositionHandler', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'withdrawSwappedMany',
-          args: [[100], recipient],
+          args: [[{ token: constants.NOT_ZERO_ADDRESS, positionIds: [100] }], recipient],
           message: 'InvalidPosition',
         });
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.withdrawSwappedMany([dcaId], recipient));
+    when('position is grouped under the wrong token', () => {
+      let dcaId: BigNumber;
+      given(async () => {
+        ({ dcaId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        }));
+      });
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'withdrawSwappedMany',
+          args: [[{ token: constants.NOT_ZERO_ADDRESS, positionIds: [dcaId] }], recipient],
+          message: 'PositionDoesNotMatchToken',
+        });
+      });
+    });
+
+    permissionTest(Permission.WITHDRAW, ({ contract, dcaId }) =>
+      contract.withdrawSwappedMany([{ token: tokenB.address, positionIds: [dcaId] }], recipient)
+    );
 
     when(`withdrawing swapped with positions that didn't have swaps executed`, () => {
       let response: TransactionResponse;
       let dcaId1: BigNumber, dcaId2: BigNumber;
+      let input: PositionSet[];
 
       given(async () => {
         ({ dcaId: dcaId1 } = await deposit({
@@ -409,11 +483,26 @@ contract('DCAPositionHandler', () => {
           rate: POSITION_RATE_5,
           swaps: POSITION_SWAPS_TO_PERFORM_10,
         }));
-        response = await withdrawSwappedMany([dcaId1, dcaId2], owner.address);
+        input = [
+          { token: tokenA.address, positionIds: [dcaId2] },
+          { token: tokenB.address, positionIds: [dcaId1] },
+        ];
+        response = await DCAPositionHandler.withdrawSwappedMany(input, recipient);
       });
 
       then('event is emitted', async () => {
-        await expect(response).to.emit(DCAPositionHandler, 'WithdrewMany').withArgs(owner.address, owner.address, [dcaId1, dcaId2], 0, 0);
+        const withdrawer = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrawer');
+        const withdrawRecipient = await readArgFromEventOrFail(response, 'WithdrewMany', 'recipient');
+        const positions = await readArgFromEventOrFail<any>(response, 'WithdrewMany', 'positions');
+        const withdrew = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrew');
+        expect(withdrawer).to.equal(owner.address);
+        expect(withdrawRecipient).to.equal(recipient);
+        expect(withdrew).to.eql([constants.ZERO, constants.ZERO]);
+        expect(positions.length).to.equal(2);
+        expect(positions[0].token).to.equal(input[0].token);
+        expect(positions[0].positionIds).to.eql(input[0].positionIds);
+        expect(positions[1].token).to.equal(input[1].token);
+        expect(positions[1].positionIds).to.eql(input[1].positionIds);
       });
 
       then('no token transfer was made', async () => {
@@ -457,6 +546,7 @@ contract('DCAPositionHandler', () => {
       const POSITION_RATE_3 = 3;
       let response: TransactionResponse;
       let dcaId1: BigNumber, dcaId2: BigNumber;
+      let input: PositionSet[];
 
       given(async () => {
         ({ dcaId: dcaId1 } = await deposit({
@@ -473,18 +563,17 @@ contract('DCAPositionHandler', () => {
         }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_5,
-          fromToken: tokenA,
-        });
-        await performTrade({
-          swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_3,
-          fromToken: tokenB,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: POSITION_RATE_5,
+          ratioBToA: RATE_PER_UNIT_5,
+          amountBToA: POSITION_RATE_3,
         });
 
-        response = await withdrawSwappedMany([dcaId1, dcaId2], recipient);
+        input = [
+          { token: tokenA.address, positionIds: [dcaId2] },
+          { token: tokenB.address, positionIds: [dcaId1] },
+        ];
+        response = await DCAPositionHandler.withdrawSwappedMany(input, recipient);
       });
 
       then('swapped tokens are sent to the user', async () => {
@@ -516,13 +605,23 @@ contract('DCAPositionHandler', () => {
       then('event is emitted', async () => {
         const swappedA = tokenA.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_3);
         const swappedB = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
-        await expect(response)
-          .to.emit(DCAPositionHandler, 'WithdrewMany')
-          .withArgs(owner.address, recipient, [dcaId1, dcaId2], swappedA, swappedB);
+        const withdrawer = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrawer');
+        const withdrawRecipient = await readArgFromEventOrFail(response, 'WithdrewMany', 'recipient');
+        const positions = await readArgFromEventOrFail<any>(response, 'WithdrewMany', 'positions');
+        const withdrew = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrew');
+        expect(withdrawer).to.equal(owner.address);
+        expect(withdrawRecipient).to.equal(recipient);
+        expect(withdrew).to.eql([swappedA, swappedB]);
+        expect(positions.length).to.equal(2);
+        expect(positions[0].token).to.equal(input[0].token);
+        expect(positions[0].positionIds).to.eql(input[0].positionIds);
+        expect(positions[1].token).to.equal(input[1].token);
+        expect(positions[1].positionIds).to.eql(input[1].positionIds);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
+    type PositionSet = { token: string; positionIds: BigNumber[] };
   });
 
   describe('terminate', () => {
@@ -562,7 +661,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    erc721PermissionTest(({ contract, dcaId }) => contract.terminate(dcaId, recipientUnswapped, recipientSwapped));
+    permissionTest(Permission.TERMINATE, ({ contract, dcaId }) => contract.terminate(dcaId, recipientUnswapped, recipientSwapped));
 
     when(`terminating a valid position`, () => {
       const swappedWhenTerminated = RATE_PER_UNIT_5 * POSITION_RATE_5;
@@ -576,8 +675,8 @@ contract('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: POSITION_RATE_5,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: POSITION_RATE_5,
         });
 
         response = await terminate(dcaId, recipientUnswapped, recipientSwapped);
@@ -616,16 +715,15 @@ contract('DCAPositionHandler', () => {
         });
       });
 
-      then('nft is burned', async () => {
-        const balance = await DCAPositionHandler.balanceOf(owner.address);
-        expect(balance).to.equal(0);
+      then('permission manager is called correctly', async () => {
+        expect(DCAPermissionManager.burn).to.have.been.calledWith(dcaId);
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });
 
-  describe('addFundsToPosition', () => {
+  describe('increasePosition', () => {
     const NEW_SWAPS_TO_PERFORM_5 = 5;
     const EXTRA_AMOUNT_TO_ADD_1 = 1;
 
@@ -633,7 +731,7 @@ contract('DCAPositionHandler', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'addFundsToPosition',
+          func: 'increasePosition',
           args: [100, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
           message: 'InvalidPosition',
         });
@@ -646,14 +744,14 @@ contract('DCAPositionHandler', () => {
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'addFundsToPosition',
+          func: 'increasePosition',
           args: [dcaId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), 0],
           message: 'ZeroSwaps',
         });
       });
     });
 
-    erc721PermissionTest(({ token, contract, dcaId }) => contract.addFundsToPosition(dcaId, token.asUnits(1), 2));
+    permissionTest(Permission.INCREASE, ({ token, contract, dcaId }) => contract.increasePosition(dcaId, token.asUnits(1), 2));
 
     modifyPositionTest({
       title: `adding more funds to the position`,
@@ -661,7 +759,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 + EXTRA_AMOUNT_TO_ADD_1) / NEW_SWAPS_TO_PERFORM_5, // We are subtracting one to the positions to perform, because there was one trade already
       newSwaps: NEW_SWAPS_TO_PERFORM_5,
-      exec: ({ token, dcaId, newSwaps }) => addFundsToPosition(token, dcaId, EXTRA_AMOUNT_TO_ADD_1, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => increasePosition(token, dcaId, EXTRA_AMOUNT_TO_ADD_1, newSwaps),
     });
 
     modifyPositionTest({
@@ -670,11 +768,11 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 9,
       newSwaps: 5,
-      exec: ({ token, dcaId, newSwaps }) => addFundsToPosition(token, dcaId, 0, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => increasePosition(token, dcaId, 0, newSwaps),
     });
   });
 
-  describe('removeFundsFromPosition', () => {
+  describe('reducePosition', () => {
     const NEW_SWAPS_TO_PERFORM_5 = 5;
     const AMOUNT_TO_REMOVE_1 = 1;
 
@@ -682,7 +780,7 @@ contract('DCAPositionHandler', () => {
       then('tx is reverted with message', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'removeFundsFromPosition',
+          func: 'reducePosition',
           args: [100, tokenA.asUnits(AMOUNT_TO_REMOVE_1), POSITION_SWAPS_TO_PERFORM_10],
           message: 'InvalidPosition',
         });
@@ -695,7 +793,7 @@ contract('DCAPositionHandler', () => {
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'removeFundsFromPosition',
+          func: 'reducePosition',
           args: [dcaId, tokenA.asUnits(POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10).add(1), 0],
           message:
             'VM Exception while processing transaction: reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)',
@@ -709,14 +807,14 @@ contract('DCAPositionHandler', () => {
 
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
-          func: 'removeFundsFromPosition',
+          func: 'reducePosition',
           args: [dcaId, tokenA.asUnits(AMOUNT_TO_REMOVE_1), 0],
           message: 'ZeroSwaps',
         });
       });
     });
 
-    erc721PermissionTest(({ token, contract, dcaId }) => contract.removeFundsFromPosition(dcaId, token.asUnits(1), 2));
+    permissionTest(Permission.REDUCE, ({ token, contract, dcaId }) => contract.reducePosition(dcaId, token.asUnits(1), 2));
 
     modifyPositionTest({
       title: `using remove funds to re-organize the unswapped balance`,
@@ -724,7 +822,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 9,
       newSwaps: 5,
-      exec: ({ token, dcaId, newSwaps }) => removeFundsFromPosition(token, dcaId, 0, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => reducePosition(token, dcaId, 0, newSwaps),
     });
 
     modifyPositionTest({
@@ -733,8 +831,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 0,
       newSwaps: 0,
-      exec: ({ token, dcaId, newSwaps }) =>
-        removeFundsFromPosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => reducePosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, newSwaps),
     });
 
     modifyPositionTest({
@@ -743,7 +840,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: 0,
       newSwaps: 0,
-      exec: ({ token, dcaId }) => removeFundsFromPosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, 10),
+      exec: ({ token, dcaId }) => reducePosition(token, dcaId, (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5, 10),
     });
 
     modifyPositionTest({
@@ -752,7 +849,7 @@ contract('DCAPositionHandler', () => {
       initialSwaps: POSITION_SWAPS_TO_PERFORM_10,
       newRate: ((POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5 - AMOUNT_TO_REMOVE_1) / NEW_SWAPS_TO_PERFORM_5, // We are subtracting one to the positions to perform, because there was one trade already
       newSwaps: NEW_SWAPS_TO_PERFORM_5,
-      exec: ({ token, dcaId, newSwaps }) => removeFundsFromPosition(token, dcaId, AMOUNT_TO_REMOVE_1, newSwaps),
+      exec: ({ token, dcaId, newSwaps }) => reducePosition(token, dcaId, AMOUNT_TO_REMOVE_1, newSwaps),
     });
   });
 
@@ -862,53 +959,47 @@ contract('DCAPositionHandler', () => {
       tokenB.address,
       SWAP_INTERVAL,
       onSwap,
-      BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate)
+      BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate),
+      0
     );
   }
 
-  /**
-   * Verify that approved addresses can also execute the action, but that other addresses can't
-   */
-  function erc721PermissionTest(
+  function permissionTest(
+    permission: Permission,
     execute: (params: { token: TokenContract; contract: Contract; dcaId: BigNumber }) => Promise<TransactionResponse>
   ) {
-    when(`executing address is approved for position`, () => {
+    let operator: Wallet;
+
+    given(async () => {
+      operator = await wallet.generateRandom();
+      await tokenA.mint(operator.address, tokenA.asUnits(1000));
+      await tokenA.connect(operator).approve(DCAPositionHandler.address, tokenA.asUnits(1000));
+    });
+
+    when(`executing address has permission`, () => {
       let dcaId: BigNumber;
 
       given(async () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
-        await DCAPositionHandler.approve(approved.address, dcaId);
+        DCAPermissionManager.hasPermission.returns(({ _permission }: { _permission: Permission }) => permission === _permission);
       });
 
-      then('they can execute the operation even if they are not the owner', async () => {
-        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(approved), dcaId });
+      then('they can execute the operation', async () => {
+        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(operator), dcaId });
         await expect(result).to.not.be.reverted;
       });
     });
 
-    when(`executing address is approved for all`, () => {
+    when(`executing address doesn't have permission`, () => {
       let dcaId: BigNumber;
 
       given(async () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
-        await DCAPositionHandler.setApprovalForAll(approved.address, true);
-      });
-
-      then('they can execute the operation even if they are not the owner', async () => {
-        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(approved), dcaId });
-        await expect(result).to.not.be.reverted;
-      });
-    });
-
-    when(`executing address isn't approved`, () => {
-      let dcaId: BigNumber;
-
-      given(async () => {
-        ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
+        DCAPermissionManager.hasPermission.returns(false);
       });
 
       then('operation is reverted', async () => {
-        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(stranger), dcaId });
+        const result: Promise<TransactionResponse> = execute({ token: tokenA, contract: DCAPositionHandler.connect(operator), dcaId });
         await expect(result).to.be.revertedWith('UnauthorizedCaller');
       });
     });
@@ -943,8 +1034,8 @@ contract('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratio: RATE_PER_UNIT_5,
-          amount: initialRate,
+          ratioAToB: RATE_PER_UNIT_5,
+          amountAToB: initialRate,
         });
 
         response = await exec({
@@ -989,7 +1080,7 @@ contract('DCAPositionHandler', () => {
       then('previous trade is rolled back', async () => {
         // If it happens that this condition is true, then the new last swap will match the previous last swap, making the delta not 0
         if (PERFORMED_SWAPS_10 + initialSwaps + 1 !== PERFORMED_SWAPS_11 + newSwaps! + 1) {
-          const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(
+          const { swapDeltaAToB: deltaLastSwap } = await DCAPositionHandler.swapAmountDelta(
             tokenA.address,
             tokenB.address,
             SWAP_INTERVAL,
@@ -1001,51 +1092,66 @@ contract('DCAPositionHandler', () => {
       });
 
       then('new trade is recorded', async () => {
-        const deltaNextSwap = await DCAPositionHandler.swapAmountDelta(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_11 + 1);
-        const deltaLastSwap = await DCAPositionHandler.swapAmountDelta(
+        const { nextAmountToSwapAToB } = await DCAPositionHandler.swapData(tokenA.address, tokenB.address, SWAP_INTERVAL);
+        const { swapDeltaAToB: deltaLastSwap } = await DCAPositionHandler.swapAmountDelta(
           tokenA.address,
           tokenB.address,
           SWAP_INTERVAL,
           PERFORMED_SWAPS_11 + newSwaps! + 1
         );
 
-        if (newSwaps! > 0) {
-          expect(deltaNextSwap).to.equal(tokenA.asUnits((newRate! - initialRate).toFixed(2)));
-          expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
-        } else {
-          expect(deltaLastSwap).to.equal(tokenA.asUnits(initialRate!).mul(-1));
-        }
+        expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(newRate!));
+        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
       });
 
       thenInternalBalancesAreTheSameAsTokenBalances();
     });
   }
 
-  async function performTrade({ swap, ratio, amount, fromToken }: { swap: number; ratio: number; amount: number; fromToken?: TokenContract }) {
-    const fromTokenReal = fromToken ?? tokenA;
-    const toToken = fromTokenReal === tokenA ? tokenB : tokenA;
+  async function performTrade({
+    swap,
+    ratioAToB,
+    amountAToB,
+    ratioBToA,
+    amountBToA,
+  }: {
+    swap: number;
+    ratioAToB?: number;
+    amountAToB?: number;
+    ratioBToA?: number;
+    amountBToA?: number;
+  }) {
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, swap);
-    await DCAPositionHandler.setAcummRatio(fromTokenReal.address, toToken.address, SWAP_INTERVAL, swap, toToken.asUnits(ratio));
-    await fromTokenReal.burn(DCAPositionHandler.address, fromTokenReal.asUnits(amount));
-    await toToken.mint(DCAPositionHandler.address, toToken.asUnits(amount * ratio));
+    await DCAPositionHandler.setAcummRatio(
+      tokenA.address,
+      tokenB.address,
+      SWAP_INTERVAL,
+      swap,
+      tokenB.asUnits(ratioAToB ?? 0),
+      tokenA.asUnits(ratioBToA ?? 0)
+    );
+    if (amountAToB) {
+      await tokenA.burn(DCAPositionHandler.address, tokenA.asUnits(amountAToB));
+      await tokenB.mint(DCAPositionHandler.address, tokenB.asUnits(amountAToB * ratioAToB!));
+    }
+    if (amountBToA) {
+      await tokenB.burn(DCAPositionHandler.address, tokenB.asUnits(amountBToA));
+      await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(amountBToA * ratioBToA!));
+    }
     await DCAPositionHandler.setInternalBalance(tokenA.address, await tokenA.balanceOf(DCAPositionHandler.address));
     await DCAPositionHandler.setInternalBalance(tokenB.address, await tokenB.balanceOf(DCAPositionHandler.address));
   }
 
-  function addFundsToPosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
-    return DCAPositionHandler.addFundsToPosition(dcaId, token.asUnits(amount), swaps);
+  function increasePosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
+    return DCAPositionHandler.increasePosition(dcaId, token.asUnits(amount), swaps);
   }
 
-  function removeFundsFromPosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
-    return DCAPositionHandler.removeFundsFromPosition(dcaId, token.asUnits(amount), swaps);
+  function reducePosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
+    return DCAPositionHandler.reducePosition(dcaId, token.asUnits(amount), swaps);
   }
 
   function withdrawSwapped(dcaId: BigNumber, recipient: string): Promise<TransactionResponse> {
     return DCAPositionHandler.withdrawSwapped(dcaId, recipient);
-  }
-
-  function withdrawSwappedMany(dcaIds: BigNumber[], recipient: string): Promise<TransactionResponse> {
-    return DCAPositionHandler.withdrawSwappedMany(dcaIds, recipient);
   }
 
   function terminate(dcaId: BigNumber, recipientUnswapped: string, recipientSwapped: string): Promise<TransactionResponse> {
@@ -1058,7 +1164,16 @@ contract('DCAPositionHandler', () => {
   }
 
   async function deposit({ owner, token, rate, swaps }: { owner: string; token: TokenContract; rate: number; swaps: number }) {
-    const response: TransactionResponse = await DCAPositionHandler.deposit(owner, token.address, token.asUnits(rate), swaps, SWAP_INTERVAL);
+    const to = tokenA == token ? tokenB : tokenA;
+    const response: TransactionResponse = await DCAPositionHandler.deposit(
+      token.address,
+      to.address,
+      token.asUnits(rate).mul(swaps),
+      swaps,
+      SWAP_INTERVAL,
+      owner,
+      []
+    );
     const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
     return { response, dcaId };
   }
