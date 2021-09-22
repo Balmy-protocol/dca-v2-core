@@ -50,10 +50,10 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   ];
 
   // Tracking
-  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
-  mapping(address => mapping(address => mapping(uint32 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
-  mapping(address => mapping(address => mapping(uint32 => SwapData))) public swapData; // token A => token B => swap interval => swap data
-  mapping(address => mapping(address => EnumerableSet.UintSet)) internal _activeSwapIntervals; // token A => token B => active swap intervals
+  mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
+  mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
+  mapping(address => mapping(address => mapping(bytes1 => SwapData))) public swapData; // token A => token B => swap interval => swap data
+  mapping(address => mapping(address => bytes1)) internal _activeSwapIntervals; // token A => token B => active swap intervals
 
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => uint256) internal _balances; // token => balance
@@ -71,9 +71,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     address _tokenB,
     uint32 _activeSwapInterval
   ) external view returns (bool _isIntervalActive) {
-    _isIntervalActive = _tokenA < _tokenB
-      ? _activeSwapIntervals[_tokenA][_tokenB].contains(_activeSwapInterval)
-      : _activeSwapIntervals[_tokenB][_tokenA].contains(_activeSwapInterval);
+    bytes1 _byte = _tokenA < _tokenB ? _activeSwapIntervals[_tokenA][_tokenB] : _activeSwapIntervals[_tokenB][_tokenA];
+    _isIntervalActive = _byte & _getByteForSwapInterval(_activeSwapInterval) != 0;
   }
 
   function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
@@ -96,5 +95,20 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     _index = _intervalIndex[_swapInterval];
     if (_index == 0) revert InvalidInterval2();
     _index--;
+  }
+
+  function _getSwapIntervalFromByte(bytes1 _byte) internal view returns (uint32 _swapInterval) {
+    _swapInterval = SUPPORTED_SWAP_INTERVALS[_maskToIndex(_byte)];
+  }
+
+  function _maskToIndex(bytes1 _mask) internal pure returns (uint8 _index) {
+    if (_mask == 0x01) return 0;
+    if (_mask == 0x02) return 1;
+    if (_mask == 0x04) return 2;
+    if (_mask == 0x08) return 3;
+    if (_mask == 0x10) return 4;
+    if (_mask == 0x20) return 5;
+    if (_mask == 0x40) return 6;
+    if (_mask == 0x80) return 7;
   }
 }

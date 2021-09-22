@@ -10,7 +10,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   struct DCA {
     uint32 swapWhereLastUpdated; // Includes both modify and withdraw
     uint32 finalSwap;
-    uint32 swapInterval; // TODO: We can now store the index directly in a uint8
+    bytes1 swapInterval;
     uint160 rate;
     address from;
     address to;
@@ -34,7 +34,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapInterval);
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
-    _userPosition.swapInterval = _position.swapInterval;
+    _userPosition.swapInterval = _getSwapIntervalFromByte(_position.swapInterval);
     _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _position.finalSwap
       ? uint32(Math.min(_performedSwaps, _position.finalSwap)) - _position.swapWhereLastUpdated
       : 0;
@@ -57,19 +57,21 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    if (!this.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
+    bytes1 _mask = _getByteForSwapInterval(_swapInterval);
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     _balances[_from] += _amount;
     uint160 _rate = uint160(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
-    if (_from < _to) {
-      _activeSwapIntervals[_from][_to].add(_swapInterval);
-    } else {
-      _activeSwapIntervals[_to][_from].add(_swapInterval);
+    {
+      if (_from < _to) {
+        _activeSwapIntervals[_from][_to] |= _mask;
+      } else {
+        _activeSwapIntervals[_to][_from] |= _mask;
+      }
     }
-    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _swapInterval);
-    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingSwap, _swapInterval, _finalSwap);
+    uint32 _startingSwap = _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _mask);
+    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingSwap, _swapInterval, 0);
     return _idCounter;
   }
 
@@ -218,11 +220,11 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint160 _rate,
     uint32 _amountOfSwaps,
     uint248 _swappedBeforeModified,
-    uint32 _swapInterval
-  ) internal returns (uint32 _startingSwap, uint32 _finalSwap) {
+    bytes1 _swapInterval
+  ) internal returns (uint32 _startingSwap) {
     uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _swapInterval);
     _startingSwap = _performedSwaps + 1;
-    _finalSwap = _performedSwaps + _amountOfSwaps;
+    uint32 _finalSwap = _performedSwaps + _amountOfSwaps;
     _addToDelta(_from, _to, _swapInterval, _finalSwap, _rate);
     _userPositions[_dcaId] = DCA(_performedSwaps, _finalSwap, _swapInterval, _rate, _from, _to, _swappedBeforeModified);
   }
@@ -230,7 +232,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   function _addToDelta(
     address _from,
     address _to,
-    uint32 _swapInterval,
+    bytes1 _swapInterval,
     uint32 _finalSwap,
     uint160 _rate
   ) internal {
@@ -295,7 +297,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   function _getPerformedSwaps(
     address _from,
     address _to,
-    uint32 _swapInterval
+    bytes1 _swapInterval
   ) internal view returns (uint32) {
     // TODO: Check if it's better to just receive the in-memory DCA
     return (_from < _to) ? swapData[_from][_to][_swapInterval].performedSwaps : swapData[_to][_from][_swapInterval].performedSwaps;

@@ -72,7 +72,7 @@ interface IDCAHubPositionHandler {
     address toToken,
     uint160 rate,
     uint32 startingSwap,
-    uint32 swapInterval,
+    uint32 swapInterval, // TODO: This order makes no sense. Why is swap interval between starting and last?
     uint32 lastSwap
   );
 

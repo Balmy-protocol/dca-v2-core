@@ -25,7 +25,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _activeInterval
   ) external {
-    _activeSwapIntervals[_tokenA][_tokenB].add(_activeInterval);
+    _activeSwapIntervals[_tokenA][_tokenB] |= _getByteForSwapInterval(_activeInterval);
   }
 
   function removeActiveSwapInterval(
@@ -33,13 +33,14 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _activeInterval
   ) external {
-    _activeSwapIntervals[_tokenA][_tokenB].remove(_activeInterval);
+    bytes1 _mask = _getByteForSwapInterval(_activeInterval);
+    _activeSwapIntervals[_tokenA][_tokenB] &= ~_mask;
   }
 
   function setSwapAmountDelta(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapInterval,
     uint32 _swap,
     int128 _deltaAToB,
     int128 _deltaBToA
@@ -50,7 +51,7 @@ contract DCAHubParametersMock is DCAHubParameters {
   function setAcummRatio(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapInterval,
     uint32 _swap,
     uint256 _accumRatioAToB,
     uint256 _accumRatioBToA
@@ -61,7 +62,7 @@ contract DCAHubParametersMock is DCAHubParameters {
   function setNextAmountsToSwap(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapInterval,
     uint256 _amountToSwapAToB,
     uint256 _amountToSwapBToA
   ) external {
@@ -72,7 +73,7 @@ contract DCAHubParametersMock is DCAHubParameters {
   function setPerformedSwaps(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapInterval,
     uint32 _performedSwaps
   ) external {
     swapData[_tokenA][_tokenB][_swapInterval].performedSwaps = _performedSwaps;
