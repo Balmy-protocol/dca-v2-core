@@ -24,7 +24,7 @@ import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 
 contract('DCAHub', () => {
   describe('Full e2e test', () => {
-    const SWAP_INTERVAL_10_MINUTES = moment.duration(10, 'minutes').as('seconds');
+    const SWAP_INTERVAL_15_MINUTES = moment.duration(15, 'minutes').as('seconds');
     const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
     const MAX_UINT_32 = BigNumber.from(2).pow(32).sub(1);
 
@@ -71,7 +71,7 @@ contract('DCAHub', () => {
       await setSwapRatio(swapRatio1);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
-      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR], ['10 minutes', '1 hour']);
+      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR]);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(500), tokenB.asUnits(500)]);
 
@@ -90,13 +90,13 @@ contract('DCAHub', () => {
       const johnsPosition = await deposit({
         depositor: john,
         token: tokenA,
-        swapInterval: SWAP_INTERVAL_10_MINUTES,
+        swapInterval: SWAP_INTERVAL_15_MINUTES,
         rate: 100,
         swaps: 10,
       });
 
       await assertPositionIsConsistent(johnsPosition);
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES);
+      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES);
       await assertHubBalanceDifferencesAre({ tokenA: +1000 });
       await assertAmountsToSwapAre({ tokenA: 100, tokenB: 0 });
 
@@ -121,9 +121,9 @@ contract('DCAHub', () => {
       await assertAmountsToSwapAre({ tokenA: 0, tokenB: 200 });
       await assertHubBalanceDifferencesAre({ tokenB: +400 });
 
-      await evm.advanceTimeAndBlock(SWAP_INTERVAL_10_MINUTES);
+      await evm.advanceTimeAndBlock(SWAP_INTERVAL_15_MINUTES);
 
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR);
+      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR);
       await assertAmountsToSwapAre({ tokenA: 100, tokenB: 200 });
 
       const swapRatio2: SwapRatio = { tokenA: 1, tokenB: 1 };
@@ -142,14 +142,14 @@ contract('DCAHub', () => {
       const sarahsPosition1 = await deposit({
         depositor: sarah,
         token: tokenA,
-        swapInterval: SWAP_INTERVAL_10_MINUTES,
+        swapInterval: SWAP_INTERVAL_15_MINUTES,
         rate: 500,
         swaps: 3,
       });
       const sarahsPosition2 = await deposit({
         depositor: sarah,
         token: tokenB,
-        swapInterval: SWAP_INTERVAL_10_MINUTES,
+        swapInterval: SWAP_INTERVAL_15_MINUTES,
         rate: 100,
         swaps: 4,
       });
@@ -167,7 +167,7 @@ contract('DCAHub', () => {
 
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
 
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR);
+      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR);
       await assertAmountsToSwapAre({ tokenA: 550, tokenB: 300 });
 
       await flashSwap({ callee: DCAHubSwapCallee });
@@ -220,7 +220,7 @@ contract('DCAHub', () => {
       await setSwapRatio(swapRatio3);
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
 
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES, SWAP_INTERVAL_1_HOUR);
+      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR);
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
       await swap({ swapper: swapper1 });
@@ -243,7 +243,7 @@ contract('DCAHub', () => {
       await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
 
       await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_10_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
+      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
 
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
@@ -274,7 +274,7 @@ contract('DCAHub', () => {
       await assertBalanceDifferencesAre(swapper1, { tokenA: +450, tokenB: -898.2 });
       await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
 
-      await evm.advanceTimeAndBlock(SWAP_INTERVAL_10_MINUTES);
+      await evm.advanceTimeAndBlock(SWAP_INTERVAL_15_MINUTES);
       await assertAmountsToSwapAre({ tokenA: 0, tokenB: 100 });
     });
 

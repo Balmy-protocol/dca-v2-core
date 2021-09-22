@@ -21,7 +21,7 @@ contract('DCAPositionHandler', () => {
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
   const RATE_PER_UNIT_5 = 5;
   const SWAP_INTERVAL = moment.duration(1, 'days').as('seconds');
-  const SWAP_INTERVAL_2 = moment.duration(2, 'days').as('seconds');
+  const SWAP_INTERVAL_2 = moment.duration(5, 'minutes').as('seconds');
 
   const INITIAL_TOKEN_A_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_A_BALANCE_USER = 100;
@@ -54,7 +54,7 @@ contract('DCAPositionHandler', () => {
     await DCAPositionHandler.setInternalBalance(tokenA.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await DCAPositionHandler.setInternalBalance(tokenB.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
-    await DCAPositionHandler.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
+    await DCAPositionHandler.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2]);
     snapshotId = await snapshot.take();
   });
 

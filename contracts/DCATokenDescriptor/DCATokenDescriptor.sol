@@ -23,7 +23,7 @@ contract DCATokenDescriptor is IDCATokenDescriptor {
           toDecimals: _userPosition.to.decimals(),
           fromSymbol: _userPosition.from.symbol(),
           toSymbol: _userPosition.to.symbol(),
-          swapInterval: DCAHub(_hub).intervalDescription(_userPosition.swapInterval),
+          swapInterval: 'Daily', // TODO: Fetch form the hub, or calculate here, but avoid hardcoding
           swapsExecuted: _userPosition.swapsExecuted,
           swapped: _userPosition.swapped,
           swapsLeft: _userPosition.swapsLeft,

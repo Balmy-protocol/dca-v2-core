@@ -36,7 +36,7 @@ contract('DCAHub', () => {
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let snapshotId: string;
 
-    const swapInterval = moment.duration(10, 'minutes').as('seconds');
+    const swapInterval = moment.duration(15, 'minutes').as('seconds');
 
     before('Setup accounts and contracts', async () => {
       [governor, dude] = await ethers.getSigners();
@@ -60,7 +60,7 @@ contract('DCAHub', () => {
         DCAPermissionsManager.address
       );
       await DCAPermissionsManager.setHub(DCAHub.address);
-      await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['NULL']);
+      await DCAHub.addSwapIntervalsToAllowedList([swapInterval]);
       snapshotId = await snapshot.take();
     });
 
