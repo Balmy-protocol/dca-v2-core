@@ -61,22 +61,21 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      _allowedSwapIntervals |= _getByteForSwapInterval(_swapIntervals[i]);
+      _allowedSwapIntervals |= intervalToMask(_swapIntervals[i]);
     }
     emit SwapIntervalsAllowed(_swapIntervals);
   }
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
-    bytes1 _allOnes = 0xFF;
     for (uint256 i; i < _swapIntervals.length; i++) {
-      bytes1 _mask = _getByteForSwapInterval(_swapIntervals[i]) ^ _allOnes;
-      _allowedSwapIntervals &= _mask;
+      bytes1 _mask = intervalToMask(_swapIntervals[i]);
+      _allowedSwapIntervals &= ~_mask;
     }
     emit SwapIntervalsForbidden(_swapIntervals);
   }
 
   function isSwapIntervalAllowed(uint32 _swapInterval) external view returns (bool) {
-    bytes1 _mask = _getByteForSwapInterval(_swapInterval);
+    bytes1 _mask = intervalToMask(_swapInterval);
     return _allowedSwapIntervals & _mask != 0;
   }
 

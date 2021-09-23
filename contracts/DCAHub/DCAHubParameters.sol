@@ -28,14 +28,13 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     uint256 accumRatioBToA;
   }
 
-  error InvalidInterval2(); // TODO: update when we make the interface correctly
+  error InvalidInterval();
+  error InvalidMask();
 
   using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;
-  // solhint-disable-next-line var-name-mixedcase
-  uint32[8] public SUPPORTED_SWAP_INTERVALS = [5 minutes, 15 minutes, 30 minutes, 1 hours, 12 hours, 1 days, 1 weeks, 30 days];
   // TODO: If they are going to be hard-coded, maybe we want to move them to the descriptor directly?
   // solhint-disable-next-line var-name-mixedcase
   string[8] public SWAP_INTERVALS_DESCRIPTIONS = [
@@ -57,22 +56,14 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => uint256) internal _balances; // token => balance
-  mapping(uint32 => uint8) private _intervalIndex;
-
-  constructor() {
-    for (uint8 i; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
-      // Note: we add one to the index so that we can differentiate intervals that were not set
-      _intervalIndex[SUPPORTED_SWAP_INTERVALS[i]] = i + 1;
-    }
-  }
 
   function isSwapIntervalActive(
     address _tokenA,
     address _tokenB,
-    uint32 _activeSwapInterval
+    uint32 _swapInterval
   ) external view returns (bool _isIntervalActive) {
     bytes1 _byte = _tokenA < _tokenB ? _activeSwapIntervals[_tokenA][_tokenB] : _activeSwapIntervals[_tokenB][_tokenA];
-    _isIntervalActive = _byte & _getByteForSwapInterval(_activeSwapInterval) != 0;
+    _isIntervalActive = _byte & intervalToMask(_swapInterval) != 0;
   }
 
   function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
@@ -85,30 +76,27 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     return (_amount * (FEE_PRECISION - _feeAmount / 100)) / FEE_PRECISION;
   }
 
-  /** Returns a byte where the only activated bit is in the same position as the swap interval's index */
-  function _getByteForSwapInterval(uint32 _swapInterval) internal view returns (bytes1 _mask) {
-    uint8 _index = _getIndex(_swapInterval);
-    _mask = (bytes1(uint8(1) << _index));
+  function intervalToMask(uint32 _swapInterval) public pure returns (bytes1) {
+    if (_swapInterval == 5 minutes) return 0x01;
+    if (_swapInterval == 15 minutes) return 0x02;
+    if (_swapInterval == 30 minutes) return 0x04;
+    if (_swapInterval == 1 hours) return 0x08;
+    if (_swapInterval == 12 hours) return 0x10;
+    if (_swapInterval == 1 days) return 0x20;
+    if (_swapInterval == 1 weeks) return 0x40;
+    if (_swapInterval == 30 days) return 0x80;
+    revert InvalidInterval();
   }
 
-  function _getIndex(uint32 _swapInterval) internal view returns (uint8 _index) {
-    _index = _intervalIndex[_swapInterval];
-    if (_index == 0) revert InvalidInterval2();
-    _index--;
-  }
-
-  function _getSwapIntervalFromByte(bytes1 _byte) internal view returns (uint32 _swapInterval) {
-    _swapInterval = SUPPORTED_SWAP_INTERVALS[_maskToIndex(_byte)];
-  }
-
-  function _maskToIndex(bytes1 _mask) internal pure returns (uint8 _index) {
-    if (_mask == 0x01) return 0;
-    if (_mask == 0x02) return 1;
-    if (_mask == 0x04) return 2;
-    if (_mask == 0x08) return 3;
-    if (_mask == 0x10) return 4;
-    if (_mask == 0x20) return 5;
-    if (_mask == 0x40) return 6;
-    if (_mask == 0x80) return 7;
+  function maskToInterval(bytes1 _mask) public pure returns (uint32) {
+    if (_mask == 0x01) return 5 minutes;
+    if (_mask == 0x02) return 15 minutes;
+    if (_mask == 0x04) return 30 minutes;
+    if (_mask == 0x08) return 1 hours;
+    if (_mask == 0x10) return 12 hours;
+    if (_mask == 0x20) return 1 days;
+    if (_mask == 0x40) return 1 weeks;
+    if (_mask == 0x80) return 30 days;
+    revert InvalidMask();
   }
 }

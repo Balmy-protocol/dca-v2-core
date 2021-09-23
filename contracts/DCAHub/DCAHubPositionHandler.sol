@@ -34,7 +34,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapInterval);
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
-    _userPosition.swapInterval = _getSwapIntervalFromByte(_position.swapInterval);
+    _userPosition.swapInterval = maskToInterval(_position.swapInterval);
     _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _position.finalSwap
       ? uint32(Math.min(_performedSwaps, _position.finalSwap)) - _position.swapWhereLastUpdated
       : 0;
@@ -57,18 +57,16 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    bytes1 _mask = _getByteForSwapInterval(_swapInterval);
+    bytes1 _mask = intervalToMask(_swapInterval);
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     _balances[_from] += _amount;
     uint160 _rate = uint160(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
-    {
-      if (_from < _to) {
-        _activeSwapIntervals[_from][_to] |= _mask;
-      } else {
-        _activeSwapIntervals[_to][_from] |= _mask;
-      }
+    if (_from < _to) {
+      _activeSwapIntervals[_from][_to] |= _mask;
+    } else {
+      _activeSwapIntervals[_to][_from] |= _mask;
     }
     uint32 _startingSwap = _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _mask);
     emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingSwap, _swapInterval, 0);

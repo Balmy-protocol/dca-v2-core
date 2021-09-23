@@ -28,7 +28,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         accumRatioAToB: _accumRatio.accumRatioAToB + _ratioAToB,
         accumRatioBToA: _accumRatio.accumRatioBToA + _ratioBToA
       });
-      uint32 _swapInterval = _getSwapIntervalFromByte(_swapIntervalMask);
+      uint32 _swapInterval = maskToInterval(_swapIntervalMask);
       swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapData.performedSwaps + 1,
         nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
