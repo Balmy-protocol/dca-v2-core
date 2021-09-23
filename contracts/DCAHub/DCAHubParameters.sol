@@ -2,7 +2,6 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '../interfaces/IDCAHub.sol';
@@ -30,8 +29,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   error InvalidInterval();
   error InvalidMask();
-
-  using EnumerableSet for EnumerableSet.UintSet;
 
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;

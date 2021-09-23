@@ -9,8 +9,6 @@ import '../interfaces/ITimeWeightedOracle.sol';
 import '../libraries/CommonErrors.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable {
-  using EnumerableSet for EnumerableSet.UintSet;
-
   event OracleSet(ITimeWeightedOracle oracle);
   event SwapFeeSet(uint32 feeSet);
   event LoanFeeSet(uint32 feeSet);

@@ -5,8 +5,6 @@ pragma solidity >=0.8.7 <0.9.0;
 import '../../DCAHub/DCAHubParameters.sol';
 
 contract DCAHubParametersMock is DCAHubParameters {
-  using EnumerableSet for EnumerableSet.UintSet;
-
   // Mocks setters
   function internalBalanceOf(address _token) external view returns (uint256) {
     return _balances[_token];

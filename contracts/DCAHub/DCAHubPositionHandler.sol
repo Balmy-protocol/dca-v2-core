@@ -20,7 +20,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   error IntervalNotAllowed();
 
   using SafeERC20 for IERC20Metadata;
-  using EnumerableSet for EnumerableSet.UintSet;
 
   IDCAPermissionManager public permissionManager;
   mapping(uint256 => DCA) internal _userPositions;

@@ -10,7 +10,6 @@ import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
   using SafeERC20 for IERC20Metadata;
-  using EnumerableSet for EnumerableSet.UintSet;
 
   function _registerSwap(
     address _tokenA,

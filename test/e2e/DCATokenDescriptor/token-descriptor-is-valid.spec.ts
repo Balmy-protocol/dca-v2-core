@@ -31,7 +31,7 @@ contract('DCATokenDescriptor', () => {
   let DCAPermissionsManager: DCAPermissionsManager;
   let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
   let TimeWeightedOracle: TimeWeightedOracleMock;
-  const swapInterval = moment.duration(15, 'minutes').as('seconds');
+  const swapInterval = moment.duration(1, 'day').as('seconds');
 
   before('Setup accounts and contracts', async () => {
     [governor] = await ethers.getSigners();
