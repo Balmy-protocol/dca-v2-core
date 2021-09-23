@@ -35,18 +35,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;
-  // TODO: If they are going to be hard-coded, maybe we want to move them to the descriptor directly?
-  // solhint-disable-next-line var-name-mixedcase
-  string[8] public SWAP_INTERVALS_DESCRIPTIONS = [
-    'Every 5 minutes',
-    'Every 15 minutes',
-    'Evert 30 minutes',
-    'Hourly',
-    'Every 12 hours',
-    'Daily',
-    'Weekly',
-    'Monthy'
-  ];
 
   // Tracking
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
