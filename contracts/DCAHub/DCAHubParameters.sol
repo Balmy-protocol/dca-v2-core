@@ -12,14 +12,14 @@ import './utils/Math.sol';
 abstract contract DCAHubParameters is IDCAHubParameters {
   struct SwapData {
     uint32 performedSwaps;
+    uint224 nextAmountToSwapAToB;
     uint32 nextSwapAvailable;
-    uint256 nextAmountToSwapAToB;
-    uint256 nextAmountToSwapBToA;
+    uint224 nextAmountToSwapBToA;
   }
 
   struct SwapDelta {
-    int256 swapDeltaAToB;
-    int256 swapDeltaBToA;
+    int128 swapDeltaAToB;
+    int128 swapDeltaBToA;
   }
 
   struct AccumRatio {
