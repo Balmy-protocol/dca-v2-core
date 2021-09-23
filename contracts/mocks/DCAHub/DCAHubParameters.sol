@@ -25,7 +25,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _activeInterval
   ) external {
-    _activeSwapIntervals[_tokenA][_tokenB] |= _getByteForSwapInterval(_activeInterval);
+    _activeSwapIntervals[_tokenA][_tokenB] |= intervalToMask(_activeInterval);
   }
 
   function removeActiveSwapInterval(
@@ -33,7 +33,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _activeInterval
   ) external {
-    bytes1 _mask = _getByteForSwapInterval(_activeInterval);
+    bytes1 _mask = intervalToMask(_activeInterval);
     _activeSwapIntervals[_tokenA][_tokenB] &= ~_mask;
   }
 
