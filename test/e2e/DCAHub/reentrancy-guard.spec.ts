@@ -213,28 +213,12 @@ contract('DCAHub', () => {
       });
 
       testReentrantAttack({
-        title: 'trying to do a reentrancy attack through a swap',
-        funcAndSignature,
-        args,
-        attackerContract,
-        // @ts-ignore
-        attack: async () => (await DCAHub.populateTransaction['swap(address[],(uint8,uint8)[])']([], [])).data!,
-      });
-
-      testReentrantAttack({
         title: 'trying to do a reentrancy attack through a flash swap',
         funcAndSignature,
         args,
         attackerContract,
         attack: async () => {
-          // @ts-ignore
-          const result = await DCAHub.populateTransaction['swap(address[],(uint8,uint8)[],uint256[],address,bytes)'](
-            [],
-            [],
-            [],
-            constants.NOT_ZERO_ADDRESS,
-            '0x'
-          );
+          const result = await DCAHub.populateTransaction.swap([], [], [], constants.NOT_ZERO_ADDRESS, '0x');
           return result.data!;
         },
       });

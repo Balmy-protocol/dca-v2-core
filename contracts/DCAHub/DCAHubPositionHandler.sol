@@ -59,7 +59,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     if (!this.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
-    _balances[_from] += _amount;
     uint160 _rate = uint160(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
@@ -84,7 +83,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _userPositions[_dcaId].swapWhereLastUpdated = _performedSwaps;
     _userPositions[_dcaId].swappedBeforeModified = 0;
 
-    _balances[_userPosition.to] -= _swapped;
     IERC20Metadata(_userPosition.to).safeTransfer(_recipient, _swapped);
 
     emit Withdrew(msg.sender, _recipient, _dcaId, _userPosition.to, _swapped);
@@ -105,7 +103,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
         _userPositions[_positionId].swappedBeforeModified = 0;
       }
-      _balances[_token] -= _swapped[i];
       IERC20Metadata(_token).safeTransfer(_recipient, _swapped[i]);
     }
     emit WithdrewMany(msg.sender, _recipient, _positions, _swapped);
@@ -130,12 +127,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     permissionManager.burn(_dcaId);
 
     if (_swapped > 0) {
-      _balances[_userPosition.to] -= _swapped;
       IERC20Metadata(_userPosition.to).safeTransfer(_recipientSwapped, _swapped);
     }
 
     if (_unswapped > 0) {
-      _balances[_userPosition.from] -= _unswapped;
       IERC20Metadata(_userPosition.from).safeTransfer(_recipientUnswapped, _unswapped);
     }
 
@@ -193,9 +188,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     if (_increase) {
       IERC20Metadata(_userDCA.from).safeTransferFrom(msg.sender, address(this), _amount);
-      _balances[_userDCA.from] += _amount;
     } else {
-      _balances[_userDCA.from] -= _amount;
       IERC20Metadata(_userDCA.from).safeTransfer(msg.sender, _amount);
     }
 

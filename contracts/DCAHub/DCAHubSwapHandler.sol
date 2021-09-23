@@ -265,23 +265,19 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _swapInformation.tokens[i].token = _tokenInSwap.token;
       _swapInformation.tokens[i].reward = _tokenInSwap.reward;
       _swapInformation.tokens[i].toProvide = _tokenInSwap.toProvide;
-      _swapInformation.tokens[i].availableToBorrow = _balances[_tokenInSwap.token] - _tokenInSwap.reward;
+      _swapInformation.tokens[i].availableToBorrow = IERC20Metadata(_tokenInSwap.token).balanceOf(address(this)) - _tokenInSwap.reward;
       // TODO: Decide if we also want to expose the platform fee
     }
   }
 
   event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
 
-  function swap(address[] calldata _tokens, PairIndexes[] calldata _pairsToSwap) external {
-    swap(_tokens, _pairsToSwap, new uint256[](_tokens.length), msg.sender, '');
-  }
-
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
-    uint256[] memory _borrow,
+    uint256[] calldata _borrow,
     address _to,
-    bytes memory _data
+    bytes calldata _data
   ) public nonReentrant whenNotPaused {
     SwapInfo memory _swapInformation;
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
@@ -313,6 +309,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
     }
 
+    uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
+    for (uint256 i; i < _beforeBalances.length; i++) {
+      _beforeBalances[i] = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+    }
+
     // Optimistically transfer tokens
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
@@ -327,9 +328,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
 
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
-      uint256 _amountToHave = _balances[_swapInformation.tokens[i].token] +
-        _swapInformation.tokens[i].toProvide -
-        _swapInformation.tokens[i].reward;
+      uint256 _amountToHave = _beforeBalances[i] + _swapInformation.tokens[i].toProvide - _swapInformation.tokens[i].reward;
 
       // TODO: Check if it's cheaper to avoid checking the balance for tokens that had nothing to provide and that weren't borrowed
       uint256 _currentBalance = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
@@ -338,9 +337,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       if (_currentBalance < _amountToHave) {
         revert CommonErrors.LiquidityNotReturned();
       }
-
-      // Update internal balance
-      _balances[_swapInformation.tokens[i].token] = _currentBalance;
 
       // Update platform balance
       platformBalance[_swapInformation.tokens[i].token] += _swapInformation.tokens[i].platformFee + (_currentBalance - _amountToHave);

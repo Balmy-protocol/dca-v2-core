@@ -38,24 +38,6 @@ contract('DCAHubParameters', function () {
     await snapshot.revert(snapshotId);
   });
 
-  describe('constructor', () => {
-    when('all arguments are valid', () => {
-      let deploymentTx: TransactionResponse;
-      let deployedContract: Contract;
-      given(async () => {
-        const deployment = await contracts.deploy(DCAHubParametersContract, []);
-        deploymentTx = deployment.tx;
-        deployedContract = deployment.contract;
-      });
-      then('internal balance for token A starts as 0', async () => {
-        expect(await deployedContract.internalBalanceOf(tokenA.address)).to.equal(0);
-      });
-      then('internal balance for token B starts as 0', async () => {
-        expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
-      });
-    });
-  });
-
   const getFeeFromAmountTest = async ({ title, amount, fee }: { title: string; amount: BigNumber | number | string; fee: BigNumberish }) => {
     when(title, () => {
       then('fee from amount is correct', async () => {

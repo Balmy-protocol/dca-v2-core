@@ -40,7 +40,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   mapping(address => mapping(address => EnumerableSet.UintSet)) internal _activeSwapIntervals; // token A => token B => active swap intervals
 
   mapping(address => uint256) public platformBalance; // token => balance
-  mapping(address => uint256) internal _balances; // token => balance
 
   function isSwapIntervalActive(
     address _tokenA,

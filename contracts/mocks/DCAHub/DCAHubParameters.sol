@@ -7,15 +7,6 @@ import '../../DCAHub/DCAHubParameters.sol';
 contract DCAHubParametersMock is DCAHubParameters {
   using EnumerableSet for EnumerableSet.UintSet;
 
-  // Mocks setters
-  function internalBalanceOf(address _token) external view returns (uint256) {
-    return _balances[_token];
-  }
-
-  function setInternalBalance(address _token, uint256 _amount) external {
-    _balances[_token] = _amount;
-  }
-
   function setPlatformBalance(address _token, uint256 _amount) external {
     platformBalance[_token] = _amount;
   }

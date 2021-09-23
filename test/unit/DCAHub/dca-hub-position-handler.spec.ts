@@ -51,8 +51,6 @@ contract('DCAPositionHandler', () => {
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
     await tokenB.mint(DCAPositionHandler.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
-    await DCAPositionHandler.setInternalBalance(tokenA.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
-    await DCAPositionHandler.setInternalBalance(tokenB.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT));
     await DCAPositionHandler.setPerformedSwaps(tokenA.address, tokenB.address, SWAP_INTERVAL, PERFORMED_SWAPS_10);
     await DCAPositionHandler.addSwapIntervalsToAllowedList([SWAP_INTERVAL, SWAP_INTERVAL_2], ['NULL', 'NULL2']);
     snapshotId = await snapshot.take();
@@ -303,8 +301,6 @@ contract('DCAPositionHandler', () => {
       then('interval is now active', async () => {
         expect(await DCAPositionHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SWAP_INTERVAL)).to.be.true;
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });
 
@@ -367,8 +363,6 @@ contract('DCAPositionHandler', () => {
           remaining: POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10,
         });
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
     when(`withdrawing swapped with executed position`, () => {
@@ -410,8 +404,6 @@ contract('DCAPositionHandler', () => {
           const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
           await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, recipient, dcaId, tokenB.address, swapped);
         });
-
-        thenInternalBalancesAreTheSameAsTokenBalances();
       });
     });
   });
@@ -538,8 +530,6 @@ contract('DCAPositionHandler', () => {
           remaining: POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10,
         });
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
     when(`withdrawing swapped with executed positions`, () => {
@@ -618,8 +608,6 @@ contract('DCAPositionHandler', () => {
         expect(positions[1].token).to.equal(input[1].token);
         expect(positions[1].positionIds).to.eql(input[1].positionIds);
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
     type PositionSet = { token: string; positionIds: BigNumber[] };
   });
@@ -718,8 +706,6 @@ contract('DCAPositionHandler', () => {
       then('permission manager is called correctly', async () => {
         expect(DCAPermissionManager.burn).to.have.been.calledWith(dcaId);
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   });
 
@@ -1103,8 +1089,6 @@ contract('DCAPositionHandler', () => {
         expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(newRate!));
         expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
   }
 
@@ -1138,8 +1122,6 @@ contract('DCAPositionHandler', () => {
       await tokenB.burn(DCAPositionHandler.address, tokenB.asUnits(amountBToA));
       await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(amountBToA * ratioBToA!));
     }
-    await DCAPositionHandler.setInternalBalance(tokenA.address, await tokenA.balanceOf(DCAPositionHandler.address));
-    await DCAPositionHandler.setInternalBalance(tokenB.address, await tokenB.balanceOf(DCAPositionHandler.address));
   }
 
   function increasePosition(token: TokenContract, dcaId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
@@ -1181,20 +1163,6 @@ contract('DCAPositionHandler', () => {
   async function expectBalanceToBe(token: TokenContract, address: string, amount: BigNumber | number) {
     const balance = await token.balanceOf(address);
     expect(balance).to.be.equal(BigNumber.isBigNumber(amount) ? amount : token.asUnits(amount));
-  }
-
-  function thenInternalBalancesAreTheSameAsTokenBalances() {
-    then('internal balance for token A is as expected', async () => {
-      const balance = await tokenA.balanceOf(DCAPositionHandler.address);
-      const internalBalance = await DCAPositionHandler.internalBalanceOf(tokenA.address);
-      expect(internalBalance).to.equal(balance);
-    });
-
-    then('internal balance for token B is as expected', async () => {
-      const balance = await tokenB.balanceOf(DCAPositionHandler.address);
-      const internalBalance = await DCAPositionHandler.internalBalanceOf(tokenB.address);
-      expect(internalBalance).to.equal(balance);
-    });
   }
 
   async function expectPositionToBe(

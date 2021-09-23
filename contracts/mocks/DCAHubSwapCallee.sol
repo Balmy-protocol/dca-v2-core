@@ -46,6 +46,10 @@ contract DCAHubSwapCalleeMock is IDCAHubSwapCallee {
       uint256 _amount = _returnAsExpected ? _borrowed[i] + _tokens[i].toProvide : _amountToReturn[_tokens[i].token];
       IERC20Metadata(_tokens[i].token).transfer(msg.sender, _amount);
     }
+
+    for (uint256 i; i < _tokens.length; i++) {
+      _initialBalance[_tokens[i].token] = IERC20Metadata(_tokens[i].token).balanceOf(address(this));
+    }
   }
 
   function setInitialBalances(address[] calldata _tokens, uint256[] calldata _amounts) external {
