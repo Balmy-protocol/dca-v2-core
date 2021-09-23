@@ -147,7 +147,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    when('making a deposit with non-allowed interval', async () => {
+    when('making a deposit with invalid interval', async () => {
       then('tx is reverted with messasge', async () => {
         await depositShouldRevert({
           from: tokenA.address,
@@ -157,6 +157,20 @@ contract('DCAPositionHandler', () => {
           swaps: 10,
           interval: 0,
           error: 'InvalidInterval',
+        });
+      });
+    });
+
+    when('making a deposit with non-allowed interval', async () => {
+      then('tx is reverted with messasge', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 10,
+          interval: moment.duration(15, 'minutes').as('seconds'),
+          error: 'IntervalNotAllowed',
         });
       });
     });

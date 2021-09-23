@@ -71,6 +71,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     } else {
       _activeSwapIntervals[_to][_from] |= _mask;
     }
+    // TODO: Try to remove this hack array, while also avoiding the stack to deep error
     uint32[2] memory _startingAndEndingSwaps = _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _mask);
     emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingAndEndingSwaps[0], _swapInterval, _startingAndEndingSwaps[1]);
     return _idCounter;
@@ -224,11 +225,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     bytes1 _swapIntervalMask
   ) internal returns (uint32[2] memory _startingAndEndingSwaps) {
     uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _swapIntervalMask);
-    uint32 _startingSwap = _performedSwaps + 1;
-    uint32 _finalSwap = _performedSwaps + _amountOfSwaps;
-    _addToDelta(_from, _to, _swapIntervalMask, _finalSwap, _rate);
-    _userPositions[_dcaId] = DCA(_performedSwaps, _finalSwap, _swapIntervalMask, _rate, _from, _to, _swappedBeforeModified);
-    _startingAndEndingSwaps = [_startingSwap, _finalSwap];
+    _startingAndEndingSwaps[0] = _performedSwaps + 1;
+    _startingAndEndingSwaps[1] = _performedSwaps + _amountOfSwaps;
+    _addToDelta(_from, _to, _swapIntervalMask, _startingAndEndingSwaps[1], _rate);
+    _userPositions[_dcaId] = DCA(_performedSwaps, _startingAndEndingSwaps[1], _swapIntervalMask, _rate, _from, _to, _swappedBeforeModified);
   }
 
   function _addToDelta(

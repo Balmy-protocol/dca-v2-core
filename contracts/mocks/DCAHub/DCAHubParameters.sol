@@ -33,8 +33,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _activeInterval
   ) external {
-    bytes1 _mask = intervalToMask(_activeInterval);
-    _activeSwapIntervals[_tokenA][_tokenB] &= ~_mask;
+    _activeSwapIntervals[_tokenA][_tokenB] &= ~intervalToMask(_activeInterval);
   }
 
   function setSwapAmountDelta(
