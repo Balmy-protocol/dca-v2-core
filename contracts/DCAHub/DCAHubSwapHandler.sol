@@ -10,7 +10,6 @@ import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
   using SafeERC20 for IERC20Metadata;
-  using EnumerableSet for EnumerableSet.UintSet;
 
   function _registerSwap(
     address _tokenA,
@@ -40,7 +39,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       });
       delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 2];
     } else {
-      _activeSwapIntervals[_tokenA][_tokenB].remove(_swapInterval);
+      _activeSwapIntervals[_tokenA][_tokenB] &= ~intervalToMask(_swapInterval);
     }
   }
 
@@ -74,17 +73,22 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32 _timestamp
   ) internal view returns (uint32 _secondsUntil) {
     _secondsUntil = type(uint32).max;
-    for (uint256 i; i < _activeSwapIntervals[_tokenA][_tokenB].length(); i++) {
-      uint32 _swapInterval = uint32(_activeSwapIntervals[_tokenA][_tokenB].at(i));
-      uint32 _nextAvailable = swapData[_tokenA][_tokenB][_swapInterval].nextSwapAvailable;
-      if (_nextAvailable <= _timestamp) {
-        return 0;
-      } else {
-        uint32 _diff = _nextAvailable - _timestamp;
-        if (_diff < _secondsUntil) {
-          _secondsUntil = _diff;
+    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
+    bytes1 _mask = 0x01;
+    while (_activeIntervals >= _mask && _mask > 0) {
+      if (_activeIntervals & _mask == _mask) {
+        uint32 _swapInterval = maskToInterval(_mask);
+        uint32 _nextAvailable = swapData[_tokenA][_tokenB][_swapInterval].nextSwapAvailable;
+        if (_nextAvailable <= _timestamp) {
+          return 0;
+        } else {
+          uint32 _diff = _nextAvailable - _timestamp;
+          if (_diff < _secondsUntil) {
+            _secondsUntil = _diff;
+          }
         }
       }
+      _mask <<= 1;
     }
   }
 
@@ -103,17 +107,21 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     )
   {
     uint8 _intervalCount;
-    EnumerableSet.UintSet storage _swapIntervals = _activeSwapIntervals[_tokenA][_tokenB];
-    _intervalsInSwap = new uint32[](_swapIntervals.length());
+    _intervalsInSwap = new uint32[](8);
+    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
     uint32 _blockTimestamp = _getTimestamp();
-    for (uint256 i; i < _intervalsInSwap.length; i++) {
-      uint32 _swapInterval = uint32(_swapIntervals.at(i));
-      SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapInterval];
-      if (_swapData.nextSwapAvailable <= _blockTimestamp) {
-        _intervalsInSwap[_intervalCount++] = _swapInterval;
-        _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
-        _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
+    bytes1 _mask = 0x01;
+    while (_activeIntervals >= _mask && _mask > 0) {
+      if (_activeIntervals & _mask == _mask) {
+        uint32 _swapInterval = maskToInterval(_mask);
+        SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapInterval];
+        if (_swapData.nextSwapAvailable <= _blockTimestamp) {
+          _intervalsInSwap[_intervalCount++] = _swapInterval;
+          _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
+          _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
+        }
       }
+      _mask <<= 1;
     }
 
     // TODO: If _totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0, consider making _intervalsInSwap a length 0 array

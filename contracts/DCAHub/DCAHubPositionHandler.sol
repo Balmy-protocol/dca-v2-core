@@ -10,7 +10,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   struct DCA {
     uint32 swapWhereLastUpdated; // Includes both modify and withdraw
     uint32 finalSwap;
-    uint32 swapInterval; // TODO: We can now store the index directly in a uint8
+    bytes1 swapInterval; // TODO: We can now store the index directly in a uint8
     uint160 rate;
     address from;
     address to;
@@ -18,7 +18,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   using SafeERC20 for IERC20Metadata;
-  using EnumerableSet for EnumerableSet.UintSet;
 
   IDCAPermissionManager public permissionManager;
   mapping(uint256 => DCA) internal _userPositions;
@@ -31,10 +30,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
   function userPosition(uint256 _dcaId) external view override returns (UserPosition memory _userPosition) {
     DCA memory _position = _userPositions[_dcaId];
-    uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapInterval);
+    uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, maskToInterval(_position.swapInterval));
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
-    _userPosition.swapInterval = _position.swapInterval;
+    _userPosition.swapInterval = maskToInterval(_position.swapInterval);
     _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _position.finalSwap
       ? uint32(Math.min(_performedSwaps, _position.finalSwap)) - _position.swapWhereLastUpdated
       : 0;
@@ -57,19 +56,19 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    if (!this.isSwapIntervalAllowed(_swapInterval)) revert InvalidInterval();
+    bytes1 _mask = intervalToMask(_swapInterval);
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     _balances[_from] += _amount;
     uint160 _rate = uint160(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
     if (_from < _to) {
-      _activeSwapIntervals[_from][_to].add(_swapInterval);
+      _activeSwapIntervals[_from][_to] |= _mask;
     } else {
-      _activeSwapIntervals[_to][_from].add(_swapInterval);
+      _activeSwapIntervals[_to][_from] |= _mask;
     }
-    (uint32 _startingSwap, uint32 _finalSwap) = _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _swapInterval);
-    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingSwap, _swapInterval, _finalSwap);
+    uint32 _startingSwap = _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, 0, _mask, _swapInterval);
+    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingSwap, _swapInterval, 0);
     return _idCounter;
   }
 
@@ -78,7 +77,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     DCA memory _userPosition = _userPositions[_dcaId];
     _assertPositionExistsAndCallerHasPermission(_dcaId, _userPosition, IDCAPermissionManager.Permission.WITHDRAW);
-    uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapInterval);
+    uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, maskToInterval(_userPosition.swapInterval));
     _swapped = _calculateSwapped(_userPosition, _performedSwaps);
 
     _userPositions[_dcaId].swapWhereLastUpdated = _performedSwaps;
@@ -100,7 +99,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         DCA memory _userPosition = _userPositions[_positions[i].positionIds[j]];
         _assertPositionExistsAndCallerHasPermission(_positionId, _userPosition, IDCAPermissionManager.Permission.WITHDRAW);
         if (_userPosition.to != _token) revert PositionDoesNotMatchToken();
-        uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapInterval);
+        uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, maskToInterval(_userPosition.swapInterval));
         _swapped[i] += _calculateSwapped(_userPosition, _performedSwaps);
         _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
         _userPositions[_positionId].swappedBeforeModified = 0;
@@ -120,7 +119,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     DCA memory _userPosition = _userPositions[_dcaId];
     _assertPositionExistsAndCallerHasPermission(_dcaId, _userPosition, IDCAPermissionManager.Permission.TERMINATE);
-    uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapInterval);
+    uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, maskToInterval(_userPosition.swapInterval));
 
     uint256 _swapped = _calculateSwapped(_userPosition, _performedSwaps);
     uint256 _unswapped = _calculateUnswapped(_userPosition, _performedSwaps);
@@ -170,8 +169,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _userDCA,
       _increase ? IDCAPermissionManager.Permission.INCREASE : IDCAPermissionManager.Permission.REDUCE
     );
-
-    uint32 _performedSwaps = _getPerformedSwaps(_userDCA.from, _userDCA.to, _userDCA.swapInterval);
+    uint32 _swapInterval = maskToInterval(_userDCA.swapInterval);
+    uint32 _performedSwaps = _getPerformedSwaps(_userDCA.from, _userDCA.to, _swapInterval);
     uint256 _unswapped = _calculateUnswapped(_userDCA, _performedSwaps);
     uint256 _total = _increase ? _unswapped + _amount : _unswapped - _amount;
     if (_total != 0 && _newAmountOfSwaps == 0) revert ZeroSwaps();
@@ -184,7 +183,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _removeFromDelta(_userDCA, _performedSwaps);
     uint32 _startingSwap = _performedSwaps + 1;
     uint32 _finalSwap = _performedSwaps + _newAmountOfSwaps;
-    _addToDelta(_userDCA.from, _userDCA.to, _userDCA.swapInterval, _finalSwap, _newRate);
+    _addToDelta(_userDCA.from, _userDCA.to, _swapInterval, _finalSwap, _newRate);
 
     _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
     _userPositions[_positionId].finalSwap = _finalSwap;
@@ -218,13 +217,14 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint160 _rate,
     uint32 _amountOfSwaps,
     uint248 _swappedBeforeModified,
+    bytes1 _swapIntervalMask,
     uint32 _swapInterval
-  ) internal returns (uint32 _startingSwap, uint32 _finalSwap) {
+  ) internal returns (uint32 _startingSwap) {
     uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _swapInterval);
     _startingSwap = _performedSwaps + 1;
-    _finalSwap = _performedSwaps + _amountOfSwaps;
+    uint32 _finalSwap = _performedSwaps + _amountOfSwaps;
     _addToDelta(_from, _to, _swapInterval, _finalSwap, _rate);
-    _userPositions[_dcaId] = DCA(_performedSwaps, _finalSwap, _swapInterval, _rate, _from, _to, _swappedBeforeModified);
+    _userPositions[_dcaId] = DCA(_performedSwaps, _finalSwap, _swapIntervalMask, _rate, _from, _to, _swappedBeforeModified);
   }
 
   function _addToDelta(
@@ -244,15 +244,16 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   function _removeFromDelta(DCA memory _userPosition, uint32 _performedSwaps) internal {
+    uint32 _swapInterval = maskToInterval(_userPosition.swapInterval);
     if (_userPosition.finalSwap > _performedSwaps) {
       if (_userPosition.from < _userPosition.to) {
-        swapData[_userPosition.from][_userPosition.to][_userPosition.swapInterval].nextAmountToSwapAToB -= _userPosition.rate;
-        swapAmountDelta[_userPosition.from][_userPosition.to][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaAToB += int160(
+        swapData[_userPosition.from][_userPosition.to][_swapInterval].nextAmountToSwapAToB -= _userPosition.rate;
+        swapAmountDelta[_userPosition.from][_userPosition.to][_swapInterval][_userPosition.finalSwap + 1].swapDeltaAToB += int160(
           _userPosition.rate
         );
       } else {
-        swapData[_userPosition.to][_userPosition.from][_userPosition.swapInterval].nextAmountToSwapBToA -= _userPosition.rate;
-        swapAmountDelta[_userPosition.to][_userPosition.from][_userPosition.swapInterval][_userPosition.finalSwap + 1].swapDeltaBToA += int160(
+        swapData[_userPosition.to][_userPosition.from][_swapInterval].nextAmountToSwapBToA -= _userPosition.rate;
+        swapAmountDelta[_userPosition.to][_userPosition.from][_swapInterval][_userPosition.finalSwap + 1].swapDeltaBToA += int160(
           _userPosition.rate
         );
       }
@@ -272,14 +273,15 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     }
 
     uint256 _accumPerUnit;
+    uint32 _swapInterval = maskToInterval(_userDCA.swapInterval);
     if (_userDCA.from < _userDCA.to) {
       _accumPerUnit =
-        accumRatio[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_newestSwapToConsider].accumRatioAToB -
-        accumRatio[_userDCA.from][_userDCA.to][_userDCA.swapInterval][_userDCA.swapWhereLastUpdated].accumRatioAToB;
+        accumRatio[_userDCA.from][_userDCA.to][_swapInterval][_newestSwapToConsider].accumRatioAToB -
+        accumRatio[_userDCA.from][_userDCA.to][_swapInterval][_userDCA.swapWhereLastUpdated].accumRatioAToB;
     } else {
       _accumPerUnit =
-        accumRatio[_userDCA.to][_userDCA.from][_userDCA.swapInterval][_newestSwapToConsider].accumRatioBToA -
-        accumRatio[_userDCA.to][_userDCA.from][_userDCA.swapInterval][_userDCA.swapWhereLastUpdated].accumRatioBToA;
+        accumRatio[_userDCA.to][_userDCA.from][_swapInterval][_newestSwapToConsider].accumRatioBToA -
+        accumRatio[_userDCA.to][_userDCA.from][_swapInterval][_userDCA.swapWhereLastUpdated].accumRatioBToA;
     }
     uint256 _magnitude = 10**IERC20Metadata(_userDCA.from).decimals();
     (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userDCA.rate);

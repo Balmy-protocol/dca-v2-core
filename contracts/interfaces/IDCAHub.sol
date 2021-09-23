@@ -102,9 +102,6 @@ interface IDCAHubPositionHandler {
   /// @notice Thrown when a user tries to create a position with a token that is neither token A nor token B
   error InvalidToken();
 
-  /// @notice Thrown when a user tries to create that a position with an unsupported swap interval
-  error InvalidInterval();
-
   /// @notice Thrown when a user tries operate on a position that doesn't exist (it might have been already terminated)
   error InvalidPosition();
 
