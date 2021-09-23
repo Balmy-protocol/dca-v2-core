@@ -28,6 +28,7 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint32 _loanFee = loanFee;
 
+    // Remember previous balances
     uint256[] memory _beforeBalances = new uint256[](_loan.length);
     for (uint256 i; i < _beforeBalances.length; i++) {
       _beforeBalances[i] = IERC20Metadata(_loan[i].token).balanceOf(address(this));
