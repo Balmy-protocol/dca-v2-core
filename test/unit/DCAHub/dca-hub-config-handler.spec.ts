@@ -120,6 +120,16 @@ contract('DCAHubConfigHandler', () => {
         });
       });
     });
+    when('sets fee that is not multiple of 100', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubConfigHandler.connect(timeLockedOwner),
+          func: 'setSwapFee',
+          args: [99],
+          message: 'InvalidFee',
+        });
+      });
+    });
     when('sets fee equal to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
@@ -137,7 +147,7 @@ contract('DCAHubConfigHandler', () => {
           contract: DCAHubConfigHandler.connect(timeLockedOwner),
           getterFunc: 'swapFee',
           setterFunc: 'setSwapFee',
-          variable: (await DCAHubConfigHandler.MAX_FEE()) - 1,
+          variable: (await DCAHubConfigHandler.MAX_FEE()) - 100,
           eventEmitted: 'SwapFeeSet',
         });
       });
@@ -162,6 +172,16 @@ contract('DCAHubConfigHandler', () => {
         });
       });
     });
+    when('sets fee that is not multiple of 100', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubConfigHandler.connect(timeLockedOwner),
+          func: 'setLoanFee',
+          args: [99],
+          message: 'InvalidFee',
+        });
+      });
+    });
     when('sets fee equal to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
@@ -179,7 +199,7 @@ contract('DCAHubConfigHandler', () => {
           contract: DCAHubConfigHandler.connect(timeLockedOwner),
           getterFunc: 'loanFee',
           setterFunc: 'setLoanFee',
-          variable: (await DCAHubConfigHandler.MAX_FEE()) - 1,
+          variable: (await DCAHubConfigHandler.MAX_FEE()) - 100,
           eventEmitted: 'LoanFeeSet',
         });
       });
