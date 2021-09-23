@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat';
-import { DCATokenDescriptor } from '@typechained';
+import { DCATokenDescriptor__factory, DCATokenDescriptor } from '@typechained';
 import { behaviours } from '@test-utils';
 import { contract, then, when } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
@@ -21,7 +21,9 @@ contract('DCATokenDescriptor', () => {
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    const DCATokenDescriptorFactory = await ethers.getContractFactory('contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor');
+    const DCATokenDescriptorFactory: DCATokenDescriptor__factory = await ethers.getContractFactory(
+      'contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor'
+    );
     DCATokenDescriptor = await DCATokenDescriptorFactory.deploy();
     snapshotId = await snapshot.take();
   });
