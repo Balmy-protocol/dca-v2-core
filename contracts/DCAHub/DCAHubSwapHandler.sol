@@ -246,7 +246,15 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
   struct NextSwapInfo {
     NextTokenInSwap[] tokens;
-    PairInSwap[] pairs;
+    NextPairInSwap[] pairs;
+  }
+
+  struct NextPairInSwap {
+    address tokenA;
+    address tokenB;
+    uint256 ratioAToB;
+    uint256 ratioBToA;
+    uint32[] intervalsInSwap;
   }
 
   struct NextTokenInSwap {
@@ -263,8 +271,25 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   {
     SwapInfo memory _internalSwapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
 
-    _swapInformation.pairs = _internalSwapInformation.pairs;
+    _swapInformation.pairs = new NextPairInSwap[](_internalSwapInformation.pairs.length);
     _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
+
+    for (uint256 i; i < _internalSwapInformation.pairs.length; i++) {
+      PairInSwap memory _pairInSwap = _internalSwapInformation.pairs[i];
+      _swapInformation.pairs[i].tokenA = _pairInSwap.tokenA;
+      _swapInformation.pairs[i].tokenB = _pairInSwap.tokenB;
+      _swapInformation.pairs[i].ratioAToB = _pairInSwap.ratioAToB;
+      _swapInformation.pairs[i].ratioBToA = _pairInSwap.ratioBToA;
+      _swapInformation.pairs[i].intervalsInSwap = new uint32[](8);
+      uint8 _intervalCount;
+      bytes1 _mask = 0x01;
+      while (_pairInSwap.intervalsInSwap >= _mask && _mask > 0) {
+        if (_pairInSwap.intervalsInSwap & _mask == _mask) {
+          _swapInformation.pairs[i].intervalsInSwap[_intervalCount++] = maskToInterval(_mask);
+        }
+        _mask <<= 1;
+      }
+    }
 
     for (uint256 i; i < _internalSwapInformation.tokens.length; i++) {
       TokenInSwap memory _tokenInSwap = _internalSwapInformation.tokens[i];

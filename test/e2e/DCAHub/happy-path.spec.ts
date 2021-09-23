@@ -449,17 +449,19 @@ contract('DCAHub', () => {
     async function assertAmountsToSwapAre({ tokenA: expectedTokenA, tokenB: expectedTokenB }: { tokenA: number; tokenB: number }) {
       const nextSwapInfo = await getNextSwapInfo();
       const { intervalsInSwap } = nextSwapInfo.pairs[0];
-      let numRepresentation = parseInt(intervalsInSwap, 16);
       let totalTokenA = constants.ZERO;
       let totalTokenB = constants.ZERO;
 
-      while (numRepresentation > 0) {
-        const index = Math.floor(Math.log2(numRepresentation));
-        const mask = 1 << index;
-        const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.swapData(tokenA.address, tokenB.address, ethers.utils.hexlify(mask));
-        totalTokenA = totalTokenA.add(nextAmountToSwapAToB);
-        totalTokenB = totalTokenB.add(nextAmountToSwapBToA);
-        numRepresentation &= ~mask;
+      for (const interval of intervalsInSwap) {
+        if (interval > 0) {
+          const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.swapData(
+            tokenA.address,
+            tokenB.address,
+            await DCAHub.intervalToMask(interval)
+          );
+          totalTokenA = totalTokenA.add(nextAmountToSwapAToB);
+          totalTokenB = totalTokenB.add(nextAmountToSwapBToA);
+        }
       }
 
       expect(totalTokenA).to.equal(tokenA.asUnits(expectedTokenA));
@@ -468,13 +470,15 @@ contract('DCAHub', () => {
 
     async function assertIntervalsToSwapNowAre(...swapIntervals: number[]): Promise<void> {
       const nextSwapInfo = await getNextSwapInfo();
-      const intervals = nextSwapInfo.pairs.map(({ intervalsInSwap }) => intervalsInSwap).flat();
-      // console.log('intervals', intervals)
-      // expect(intervals).to.eql(swapIntervals);
-      // if (swapIntervals.length > 0) {
-      //   const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-      //   expect(secondsUntilNext).to.equal(0);
-      // }
+      const intervals = nextSwapInfo.pairs
+        .map(({ intervalsInSwap }) => intervalsInSwap)
+        .flat()
+        .filter((interval) => interval > 0);
+      expect(intervals).to.eql(swapIntervals);
+      if (swapIntervals.length > 0) {
+        const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
+        expect(secondsUntilNext).to.equal(0);
+      }
     }
 
     function assertPositionIsConsistentWithNothingToWithdraw(position: UserPositionDefinition) {

@@ -10,16 +10,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 
 contract('DCAHubParameters', function () {
-  const SUPPORTED_SWAP_INTERVALS = [
-    moment.duration(5, 'minutes').asSeconds(),
-    moment.duration(15, 'minutes').asSeconds(),
-    moment.duration(30, 'minutes').asSeconds(),
-    moment.duration(1, 'hour').asSeconds(),
-    moment.duration(12, 'hours').asSeconds(),
-    moment.duration(1, 'day').asSeconds(),
-    moment.duration(1, 'week').asSeconds(),
-    moment.duration(30, 'days').asSeconds(),
-  ];
   const SWAP_INTERVALS_DESCRIPTIONS = [
     'Every 5 minutes',
     'Every 15 minutes',
@@ -74,14 +64,55 @@ contract('DCAHubParameters', function () {
       then('internal balance for token B starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
       });
-      then('supported swap intervals are as expected', async () => {
-        for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
-          expect(await deployedContract.SUPPORTED_SWAP_INTERVALS(i)).to.equal(SUPPORTED_SWAP_INTERVALS[i]);
-        }
-      });
       then('descriptions are as expected', async () => {
         for (let i = 0; i < SWAP_INTERVALS_DESCRIPTIONS.length; i++) {
           expect(await deployedContract.SWAP_INTERVALS_DESCRIPTIONS(i)).to.equal(SWAP_INTERVALS_DESCRIPTIONS[i]);
+        }
+      });
+    });
+  });
+
+  describe('intervalToMask/maskToInterval', () => {
+    const SUPPORTED_SWAP_INTERVALS = [
+      moment.duration(5, 'minutes').asSeconds(),
+      moment.duration(15, 'minutes').asSeconds(),
+      moment.duration(30, 'minutes').asSeconds(),
+      moment.duration(1, 'hour').asSeconds(),
+      moment.duration(12, 'hours').asSeconds(),
+      moment.duration(1, 'day').asSeconds(),
+      moment.duration(1, 'week').asSeconds(),
+      moment.duration(30, 'days').asSeconds(),
+    ];
+
+    when('calling intervalToMask with an invalid input', () => {
+      then('reverts with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubParameters,
+          func: 'intervalToMask',
+          args: [0],
+          message: 'InvalidInterval',
+        });
+      });
+    });
+
+    when('calling maskToInterval with an invalid input', () => {
+      then('reverts with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubParameters,
+          func: 'maskToInterval',
+          args: [0],
+          message: 'InvalidMask',
+        });
+      });
+    });
+
+    when('calling intervalToMask/maskToInterval with a valid input', () => {
+      then('then result is returned correctly', async () => {
+        for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
+          const interval = SUPPORTED_SWAP_INTERVALS[i];
+          const mask = '0x' + (1 << i).toString(16).padStart(2, '0');
+          expect(await DCAHubParameters.intervalToMask(interval)).to.equal(mask);
+          expect(await DCAHubParameters.maskToInterval(mask)).to.equal(interval);
         }
       });
     });
