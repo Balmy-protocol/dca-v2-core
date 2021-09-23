@@ -65,13 +65,27 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint160 _rate = uint160(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
-    if (_from < _to) {
-      _activeSwapIntervals[_from][_to] |= _mask;
-    } else {
-      _activeSwapIntervals[_to][_from] |= _mask;
-    }
+    _addToActiveSwapIntervals(_from, _to, _mask);
     _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, _mask, _swapInterval, _owner);
     return _idCounter;
+  }
+
+  function _addToActiveSwapIntervals(
+    address _from,
+    address _to,
+    bytes1 _mask
+  ) internal {
+    if (_from < _to) {
+      bytes1 _intervals = _activeSwapIntervals[_from][_to];
+      if (_intervals & _mask == 0) {
+        _activeSwapIntervals[_from][_to] |= _mask;
+      }
+    } else {
+      bytes1 _intervals = _activeSwapIntervals[_to][_from];
+      if (_intervals & _mask == 0) {
+        _activeSwapIntervals[_to][_from] |= _mask;
+      }
+    }
   }
 
   function withdrawSwapped(uint256 _dcaId, address _recipient) external override nonReentrant returns (uint256 _swapped) {
