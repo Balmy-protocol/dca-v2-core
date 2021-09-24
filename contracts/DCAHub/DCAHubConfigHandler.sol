@@ -14,12 +14,15 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   event LoanFeeSet(uint32 feeSet);
   event SwapIntervalsAllowed(uint32[] swapIntervals);
   event SwapIntervalsForbidden(uint32[] swapIntervals);
+  event PlatformWithdrawersAllowed(address[] addresses);
+  event PlatformWithdrawersRemoved(address[] addresses);
   error HighFee();
   error InvalidFee();
 
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
   ITimeWeightedOracle public oracle;
+  mapping(address => bool) public platformWithdrawers;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
   uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
@@ -85,5 +88,19 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function unpause() external onlyRole(IMMEDIATE_ROLE) {
     _unpause();
+  }
+
+  function allowAddressesToWithdrawFromPlatform(address[] calldata _addresses) external onlyRole(IMMEDIATE_ROLE) {
+    for (uint256 i; i < _addresses.length; i++) {
+      platformWithdrawers[_addresses[i]] = true;
+    }
+    emit PlatformWithdrawersAllowed(_addresses);
+  }
+
+  function removeAddressesFromPlatformWithdrawList(address[] calldata _addresses) external onlyRole(IMMEDIATE_ROLE) {
+    for (uint256 i; i < _addresses.length; i++) {
+      platformWithdrawers[_addresses[i]] = false;
+    }
+    emit PlatformWithdrawersRemoved(_addresses);
   }
 }
