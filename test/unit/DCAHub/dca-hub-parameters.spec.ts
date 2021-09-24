@@ -9,17 +9,18 @@ import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import moment from 'moment';
 
-contract('DCAHubParameters', function () {
-  const SWAP_INTERVALS_DESCRIPTIONS = [
-    'Every 5 minutes',
-    'Every 15 minutes',
-    'Evert 30 minutes',
-    'Hourly',
-    'Every 12 hours',
-    'Daily',
-    'Weekly',
-    'Monthy',
-  ];
+export const SUPPORTED_SWAP_INTERVALS = [
+  moment.duration(5, 'minutes').asSeconds(),
+  moment.duration(15, 'minutes').asSeconds(),
+  moment.duration(30, 'minutes').asSeconds(),
+  moment.duration(1, 'hour').asSeconds(),
+  moment.duration(12, 'hours').asSeconds(),
+  moment.duration(1, 'day').asSeconds(),
+  moment.duration(1, 'week').asSeconds(),
+  moment.duration(30, 'days').asSeconds(),
+];
+
+contract('DCAHubParameters', () => {
   let owner: SignerWithAddress;
   let tokenA: ERC20Mock, tokenB: ERC20Mock;
   let DCAHubParametersContract: DCAHubParametersMock__factory;
@@ -64,26 +65,10 @@ contract('DCAHubParameters', function () {
       then('internal balance for token B starts as 0', async () => {
         expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
       });
-      then('descriptions are as expected', async () => {
-        for (let i = 0; i < SWAP_INTERVALS_DESCRIPTIONS.length; i++) {
-          expect(await deployedContract.SWAP_INTERVALS_DESCRIPTIONS(i)).to.equal(SWAP_INTERVALS_DESCRIPTIONS[i]);
-        }
-      });
     });
   });
 
   describe('intervalToMask/maskToInterval', () => {
-    const SUPPORTED_SWAP_INTERVALS = [
-      moment.duration(5, 'minutes').asSeconds(),
-      moment.duration(15, 'minutes').asSeconds(),
-      moment.duration(30, 'minutes').asSeconds(),
-      moment.duration(1, 'hour').asSeconds(),
-      moment.duration(12, 'hours').asSeconds(),
-      moment.duration(1, 'day').asSeconds(),
-      moment.duration(1, 'week').asSeconds(),
-      moment.duration(30, 'days').asSeconds(),
-    ];
-
     when('calling intervalToMask with an invalid input', () => {
       then('reverts with message', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -107,7 +92,7 @@ contract('DCAHubParameters', function () {
     });
 
     when('calling intervalToMask/maskToInterval with a valid input', () => {
-      then('then result is returned correctly', async () => {
+      then('result is returned correctly', async () => {
         for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
           const interval = SUPPORTED_SWAP_INTERVALS[i];
           const mask = '0x' + (1 << i).toString(16).padStart(2, '0');

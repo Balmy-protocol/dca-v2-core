@@ -5,8 +5,6 @@ pragma solidity >=0.8.7 <0.9.0;
 import '../../DCAHub/DCAHubParameters.sol';
 
 contract DCAHubParametersMock is DCAHubParameters {
-  using EnumerableSet for EnumerableSet.UintSet;
-
   // Mocks setters
   function internalBalanceOf(address _token) external view returns (uint256) {
     return _balances[_token];
@@ -62,8 +60,8 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenA,
     address _tokenB,
     uint32 _swapInterval,
-    uint256 _amountToSwapAToB,
-    uint256 _amountToSwapBToA
+    uint224 _amountToSwapAToB,
+    uint224 _amountToSwapBToA
   ) external {
     swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].nextAmountToSwapAToB = _amountToSwapAToB;
     swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].nextAmountToSwapBToA = _amountToSwapBToA;

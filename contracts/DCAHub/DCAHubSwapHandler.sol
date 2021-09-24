@@ -10,7 +10,6 @@ import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
   using SafeERC20 for IERC20Metadata;
-  using EnumerableSet for EnumerableSet.UintSet;
 
   function _registerSwap(
     address _tokenA,
@@ -33,11 +32,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         performedSwaps: _swapData.performedSwaps + 1,
         nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
         nextAmountToSwapAToB: _swapDelta.swapDeltaAToB < 0
-          ? _swapData.nextAmountToSwapAToB - uint256(-_swapDelta.swapDeltaAToB)
-          : _swapData.nextAmountToSwapAToB + uint256(_swapDelta.swapDeltaAToB),
+          ? _swapData.nextAmountToSwapAToB - uint128(-_swapDelta.swapDeltaAToB)
+          : _swapData.nextAmountToSwapAToB + uint128(_swapDelta.swapDeltaAToB),
         nextAmountToSwapBToA: _swapDelta.swapDeltaBToA < 0
-          ? _swapData.nextAmountToSwapBToA - uint256(-_swapDelta.swapDeltaBToA)
-          : _swapData.nextAmountToSwapBToA + uint256(_swapDelta.swapDeltaBToA)
+          ? _swapData.nextAmountToSwapBToA - uint128(-_swapDelta.swapDeltaBToA)
+          : _swapData.nextAmountToSwapBToA + uint128(_swapDelta.swapDeltaBToA)
       });
       delete swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
     } else {

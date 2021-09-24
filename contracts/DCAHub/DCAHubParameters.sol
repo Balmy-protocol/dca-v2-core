@@ -2,7 +2,6 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '../interfaces/IDCAHub.sol';
@@ -13,14 +12,14 @@ import './utils/Math.sol';
 abstract contract DCAHubParameters is IDCAHubParameters {
   struct SwapData {
     uint32 performedSwaps;
+    uint224 nextAmountToSwapAToB;
     uint32 nextSwapAvailable;
-    uint256 nextAmountToSwapAToB;
-    uint256 nextAmountToSwapBToA;
+    uint224 nextAmountToSwapBToA;
   }
 
   struct SwapDelta {
-    int256 swapDeltaAToB;
-    int256 swapDeltaBToA;
+    int128 swapDeltaAToB;
+    int128 swapDeltaBToA;
   }
 
   struct AccumRatio {
@@ -31,22 +30,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   error InvalidInterval();
   error InvalidMask();
 
-  using EnumerableSet for EnumerableSet.UintSet;
-
   // Internal constants
   uint24 public constant FEE_PRECISION = 10000;
-  // TODO: If they are going to be hard-coded, maybe we want to move them to the descriptor directly?
-  // solhint-disable-next-line var-name-mixedcase
-  string[8] public SWAP_INTERVALS_DESCRIPTIONS = [
-    'Every 5 minutes',
-    'Every 15 minutes',
-    'Evert 30 minutes',
-    'Hourly',
-    'Every 12 hours',
-    'Daily',
-    'Weekly',
-    'Monthy'
-  ];
 
   // Tracking
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
