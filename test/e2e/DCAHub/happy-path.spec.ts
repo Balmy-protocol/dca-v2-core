@@ -199,7 +199,6 @@ contract('DCAHub', () => {
       await assertHubBalanceDifferencesAre({ tokenB: availableForWithdraw.mul(-1) });
       await assertBalanceDifferencesAre(john, { tokenB: availableForWithdraw });
 
-      await assertAvailableToBorrowIs({ tokenA: 1849.7, tokenB: 799.7 }); // Calculated by summing all balance differences
       await loan({ callee: DCAHubLoanCallee, tokenA: 1849.7, tokenB: 799.7 });
 
       await assertHubBalanceDifferencesAre({ tokenA: +1.8497, tokenB: +0.7997 });
@@ -456,18 +455,6 @@ contract('DCAHub', () => {
       return assertPositionIsConsistent(position);
     }
 
-    async function assertAvailableToBorrowIs({
-      tokenA: amountTokenA,
-      tokenB: amountTokenB,
-    }: {
-      tokenA: number | BigNumber;
-      tokenB: number | BigNumber;
-    }) {
-      const [availableToBorrowA, availableToBorrowB] = await DCAHub.availableToBorrow([tokenA.address, tokenB.address]);
-      expect(availableToBorrowA).to.equal(BigNumber.isBigNumber(amountTokenA) ? amountTokenA : tokenA.asUnits(amountTokenA));
-      expect(availableToBorrowB).to.equal(BigNumber.isBigNumber(amountTokenB) ? amountTokenB : tokenB.asUnits(amountTokenB));
-    }
-
     async function assertPositionIsConsistent(
       position: UserPositionDefinition,
       options?: { expectedSwapped: (position: UserPositionDefinition) => BigNumber }
@@ -491,7 +478,6 @@ contract('DCAHub', () => {
       args: { tokenA: number | BigNumber; tokenB?: number | BigNumber } | { tokenA?: number | BigNumber; tokenB: number | BigNumber }
     ) {
       const { expectedBalanceTokenA, expectedBalanceTokenB } = await assertBalanceDifferencesAre(DCAHub, args);
-      await assertAvailableToBorrowIs({ tokenA: expectedBalanceTokenA, tokenB: expectedBalanceTokenB });
     }
 
     let lastBalanceTokenA: Map<string, BigNumber> = new Map();

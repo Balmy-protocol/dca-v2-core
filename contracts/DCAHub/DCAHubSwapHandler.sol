@@ -40,7 +40,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       });
       delete swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
     } else {
-      _activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
+      activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
   }
 
@@ -74,7 +74,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32 _timestamp
   ) internal view returns (uint32 _secondsUntil) {
     _secondsUntil = type(uint32).max;
-    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
+    bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
       if (_activeIntervals & _mask == _mask) {
@@ -106,7 +106,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       bytes1 _intervalsInSwap
     )
   {
-    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
+    bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
     uint32 _blockTimestamp = _getTimestamp();
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {

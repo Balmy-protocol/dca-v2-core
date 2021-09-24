@@ -64,9 +64,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
     if (_from < _to) {
-      _activeSwapIntervals[_from][_to] |= _mask;
+      activeSwapIntervals[_from][_to] |= _mask;
     } else {
-      _activeSwapIntervals[_to][_from] |= _mask;
+      activeSwapIntervals[_to][_from] |= _mask;
     }
     _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, _mask, _swapInterval, _owner);
     return _idCounter;

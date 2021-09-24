@@ -37,18 +37,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
   mapping(address => mapping(address => mapping(bytes1 => SwapData))) public swapData; // token A => token B => swap interval => swap data
-  mapping(address => mapping(address => bytes1)) internal _activeSwapIntervals; // token A => token B => active swap intervals
-
+  mapping(address => mapping(address => bytes1)) public activeSwapIntervals; // token A => token B => active swap intervals
   mapping(address => uint256) public platformBalance; // token => balance
-
-  function isSwapIntervalActive(
-    address _tokenA,
-    address _tokenB,
-    uint32 _swapInterval
-  ) external view returns (bool _isIntervalActive) {
-    bytes1 _byte = _tokenA < _tokenB ? _activeSwapIntervals[_tokenA][_tokenB] : _activeSwapIntervals[_tokenB][_tokenA];
-    _isIntervalActive = _byte & intervalToMask(_swapInterval) != 0;
-  }
 
   function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
     return (_amount * _feeAmount) / FEE_PRECISION / 100;
