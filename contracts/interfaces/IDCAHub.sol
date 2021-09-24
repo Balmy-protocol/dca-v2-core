@@ -30,7 +30,7 @@ interface IDCAHubPositionHandler {
     // How many "from" tokens there are left to swap
     uint256 remaining;
     // How many "from" tokens need to be traded in each swap
-    uint160 rate;
+    uint120 rate;
   }
 
   struct PositionSet {
@@ -70,9 +70,9 @@ interface IDCAHubPositionHandler {
     uint256 dcaId,
     address fromToken,
     address toToken,
-    uint160 rate,
+    uint120 rate,
     uint32 startingSwap,
-    uint32 swapInterval,
+    uint32 swapInterval, // TODO: This order makes no sense. Why is swap interval between starting and last?
     uint32 lastSwap
   );
 
@@ -97,13 +97,10 @@ interface IDCAHubPositionHandler {
   /// @param rate How many "from" tokens need to be traded in each swap
   /// @param startingSwap The number of the swap when the position will be executed for the first time
   /// @param lastSwap The number of the swap when the position will be executed for the last time
-  event Modified(address indexed user, uint256 dcaId, uint160 rate, uint32 startingSwap, uint32 lastSwap);
+  event Modified(address indexed user, uint256 dcaId, uint120 rate, uint32 startingSwap, uint32 lastSwap);
 
   /// @notice Thrown when a user tries to create a position with a token that is neither token A nor token B
   error InvalidToken();
-
-  /// @notice Thrown when a user tries to create that a position with an unsupported swap interval
-  error InvalidInterval();
 
   /// @notice Thrown when a user tries operate on a position that doesn't exist (it might have been already terminated)
   error InvalidPosition();
@@ -124,11 +121,6 @@ interface IDCAHubPositionHandler {
   error PositionCompleted();
 
   error PositionDoesNotMatchToken();
-
-  /// @notice Thrown when a user tries to modify a position that has too much swapped balance. This error
-  /// is thrown so that the user doesn't lose any funds. The error indicates that the user must perform a withdraw
-  /// before modifying their position
-  error MandatoryWithdraw();
 
   /// @notice Returns a DCA position
   /// @param _dcaId The id of the position
@@ -164,7 +156,6 @@ interface IDCAHubPositionHandler {
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// With ZeroAmount if _amount is zero
   /// With ZeroSwaps if _newSwaps is zero
-  /// With MandatoryWithdraw if the user must execute a withdraw before modifying their position
   /// @param _dcaId The position's id
   /// @param _amount Amounts of funds to add to the position
   /// @param _newSwaps The new amount of swaps

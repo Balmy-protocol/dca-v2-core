@@ -205,7 +205,7 @@ contract('DCAHubConfigHandler', () => {
           contract: DCAHubConfigHandler,
           func: 'addSwapIntervalsToAllowedList',
           args: [[moment.duration(3, 'minutes').asSeconds()]],
-          message: 'InvalidInterval2',
+          message: 'InvalidInterval',
         });
       });
     });
@@ -263,7 +263,7 @@ contract('DCAHubConfigHandler', () => {
       then('interval is no longer allowed', async () => {
         expect(await DCAHubConfigHandler.isSwapIntervalAllowed(ONE_HOUR)).to.be.false;
       });
-      then('other intervas are still allowed', async () => {
+      then('other intervals are still allowed', async () => {
         expect(await DCAHubConfigHandler.isSwapIntervalAllowed(FIVE_MINUTES)).to.be.true;
       });
     });
