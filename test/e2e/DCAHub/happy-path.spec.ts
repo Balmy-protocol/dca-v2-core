@@ -81,7 +81,7 @@ contract('DCAHub', () => {
     });
 
     it('Execute happy path', async () => {
-      await assertThereAreNoSwapsAvailable();
+      await assertNoSwapsCanBeExecutedNow();
 
       const johnsPosition = await deposit({
         depositor: john,
@@ -403,15 +403,8 @@ contract('DCAHub', () => {
       return (position: UserPositionDefinition) => calculateSwapped(position, ...swaps);
     }
 
-    async function assertNoSwapsCanBeExecutedNow() {
-      const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-      expect(secondsUntilNext).to.be.greaterThan(0);
-    }
-
-    async function assertThereAreNoSwapsAvailable() {
-      const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-      expect(secondsUntilNext).to.equal(MAX_UINT_32);
-      await assertIntervalsToSwapNowAre();
+    function assertNoSwapsCanBeExecutedNow() {
+      return assertIntervalsToSwapNowAre();
     }
 
     async function assertAmountsToSwapAre({ tokenA: expectedTokenA, tokenB: expectedTokenB }: { tokenA: number; tokenB: number }) {
@@ -437,10 +430,6 @@ contract('DCAHub', () => {
         .map(({ intervalsInSwap }) => intervalsInSwap)
         .reduce((a, b) => '0x' + (parseInt(a) | parseInt(b)).toString(16).padStart(2, '0'), '0x00');
       expect(intervals).to.eql(SwapInterval.intervalsToByte(...swapIntervals));
-      if (swapIntervals.length > 0) {
-        const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-        expect(secondsUntilNext).to.equal(0);
-      }
     }
 
     function assertPositionIsConsistentWithNothingToWithdraw(position: UserPositionDefinition) {
