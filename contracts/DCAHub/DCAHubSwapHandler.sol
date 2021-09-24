@@ -121,7 +121,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _mask <<= 1;
     }
 
-    // TODO: If _totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0, consider making _intervalsInSwap a length 0 array
+    if (_totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0) {
+      // Note: if there are no tokens to swap, then we don't want to execute any swaps for this pair
+      _intervalsInSwap = 0;
+    }
   }
 
   function _calculateRatio(

@@ -290,6 +290,23 @@ contract('DCAHubSwapHandler', () => {
         expect(affectedIntervals).to.eql(await intervalsToByte(SWAP_INTERVAL, SWAP_INTERVAL_2));
       });
     });
+    when('intervals can be technically swapped, but there are no tokens to swap', () => {
+      given(async () => {
+        await DCAHubSwapHandler.setBlockTimestamp(20);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 10);
+        await DCAHubSwapHandler.setNextAmountsToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, 0, 0);
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
+      });
+      then('they nothing is returned', async () => {
+        const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
+          tokenA.address,
+          tokenB.address
+        );
+        expect(amountToSwapTokenA).to.equal(0);
+        expect(amountToSwapTokenB).to.equal(0);
+        expect(affectedIntervals).to.eql('0x00');
+      });
+    });
   });
 
   describe('_calculateRatio', () => {
