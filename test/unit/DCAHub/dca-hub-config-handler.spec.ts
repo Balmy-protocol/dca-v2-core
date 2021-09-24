@@ -79,9 +79,9 @@ contract('DCAHubConfigHandler', () => {
       then('contract starts as unpaused', async () => {
         expect(await deployedContract.paused()).to.be.false;
       });
-      then(`immediate role is platform withdraw's admin`, async () => {
+      then(`time locked role is platform withdraw's admin`, async () => {
         const adminRole = await deployedContract.getRoleAdmin(await deployedContract.PLATFORM_WITHDRAW_ROLE());
-        expect(adminRole).to.equal(await deployedContract.IMMEDIATE_ROLE());
+        expect(adminRole).to.equal(timeLockedRole);
       });
     });
   });

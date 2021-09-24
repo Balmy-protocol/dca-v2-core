@@ -10,14 +10,14 @@ import { snapshot } from '@test-utils/evm';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 
 describe('DCAHubPlatformHandler', () => {
-  let immediate: SignerWithAddress, platform: SignerWithAddress, recipient: SignerWithAddress;
+  let timelocked: SignerWithAddress, platform: SignerWithAddress, recipient: SignerWithAddress;
   let platformWithdrawRole: string;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubPlatformHandler: DCAHubPlatformHandlerMock;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
-    [immediate, platform, recipient] = await ethers.getSigners();
+    [timelocked, platform, recipient] = await ethers.getSigners();
     const DCAHubPlatformHandlerFactory: DCAHubPlatformHandlerMock__factory = await ethers.getContractFactory(
       'contracts/mocks/DCAHub/DCAHubPlatformHandler.sol:DCAHubPlatformHandlerMock'
     );
@@ -29,7 +29,7 @@ describe('DCAHubPlatformHandler', () => {
       name: 'tokenB',
       symbol: 'TKNB',
     });
-    DCAHubPlatformHandler = await DCAHubPlatformHandlerFactory.deploy(immediate.address);
+    DCAHubPlatformHandler = await DCAHubPlatformHandlerFactory.deploy(timelocked.address);
     platformWithdrawRole = await DCAHubPlatformHandler.PLATFORM_WITHDRAW_ROLE();
     await DCAHubPlatformHandler.grantRole(platformWithdrawRole, platform.address);
     snapshotId = await snapshot.take();
