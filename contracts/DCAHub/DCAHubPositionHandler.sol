@@ -58,7 +58,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     bytes1 _mask = intervalToMask(_swapInterval);
-    if (_allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
+    if (allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     uint120 _rate = uint120(_amount / _amountOfSwaps);
     _idCounter += 1;
