@@ -56,8 +56,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   }
 
   function _applyFeeToAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
-    // TODO: These 2 are the same, but one might lose precision. Re-check in the futute
-    // return (_amount * (FEE_PRECISION * 100 - _feeAmount)) / (FEE_PRECISION * 100;
     return (_amount * (FEE_PRECISION - _feeAmount / 100)) / FEE_PRECISION;
   }
 

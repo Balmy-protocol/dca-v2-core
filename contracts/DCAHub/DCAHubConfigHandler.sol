@@ -15,6 +15,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   event SwapIntervalsAllowed(uint32[] swapIntervals);
   event SwapIntervalsForbidden(uint32[] swapIntervals);
   error HighFee();
+  error InvalidFee();
 
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
@@ -47,12 +48,14 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function setSwapFee(uint32 _swapFee) external onlyRole(TIME_LOCKED_ROLE) {
     if (_swapFee > MAX_FEE) revert HighFee();
+    if (_swapFee % 100 != 0) revert InvalidFee();
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
   }
 
   function setLoanFee(uint32 _loanFee) external onlyRole(TIME_LOCKED_ROLE) {
     if (_loanFee > MAX_FEE) revert HighFee();
+    if (_loanFee % 100 != 0) revert InvalidFee();
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
   }
