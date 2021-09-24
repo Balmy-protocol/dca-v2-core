@@ -6,9 +6,10 @@ import './DCAHubPositionHandler.sol';
 import './DCAHubSwapHandler.sol';
 import './DCAHubLoanHandler.sol';
 import './DCAHubConfigHandler.sol';
+import './DCAHubPlatformHandler.sol';
 
 // TODO: Implement interface again
-contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCAHubPositionHandler, DCAHubLoanHandler {
+contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCAHubPositionHandler, DCAHubLoanHandler, DCAHubPlatformHandler {
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,

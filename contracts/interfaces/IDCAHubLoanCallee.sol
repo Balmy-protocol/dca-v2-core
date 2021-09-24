@@ -10,7 +10,7 @@ interface IDCAHubLoanCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAHubLoanCall(
     address _sender,
-    IDCAHub.Loan[] calldata _loan,
+    IDCAHub.AmountOfToken[] calldata _loan,
     uint32 _loanFee,
     bytes calldata _data
   ) external;

@@ -213,6 +213,14 @@ contract('DCAHub', () => {
       });
 
       testReentrantAttack({
+        title: 'trying to do a reentrancy attack through withdraw from platform balance',
+        funcAndSignature,
+        args,
+        attackerContract,
+        attack: async () => (await DCAHub.populateTransaction.withdrawFromPlatformBalance([], wallet.generateRandomAddress())).data!,
+      });
+
+      testReentrantAttack({
         title: 'trying to do a reentrancy attack through a swap',
         funcAndSignature,
         args,
