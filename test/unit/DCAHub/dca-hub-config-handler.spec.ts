@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { Contract } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, behaviours, contracts, wallet } from '@test-utils';
+import { constants, behaviours, contracts } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { snapshot } from '@test-utils/evm';
@@ -78,6 +78,10 @@ contract('DCAHubConfigHandler', () => {
       });
       then('contract starts as unpaused', async () => {
         expect(await deployedContract.paused()).to.be.false;
+      });
+      then(`immediate role is platform withdraw's admin`, async () => {
+        const adminRole = await deployedContract.getRoleAdmin(await deployedContract.PLATFORM_WITHDRAW_ROLE());
+        expect(adminRole).to.equal(await deployedContract.IMMEDIATE_ROLE());
       });
     });
   });
@@ -381,73 +385,6 @@ contract('DCAHubConfigHandler', () => {
       contract: () => DCAHubConfigHandler,
       funcAndSignature: 'unpause()',
       params: [],
-      addressWithRole: () => owner,
-      role: () => immediateRole,
-    });
-  });
-
-  describe('allowAddressesToWithdrawFromPlatform', () => {
-    when('one of the addresses was already allowed', () => {
-      given(async () => {
-        await DCAHubConfigHandler.allowAddressesToWithdrawFromPlatform([owner.address]);
-      });
-      then('tx is no op', async () => {
-        await DCAHubConfigHandler.allowAddressesToWithdrawFromPlatform([owner.address]);
-      });
-    });
-    when('addresses are added', () => {
-      let tx: TransactionResponse;
-      given(async () => {
-        await DCAHubConfigHandler.allowAddressesToWithdrawFromPlatform([owner.address]);
-        tx = await DCAHubConfigHandler.allowAddressesToWithdrawFromPlatform([oracle.address]);
-      });
-      then('addresses are added', async () => {
-        expect(await DCAHubConfigHandler.platformWithdrawers(oracle.address)).to.be.true;
-      });
-      then('previous addresses are not removed', async () => {
-        expect(await DCAHubConfigHandler.platformWithdrawers(owner.address)).to.be.true;
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(DCAHubConfigHandler, 'PlatformWithdrawersAllowed').withArgs([oracle.address]);
-      });
-    });
-    behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => DCAHubConfigHandler,
-      funcAndSignature: 'allowAddressesToWithdrawFromPlatform(address[])',
-      params: [[wallet.generateRandomAddress()]],
-      addressWithRole: () => owner,
-      role: () => immediateRole,
-    });
-  });
-
-  describe('removeAddressesFromPlatformWithdrawList', () => {
-    given(async () => {
-      await DCAHubConfigHandler.allowAddressesToWithdrawFromPlatform([owner.address, timeLockedOwner.address]);
-    });
-    when('address was not previously on list', () => {
-      then('tx is no op', async () => {
-        await DCAHubConfigHandler.removeAddressesFromPlatformWithdrawList([oracle.address]);
-      });
-    });
-    when('address was previously allowed and is removed', () => {
-      let tx: TransactionResponse;
-      given(async () => {
-        tx = await DCAHubConfigHandler.removeAddressesFromPlatformWithdrawList([owner.address]);
-      });
-      then('event is emitted', async () => {
-        await expect(tx).to.emit(DCAHubConfigHandler, 'PlatformWithdrawersRemoved').withArgs([owner.address]);
-      });
-      then('address is no longer allowed', async () => {
-        expect(await DCAHubConfigHandler.platformWithdrawers(owner.address)).to.be.false;
-      });
-      then('other addresses are still allowed', async () => {
-        expect(await DCAHubConfigHandler.platformWithdrawers(timeLockedOwner.address)).to.be.true;
-      });
-    });
-    behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => DCAHubConfigHandler,
-      funcAndSignature: 'removeAddressesFromPlatformWithdrawList(address[])',
-      params: [[wallet.generateRandomAddress()]],
       addressWithRole: () => owner,
       role: () => immediateRole,
     });
