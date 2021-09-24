@@ -197,10 +197,12 @@ interface IDCAHubSwapHandler {
 /// @title The interface for all loan related matters in a DCA pair
 /// @notice These methods allow users to ask how much is available for loans, and also to execute them
 interface IDCAHubLoanHandler {
-  struct Loan {
+
+}
+
+interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler {
+  struct AmountOfToken {
     address token;
     uint256 amount;
   }
 }
-
-interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler {}

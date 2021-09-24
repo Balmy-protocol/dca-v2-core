@@ -10,7 +10,7 @@ contract DCAHubLoanCalleeMock is IDCAHubLoanCallee {
   struct LoanCall {
     address hub;
     address sender;
-    IDCAHub.Loan[] loan;
+    IDCAHub.AmountOfToken[] loan;
     uint32 loanFee;
     bytes data;
   }
@@ -23,7 +23,7 @@ contract DCAHubLoanCalleeMock is IDCAHubLoanCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAHubLoanCall(
     address _sender,
-    IDCAHub.Loan[] calldata _loan,
+    IDCAHub.AmountOfToken[] calldata _loan,
     uint32 _loanFee,
     bytes calldata _data
   ) external override {
@@ -82,7 +82,7 @@ contract ReentrantDCAHubLoanCalleeMock is IDCAHubLoanCallee {
   // solhint-disable-next-line func-name-mixedcase
   function DCAHubLoanCall(
     address,
-    IDCAHub.Loan[] calldata,
+    IDCAHub.AmountOfToken[] calldata,
     uint32,
     bytes calldata
   ) external override {
