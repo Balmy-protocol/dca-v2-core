@@ -52,7 +52,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _swapInterval,
     address _owner,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
-  ) external override nonReentrant returns (uint256) {
+  ) external override nonReentrant whenNotPaused returns (uint256) {
     if (_from == address(0) || _to == address(0) || _owner == address(0)) revert CommonErrors.ZeroAddress();
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
@@ -146,7 +146,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _positionId,
     uint256 _amount,
     uint32 _newAmountOfSwaps
-  ) external override nonReentrant {
+  ) external override nonReentrant whenNotPaused {
     _modify(_positionId, _amount, _newAmountOfSwaps, true);
   }
 

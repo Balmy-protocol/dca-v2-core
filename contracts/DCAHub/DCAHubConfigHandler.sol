@@ -69,8 +69,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      bytes1 _mask = intervalToMask(_swapIntervals[i]);
-      _allowedSwapIntervals &= ~_mask;
+      _allowedSwapIntervals &= ~intervalToMask(_swapIntervals[i]);
     }
     emit SwapIntervalsForbidden(_swapIntervals);
   }
