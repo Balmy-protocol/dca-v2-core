@@ -7,8 +7,13 @@ import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { snapshot } from '@test-utils/evm';
 import { DCAHubConfigHandlerMock, DCAHubConfigHandlerMock__factory } from '@typechained';
+import moment from 'moment';
 
 contract('DCAHubConfigHandler', () => {
+  const FIVE_MINUTES = moment.duration(5, 'minutes').asSeconds();
+  const ONE_HOUR = moment.duration(1, 'hour').asSeconds();
+  const ONE_DAY = moment.duration(1, 'day').asSeconds();
+
   let owner: SignerWithAddress, timeLockedOwner: SignerWithAddress, oracle: SignerWithAddress;
   let DCAHubConfigHandlerFactory: DCAHubConfigHandlerMock__factory;
   let DCAHubConfigHandler: DCAHubConfigHandlerMock;
@@ -120,6 +125,16 @@ contract('DCAHubConfigHandler', () => {
         });
       });
     });
+    when('sets fee that is not multiple of 100', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubConfigHandler.connect(timeLockedOwner),
+          func: 'setSwapFee',
+          args: [99],
+          message: 'InvalidFee',
+        });
+      });
+    });
     when('sets fee equal to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
@@ -137,7 +152,7 @@ contract('DCAHubConfigHandler', () => {
           contract: DCAHubConfigHandler.connect(timeLockedOwner),
           getterFunc: 'swapFee',
           setterFunc: 'setSwapFee',
-          variable: (await DCAHubConfigHandler.MAX_FEE()) - 1,
+          variable: (await DCAHubConfigHandler.MAX_FEE()) - 100,
           eventEmitted: 'SwapFeeSet',
         });
       });
@@ -162,6 +177,16 @@ contract('DCAHubConfigHandler', () => {
         });
       });
     });
+    when('sets fee that is not multiple of 100', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubConfigHandler.connect(timeLockedOwner),
+          func: 'setLoanFee',
+          args: [99],
+          message: 'InvalidFee',
+        });
+      });
+    });
     when('sets fee equal to MAX_FEE', () => {
       then('sets fee and emits event', async () => {
         await behaviours.txShouldSetVariableAndEmitEvent({
@@ -179,7 +204,7 @@ contract('DCAHubConfigHandler', () => {
           contract: DCAHubConfigHandler.connect(timeLockedOwner),
           getterFunc: 'loanFee',
           setterFunc: 'setLoanFee',
-          variable: (await DCAHubConfigHandler.MAX_FEE()) - 1,
+          variable: (await DCAHubConfigHandler.MAX_FEE()) - 100,
           eventEmitted: 'LoanFeeSet',
         });
       });
@@ -194,121 +219,72 @@ contract('DCAHubConfigHandler', () => {
   });
 
   describe('addSwapIntervalsToAllowedList', () => {
-    when('one of the intervals is zero', () => {
+    when('one of the intervals not supported', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAHubConfigHandler,
           func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [0, 1],
-            ['d1', 'd2'],
-          ],
-          message: 'ZeroInterval',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [1, 0],
-            ['d1', 'd2'],
-          ],
-          message: 'ZeroInterval',
-        });
-      });
-    });
-    when('one of the descriptions is empty', () => {
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [1, 10],
-            ['', 'd2'],
-          ],
-          message: 'EmptyDescription',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [
-            [1, 10],
-            ['d1', ''],
-          ],
-          message: 'EmptyDescription',
-        });
-      });
-    });
-    when(`number of descriptions doesn't match number of intervals`, () => {
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [[1], ['d1', 'd2']],
-          message: 'InvalidParams',
-        });
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler,
-          func: 'addSwapIntervalsToAllowedList',
-          args: [[1, 10], ['d1']],
-          message: 'InvalidParams',
+          args: [[moment.duration(3, 'minutes').asSeconds()]],
+          message: 'InvalidInterval',
         });
       });
     });
     when('one of the intervals was already allowed', () => {
-      beforeEach(async () => {
-        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([10, 11], ['something', 'something']);
+      given(async () => {
+        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([ONE_HOUR]);
       });
       then('tx is no op', async () => {
-        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([10, 11], ['something', 'something']);
+        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([ONE_HOUR]);
       });
     });
-    when('swap intervals are not zero and were not previously allowed', () => {
-      then('adds swap intervals to allowed list and emits event', async () => {
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(1)).to.be.false;
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(100)).to.be.false;
-        const intervalsToBeAdded = [1, 100];
-        const descriptions = ['d1', 'd2'];
-        await expect(DCAHubConfigHandler.addSwapIntervalsToAllowedList(intervalsToBeAdded, descriptions))
-          .to.emit(DCAHubConfigHandler, 'SwapIntervalsAllowed')
-          .withArgs(intervalsToBeAdded, descriptions);
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(1)).to.be.true;
-        expect(await DCAHubConfigHandler.intervalDescription(1)).to.equal('d1');
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(100)).to.be.true;
-        expect(await DCAHubConfigHandler.intervalDescription(100)).to.equal('d2');
+    when('valid swap intervals are added', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([ONE_HOUR]);
+        tx = await DCAHubConfigHandler.addSwapIntervalsToAllowedList([FIVE_MINUTES]);
+      });
+      then('intervals are added', async () => {
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(FIVE_MINUTES)).to.be.true;
+      });
+      then('previous allowed intervals are not removed', async () => {
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(ONE_HOUR)).to.be.true;
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCAHubConfigHandler, 'SwapIntervalsAllowed').withArgs([FIVE_MINUTES]);
       });
     });
     behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAHubConfigHandler,
-      funcAndSignature: 'addSwapIntervalsToAllowedList(uint32[],string[])',
-      params: [[1], ['description']],
+      funcAndSignature: 'addSwapIntervalsToAllowedList(uint32[])',
+      params: [[ONE_HOUR]],
       addressWithRole: () => owner,
       role: () => immediateRole,
     });
   });
   describe('removeSwapIntervalsFromAllowedList', () => {
-    beforeEach(async () => {
-      await DCAHubConfigHandler.addSwapIntervalsToAllowedList([1], ['description']);
+    given(async () => {
+      await DCAHubConfigHandler.addSwapIntervalsToAllowedList([ONE_HOUR, FIVE_MINUTES]);
     });
     when('swap interval was not previously allowed', () => {
       then('tx is no op', async () => {
-        await DCAHubConfigHandler.removeSwapIntervalsFromAllowedList([2]);
+        await DCAHubConfigHandler.removeSwapIntervalsFromAllowedList([ONE_DAY]);
       });
     });
     when('swap interval was previously allowed and is removed', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await DCAHubConfigHandler.removeSwapIntervalsFromAllowedList([1]);
+        tx = await DCAHubConfigHandler.removeSwapIntervalsFromAllowedList([ONE_HOUR]);
       });
 
       then('event is emitted', async () => {
-        await expect(tx).to.emit(DCAHubConfigHandler, 'SwapIntervalsForbidden').withArgs([1]);
+        await expect(tx).to.emit(DCAHubConfigHandler, 'SwapIntervalsForbidden').withArgs([ONE_HOUR]);
       });
       then('interval is no longer allowed', async () => {
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(1)).to.be.false;
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(ONE_HOUR)).to.be.false;
       });
-      then('description is empty', async () => {
-        expect(await DCAHubConfigHandler.intervalDescription(1)).to.be.empty;
+      then('other intervals are still allowed', async () => {
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(FIVE_MINUTES)).to.be.true;
       });
     });
     behaviours.shouldBeExecutableOnlyByRole({
@@ -320,37 +296,18 @@ contract('DCAHubConfigHandler', () => {
     });
   });
 
-  describe('allowedSwapIntervals', () => {
-    when('no swap interval is allowed', () => {
-      then('returns empty array', async () => {
-        expect(await DCAHubConfigHandler.allowedSwapIntervals()).to.be.empty;
-      });
-    });
-    when('there are swap intervals allowed', () => {
-      const allowedIntervals = [1, 100, 200];
-      const intervalDescriptions = ['d1', 'd2', 'd3'];
-      given(async () => {
-        await DCAHubConfigHandler.addSwapIntervalsToAllowedList(allowedIntervals, intervalDescriptions);
-      });
-      then('array returns correct intervals', async () => {
-        bn.expectArraysToBeEqual(await DCAHubConfigHandler.allowedSwapIntervals(), allowedIntervals);
-      });
-    });
-  });
-
   describe('isSwapIntervalAllowed', () => {
-    when('querying for a swap interval not allowed', () => {
+    when('querying for a swap interval that is not allowed', () => {
       then('returns false', async () => {
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(1240)).to.be.false;
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(ONE_HOUR)).to.be.false;
       });
     });
     when('querying for an allowed swap interval', () => {
-      const allowedInterval = 639;
       given(async () => {
-        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([allowedInterval], ['d1']);
+        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([ONE_HOUR]);
       });
       then('returns true', async () => {
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(allowedInterval)).to.be.true;
+        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(ONE_HOUR)).to.be.true;
       });
     });
   });

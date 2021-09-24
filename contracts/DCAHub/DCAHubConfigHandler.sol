@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 
@@ -10,27 +9,21 @@ import '../interfaces/ITimeWeightedOracle.sol';
 import '../libraries/CommonErrors.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable {
-  using EnumerableSet for EnumerableSet.UintSet;
-
   event OracleSet(ITimeWeightedOracle oracle);
   event SwapFeeSet(uint32 feeSet);
   event LoanFeeSet(uint32 feeSet);
-  event SwapIntervalsAllowed(uint32[] swapIntervals, string[] descriptions);
+  event SwapIntervalsAllowed(uint32[] swapIntervals);
   event SwapIntervalsForbidden(uint32[] swapIntervals);
   error HighFee();
-  error InvalidParams();
-  error ZeroInterval();
-  error EmptyDescription();
+  error InvalidFee();
 
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
-
   ITimeWeightedOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
   uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
-  mapping(uint32 => string) public intervalDescription;
-  EnumerableSet.UintSet internal _allowedSwapIntervals;
+  bytes1 internal _allowedSwapIntervals;
 
   constructor(
     address _immediateGovernor,
@@ -55,45 +48,36 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function setSwapFee(uint32 _swapFee) external onlyRole(TIME_LOCKED_ROLE) {
     if (_swapFee > MAX_FEE) revert HighFee();
+    if (_swapFee % 100 != 0) revert InvalidFee();
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
   }
 
   function setLoanFee(uint32 _loanFee) external onlyRole(TIME_LOCKED_ROLE) {
     if (_loanFee > MAX_FEE) revert HighFee();
+    if (_loanFee % 100 != 0) revert InvalidFee();
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
   }
 
-  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals, string[] calldata _descriptions) external onlyRole(IMMEDIATE_ROLE) {
-    if (_swapIntervals.length != _descriptions.length) revert InvalidParams();
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      if (_swapIntervals[i] == 0) revert ZeroInterval();
-      if (bytes(_descriptions[i]).length == 0) revert EmptyDescription();
-      _allowedSwapIntervals.add(_swapIntervals[i]);
-      intervalDescription[_swapIntervals[i]] = _descriptions[i];
+      _allowedSwapIntervals |= intervalToMask(_swapIntervals[i]);
     }
-    emit SwapIntervalsAllowed(_swapIntervals, _descriptions);
+    emit SwapIntervalsAllowed(_swapIntervals);
   }
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      _allowedSwapIntervals.remove(_swapIntervals[i]);
-      delete intervalDescription[_swapIntervals[i]];
+      bytes1 _mask = intervalToMask(_swapIntervals[i]);
+      _allowedSwapIntervals &= ~_mask;
     }
     emit SwapIntervalsForbidden(_swapIntervals);
   }
 
-  function allowedSwapIntervals() external view returns (uint32[] memory __allowedSwapIntervals) {
-    uint256 _allowedSwapIntervalsLength = _allowedSwapIntervals.length();
-    __allowedSwapIntervals = new uint32[](_allowedSwapIntervalsLength);
-    for (uint256 i; i < _allowedSwapIntervalsLength; i++) {
-      __allowedSwapIntervals[i] = uint32(_allowedSwapIntervals.at(i));
-    }
-  }
-
   function isSwapIntervalAllowed(uint32 _swapInterval) external view returns (bool) {
-    return _allowedSwapIntervals.contains(_swapInterval);
+    bytes1 _mask = intervalToMask(_swapInterval);
+    return _allowedSwapIntervals & _mask != 0;
   }
 
   function pause() external onlyRole(IMMEDIATE_ROLE) {

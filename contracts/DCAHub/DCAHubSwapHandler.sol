@@ -10,37 +10,37 @@ import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
   using SafeERC20 for IERC20Metadata;
-  using EnumerableSet for EnumerableSet.UintSet;
 
   function _registerSwap(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapIntervalMask,
     uint256 _ratioAToB,
     uint256 _ratioBToA,
     uint32 _timestamp
   ) internal virtual {
-    SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapInterval];
+    SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapIntervalMask];
     if (_swapData.nextAmountToSwapAToB > 0 || _swapData.nextAmountToSwapBToA > 0) {
-      AccumRatio memory _accumRatio = accumRatio[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps];
-      SwapDelta memory _swapDelta = swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 2];
-      accumRatio[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 1] = AccumRatio({
+      AccumRatio memory _accumRatio = accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps];
+      SwapDelta memory _swapDelta = swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
+      accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 1] = AccumRatio({
         accumRatioAToB: _accumRatio.accumRatioAToB + _ratioAToB,
         accumRatioBToA: _accumRatio.accumRatioBToA + _ratioBToA
       });
-      swapData[_tokenA][_tokenB][_swapInterval] = SwapData({
+      uint32 _swapInterval = maskToInterval(_swapIntervalMask);
+      swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapData.performedSwaps + 1,
         nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
         nextAmountToSwapAToB: _swapDelta.swapDeltaAToB < 0
-          ? _swapData.nextAmountToSwapAToB - uint256(-_swapDelta.swapDeltaAToB)
-          : _swapData.nextAmountToSwapAToB + uint256(_swapDelta.swapDeltaAToB),
+          ? _swapData.nextAmountToSwapAToB - uint128(-_swapDelta.swapDeltaAToB)
+          : _swapData.nextAmountToSwapAToB + uint128(_swapDelta.swapDeltaAToB),
         nextAmountToSwapBToA: _swapDelta.swapDeltaBToA < 0
-          ? _swapData.nextAmountToSwapBToA - uint256(-_swapDelta.swapDeltaBToA)
-          : _swapData.nextAmountToSwapBToA + uint256(_swapDelta.swapDeltaBToA)
+          ? _swapData.nextAmountToSwapBToA - uint128(-_swapDelta.swapDeltaBToA)
+          : _swapData.nextAmountToSwapBToA + uint128(_swapDelta.swapDeltaBToA)
       });
-      delete swapAmountDelta[_tokenA][_tokenB][_swapInterval][_swapData.performedSwaps + 2];
+      delete swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
     } else {
-      _activeSwapIntervals[_tokenA][_tokenB].remove(_swapInterval);
+      _activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
   }
 
@@ -74,17 +74,21 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32 _timestamp
   ) internal view returns (uint32 _secondsUntil) {
     _secondsUntil = type(uint32).max;
-    for (uint256 i; i < _activeSwapIntervals[_tokenA][_tokenB].length(); i++) {
-      uint32 _swapInterval = uint32(_activeSwapIntervals[_tokenA][_tokenB].at(i));
-      uint32 _nextAvailable = swapData[_tokenA][_tokenB][_swapInterval].nextSwapAvailable;
-      if (_nextAvailable <= _timestamp) {
-        return 0;
-      } else {
-        uint32 _diff = _nextAvailable - _timestamp;
-        if (_diff < _secondsUntil) {
-          _secondsUntil = _diff;
+    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
+    bytes1 _mask = 0x01;
+    while (_activeIntervals >= _mask && _mask > 0) {
+      if (_activeIntervals & _mask == _mask) {
+        uint32 _nextAvailable = swapData[_tokenA][_tokenB][_mask].nextSwapAvailable;
+        if (_nextAvailable <= _timestamp) {
+          return 0;
+        } else {
+          uint32 _diff = _nextAvailable - _timestamp;
+          if (_diff < _secondsUntil) {
+            _secondsUntil = _diff;
+          }
         }
       }
+      _mask <<= 1;
     }
   }
 
@@ -99,21 +103,22 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     returns (
       uint256 _totalAmountToSwapTokenA,
       uint256 _totalAmountToSwapTokenB,
-      uint32[] memory _intervalsInSwap
+      bytes1 _intervalsInSwap
     )
   {
-    uint8 _intervalCount;
-    EnumerableSet.UintSet storage _swapIntervals = _activeSwapIntervals[_tokenA][_tokenB];
-    _intervalsInSwap = new uint32[](_swapIntervals.length());
+    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
     uint32 _blockTimestamp = _getTimestamp();
-    for (uint256 i; i < _intervalsInSwap.length; i++) {
-      uint32 _swapInterval = uint32(_swapIntervals.at(i));
-      SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapInterval];
-      if (_swapData.nextSwapAvailable <= _blockTimestamp) {
-        _intervalsInSwap[_intervalCount++] = _swapInterval;
-        _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
-        _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
+    bytes1 _mask = 0x01;
+    while (_activeIntervals >= _mask && _mask > 0) {
+      if (_activeIntervals & _mask == _mask) {
+        SwapData memory _swapData = swapData[_tokenA][_tokenB][_mask];
+        if (_swapData.nextSwapAvailable <= _blockTimestamp) {
+          _intervalsInSwap |= _mask;
+          _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
+          _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
+        }
       }
+      _mask <<= 1;
     }
 
     // TODO: If _totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0, consider making _intervalsInSwap a length 0 array
@@ -145,7 +150,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address tokenB;
     uint256 ratioAToB;
     uint256 ratioBToA;
-    uint32[] intervalsInSwap;
+    bytes1 intervalsInSwap;
   }
 
   error InvalidPairs();
@@ -240,7 +245,15 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
   struct NextSwapInfo {
     NextTokenInSwap[] tokens;
-    PairInSwap[] pairs;
+    NextPairInSwap[] pairs;
+  }
+
+  struct NextPairInSwap {
+    address tokenA;
+    address tokenB;
+    uint256 ratioAToB;
+    uint256 ratioBToA;
+    uint32[] intervalsInSwap;
   }
 
   struct NextTokenInSwap {
@@ -257,8 +270,25 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   {
     SwapInfo memory _internalSwapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
 
-    _swapInformation.pairs = _internalSwapInformation.pairs;
+    _swapInformation.pairs = new NextPairInSwap[](_internalSwapInformation.pairs.length);
     _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
+
+    for (uint256 i; i < _internalSwapInformation.pairs.length; i++) {
+      PairInSwap memory _pairInSwap = _internalSwapInformation.pairs[i];
+      _swapInformation.pairs[i].tokenA = _pairInSwap.tokenA;
+      _swapInformation.pairs[i].tokenB = _pairInSwap.tokenB;
+      _swapInformation.pairs[i].ratioAToB = _pairInSwap.ratioAToB;
+      _swapInformation.pairs[i].ratioBToA = _pairInSwap.ratioBToA;
+      _swapInformation.pairs[i].intervalsInSwap = new uint32[](8);
+      uint8 _intervalCount;
+      bytes1 _mask = 0x01;
+      while (_pairInSwap.intervalsInSwap >= _mask && _mask > 0) {
+        if (_pairInSwap.intervalsInSwap & _mask == _mask) {
+          _swapInformation.pairs[i].intervalsInSwap[_intervalCount++] = maskToInterval(_mask);
+        }
+        _mask <<= 1;
+      }
+    }
 
     for (uint256 i; i < _internalSwapInformation.tokens.length; i++) {
       TokenInSwap memory _tokenInSwap = _internalSwapInformation.tokens[i];
@@ -289,19 +319,22 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
       for (uint256 i; i < _swapInformation.pairs.length; i++) {
-        uint256 j;
-        while (j < _swapInformation.pairs[i].intervalsInSwap.length && _swapInformation.pairs[i].intervalsInSwap[j] > 0) {
-          _registerSwap(
-            _swapInformation.pairs[i].tokenA,
-            _swapInformation.pairs[i].tokenB,
-            _swapInformation.pairs[i].intervalsInSwap[j],
-            _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB),
-            _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA),
-            _timestamp
-          );
-          j++;
+        bytes1 _intervalsInSwap = _swapInformation.pairs[i].intervalsInSwap;
+        bytes1 _mask = 0x01;
+        while (_intervalsInSwap >= _mask && _mask > 0) {
+          if (_intervalsInSwap & _mask == _mask) {
+            _registerSwap(
+              _swapInformation.pairs[i].tokenA,
+              _swapInformation.pairs[i].tokenB,
+              _mask,
+              _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB),
+              _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA),
+              _timestamp
+            );
+          }
+          _mask <<= 1;
         }
-        _executedAPair = _executedAPair || j > 0;
+        _executedAPair = _executedAPair || _intervalsInSwap > 0;
       }
 
       if (!_executedAPair) {

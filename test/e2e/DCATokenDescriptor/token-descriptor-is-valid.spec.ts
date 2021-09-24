@@ -34,7 +34,7 @@ contract('DCATokenDescriptor', () => {
   let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
   let TimeWeightedOracle: TimeWeightedOracleMock;
   let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
-  const swapInterval = moment.duration(10, 'minutes').as('seconds');
+  const swapInterval = moment.duration(1, 'day').as('seconds');
 
   before('Setup accounts and contracts', async () => {
     [governor] = await ethers.getSigners();
@@ -68,7 +68,8 @@ contract('DCATokenDescriptor', () => {
     );
 
     await DCAPermissionsManager.setHub(DCAHub.address);
-    await DCAHub.addSwapIntervalsToAllowedList([swapInterval], ['Daily']);
+    await DCAHub.addSwapIntervalsToAllowedList([swapInterval]);
+
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(governor.address, DCAHub.address, tokenB.asUnits(1000));
     await tokenB.mint(governor.address, tokenB.asUnits(1000));

@@ -1,14 +1,25 @@
-import { BigNumber, BigNumberish, Contract, utils } from 'ethers';
+import { BigNumber, BigNumberish, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { ERC20Mock, DCAHubParametersMock__factory, DCAHubParametersMock } from '@typechained';
-import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours, bn, wallet, contracts } from '@test-utils';
-import { contract, given, then, when } from '@test-utils/bdd';
+import { constants, erc20, behaviours, bn } from '@test-utils';
+import { contract, then, when } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import moment from 'moment';
 
-contract('DCAHubParameters', function () {
+export const SUPPORTED_SWAP_INTERVALS = [
+  moment.duration(5, 'minutes').asSeconds(),
+  moment.duration(15, 'minutes').asSeconds(),
+  moment.duration(30, 'minutes').asSeconds(),
+  moment.duration(1, 'hour').asSeconds(),
+  moment.duration(12, 'hours').asSeconds(),
+  moment.duration(1, 'day').asSeconds(),
+  moment.duration(1, 'week').asSeconds(),
+  moment.duration(30, 'days').asSeconds(),
+];
+
+contract('DCAHubParameters', () => {
   let owner: SignerWithAddress;
   let tokenA: ERC20Mock, tokenB: ERC20Mock;
   let DCAHubParametersContract: DCAHubParametersMock__factory;
@@ -36,6 +47,41 @@ contract('DCAHubParameters', function () {
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
+  });
+
+  describe('intervalToMask/maskToInterval', () => {
+    when('calling intervalToMask with an invalid input', () => {
+      then('reverts with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubParameters,
+          func: 'intervalToMask',
+          args: [0],
+          message: 'InvalidInterval',
+        });
+      });
+    });
+
+    when('calling maskToInterval with an invalid input', () => {
+      then('reverts with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubParameters,
+          func: 'maskToInterval',
+          args: [0],
+          message: 'InvalidMask',
+        });
+      });
+    });
+
+    when('calling intervalToMask/maskToInterval with a valid input', () => {
+      then('result is returned correctly', async () => {
+        for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
+          const interval = SUPPORTED_SWAP_INTERVALS[i];
+          const mask = '0x' + (1 << i).toString(16).padStart(2, '0');
+          expect(await DCAHubParameters.intervalToMask(interval)).to.equal(mask);
+          expect(await DCAHubParameters.maskToInterval(mask)).to.equal(interval);
+        }
+      });
+    });
   });
 
   const getFeeFromAmountTest = async ({ title, amount, fee }: { title: string; amount: BigNumber | number | string; fee: BigNumberish }) => {
