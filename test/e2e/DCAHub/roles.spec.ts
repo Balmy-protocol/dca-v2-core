@@ -19,20 +19,11 @@ contract('DCAHub', () => {
 
   const IMMEDIATE_ROLE: string = new Web3().utils.soliditySha3('IMMEDIATE_ROLE') as string;
   const TIME_LOCKED_ROLE: string = new Web3().utils.soliditySha3('TIME_LOCKED_ROLE') as string;
+  const PLATFORM_WITHDRAW_ROLE: string = new Web3().utils.soliditySha3('PLATFORM_WITHDRAW_ROLE') as string;
 
   before(async () => {
     DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     [immediateGovernor, timeLockedGovernor] = await ethers.getSigners();
-    const tokenA = await erc20.deploy({
-      name: 'WBTC',
-      symbol: 'WBTC',
-      decimals: 8,
-    });
-    const tokenB = await erc20.deploy({
-      name: 'DAI',
-      symbol: 'DAI',
-      decimals: 18,
-    });
     DCAHub = await DCAHubFactory.deploy(
       immediateGovernor.address,
       timeLockedGovernor.address,
@@ -44,6 +35,29 @@ contract('DCAHub', () => {
 
   beforeEach(async () => {
     await snapshot.revert(snapshotId);
+  });
+
+  describe('granting platform withdraw role', () => {
+    when('not granting from role admin', () => {
+      let grantRoleTx: Promise<TransactionResponse>;
+      given(async () => {
+        grantRoleTx = DCAHub.connect(immediateGovernor).grantRole(PLATFORM_WITHDRAW_ROLE, wallet.generateRandomAddress());
+      });
+      then('tx is reverted', async () => {
+        await expect(grantRoleTx).to.be.revertedWith(
+          `AccessControl: account ${immediateGovernor.address.toLowerCase()} is missing role ${TIME_LOCKED_ROLE.toLowerCase()}`
+        );
+      });
+    });
+    when('granting from admin of role', () => {
+      const newDudeWithRole = wallet.generateRandomAddress();
+      given(async () => {
+        await DCAHub.connect(timeLockedGovernor).grantRole(PLATFORM_WITHDRAW_ROLE, newDudeWithRole);
+      });
+      then('grants platform withdraw role to new address', async () => {
+        expect(await DCAHub.hasRole(PLATFORM_WITHDRAW_ROLE, newDudeWithRole)).to.be.true;
+      });
+    });
   });
 
   describe('granting immediate role', () => {

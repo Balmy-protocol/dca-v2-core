@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { Contract } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, behaviours, bn, contracts } from '@test-utils';
+import { constants, behaviours, contracts } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { snapshot } from '@test-utils/evm';
@@ -78,6 +78,10 @@ contract('DCAHubConfigHandler', () => {
       });
       then('contract starts as unpaused', async () => {
         expect(await deployedContract.paused()).to.be.false;
+      });
+      then(`time locked role is platform withdraw's admin`, async () => {
+        const adminRole = await deployedContract.getRoleAdmin(await deployedContract.PLATFORM_WITHDRAW_ROLE());
+        expect(adminRole).to.equal(timeLockedRole);
       });
     });
   });
