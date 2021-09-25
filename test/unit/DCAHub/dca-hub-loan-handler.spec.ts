@@ -39,23 +39,6 @@ describe('DCAHubLoanHandler', () => {
     await snapshot.revert(snapshotId);
   });
 
-  describe('availableToBorrow', () => {
-    let balanceTokenA: BigNumber, balanceTokenB: BigNumber;
-    given(async () => {
-      [balanceTokenA, balanceTokenB] = [tokenA.asUnits(10), tokenB.asUnits(100)];
-      await DCAHubLoanHandler.setInternalBalance(tokenA.address, balanceTokenA);
-      await DCAHubLoanHandler.setInternalBalance(tokenB.address, balanceTokenB);
-    });
-
-    when('checking how much is available to borrow', () => {
-      then('the amounts are the internal balances', async () => {
-        const [availableToBorrowA, availableToBorrowB] = await DCAHubLoanHandler.availableToBorrow([tokenA.address, tokenB.address]);
-        expect(availableToBorrowA).to.equal(balanceTokenA);
-        expect(availableToBorrowB).to.equal(balanceTokenB);
-      });
-    });
-  });
-
   describe('flash loan', () => {
     const BYTES = ethers.utils.randomBytes(5);
     const [CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE] = [utils.parseEther('2'), utils.parseEther('2')];
@@ -73,8 +56,6 @@ describe('DCAHubLoanHandler', () => {
       await tokenB.mint(DCAHubLoanCallee.address, CALLEE_TOKEN_B_INITIAL_BALANCE);
       await tokenA.mint(DCAHubLoanHandler.address, PAIR_TOKEN_A_INITIAL_BALANCE);
       await tokenB.mint(DCAHubLoanHandler.address, PAIR_TOKEN_B_INITIAL_BALANCE);
-      await DCAHubLoanHandler.setInternalBalance(tokenA.address, PAIR_TOKEN_A_INITIAL_BALANCE);
-      await DCAHubLoanHandler.setInternalBalance(tokenB.address, PAIR_TOKEN_B_INITIAL_BALANCE);
     });
 
     flashLoanFailedTest({
@@ -175,8 +156,6 @@ describe('DCAHubLoanHandler', () => {
           expect(emittedLoan[i].amount).to.equal(loan[i].amount);
         }
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
     when('more tokens than expected are returned', () => {
@@ -213,8 +192,6 @@ describe('DCAHubLoanHandler', () => {
         expect(platformBalanceTokenA).to.equal(tokenAFee.add(1));
         expect(platformBalanceTokenB).to.equal(tokenBFee.add(1));
       });
-
-      thenInternalBalancesAreTheSameAsTokenBalances();
     });
 
     function flashLoanFailedTest({
@@ -274,18 +251,4 @@ describe('DCAHubLoanHandler', () => {
       });
     }
   });
-
-  function thenInternalBalancesAreTheSameAsTokenBalances() {
-    then('internal balance for token A is as expected', async () => {
-      const balance = await tokenA.balanceOf(DCAHubLoanHandler.address);
-      const internalBalance = await DCAHubLoanHandler.internalBalanceOf(tokenA.address);
-      expect(internalBalance).to.equal(balance);
-    });
-
-    then('internal balance for token B is as expected', async () => {
-      const balance = await tokenB.balanceOf(DCAHubLoanHandler.address);
-      const internalBalance = await DCAHubLoanHandler.internalBalanceOf(tokenB.address);
-      expect(internalBalance).to.equal(balance);
-    });
-  }
 });

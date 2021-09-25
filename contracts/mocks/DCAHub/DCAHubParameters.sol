@@ -5,15 +5,6 @@ pragma solidity >=0.8.7 <0.9.0;
 import '../../DCAHub/DCAHubParameters.sol';
 
 contract DCAHubParametersMock is DCAHubParameters {
-  // Mocks setters
-  function internalBalanceOf(address _token) external view returns (uint256) {
-    return _balances[_token];
-  }
-
-  function setInternalBalance(address _token, uint256 _amount) external {
-    _balances[_token] = _amount;
-  }
-
   function setPlatformBalance(address _token, uint256 _amount) external {
     platformBalance[_token] = _amount;
   }
@@ -23,7 +14,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _activeInterval
   ) external {
-    _activeSwapIntervals[_tokenA][_tokenB] |= intervalToMask(_activeInterval);
+    activeSwapIntervals[_tokenA][_tokenB] |= intervalToMask(_activeInterval);
   }
 
   function removeActiveSwapInterval(
@@ -31,7 +22,16 @@ contract DCAHubParametersMock is DCAHubParameters {
     address _tokenB,
     uint32 _activeInterval
   ) external {
-    _activeSwapIntervals[_tokenA][_tokenB] &= ~intervalToMask(_activeInterval);
+    activeSwapIntervals[_tokenA][_tokenB] &= ~intervalToMask(_activeInterval);
+  }
+
+  function isSwapIntervalActive(
+    address _tokenA,
+    address _tokenB,
+    uint32 _swapInterval
+  ) external view returns (bool _isIntervalActive) {
+    bytes1 _byte = _tokenA < _tokenB ? activeSwapIntervals[_tokenA][_tokenB] : activeSwapIntervals[_tokenB][_tokenA];
+    _isIntervalActive = _byte & intervalToMask(_swapInterval) != 0;
   }
 
   function setSwapAmountDelta(

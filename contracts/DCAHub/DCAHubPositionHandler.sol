@@ -59,16 +59,15 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     bytes1 _mask = intervalToMask(_swapInterval);
-    if (_allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
+    if (allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
-    _balances[_from] += _amount;
     uint120 _rate = uint120(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
     if (_from < _to) {
-      _activeSwapIntervals[_from][_to] |= _mask;
+      activeSwapIntervals[_from][_to] |= _mask;
     } else {
-      _activeSwapIntervals[_to][_from] |= _mask;
+      activeSwapIntervals[_to][_from] |= _mask;
     }
     _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, _mask, _swapInterval, _owner);
     return _idCounter;
@@ -85,7 +84,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _userPositions[_dcaId].swapWhereLastUpdated = _performedSwaps;
     delete _swappedBeforeModified[_dcaId];
 
-    _balances[_userPosition.to] -= _swapped;
     IERC20Metadata(_userPosition.to).safeTransfer(_recipient, _swapped);
 
     emit Withdrew(msg.sender, _recipient, _dcaId, _userPosition.to, _swapped);
@@ -106,7 +104,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
         delete _swappedBeforeModified[_positionId];
       }
-      _balances[_token] -= _swapped[i];
       IERC20Metadata(_token).safeTransfer(_recipient, _swapped[i]);
     }
     emit WithdrewMany(msg.sender, _recipient, _positions, _swapped);
@@ -131,12 +128,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     permissionManager.burn(_dcaId);
 
     if (_swapped > 0) {
-      _balances[_userPosition.to] -= _swapped;
       IERC20Metadata(_userPosition.to).safeTransfer(_recipientSwapped, _swapped);
     }
 
     if (_unswapped > 0) {
-      _balances[_userPosition.from] -= _unswapped;
       IERC20Metadata(_userPosition.from).safeTransfer(_recipientUnswapped, _unswapped);
     }
 
@@ -193,9 +188,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     if (_increase) {
       IERC20Metadata(_userDCA.from).safeTransferFrom(msg.sender, address(this), _amount);
-      _balances[_userDCA.from] += _amount;
     } else {
-      _balances[_userDCA.from] -= _amount;
       IERC20Metadata(_userDCA.from).safeTransfer(msg.sender, _amount);
     }
 

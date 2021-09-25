@@ -1,9 +1,8 @@
-import { BigNumber, BigNumberish, Contract, utils } from 'ethers';
+import { BigNumber, BigNumberish, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { ERC20Mock, DCAHubParametersMock__factory, DCAHubParametersMock } from '@typechained';
-import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, behaviours, bn, wallet, contracts } from '@test-utils';
-import { contract, given, then, when } from '@test-utils/bdd';
+import { constants, erc20, behaviours, bn } from '@test-utils';
+import { contract, then, when } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -48,24 +47,6 @@ contract('DCAHubParameters', () => {
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
-  });
-
-  describe('constructor', () => {
-    when('all arguments are valid', () => {
-      let deploymentTx: TransactionResponse;
-      let deployedContract: Contract;
-      given(async () => {
-        const deployment = await contracts.deploy(DCAHubParametersContract, []);
-        deploymentTx = deployment.tx;
-        deployedContract = deployment.contract;
-      });
-      then('internal balance for token A starts as 0', async () => {
-        expect(await deployedContract.internalBalanceOf(tokenA.address)).to.equal(0);
-      });
-      then('internal balance for token B starts as 0', async () => {
-        expect(await deployedContract.internalBalanceOf(tokenB.address)).to.equal(0);
-      });
-    });
   });
 
   describe('intervalToMask/maskToInterval', () => {

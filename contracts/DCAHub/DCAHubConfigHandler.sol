@@ -24,7 +24,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
   uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
-  bytes1 internal _allowedSwapIntervals;
+  bytes1 public allowedSwapIntervals;
 
   constructor(
     address _immediateGovernor,
@@ -64,21 +64,16 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      _allowedSwapIntervals |= intervalToMask(_swapIntervals[i]);
+      allowedSwapIntervals |= intervalToMask(_swapIntervals[i]);
     }
     emit SwapIntervalsAllowed(_swapIntervals);
   }
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      _allowedSwapIntervals &= ~intervalToMask(_swapIntervals[i]);
+      allowedSwapIntervals &= ~intervalToMask(_swapIntervals[i]);
     }
     emit SwapIntervalsForbidden(_swapIntervals);
-  }
-
-  function isSwapIntervalAllowed(uint32 _swapInterval) external view returns (bool) {
-    bytes1 _mask = intervalToMask(_swapInterval);
-    return _allowedSwapIntervals & _mask != 0;
   }
 
   function pause() external onlyRole(IMMEDIATE_ROLE) {

@@ -8,6 +8,8 @@ import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import {
   DCAHub,
+  DCAHubSwapCalleeMock,
+  DCAHubSwapCalleeMock__factory,
   DCAHub__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
@@ -31,6 +33,7 @@ contract('DCATokenDescriptor', () => {
   let DCAPermissionsManager: DCAPermissionsManager;
   let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
   let TimeWeightedOracle: TimeWeightedOracleMock;
+  let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
   const swapInterval = moment.duration(1, 'day').as('seconds');
 
   before('Setup accounts and contracts', async () => {
@@ -41,6 +44,7 @@ contract('DCATokenDescriptor', () => {
       'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
     );
     TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
+    DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
   });
 
   beforeEach('Deploy and configure', async () => {
@@ -62,12 +66,17 @@ contract('DCATokenDescriptor', () => {
       TimeWeightedOracle.address,
       DCAPermissionsManager.address
     );
+
     await DCAPermissionsManager.setHub(DCAHub.address);
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval]);
 
     await tokenA.mint(governor.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(governor.address, DCAHub.address, tokenB.asUnits(1000));
     await tokenB.mint(governor.address, tokenB.asUnits(1000));
+    DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
+    await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(2000), tokenB.asUnits(2000)]);
+    await tokenA.mint(DCAHubSwapCallee.address, tokenA.asUnits(2000));
+    await tokenB.mint(DCAHubSwapCallee.address, tokenB.asUnits(2000));
   });
 
   it('Validate tokenURI result', async () => {
@@ -103,10 +112,8 @@ contract('DCATokenDescriptor', () => {
   });
 
   async function swap() {
-    await tokenA.transfer(DCAHub.address, tokenA.asUnits(20));
-    const { tokens, pairIndexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-    // @ts-ignore
-    await DCAHub['swap(address[],(uint8,uint8)[])'](tokens, pairIndexes);
+    const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+    await DCAHub.swap(tokens, pairIndexes, borrow, DCAHubSwapCallee.address, ethers.utils.randomBytes(5));
   }
 
   function isValidSvgImage(base64: string) {

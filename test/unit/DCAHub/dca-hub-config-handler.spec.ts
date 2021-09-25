@@ -300,22 +300,6 @@ contract('DCAHubConfigHandler', () => {
     });
   });
 
-  describe('isSwapIntervalAllowed', () => {
-    when('querying for a swap interval that is not allowed', () => {
-      then('returns false', async () => {
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(ONE_HOUR)).to.be.false;
-      });
-    });
-    when('querying for an allowed swap interval', () => {
-      given(async () => {
-        await DCAHubConfigHandler.addSwapIntervalsToAllowedList([ONE_HOUR]);
-      });
-      then('returns true', async () => {
-        expect(await DCAHubConfigHandler.isSwapIntervalAllowed(ONE_HOUR)).to.be.true;
-      });
-    });
-  });
-
   describe('pause', () => {
     when('contract is paused', () => {
       let tx: TransactionResponse;

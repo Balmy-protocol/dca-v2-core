@@ -11,13 +11,6 @@ import './DCAHubConfigHandler.sol';
 abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubLoanHandler {
   using SafeERC20 for IERC20Metadata;
 
-  function availableToBorrow(address[] calldata _tokens) external view returns (uint256[] memory _available) {
-    _available = new uint256[](_tokens.length);
-    for (uint256 i; i < _tokens.length; i++) {
-      _available[i] = _balances[_tokens[i]];
-    }
-  }
-
   event Loaned(address indexed sender, address indexed to, IDCAHub.AmountOfToken[] loan, uint32 fee);
 
   function loan(
@@ -27,6 +20,12 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   ) external nonReentrant whenNotPaused {
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint32 _loanFee = loanFee;
+
+    // Remember previous balances
+    uint256[] memory _beforeBalances = new uint256[](_loan.length);
+    for (uint256 i; i < _beforeBalances.length; i++) {
+      _beforeBalances[i] = IERC20Metadata(_loan[i].token).balanceOf(address(this));
+    }
 
     // Transfer tokens
     for (uint256 i; i < _loan.length; i++) {
@@ -39,19 +38,15 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     IDCAHubLoanCallee(_to).DCAHubLoanCall(msg.sender, _loan, _loanFee, _data);
 
     for (uint256 i; i < _loan.length; i++) {
-      uint256 _beforeBalance = _balances[_loan[i].token];
       uint256 _afterBalance = IERC20Metadata(_loan[i].token).balanceOf(address(this));
 
       // Make sure that they sent the tokens back
-      if (_afterBalance < _beforeBalance + _getFeeFromAmount(_loanFee, _loan[i].amount)) {
+      if (_afterBalance < _beforeBalances[i] + _getFeeFromAmount(_loanFee, _loan[i].amount)) {
         revert CommonErrors.LiquidityNotReturned();
       }
 
-      // Update balance
-      _balances[_loan[i].token] = _afterBalance;
-
       // Update platform balance
-      platformBalance[_loan[i].token] += _afterBalance - _beforeBalance;
+      platformBalance[_loan[i].token] += _afterBalance - _beforeBalances[i];
     }
 
     // Emit event

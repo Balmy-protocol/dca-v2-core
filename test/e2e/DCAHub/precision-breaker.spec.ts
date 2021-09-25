@@ -2,7 +2,15 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, utils } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHub, DCAHub__factory, DCAPermissionsManager, DCAPermissionsManager__factory, IUniswapV3OracleAggregator } from '@typechained';
+import {
+  DCAHub,
+  DCAHubSwapCalleeMock,
+  DCAHubSwapCalleeMock__factory,
+  DCAHub__factory,
+  DCAPermissionsManager,
+  DCAPermissionsManager__factory,
+  IUniswapV3OracleAggregator,
+} from '@typechained';
 import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -16,18 +24,20 @@ contract('DCAHub', () => {
     const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
 
     let governor: SignerWithAddress;
-    let alice: SignerWithAddress, john: SignerWithAddress, swapper1: SignerWithAddress;
+    let alice: SignerWithAddress, john: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
     let timeWeightedOracle: FakeContract<IUniswapV3OracleAggregator>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
+    let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
 
     before('Setup accounts and contracts', async () => {
-      [governor, alice, john, swapper1] = await ethers.getSigners();
+      [governor, alice, john] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       DCAPermissionsManagerFactory = await ethers.getContractFactory(
         'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
       );
+      DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
     });
 
     beforeEach('Deploy and configure', async () => {
@@ -46,10 +56,12 @@ contract('DCAHub', () => {
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
       DCAPermissionsManager.setHub(DCAHub.address);
+      DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
+      await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(2000), tokenB.asUnits(2000)]);
       await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR]);
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(alice, { tokenA: 0, tokenB: 10000 });
-      await setInitialBalance(swapper1, { tokenA: 2000, tokenB: 2000 });
+      await setInitialBalance(DCAHubSwapCallee, { tokenA: 2000, tokenB: 2000 });
     });
 
     when('all swaps are done', () => {
@@ -77,23 +89,23 @@ contract('DCAHub', () => {
         );
 
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-        await timeWeightedOracle.quote.returns(BigNumber.from('2246'));
-        await swap({ swapper: swapper1 });
+        timeWeightedOracle.quote.returns(BigNumber.from('2246'));
+        await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-        await timeWeightedOracle.quote.returns(BigNumber.from('2209'));
-        await swap({ swapper: swapper1 });
+        timeWeightedOracle.quote.returns(BigNumber.from('2209'));
+        await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-        await timeWeightedOracle.quote.returns(BigNumber.from('2190'));
-        await swap({ swapper: swapper1 });
+        timeWeightedOracle.quote.returns(BigNumber.from('2190'));
+        await flashSwap({ callee: DCAHubSwapCallee });
 
         await DCAHub.connect(alice).withdrawSwapped(1, wallet.generateRandomAddress());
 
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-        await timeWeightedOracle.quote.returns(BigNumber.from('2175'));
-        await swap({ swapper: swapper1 });
+        timeWeightedOracle.quote.returns(BigNumber.from('2175'));
+        await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-        await timeWeightedOracle.quote.returns(BigNumber.from('2216'));
-        await swap({ swapper: swapper1 });
+        timeWeightedOracle.quote.returns(BigNumber.from('2216'));
+        await flashSwap({ callee: DCAHubSwapCallee });
       });
 
       then("doesnt match the balance of contract with user's swapped amount", async () => {
@@ -101,28 +113,9 @@ contract('DCAHub', () => {
       });
     });
 
-    async function swap({ swapper }: { swapper: SignerWithAddress }) {
-      const { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper } = await getAmountToBeProvided();
-      await tokenToBeProvidedBySwapper.connect(swapper).transfer(DCAHub.address, amountToBeProvidedBySwapper);
-      const { tokens, pairIndexes } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-      // @ts-ignore
-      await DCAHub.connect(swapper)['swap(address[],(uint8,uint8)[])'](tokens, pairIndexes);
-    }
-
-    async function getAmountToBeProvided(): Promise<{ tokenToBeProvidedBySwapper: TokenContract; amountToBeProvidedBySwapper: BigNumber }> {
-      const { tokens, pairIndexes } = buildGetNextSwapInfoInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-      const nextSwapInfo = await DCAHub.getNextSwapInfo(tokens, pairIndexes);
-      const [token0, token1] = nextSwapInfo.tokens;
-      let amountToBeProvidedBySwapper: BigNumber;
-      let tokenToBeProvidedBySwapper: string;
-      if (token0.toProvide.gt(token1.toProvide)) {
-        amountToBeProvidedBySwapper = token0.toProvide;
-        tokenToBeProvidedBySwapper = token0.token;
-      } else {
-        amountToBeProvidedBySwapper = token1.toProvide;
-        tokenToBeProvidedBySwapper = token1.token;
-      }
-      return { amountToBeProvidedBySwapper, tokenToBeProvidedBySwapper: tokenToBeProvidedBySwapper === tokenA.address ? tokenA : tokenB };
+    async function flashSwap({ callee }: { callee: HasAddress }) {
+      const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+      await DCAHub.swap(tokens, pairIndexes, borrow, callee.address, ethers.utils.randomBytes(5));
     }
 
     async function setInitialBalance(

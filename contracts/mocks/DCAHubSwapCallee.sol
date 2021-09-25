@@ -43,6 +43,14 @@ contract DCAHubSwapCalleeMock is IDCAHubSwapCallee {
     }
 
     for (uint256 i; i < _tokens.length; i++) {
+      unchecked {
+        _initialBalance[_tokens[i].token] += _returnAsExpected
+          ? _tokens[i].reward - _tokens[i].toProvide
+          : _borrowed[i] + _tokens[i].reward - _amountToReturn[_tokens[i].token];
+      }
+    }
+
+    for (uint256 i; i < _tokens.length; i++) {
       uint256 _amount = _returnAsExpected ? _borrowed[i] + _tokens[i].toProvide : _amountToReturn[_tokens[i].token];
       IERC20Metadata(_tokens[i].token).transfer(msg.sender, _amount);
     }

@@ -40,7 +40,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       });
       delete swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
     } else {
-      _activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
+      activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
   }
 
@@ -58,40 +58,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address tokenB;
   }
 
-  function secondsUntilNextSwap(Pair[] calldata _pairs) external view returns (uint32[] memory _seconds) {
-    _seconds = new uint32[](_pairs.length);
-    uint32 _timestamp = _getTimestamp();
-    for (uint256 i; i < _pairs.length; i++) {
-      _seconds[i] = _pairs[i].tokenA < _pairs[i].tokenB
-        ? _secondsUntilNextSwap(_pairs[i].tokenA, _pairs[i].tokenB, _timestamp)
-        : _secondsUntilNextSwap(_pairs[i].tokenB, _pairs[i].tokenA, _timestamp);
-    }
-  }
-
-  function _secondsUntilNextSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32 _timestamp
-  ) internal view returns (uint32 _secondsUntil) {
-    _secondsUntil = type(uint32).max;
-    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
-    bytes1 _mask = 0x01;
-    while (_activeIntervals >= _mask && _mask > 0) {
-      if (_activeIntervals & _mask == _mask) {
-        uint32 _nextAvailable = swapData[_tokenA][_tokenB][_mask].nextSwapAvailable;
-        if (_nextAvailable <= _timestamp) {
-          return 0;
-        } else {
-          uint32 _diff = _nextAvailable - _timestamp;
-          if (_diff < _secondsUntil) {
-            _secondsUntil = _diff;
-          }
-        }
-      }
-      _mask <<= 1;
-    }
-  }
-
   function _getTimestamp() internal view virtual returns (uint32 _blockTimestamp) {
     _blockTimestamp = uint32(block.timestamp);
   }
@@ -106,7 +72,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       bytes1 _intervalsInSwap
     )
   {
-    bytes1 _activeIntervals = _activeSwapIntervals[_tokenA][_tokenB];
+    bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
     uint32 _blockTimestamp = _getTimestamp();
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
@@ -121,7 +87,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _mask <<= 1;
     }
 
-    // TODO: If _totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0, consider making _intervalsInSwap a length 0 array
+    if (_totalAmountToSwapTokenA == 0 && _totalAmountToSwapTokenB == 0) {
+      // Note: if there are no tokens to swap, then we don't want to execute any swaps for this pair
+      _intervalsInSwap = 0;
+    }
   }
 
   function _calculateRatio(
@@ -156,8 +125,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   error InvalidPairs();
   error InvalidTokens();
 
-  function _getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
-    internal
+  function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
+    public
     view
     virtual
     returns (SwapInfo memory _swapInformation)
@@ -243,82 +212,21 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
   }
 
-  struct NextSwapInfo {
-    NextTokenInSwap[] tokens;
-    NextPairInSwap[] pairs;
-  }
-
-  struct NextPairInSwap {
-    address tokenA;
-    address tokenB;
-    uint256 ratioAToB;
-    uint256 ratioBToA;
-    uint32[] intervalsInSwap;
-  }
-
-  struct NextTokenInSwap {
-    address token;
-    uint256 reward;
-    uint256 toProvide;
-    uint256 availableToBorrow;
-  }
-
-  function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairsToSwap)
-    external
-    view
-    returns (NextSwapInfo memory _swapInformation)
-  {
-    SwapInfo memory _internalSwapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
-
-    _swapInformation.pairs = new NextPairInSwap[](_internalSwapInformation.pairs.length);
-    _swapInformation.tokens = new NextTokenInSwap[](_internalSwapInformation.tokens.length);
-
-    for (uint256 i; i < _internalSwapInformation.pairs.length; i++) {
-      PairInSwap memory _pairInSwap = _internalSwapInformation.pairs[i];
-      _swapInformation.pairs[i].tokenA = _pairInSwap.tokenA;
-      _swapInformation.pairs[i].tokenB = _pairInSwap.tokenB;
-      _swapInformation.pairs[i].ratioAToB = _pairInSwap.ratioAToB;
-      _swapInformation.pairs[i].ratioBToA = _pairInSwap.ratioBToA;
-      _swapInformation.pairs[i].intervalsInSwap = new uint32[](8);
-      uint8 _intervalCount;
-      bytes1 _mask = 0x01;
-      while (_pairInSwap.intervalsInSwap >= _mask && _mask > 0) {
-        if (_pairInSwap.intervalsInSwap & _mask == _mask) {
-          _swapInformation.pairs[i].intervalsInSwap[_intervalCount++] = maskToInterval(_mask);
-        }
-        _mask <<= 1;
-      }
-    }
-
-    for (uint256 i; i < _internalSwapInformation.tokens.length; i++) {
-      TokenInSwap memory _tokenInSwap = _internalSwapInformation.tokens[i];
-      _swapInformation.tokens[i].token = _tokenInSwap.token;
-      _swapInformation.tokens[i].reward = _tokenInSwap.reward;
-      _swapInformation.tokens[i].toProvide = _tokenInSwap.toProvide;
-      _swapInformation.tokens[i].availableToBorrow = _balances[_tokenInSwap.token] - _tokenInSwap.reward;
-      // TODO: Decide if we also want to expose the platform fee
-    }
-  }
-
   event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
-
-  function swap(address[] calldata _tokens, PairIndexes[] calldata _pairsToSwap) external {
-    swap(_tokens, _pairsToSwap, new uint256[](_tokens.length), msg.sender, '');
-  }
 
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
-    uint256[] memory _borrow,
+    uint256[] calldata _borrow,
     address _to,
-    bytes memory _data
+    bytes calldata _data
   ) public nonReentrant whenNotPaused {
     SwapInfo memory _swapInformation;
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
 
     {
-      _swapInformation = _getNextSwapInfo(_tokens, _pairsToSwap);
+      _swapInformation = getNextSwapInfo(_tokens, _pairsToSwap);
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
@@ -346,6 +254,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
     }
 
+    uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
+    for (uint256 i; i < _beforeBalances.length; i++) {
+      _beforeBalances[i] = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+    }
+
     // Optimistically transfer tokens
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
@@ -360,9 +273,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
 
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
-      uint256 _amountToHave = _balances[_swapInformation.tokens[i].token] +
-        _swapInformation.tokens[i].toProvide -
-        _swapInformation.tokens[i].reward;
+      uint256 _amountToHave = _beforeBalances[i] + _swapInformation.tokens[i].toProvide - _swapInformation.tokens[i].reward;
 
       // TODO: Check if it's cheaper to avoid checking the balance for tokens that had nothing to provide and that weren't borrowed
       uint256 _currentBalance = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
@@ -371,9 +282,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       if (_currentBalance < _amountToHave) {
         revert CommonErrors.LiquidityNotReturned();
       }
-
-      // Update internal balance
-      _balances[_swapInformation.tokens[i].token] = _currentBalance;
 
       // Update platform balance
       platformBalance[_swapInformation.tokens[i].token] += _swapInformation.tokens[i].platformFee + (_currentBalance - _amountToHave);
