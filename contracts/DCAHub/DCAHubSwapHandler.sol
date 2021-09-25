@@ -58,40 +58,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address tokenB;
   }
 
-  function secondsUntilNextSwap(Pair[] calldata _pairs) external view returns (uint32[] memory _seconds) {
-    _seconds = new uint32[](_pairs.length);
-    uint32 _timestamp = _getTimestamp();
-    for (uint256 i; i < _pairs.length; i++) {
-      _seconds[i] = _pairs[i].tokenA < _pairs[i].tokenB
-        ? _secondsUntilNextSwap(_pairs[i].tokenA, _pairs[i].tokenB, _timestamp)
-        : _secondsUntilNextSwap(_pairs[i].tokenB, _pairs[i].tokenA, _timestamp);
-    }
-  }
-
-  function _secondsUntilNextSwap(
-    address _tokenA,
-    address _tokenB,
-    uint32 _timestamp
-  ) internal view returns (uint32 _secondsUntil) {
-    _secondsUntil = type(uint32).max;
-    bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
-    bytes1 _mask = 0x01;
-    while (_activeIntervals >= _mask && _mask > 0) {
-      if (_activeIntervals & _mask == _mask) {
-        uint32 _nextAvailable = swapData[_tokenA][_tokenB][_mask].nextSwapAvailable;
-        if (_nextAvailable <= _timestamp) {
-          return 0;
-        } else {
-          uint32 _diff = _nextAvailable - _timestamp;
-          if (_diff < _secondsUntil) {
-            _secondsUntil = _diff;
-          }
-        }
-      }
-      _mask <<= 1;
-    }
-  }
-
   function _getTimestamp() internal view virtual returns (uint32 _blockTimestamp) {
     _blockTimestamp = uint32(block.timestamp);
   }
