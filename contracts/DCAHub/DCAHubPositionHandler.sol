@@ -235,21 +235,21 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     bool _add
   ) internal {
     // Note: this function might look weird and unnecessary, but it was the best way to reduce contract size, while also avoding the need for unchecked math
-    int120 _intRate = int120(_rate);
+    int120 _intRate = _add ? -int120(_rate) : int120(_rate);
     if (_from < _to) {
       if (_add) {
         swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
       } else {
         swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB -= _rate;
       }
-      swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _add ? -_intRate : _intRate;
+      swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _intRate;
     } else {
       if (_add) {
         swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += _rate;
       } else {
         swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA -= _rate;
       }
-      swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _add ? -_intRate : _intRate;
+      swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _intRate;
     }
   }
 
