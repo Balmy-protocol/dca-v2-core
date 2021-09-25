@@ -217,25 +217,29 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _finalSwap,
     uint120 _rate
   ) internal {
-    if (_from < _to) {
-      swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
-      swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB -= int120(_rate);
-    } else {
-      swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += _rate;
-      swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA -= int120(_rate);
-    }
+    _modifyDelta(_from, _to, _swapIntervalMask, _finalSwap, int120(_rate));
   }
 
   function _removeFromDelta(DCA memory _userPosition, uint32 _performedSwaps) internal {
     if (_userPosition.finalSwap > _performedSwaps) {
-      if (_userPosition.from < _userPosition.to) {
-        swapData[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask].nextAmountToSwapAToB -= _userPosition.rate;
-        swapAmountDelta[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.finalSwap + 1]
-          .swapDeltaAToB += int120(_userPosition.rate);
+      _modifyDelta(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask, _userPosition.finalSwap, -int120(_userPosition.rate));
+    }
+  }
+
+  function _modifyDelta(
+    address _from,
+    address _to,
+    bytes1 _swapIntervalMask,
+    uint32 _finalSwap,
+    int120 _rate
+  ) internal {
+    unchecked {
+      if (_from < _to) {
+        swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += uint120(_rate);
+        swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB -= _rate;
       } else {
-        swapData[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask].nextAmountToSwapBToA -= _userPosition.rate;
-        swapAmountDelta[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.finalSwap + 1]
-          .swapDeltaBToA += int120(_userPosition.rate);
+        swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += uint120(_rate);
+        swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA -= _rate;
       }
     }
   }
