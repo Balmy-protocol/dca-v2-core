@@ -81,15 +81,11 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     _affectedIntervals = _amounts.intervalsInSwap;
   }
 
-  function internalGetNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs) external view returns (SwapInfo memory) {
-    return _getNextSwapInfo(_tokens, _pairs);
-  }
-
-  function _getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs) internal view override returns (SwapInfo memory) {
+  function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs) public view override returns (SwapInfo memory) {
     if (_swapInformation.tokens.length > 0) {
       return _swapInformation;
     } else {
-      return super._getNextSwapInfo(_tokens, _pairs);
+      return super.getNextSwapInfo(_tokens, _pairs);
     }
   }
 

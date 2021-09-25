@@ -1,4 +1,3 @@
-import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
@@ -21,11 +20,10 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
+import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCAHub', () => {
   describe('Full e2e test', () => {
-    const SWAP_INTERVAL_15_MINUTES = moment.duration(15, 'minutes').as('seconds');
-    const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
     const MAX_UINT_32 = BigNumber.from(2).pow(32).sub(1);
 
     let governor: SignerWithAddress, john: SignerWithAddress;
@@ -70,7 +68,7 @@ contract('DCAHub', () => {
       await setSwapRatio(swapRatio1);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
-      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR]);
+      await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.FIFTEEN_MINUTES.seconds, SwapInterval.ONE_HOUR.seconds]);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(2500), tokenB.asUnits(2500)]);
 
@@ -83,18 +81,18 @@ contract('DCAHub', () => {
     });
 
     it('Execute happy path', async () => {
-      await assertThereAreNoSwapsAvailable();
+      await assertNoSwapsCanBeExecutedNow();
 
       const johnsPosition = await deposit({
         depositor: john,
         token: tokenA,
-        swapInterval: SWAP_INTERVAL_15_MINUTES,
+        swapInterval: SwapInterval.FIFTEEN_MINUTES,
         rate: 100,
         swaps: 10,
       });
 
       await assertPositionIsConsistent(johnsPosition);
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES);
+      await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES);
       await assertHubBalanceDifferencesAre({ tokenA: +1000 });
       await assertAmountsToSwapAre({ tokenA: 100, tokenB: 0 });
 
@@ -109,19 +107,19 @@ contract('DCAHub', () => {
       const lucysPosition = await deposit({
         depositor: lucy,
         token: tokenB,
-        swapInterval: SWAP_INTERVAL_1_HOUR,
+        swapInterval: SwapInterval.ONE_HOUR,
         rate: 200,
         swaps: 2,
       });
 
       await assertPositionIsConsistent(lucysPosition);
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_1_HOUR);
+      await assertIntervalsToSwapNowAre(SwapInterval.ONE_HOUR);
       await assertAmountsToSwapAre({ tokenA: 0, tokenB: 200 });
       await assertHubBalanceDifferencesAre({ tokenB: +400 });
 
-      await evm.advanceTimeAndBlock(SWAP_INTERVAL_15_MINUTES);
+      await evm.advanceTimeAndBlock(SwapInterval.FIFTEEN_MINUTES.seconds);
 
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR);
+      await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES, SwapInterval.ONE_HOUR);
       await assertAmountsToSwapAre({ tokenA: 100, tokenB: 200 });
 
       const swapRatio2: SwapRatio = { tokenA: 1, tokenB: 1 };
@@ -140,14 +138,14 @@ contract('DCAHub', () => {
       const sarahsPosition1 = await deposit({
         depositor: sarah,
         token: tokenA,
-        swapInterval: SWAP_INTERVAL_15_MINUTES,
+        swapInterval: SwapInterval.FIFTEEN_MINUTES,
         rate: 500,
         swaps: 3,
       });
       const sarahsPosition2 = await deposit({
         depositor: sarah,
         token: tokenB,
-        swapInterval: SWAP_INTERVAL_15_MINUTES,
+        swapInterval: SwapInterval.FIFTEEN_MINUTES,
         rate: 100,
         swaps: 4,
       });
@@ -163,9 +161,9 @@ contract('DCAHub', () => {
       await assertHubBalanceDifferencesAre({ tokenA: -400 });
       await assertBalanceDifferencesAre(john, { tokenA: +400 });
 
-      await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+      await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
 
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR);
+      await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES, SwapInterval.ONE_HOUR);
       await assertAmountsToSwapAre({ tokenA: 550, tokenB: 300 });
 
       await flashSwap({ callee: DCAHubSwapCallee });
@@ -215,9 +213,9 @@ contract('DCAHub', () => {
       const swapRatio3: SwapRatio = { tokenA: 1, tokenB: 2 };
       await setSwapFee(swapFee2);
       await setSwapRatio(swapRatio3);
-      await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+      await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
 
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES, SWAP_INTERVAL_1_HOUR);
+      await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES, SwapInterval.ONE_HOUR);
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
       await flashSwap({ callee: DCAHubSwapCallee });
@@ -239,8 +237,8 @@ contract('DCAHub', () => {
       await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +495, tokenB: -988.02 });
       await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
 
-      await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
-      await assertIntervalsToSwapNowAre(SWAP_INTERVAL_15_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
+      await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
+      await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
 
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 100 });
 
@@ -271,7 +269,7 @@ contract('DCAHub', () => {
       await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +450, tokenB: -898.2 });
       await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
 
-      await evm.advanceTimeAndBlock(SWAP_INTERVAL_15_MINUTES);
+      await evm.advanceTimeAndBlock(SwapInterval.FIFTEEN_MINUTES.seconds);
       await assertAmountsToSwapAre({ tokenA: 0, tokenB: 100 });
     });
 
@@ -362,7 +360,7 @@ contract('DCAHub', () => {
       token: TokenContract;
       depositor: SignerWithAddress;
       rate: number;
-      swapInterval: number;
+      swapInterval: SwapInterval;
       swaps: number;
     }): Promise<UserPositionDefinition> {
       const toToken = token.address === tokenA.address ? tokenB : tokenA;
@@ -373,7 +371,7 @@ contract('DCAHub', () => {
         toToken.address,
         token.asUnits(rate).mul(swaps),
         swaps,
-        swapInterval,
+        swapInterval.seconds,
         depositor.address,
         []
       );
@@ -383,7 +381,7 @@ contract('DCAHub', () => {
         owner: depositor,
         from: token,
         to: toToken,
-        swapInterval: BigNumber.from(swapInterval),
+        swapInterval,
         rate: token.asUnits(rate),
         amountOfSwaps: BigNumber.from(swaps),
       };
@@ -405,15 +403,8 @@ contract('DCAHub', () => {
       return (position: UserPositionDefinition) => calculateSwapped(position, ...swaps);
     }
 
-    async function assertNoSwapsCanBeExecutedNow() {
-      const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-      expect(secondsUntilNext).to.be.greaterThan(0);
-    }
-
-    async function assertThereAreNoSwapsAvailable() {
-      const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-      expect(secondsUntilNext).to.equal(MAX_UINT_32);
-      await assertIntervalsToSwapNowAre();
+    function assertNoSwapsCanBeExecutedNow() {
+      return assertIntervalsToSwapNowAre();
     }
 
     async function assertAmountsToSwapAre({ tokenA: expectedTokenA, tokenB: expectedTokenB }: { tokenA: number; tokenB: number }) {
@@ -422,33 +413,23 @@ contract('DCAHub', () => {
       let totalTokenA = constants.ZERO;
       let totalTokenB = constants.ZERO;
 
-      for (const interval of intervalsInSwap) {
-        if (interval > 0) {
-          const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.swapData(
-            tokenA.address,
-            tokenB.address,
-            await DCAHub.intervalToMask(interval)
-          );
-          totalTokenA = totalTokenA.add(nextAmountToSwapAToB);
-          totalTokenB = totalTokenB.add(nextAmountToSwapBToA);
-        }
+      const intervals = SwapInterval.intervalsfromByte(intervalsInSwap);
+      for (const interval of intervals) {
+        const { nextAmountToSwapAToB, nextAmountToSwapBToA } = await DCAHub.swapData(tokenA.address, tokenB.address, interval.mask);
+        totalTokenA = totalTokenA.add(nextAmountToSwapAToB);
+        totalTokenB = totalTokenB.add(nextAmountToSwapBToA);
       }
 
       expect(totalTokenA).to.equal(tokenA.asUnits(expectedTokenA));
       expect(totalTokenB).to.equal(tokenB.asUnits(expectedTokenB));
     }
 
-    async function assertIntervalsToSwapNowAre(...swapIntervals: number[]): Promise<void> {
+    async function assertIntervalsToSwapNowAre(...swapIntervals: SwapInterval[]): Promise<void> {
       const nextSwapInfo = await getNextSwapInfo();
       const intervals = nextSwapInfo.pairs
         .map(({ intervalsInSwap }) => intervalsInSwap)
-        .flat()
-        .filter((interval) => interval > 0);
-      expect(intervals).to.eql(swapIntervals);
-      if (swapIntervals.length > 0) {
-        const [secondsUntilNext] = await DCAHub.secondsUntilNextSwap([{ tokenA: tokenA.address, tokenB: tokenB.address }]);
-        expect(secondsUntilNext).to.equal(0);
-      }
+        .reduce((a, b) => '0x' + (parseInt(a) | parseInt(b)).toString(16).padStart(2, '0'), '0x00');
+      expect(intervals).to.eql(SwapInterval.intervalsToByte(...swapIntervals));
     }
 
     function assertPositionIsConsistentWithNothingToWithdraw(position: UserPositionDefinition) {
@@ -462,7 +443,7 @@ contract('DCAHub', () => {
       const { from, to, swapInterval, rate, swapsExecuted, swapsLeft, remaining, swapped } = await getPosition(position);
       expect(from).to.equal(position.from.address);
       expect(to).to.equal(position.to.address);
-      expect(swapInterval).to.equal(position.swapInterval);
+      expect(swapInterval).to.equal(position.swapInterval.seconds);
       expect(rate).to.equal(position.rate);
       expect(swapsExecuted + swapsLeft).to.equal(position.amountOfSwaps);
       expect(remaining).to.equal(rate.mul(swapsLeft));
@@ -540,7 +521,7 @@ contract('DCAHub', () => {
       owner: SignerWithAddress;
       from: TokenContract;
       to: TokenContract;
-      swapInterval: BigNumber;
+      swapInterval: SwapInterval;
       rate: BigNumber;
       amountOfSwaps: BigNumber;
     };
