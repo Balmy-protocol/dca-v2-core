@@ -60,7 +60,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _blockTimestamp = uint32(block.timestamp);
   }
 
-  function _getTotalAmountsToSwap(address _tokenA, address _tokenB)
+  function _getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _blockTimestamp
+  )
     internal
     view
     virtual
@@ -71,7 +75,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     )
   {
     bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
-    uint32 _blockTimestamp = _getTimestamp(); // TODO: Would it be better if we pass this as a parameter?
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
       if (_activeIntervals & _mask == _mask) {
@@ -133,6 +136,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     // Note: we are caching these variables in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
     ITimeWeightedOracle _oracle = oracle;
+    uint32 _blockTimestamp = _getTimestamp();
 
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);
@@ -160,7 +164,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       (_amountToSwapTokenA, _amountToSwapTokenB, _swapInformation.pairs[i].intervalsInSwap) = _getTotalAmountsToSwap(
         _swapInformation.pairs[i].tokenA,
-        _swapInformation.pairs[i].tokenB
+        _swapInformation.pairs[i].tokenB,
+        _blockTimestamp
       );
 
       _total[indexTokenA] += _amountToSwapTokenA;

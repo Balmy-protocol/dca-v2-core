@@ -338,7 +338,6 @@ contract('DCAHubSwapHandler', () => {
     }) {
       when(title, () => {
         given(async () => {
-          await DCAHubSwapHandler.setBlockTimestamp(currentTimestamp ?? 0);
           for (const { interval, lastSwappedAt, amountToSwapTokenA, amountToSwapTokenB } of activeIntervals) {
             await DCAHubSwapHandler.setLastSwappedAt(tokenA.address, tokenB.address, interval.seconds, lastSwappedAt);
             await DCAHubSwapHandler.setNextAmountsToSwap(
@@ -354,7 +353,8 @@ contract('DCAHubSwapHandler', () => {
         then('result is as expected', async () => {
           const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
             tokenA.address,
-            tokenB.address
+            tokenB.address,
+            currentTimestamp ?? 0
           );
           expect(amountToSwapTokenA).to.equal(tokenA.asUnits(expected.amountToSwapTokenA));
           expect(amountToSwapTokenB).to.equal(tokenB.asUnits(expected.amountToSwapTokenB));

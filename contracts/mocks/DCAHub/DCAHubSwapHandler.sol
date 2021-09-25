@@ -50,7 +50,11 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     _blockTimestamp = (_customTimestamp > 0) ? _customTimestamp : super._getTimestamp();
   }
 
-  function getTotalAmountsToSwap(address _tokenA, address _tokenB)
+  function getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _blockTimestamp
+  )
     external
     view
     returns (
@@ -59,10 +63,14 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
       bytes1
     )
   {
-    return _getTotalAmountsToSwap(_tokenA, _tokenB);
+    return _getTotalAmountsToSwap(_tokenA, _tokenB, _blockTimestamp);
   }
 
-  function _getTotalAmountsToSwap(address _tokenA, address _tokenB)
+  function _getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    uint32 _blockTimestamp
+  )
     internal
     view
     override
@@ -74,7 +82,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   {
     TotalAmountsToSwap memory _amounts = _totalAmountsToSwap[_tokenA][_tokenB];
     if (_amounts.amountTokenA == 0 && _amounts.amountTokenB == 0) {
-      return super._getTotalAmountsToSwap(_tokenA, _tokenB);
+      return super._getTotalAmountsToSwap(_tokenA, _tokenB, _blockTimestamp);
     }
     _totalAmountTokenA = _amounts.amountTokenA;
     _totalAmountTokenB = _amounts.amountTokenB;
