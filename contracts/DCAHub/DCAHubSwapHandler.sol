@@ -26,10 +26,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         accumRatioAToB: _accumRatio.accumRatioAToB + _ratioAToB,
         accumRatioBToA: _accumRatio.accumRatioBToA + _ratioBToA
       });
-      uint32 _swapInterval = maskToInterval(_swapIntervalMask);
       swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapData.performedSwaps + 1,
-        nextSwapAvailable: ((_timestamp / _swapInterval) + 1) * _swapInterval,
+        lastSwappedAt: _timestamp,
         nextAmountToSwapAToB: _swapDelta.swapDeltaAToB < 0
           ? _swapData.nextAmountToSwapAToB - uint128(-_swapDelta.swapDeltaAToB)
           : _swapData.nextAmountToSwapAToB + uint128(_swapDelta.swapDeltaAToB),
@@ -72,12 +71,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     )
   {
     bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
-    uint32 _blockTimestamp = _getTimestamp();
+    uint32 _blockTimestamp = _getTimestamp(); // TODO: Would it be better if we pass this as a parameter?
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
       if (_activeIntervals & _mask == _mask) {
         SwapData memory _swapData = swapData[_tokenA][_tokenB][_mask];
-        if (_swapData.nextSwapAvailable <= _blockTimestamp) {
+        uint32 _swapInterval = maskToInterval(_mask);
+        if (((_swapData.lastSwappedAt / _swapInterval) + 1) * _swapInterval <= _blockTimestamp) {
           _intervalsInSwap |= _mask;
           _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
           _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;

@@ -167,12 +167,12 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     }
   }
 
-  function setNextSwapAvailable(
+  function setLastSwappedAt(
     address _tokenA,
     address _tokenB,
     uint32 _swapInterval,
-    uint32 _nextSwapAvailable
+    uint32 _lastSwappedAt
   ) external {
-    swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].nextSwapAvailable = _nextSwapAvailable;
+    swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].lastSwappedAt = _lastSwappedAt;
   }
 }
