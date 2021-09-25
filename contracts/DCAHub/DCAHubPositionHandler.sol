@@ -25,7 +25,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   uint256 internal _idCounter;
 
   constructor(IDCAPermissionManager _permissionManager) {
-    if (address(_permissionManager) == address(0)) revert CommonErrors.ZeroAddress();
+    if (address(_permissionManager) == address(0)) revert IDCAHub.ZeroAddress();
     permissionManager = _permissionManager;
   }
 
@@ -54,7 +54,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _owner,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
   ) external override nonReentrant whenNotPaused returns (uint256) {
-    if (_from == address(0) || _to == address(0) || _owner == address(0)) revert CommonErrors.ZeroAddress();
+    if (_from == address(0) || _to == address(0) || _owner == address(0)) revert IDCAHub.ZeroAddress();
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
@@ -74,7 +74,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   function withdrawSwapped(uint256 _positionId, address _recipient) external override nonReentrant returns (uint256) {
-    if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
+    if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
 
     (uint256 _swapped, address _to) = _executeWithdraw(_positionId);
     IERC20Metadata(_to).safeTransfer(_recipient, _swapped);
@@ -83,7 +83,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external override nonReentrant {
-    if (_recipient == address(0)) revert CommonErrors.ZeroAddress();
+    if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
     uint256[] memory _swapped = new uint256[](_positions.length);
     for (uint256 i; i < _positions.length; i++) {
       address _token = _positions[i].token;
@@ -102,7 +102,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _recipientUnswapped,
     address _recipientSwapped
   ) external override nonReentrant {
-    if (_recipientUnswapped == address(0) || _recipientSwapped == address(0)) revert CommonErrors.ZeroAddress();
+    if (_recipientUnswapped == address(0) || _recipientSwapped == address(0)) revert IDCAHub.ZeroAddress();
 
     DCA memory _userPosition = _userPositions[_positionId];
     _assertPositionExistsAndCallerHasPermission(_positionId, _userPosition, IDCAPermissionManager.Permission.TERMINATE);

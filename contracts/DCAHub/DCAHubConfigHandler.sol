@@ -6,7 +6,6 @@ import '@openzeppelin/contracts/security/Pausable.sol';
 
 import './DCAHubParameters.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
-import '../libraries/CommonErrors.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable {
   event OracleSet(ITimeWeightedOracle oracle);
@@ -31,8 +30,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     address _timeLockedGovernor,
     ITimeWeightedOracle _oracle
   ) {
-    if (_immediateGovernor == address(0) || _timeLockedGovernor == address(0) || address(_oracle) == address(0))
-      revert CommonErrors.ZeroAddress();
+    if (_immediateGovernor == address(0) || _timeLockedGovernor == address(0) || address(_oracle) == address(0)) revert IDCAHub.ZeroAddress();
     _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
     _setupRole(TIME_LOCKED_ROLE, _timeLockedGovernor);
     _setRoleAdmin(PLATFORM_WITHDRAW_ROLE, TIME_LOCKED_ROLE);
@@ -43,7 +41,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   }
 
   function setOracle(ITimeWeightedOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
-    if (address(_oracle) == address(0)) revert CommonErrors.ZeroAddress();
+    if (address(_oracle) == address(0)) revert IDCAHub.ZeroAddress();
     oracle = _oracle;
     emit OracleSet(_oracle);
   }

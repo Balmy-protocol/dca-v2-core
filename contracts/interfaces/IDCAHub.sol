@@ -205,4 +205,7 @@ interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandl
     address token;
     uint256 amount;
   }
+
+  error ZeroAddress();
+  error LiquidityNotReturned();
 }

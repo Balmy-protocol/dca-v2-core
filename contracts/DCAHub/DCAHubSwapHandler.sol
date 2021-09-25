@@ -4,7 +4,6 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 
 import '../interfaces/IDCAHubSwapCallee.sol';
-import '../libraries/CommonErrors.sol';
 import './utils/Math.sol';
 import './DCAHubConfigHandler.sol';
 
@@ -280,7 +279,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       // Make sure tokens were sent back
       if (_currentBalance < _amountToHave) {
-        revert CommonErrors.LiquidityNotReturned();
+        revert IDCAHub.LiquidityNotReturned();
       }
 
       // Update platform balance
