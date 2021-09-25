@@ -113,8 +113,7 @@ contract('DCAHub', () => {
       });
 
       await assertPositionIsConsistent(lucysPosition);
-      await assertIntervalsToSwapNowAre(SwapInterval.ONE_HOUR);
-      await assertAmountsToSwapAre({ tokenA: 0, tokenB: 200 });
+      await assertNoSwapsCanBeExecutedNow(); // Even though the 1h interval could be swapped, it will wait for the 15m interval
       await assertHubBalanceDifferencesAre({ tokenB: +400 });
 
       await evm.advanceTimeAndBlock(SwapInterval.FIFTEEN_MINUTES.seconds);
@@ -458,7 +457,7 @@ contract('DCAHub', () => {
     async function assertHubBalanceDifferencesAre(
       args: { tokenA: number | BigNumber; tokenB?: number | BigNumber } | { tokenA?: number | BigNumber; tokenB: number | BigNumber }
     ) {
-      const { expectedBalanceTokenA, expectedBalanceTokenB } = await assertBalanceDifferencesAre(DCAHub, args);
+      await assertBalanceDifferencesAre(DCAHub, args);
     }
 
     let lastBalanceTokenA: Map<string, BigNumber> = new Map();
@@ -478,7 +477,6 @@ contract('DCAHub', () => {
       expect(await tokenB.balanceOf(hasAddress.address), 'Unexpected diff in token B').to.equal(expectedBalanceTokenB);
       lastBalanceTokenA.set(hasAddress.address, expectedBalanceTokenA);
       lastBalanceTokenB.set(hasAddress.address, expectedBalanceTokenB);
-      return { expectedBalanceTokenA, expectedBalanceTokenB };
     }
 
     async function assertPlatformBalanceIncreasedBy({
