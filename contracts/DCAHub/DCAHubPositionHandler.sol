@@ -235,10 +235,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) internal {
     unchecked {
       if (_from < _to) {
-        swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += uint120(_rate);
+        swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += uint224(int224(_rate));
         swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB -= _rate;
       } else {
-        swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += uint120(_rate);
+        swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += uint224(int224(_rate));
         swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA -= _rate;
       }
     }
