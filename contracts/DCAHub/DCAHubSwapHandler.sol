@@ -71,7 +71,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     )
   {
     bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
-    uint32 _blockTimestamp = _getTimestamp(); // TODO: Would it be better if we pass this as a parameter?
+    uint32 _blockTimestamp = _getTimestamp();
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
       if (_activeIntervals & _mask == _mask) {
