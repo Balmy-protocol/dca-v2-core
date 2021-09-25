@@ -11,10 +11,10 @@ import './DCAHubConfigHandler.sol';
 abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubLoanHandler {
   using SafeERC20 for IERC20Metadata;
 
-  event Loaned(address indexed sender, address indexed to, IDCAHub.Loan[] loan, uint32 fee);
+  event Loaned(address indexed sender, address indexed to, IDCAHub.AmountOfToken[] loan, uint32 fee);
 
   function loan(
-    Loan[] calldata _loan,
+    IDCAHub.AmountOfToken[] calldata _loan,
     address _to,
     bytes calldata _data
   ) external nonReentrant whenNotPaused {

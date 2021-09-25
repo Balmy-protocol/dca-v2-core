@@ -32,11 +32,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   function userPosition(uint256 _dcaId) external view override returns (UserPosition memory _userPosition) {
     DCA memory _position = _userPositions[_dcaId];
     uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapIntervalMask);
+    uint32 _newestSwapToConsider = _performedSwaps < _position.finalSwap ? _performedSwaps : _position.finalSwap;
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
     _userPosition.swapInterval = _position.swapIntervalMask > 0 ? maskToInterval(_position.swapIntervalMask) : 0;
-    _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _position.finalSwap
-      ? uint32(Math.min(_performedSwaps, _position.finalSwap)) - _position.swapWhereLastUpdated
+    _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _newestSwapToConsider
+      ? _newestSwapToConsider - _position.swapWhereLastUpdated
       : 0;
     _userPosition.swapped = _position.swapIntervalMask > 0 ? _calculateSwapped(_dcaId, _position, _performedSwaps) : 0;
     _userPosition.swapsLeft = _position.finalSwap > _performedSwaps ? _position.finalSwap - _performedSwaps : 0;
@@ -52,7 +53,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _swapInterval,
     address _owner,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
-  ) external override nonReentrant returns (uint256) {
+  ) external override nonReentrant whenNotPaused returns (uint256) {
     if (_from == address(0) || _to == address(0) || _owner == address(0)) revert CommonErrors.ZeroAddress();
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
@@ -141,7 +142,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _positionId,
     uint256 _amount,
     uint32 _newAmountOfSwaps
-  ) external override nonReentrant {
+  ) external override nonReentrant whenNotPaused {
     _modify(_positionId, _amount, _newAmountOfSwaps, true);
   }
 

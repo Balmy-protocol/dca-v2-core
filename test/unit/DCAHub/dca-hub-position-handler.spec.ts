@@ -116,6 +116,22 @@ contract('DCAPositionHandler', () => {
         });
       });
     });
+    when('deposits are paused', () => {
+      given(async () => {
+        await DCAPositionHandler.pause();
+      });
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          interval: SWAP_INTERVAL,
+          error: 'Pausable: paused',
+        });
+      });
+    });
 
     when('making a deposit to a zero address to', () => {
       then('tx is reverted with message', async () => {
@@ -711,6 +727,20 @@ contract('DCAPositionHandler', () => {
   describe('increasePosition', () => {
     const NEW_SWAPS_TO_PERFORM_5 = 5;
     const EXTRA_AMOUNT_TO_ADD_1 = 1;
+
+    when('increasing is paused', () => {
+      given(async () => {
+        await DCAPositionHandler.pause();
+      });
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'increasePosition',
+          args: [1, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
+          message: 'Pausable: paused',
+        });
+      });
+    });
 
     when('adding funds to a position with invalid id', () => {
       then('tx is reverted with message', async () => {

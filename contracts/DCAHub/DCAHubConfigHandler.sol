@@ -19,6 +19,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
+  bytes32 public constant PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
   ITimeWeightedOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
@@ -34,6 +35,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
       revert CommonErrors.ZeroAddress();
     _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
     _setupRole(TIME_LOCKED_ROLE, _timeLockedGovernor);
+    _setRoleAdmin(PLATFORM_WITHDRAW_ROLE, TIME_LOCKED_ROLE);
     // We set each role as its own admin, so they can assign new addresses with the same role
     _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
     _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);
@@ -69,8 +71,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      bytes1 _mask = intervalToMask(_swapIntervals[i]);
-      allowedSwapIntervals &= ~_mask;
+      allowedSwapIntervals &= ~intervalToMask(_swapIntervals[i]);
     }
     emit SwapIntervalsForbidden(_swapIntervals);
   }

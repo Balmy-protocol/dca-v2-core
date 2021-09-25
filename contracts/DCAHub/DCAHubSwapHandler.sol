@@ -193,7 +193,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
         // We are un-applying the fee here
-        uint256 _neededWithoutFee = (_neededWithFee * FEE_PRECISION * 100) / (FEE_PRECISION * 100 - _swapFee);
+        uint256 _neededWithoutFee = (_neededWithFee * FEE_PRECISION) / (FEE_PRECISION - _swapFee / 100);
 
         // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
         int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
