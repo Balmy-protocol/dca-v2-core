@@ -39,23 +39,6 @@ describe('DCAHubLoanHandler', () => {
     await snapshot.revert(snapshotId);
   });
 
-  describe('availableToBorrow', () => {
-    let balanceTokenA: BigNumber, balanceTokenB: BigNumber;
-    given(async () => {
-      [balanceTokenA, balanceTokenB] = [tokenA.asUnits(10), tokenB.asUnits(100)];
-      await tokenA.mint(DCAHubLoanHandler.address, balanceTokenA);
-      await tokenB.mint(DCAHubLoanHandler.address, balanceTokenB);
-    });
-
-    when('checking how much is available to borrow', () => {
-      then('the amounts are the internal balances', async () => {
-        const [availableToBorrowA, availableToBorrowB] = await DCAHubLoanHandler.availableToBorrow([tokenA.address, tokenB.address]);
-        expect(availableToBorrowA).to.equal(balanceTokenA);
-        expect(availableToBorrowB).to.equal(balanceTokenB);
-      });
-    });
-  });
-
   describe('flash loan', () => {
     const BYTES = ethers.utils.randomBytes(5);
     const [CALLEE_TOKEN_A_INITIAL_BALANCE, CALLEE_TOKEN_B_INITIAL_BALANCE] = [utils.parseEther('2'), utils.parseEther('2')];

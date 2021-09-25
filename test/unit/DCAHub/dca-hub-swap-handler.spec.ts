@@ -290,6 +290,23 @@ contract('DCAHubSwapHandler', () => {
         expect(affectedIntervals).to.eql(await intervalsToByte(SWAP_INTERVAL, SWAP_INTERVAL_2));
       });
     });
+    when('intervals can be technically swapped, but there are no tokens to swap', () => {
+      given(async () => {
+        await DCAHubSwapHandler.setBlockTimestamp(20);
+        await DCAHubSwapHandler.setNextSwapAvailable(tokenA.address, tokenB.address, SWAP_INTERVAL, 10);
+        await DCAHubSwapHandler.setNextAmountsToSwap(tokenA.address, tokenB.address, SWAP_INTERVAL, 0, 0);
+        await DCAHubSwapHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SWAP_INTERVAL);
+      });
+      then('they nothing is returned', async () => {
+        const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
+          tokenA.address,
+          tokenB.address
+        );
+        expect(amountToSwapTokenA).to.equal(0);
+        expect(amountToSwapTokenB).to.equal(0);
+        expect(affectedIntervals).to.eql('0x00');
+      });
+    });
   });
 
   describe('_calculateRatio', () => {
@@ -314,7 +331,7 @@ contract('DCAHubSwapHandler', () => {
     });
   });
 
-  describe('_getNextSwapInfo', () => {
+  describe('getNextSwapInfo', () => {
     type Pair = {
       tokenA: () => TokenContract;
       tokenB: () => TokenContract;
@@ -325,7 +342,7 @@ contract('DCAHubSwapHandler', () => {
 
     type Token = { token: () => TokenContract } & ({ CoW: number } | { platformFee: number }) & ({ required: number } | { reward: number } | {});
 
-    function internalGetNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
+    function getNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
       when(title, () => {
         let expectedRatios: Map<string, { ratioAToB: BigNumber; ratioBToA: BigNumber }>;
         let swapInformation: SwapInformation;
@@ -350,7 +367,7 @@ contract('DCAHubSwapHandler', () => {
             pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address })),
             []
           );
-          swapInformation = await DCAHubSwapHandler.internalGetNextSwapInfo(tokens, pairIndexes);
+          swapInformation = await DCAHubSwapHandler.getNextSwapInfo(tokens, pairIndexes);
         });
 
         then('ratios are expose correctly', () => {
@@ -413,7 +430,7 @@ contract('DCAHubSwapHandler', () => {
         then('should revert with message', async () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAHubSwapHandler,
-            func: 'internalGetNextSwapInfo',
+            func: 'getNextSwapInfo',
             args: [tokens.map((token) => token().address), pairs],
             message: error,
           });
@@ -421,13 +438,13 @@ contract('DCAHubSwapHandler', () => {
       });
     }
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'no pairs are sent',
       pairs: [],
       result: [],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'only one pair, but nothing to swap for token B',
       pairs: [
         {
@@ -452,7 +469,7 @@ contract('DCAHubSwapHandler', () => {
       ],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'only one pair, but nothing to swap for token A',
       pairs: [
         {
@@ -477,7 +494,7 @@ contract('DCAHubSwapHandler', () => {
       ],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'only one pair, with some CoW',
       pairs: [
         {
@@ -502,7 +519,7 @@ contract('DCAHubSwapHandler', () => {
       ],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'only one pair, with full CoW',
       pairs: [
         {
@@ -525,7 +542,7 @@ contract('DCAHubSwapHandler', () => {
       ],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'two pairs, no CoW between them',
       pairs: [
         {
@@ -563,7 +580,7 @@ contract('DCAHubSwapHandler', () => {
       ],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'two pairs, some CoW between them',
       pairs: [
         {
@@ -601,7 +618,7 @@ contract('DCAHubSwapHandler', () => {
       ],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'two pairs, full CoW between them',
       pairs: [
         {
@@ -638,7 +655,7 @@ contract('DCAHubSwapHandler', () => {
       ],
     });
 
-    internalGetNextSwapInfoTest({
+    getNextSwapInfoTest({
       title: 'two pairs, full CoW but swapper needs to provide platform fee',
       // This is a special scenario where we require the swapper to provide a token, just to pay it fully as platform fee
       pairs: [
@@ -736,103 +753,6 @@ contract('DCAHubSwapHandler', () => {
       tokens: [() => tokenB, () => tokenA],
       pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
       error: 'InvalidTokens',
-    });
-  });
-
-  describe('getNextSwapInfo', () => {
-    type NextSwapInfo = {
-      tokens: {
-        token: string;
-        reward: BigNumber;
-        toProvide: BigNumber;
-        availableToBorrow: BigNumber;
-      }[];
-      pairs: { tokenA: string; tokenB: string; ratioAToB: BigNumber; ratioBToA: BigNumber; intervalsInSwap: number[] }[];
-    };
-
-    when('getNextSwapInfo is called', () => {
-      const INITIAL_BALANCE_TOKEN_A = BigNumber.from(100);
-      const INITIAL_BALANCE_TOKEN_B = BigNumber.from(200);
-      const INITIAL_BALANCE_TOKEN_C = BigNumber.from(300);
-
-      let internalSwapInformation: SwapInformation;
-      let result: NextSwapInfo;
-      let initialBalances: Map<string, BigNumber>;
-
-      given(async () => {
-        internalSwapInformation = {
-          tokens: [
-            {
-              token: tokenA.address,
-              reward: constants.ZERO,
-              toProvide: BigNumber.from(20),
-              platformFee: constants.ZERO,
-            },
-            {
-              token: tokenB.address,
-              reward: BigNumber.from(20),
-              toProvide: constants.ZERO,
-              platformFee: BigNumber.from(50),
-            },
-            {
-              token: tokenC.address,
-              reward: constants.ZERO,
-              toProvide: constants.ZERO,
-              platformFee: constants.ZERO,
-            },
-          ],
-          pairs: [
-            {
-              tokenA: tokenA.address,
-              tokenB: tokenB.address,
-              ratioAToB: BigNumber.from(10),
-              ratioBToA: BigNumber.from(10),
-              intervalsInSwap: await intervalsToByte(SWAP_INTERVAL, SWAP_INTERVAL_2),
-            },
-          ],
-        };
-
-        initialBalances = new Map([
-          [tokenA.address, INITIAL_BALANCE_TOKEN_A],
-          [tokenB.address, INITIAL_BALANCE_TOKEN_B],
-          [tokenC.address, INITIAL_BALANCE_TOKEN_C],
-        ]);
-
-        for (const token of [tokenA, tokenB, tokenC]) {
-          await token.mint(DCAHubSwapHandler.address, initialBalances.get(token.address)!);
-        }
-        await DCAHubSwapHandler.setInternalGetNextSwapInfo(internalSwapInformation);
-
-        result = await DCAHubSwapHandler.getNextSwapInfo([tokenA.address, tokenB.address, tokenC.address], [{ indexTokenA: 0, indexTokenB: 1 }]);
-      });
-
-      then('_getNextSwapInfo is called with the correct parameters', () => {
-        // TODO: We can't check this right now, because _getNextSwapInfo is a view, so we can't store the call in the contract's state.
-        // We will need to wait for smock to support it
-      });
-
-      then('pairs are returned correctly', () => {
-        expect(result.pairs.length).to.equal(1);
-        const [pair] = result.pairs;
-        const [expectedPair] = internalSwapInformation.pairs;
-        expect(pair.tokenA).to.eql(expectedPair.tokenA);
-        expect(pair.tokenB).to.eql(expectedPair.tokenB);
-        expect(pair.ratioAToB).to.eql(expectedPair.ratioAToB);
-        expect(pair.ratioBToA).to.eql(expectedPair.ratioBToA);
-        expect(pair.intervalsInSwap).to.eql([SWAP_INTERVAL, SWAP_INTERVAL_2, 0, 0, 0, 0, 0, 0]);
-      });
-
-      then('tokens are returned correctly', () => {
-        for (let i = 0; i < result.tokens.length; i++) {
-          const token = result.tokens[i];
-          const internalTokenInfo = internalSwapInformation.tokens[i];
-          expect(token.token).to.equal(internalTokenInfo.token);
-          expect(token.toProvide).to.equal(internalTokenInfo.toProvide);
-          expect(token.reward).to.equal(internalTokenInfo.reward);
-          const balance = initialBalances.get(token.token)!;
-          expect(token.availableToBorrow).to.equal(balance.sub(internalTokenInfo.reward));
-        }
-      });
     });
   });
 
@@ -1344,124 +1264,7 @@ contract('DCAHubSwapHandler', () => {
     });
   });
 
-  describe('secondsUntilNextSwap', () => {
-    secondsUntilNextSwapTest({
-      title: 'no pairs are passed',
-      pairs: [],
-      currentTimestamp: 1000,
-      expected: [],
-    });
-
-    secondsUntilNextSwapTest({
-      title: 'there are not active intervals for the given pair',
-      pairs: [
-        {
-          tokenA: () => tokenA,
-          tokenB: () => tokenB,
-          intervals: [],
-        },
-      ],
-      currentTimestamp: 1000,
-      expected: [2 ** 32 - 1],
-    });
-
-    secondsUntilNextSwapTest({
-      title: 'one of the intervals can be swapped for the given pair',
-      pairs: [
-        {
-          tokenA: () => tokenA,
-          tokenB: () => tokenB,
-          intervals: [
-            {
-              interval: SWAP_INTERVAL,
-              nextAvailable: 1000,
-            },
-            {
-              interval: SWAP_INTERVAL_2,
-              nextAvailable: 1001,
-            },
-          ],
-        },
-      ],
-      currentTimestamp: 1000,
-      expected: [0],
-    });
-
-    secondsUntilNextSwapTest({
-      title: 'none of the intervals can be swapped right now for the given pair',
-      pairs: [
-        {
-          tokenA: () => tokenA,
-          tokenB: () => tokenB,
-          intervals: [
-            {
-              interval: SWAP_INTERVAL,
-              nextAvailable: 1500,
-            },
-            {
-              interval: SWAP_INTERVAL_2,
-              nextAvailable: 1200,
-            },
-          ],
-        },
-      ],
-      currentTimestamp: 1000,
-      expected: [200],
-    });
-
-    secondsUntilNextSwapTest({
-      title: 'many pairs are provided',
-      pairs: [
-        {
-          tokenA: () => tokenA,
-          tokenB: () => tokenB,
-          intervals: [{ interval: SWAP_INTERVAL_2, nextAvailable: 1200 }],
-        },
-        {
-          tokenA: () => tokenA,
-          tokenB: () => tokenC,
-          intervals: [{ interval: SWAP_INTERVAL, nextAvailable: 500 }],
-        },
-      ],
-      currentTimestamp: 1000,
-      expected: [200, 0],
-    });
-
-    async function secondsUntilNextSwapTest({
-      title,
-      pairs,
-      currentTimestamp,
-      expected,
-    }: {
-      title: string;
-      pairs: {
-        tokenA: () => TokenContract;
-        tokenB: () => TokenContract;
-        intervals: { interval: number; nextAvailable: number }[];
-      }[];
-      currentTimestamp: number;
-      expected: number[];
-    }) {
-      when(title, () => {
-        given(async () => {
-          for (const { tokenA, tokenB, intervals } of pairs) {
-            for (const { interval, nextAvailable } of intervals) {
-              await DCAHubSwapHandler.addActiveSwapInterval(tokenA().address, tokenB().address, interval);
-              await DCAHubSwapHandler.setNextSwapAvailable(tokenA().address, tokenB().address, interval, nextAvailable);
-            }
-          }
-          await DCAHubSwapHandler.setBlockTimestamp(currentTimestamp);
-        });
-
-        then('result is as expected', async () => {
-          const input = pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address }));
-          const result = await DCAHubSwapHandler.secondsUntilNextSwap(input);
-          expect(result).to.eql(expected);
-        });
-      });
-    }
-  });
-
+  // TODO: Update and use new intervals helper
   async function intervalsToByte(...intervals: number[]) {
     if (intervals.length === 0) {
       return '0x00';

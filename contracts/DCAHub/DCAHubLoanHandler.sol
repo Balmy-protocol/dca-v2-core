@@ -11,13 +11,6 @@ import './DCAHubConfigHandler.sol';
 abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubLoanHandler {
   using SafeERC20 for IERC20Metadata;
 
-  function availableToBorrow(address[] calldata _tokens) external view returns (uint256[] memory _available) {
-    _available = new uint256[](_tokens.length);
-    for (uint256 i; i < _tokens.length; i++) {
-      _available[i] = IERC20Metadata(_tokens[i]).balanceOf(address(this));
-    }
-  }
-
   event Loaned(address indexed sender, address indexed to, IDCAHub.Loan[] loan, uint32 fee);
 
   function loan(
