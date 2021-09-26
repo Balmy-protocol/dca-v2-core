@@ -20,7 +20,7 @@ contract('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
   const POSITION_RATE_5 = 5;
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
-  const RATE_PER_UNIT_5 = 5;
+  const RATIO_5 = 5;
 
   const INITIAL_TOKEN_A_BALANCE_CONTRACT = 100;
   const INITIAL_TOKEN_A_BALANCE_USER = 100;
@@ -387,7 +387,7 @@ contract('DCAPositionHandler', () => {
         ({ dcaId } = await deposit({ owner: owner.address, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratioAToB: RATE_PER_UNIT_5,
+          ratioAToB: RATIO_5,
           amountAToB: POSITION_RATE_5,
         });
       });
@@ -398,7 +398,7 @@ contract('DCAPositionHandler', () => {
         });
 
         then('swapped tokens are sent to the user', async () => {
-          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+          const swapped = tokenB.asUnits(RATIO_5 * POSITION_RATE_5);
           expect(await tokenB.balanceOf(recipient)).to.equal(swapped);
           await expectBalanceToBe(tokenB, DCAPositionHandler.address, INITIAL_TOKEN_B_BALANCE_CONTRACT);
         });
@@ -415,7 +415,7 @@ contract('DCAPositionHandler', () => {
         });
 
         then('event is emitted', async () => {
-          const swapped = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+          const swapped = tokenB.asUnits(RATIO_5 * POSITION_RATE_5);
           await expect(response).to.emit(DCAPositionHandler, 'Withdrew').withArgs(owner.address, recipient, dcaId, tokenB.address, swapped);
         });
       });
@@ -567,9 +567,9 @@ contract('DCAPositionHandler', () => {
         }));
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratioAToB: RATE_PER_UNIT_5,
+          ratioAToB: RATIO_5,
           amountAToB: POSITION_RATE_5,
-          ratioBToA: RATE_PER_UNIT_5,
+          ratioBToA: RATIO_5,
           amountBToA: POSITION_RATE_3,
         });
 
@@ -581,9 +581,9 @@ contract('DCAPositionHandler', () => {
       });
 
       then('swapped tokens are sent to the user', async () => {
-        const tradedFromBToA = tokenA.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_3);
+        const tradedFromBToA = tokenA.asUnits(RATIO_5 * POSITION_RATE_3);
         expect(await tokenA.balanceOf(recipient)).to.equal(tradedFromBToA);
-        const tradedFromAToB = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+        const tradedFromAToB = tokenB.asUnits(RATIO_5 * POSITION_RATE_5);
         expect(await tokenB.balanceOf(recipient)).to.equal(tradedFromAToB);
       });
 
@@ -607,8 +607,8 @@ contract('DCAPositionHandler', () => {
       });
 
       then('event is emitted', async () => {
-        const swappedA = tokenA.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_3);
-        const swappedB = tokenB.asUnits(RATE_PER_UNIT_5 * POSITION_RATE_5);
+        const swappedA = tokenA.asUnits(RATIO_5 * POSITION_RATE_3);
+        const swappedB = tokenB.asUnits(RATIO_5 * POSITION_RATE_5);
         const withdrawer = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrawer');
         const withdrawRecipient = await readArgFromEventOrFail(response, 'WithdrewMany', 'recipient');
         const positions = await readArgFromEventOrFail<any>(response, 'WithdrewMany', 'positions');
@@ -666,7 +666,7 @@ contract('DCAPositionHandler', () => {
     permissionTest(Permission.TERMINATE, ({ contract, dcaId }) => contract.terminate(dcaId, recipientUnswapped, recipientSwapped));
 
     when(`terminating a valid position`, () => {
-      const swappedWhenTerminated = RATE_PER_UNIT_5 * POSITION_RATE_5;
+      const swappedWhenTerminated = RATIO_5 * POSITION_RATE_5;
       const unswappedWhenTerminated = (POSITION_SWAPS_TO_PERFORM_10 - 1) * POSITION_RATE_5;
 
       let response: TransactionResponse;
@@ -677,7 +677,7 @@ contract('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratioAToB: RATE_PER_UNIT_5,
+          ratioAToB: RATIO_5,
           amountAToB: POSITION_RATE_5,
         });
 
@@ -1048,7 +1048,7 @@ contract('DCAPositionHandler', () => {
 
         await performTrade({
           swap: PERFORMED_SWAPS_10 + 1,
-          ratioAToB: RATE_PER_UNIT_5,
+          ratioAToB: RATIO_5,
           amountAToB: initialRate,
         });
 
@@ -1076,7 +1076,7 @@ contract('DCAPositionHandler', () => {
         );
         await expectBalanceToBe(tokenA, DCAPositionHandler.address, INITIAL_TOKEN_A_BALANCE_USER + newRate! * newSwaps!);
         await expectBalanceToBe(tokenB, owner.address, INITIAL_TOKEN_B_BALANCE_USER);
-        const expectedRate = tokenB.asUnits(RATE_PER_UNIT_5 * initialRate);
+        const expectedRate = tokenB.asUnits(RATIO_5 * initialRate);
         await expectBalanceToBe(tokenB, DCAPositionHandler.address, expectedRate.add(tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_CONTRACT)));
       });
 
@@ -1086,7 +1086,7 @@ contract('DCAPositionHandler', () => {
           rate: newRate!,
           swapsExecuted: 0,
           swapsLeft: newSwaps!,
-          swapped: initialRate * RATE_PER_UNIT_5,
+          swapped: initialRate * RATIO_5,
           remaining: newRate! * newSwaps!,
         });
       });

@@ -107,7 +107,7 @@ contract('DCAHubSwapHandler', () => {
         expect(swapDeltaAToB).to.equal(0);
         expect(swapDeltaBToA).to.equal(0);
       });
-      then('rate per unit is not increased', async () => {
+      then('accum ration is not increased', async () => {
         const { accumRatioAToB, accumRatioBToA } = await accumRatio(tokenA, tokenB, SwapInterval.ONE_DAY, NEXT_SWAP);
         expect(accumRatioAToB).to.equal(0);
         expect(accumRatioBToA).to.equal(0);
@@ -204,7 +204,7 @@ contract('DCAHubSwapHandler', () => {
           expect(nextAmountToSwapAToB).to.equal(bn.toBN(amountToSwapTokenA).add(NEXT_DELTA_FROM_A_TO_B));
           expect(nextAmountToSwapBToA).to.equal(bn.toBN(amountToSwapTokenB).add(NEXT_DELTA_FROM_B_TO_A));
         });
-        then('increments the rate per unit accumulator', async () => {
+        then('increments the ratio accumulator', async () => {
           const { accumRatioAToB, accumRatioBToA } = await accumRatio(tokenA(), tokenB(), SwapInterval.ONE_DAY, nextSwapNumber);
           expect(accumRatioAToB).to.equal(bn.toBN(ratioAToB).add(previous?.accumRatioAToB ?? 0));
           expect(accumRatioBToA).to.equal(bn.toBN(ratioBToA).add(previous?.accumRatioBToA ?? 0));
