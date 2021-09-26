@@ -108,7 +108,7 @@ contract('DCAHub', () => {
         await flashSwap({ callee: DCAHubSwapCallee });
       });
 
-      then('use can withdraw without any problems', async () => {
+      then('user can withdraw without any problems', async () => {
         await DCAHub.connect(john).withdrawSwapped(2, wallet.generateRandomAddress());
       });
     });
