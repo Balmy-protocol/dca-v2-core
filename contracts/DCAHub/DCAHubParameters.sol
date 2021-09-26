@@ -12,7 +12,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   struct SwapData {
     uint32 performedSwaps;
     uint224 nextAmountToSwapAToB;
-    uint32 nextSwapAvailable;
+    uint32 lastSwappedAt;
     uint224 nextAmountToSwapBToA;
   }
 
