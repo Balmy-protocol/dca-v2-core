@@ -108,8 +108,8 @@ contract('DCAHub', () => {
         await flashSwap({ callee: DCAHubSwapCallee });
       });
 
-      then("doesnt match the balance of contract with user's swapped amount", async () => {
-        await expect(DCAHub.connect(john).withdrawSwapped(2, wallet.generateRandomAddress())).to.be.reverted;
+      then('user can withdraw without any problems', async () => {
+        await DCAHub.connect(john).withdrawSwapped(2, wallet.generateRandomAddress());
       });
     });
 
