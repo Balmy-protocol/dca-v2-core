@@ -24,8 +24,6 @@ import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCAHub', () => {
   describe('Full e2e test', () => {
-    const MAX_UINT_32 = BigNumber.from(2).pow(32).sub(1);
-
     let governor: SignerWithAddress, john: SignerWithAddress;
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;

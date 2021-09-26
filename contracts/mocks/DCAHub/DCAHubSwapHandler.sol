@@ -17,7 +17,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     bytes1 intervalsInSwap;
   }
 
-  mapping(address => mapping(address => mapping(uint32 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
+  mapping(address => mapping(address => mapping(bytes1 => RegisterSwapCall))) public registerSwapCalls; // token A => token B => swap interval => call
 
   mapping(address => mapping(address => uint256)) private _ratios; // from => to => ratio(from -> to)
   mapping(address => mapping(address => TotalAmountsToSwap)) private _totalAmountsToSwap; // tokenA => tokenB => total amounts
@@ -34,12 +34,12 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   function registerSwap(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapIntervalMask,
     uint256 _ratioAToB,
     uint256 _ratioBToA,
     uint32 _timestamp
   ) external {
-    _registerSwap(_tokenA, _tokenB, intervalToMask(_swapInterval), _ratioAToB, _ratioBToA, _timestamp);
+    _registerSwap(_tokenA, _tokenB, _swapIntervalMask, _ratioAToB, _ratioBToA, _timestamp);
   }
 
   function setBlockTimestamp(uint32 _blockTimestamp) external {
@@ -122,11 +122,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     uint256 _ratioBToA,
     uint32 _timestamp
   ) internal override {
-    registerSwapCalls[_tokenA][_tokenB][maskToInterval(_swapInterval)] = RegisterSwapCall({
-      ratioAToB: _ratioAToB,
-      ratioBToA: _ratioBToA,
-      timestamp: _timestamp
-    });
+    registerSwapCalls[_tokenA][_tokenB][_swapInterval] = RegisterSwapCall({ratioAToB: _ratioAToB, ratioBToA: _ratioBToA, timestamp: _timestamp});
     super._registerSwap(_tokenA, _tokenB, _swapInterval, _ratioAToB, _ratioBToA, _timestamp);
   }
 
@@ -145,14 +141,14 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     address _tokenB,
     uint256 _totalAmountTokenA,
     uint256 _totalAmountTokenB,
-    uint32[] memory _intervalsInSwap
+    bytes1[] memory _intervalsInSwap
   ) external {
     _totalAmountsToSwap[_tokenA][_tokenB].amountTokenA = _totalAmountTokenA;
     _totalAmountsToSwap[_tokenA][_tokenB].amountTokenB = _totalAmountTokenB;
     bytes1 _intervalMask;
 
     for (uint256 i = 0; i < _intervalsInSwap.length; i++) {
-      _intervalMask |= intervalToMask(_intervalsInSwap[i]);
+      _intervalMask |= _intervalsInSwap[i];
     }
     _totalAmountsToSwap[_tokenA][_tokenB].intervalsInSwap = _intervalMask;
   }
@@ -170,9 +166,9 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   function setLastSwappedAt(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapIntervalMask,
     uint32 _lastSwappedAt
   ) external {
-    swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].lastSwappedAt = _lastSwappedAt;
+    swapData[_tokenA][_tokenB][_swapIntervalMask].lastSwappedAt = _lastSwappedAt;
   }
 }
