@@ -285,7 +285,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
 
       // Update platform balance
-      platformBalance[_swapInformation.tokens[i].token] += _swapInformation.tokens[i].platformFee + (_currentBalance - _amountToHave);
+      uint256 _newPlatformBalance = _swapInformation.tokens[i].platformFee + (_currentBalance - _amountToHave);
+      if (_newPlatformBalance > 0) {
+        platformBalance[_swapInformation.tokens[i].token] += _swapInformation.tokens[i].platformFee + (_currentBalance - _amountToHave);
+      }
     }
 
     // Emit event
