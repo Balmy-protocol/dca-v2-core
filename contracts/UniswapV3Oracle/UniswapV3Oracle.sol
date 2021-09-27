@@ -3,9 +3,10 @@ pragma solidity >=0.5.0 <0.8.0;
 
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
+import '@uniswap/v3-periphery/contracts/libraries/WeightedOracleLibrary.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
 import '../utils/Governable.sol';
-import '../libraries/WeightedOracleLibrary.sol';
+import '../libraries/UniswapWeightedOracleLibrary.sol';
 
 contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   uint16 public constant override MINIMUM_PERIOD = 1 minutes;
@@ -40,15 +41,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   ) external view override returns (uint256 _amountOut) {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenIn, _tokenOut);
     address[] memory _pools = _poolsForPair[__tokenA][__tokenB];
-    WeightedOracleLibrary.PeriodObservation[] memory _observations = new WeightedOracleLibrary.PeriodObservation[](_pools.length);
-    uint16 _period = period;
-    uint192 _periodX160 = uint192(_period) * type(uint160).max;
-    uint32[] memory _secondsAgos = new uint32[](2);
-    _secondsAgos[0] = _period;
-    _secondsAgos[1] = 0;
-    for (uint256 i; i < _pools.length; i++) {
-      _observations[i] = WeightedOracleLibrary.consult(_pools[i], _period, _periodX160, _secondsAgos);
-    }
+    WeightedOracleLibrary.PeriodObservation[] memory _observations = UniswapWeightedOracleLibrary.consultMany(_pools, period);
     int24 _arithmeticMeanWeightedTick = WeightedOracleLibrary.getArithmeticMeanTickWeightedByLiquidity(_observations);
     _amountOut = OracleLibrary.getQuoteAtTick(_arithmeticMeanWeightedTick, _amountIn, _tokenIn, _tokenOut);
   }
