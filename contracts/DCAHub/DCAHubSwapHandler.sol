@@ -257,7 +257,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
     for (uint256 i; i < _beforeBalances.length; i++) {
-      _beforeBalances[i] = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+      if (_swapInformation.tokens[i].toProvide > 0 || _borrow[i] > 0) {
+        _beforeBalances[i] = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+      }
     }
 
     // Optimistically transfer tokens
@@ -274,18 +276,26 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
 
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
-      uint256 _amountToHave = _beforeBalances[i] + _swapInformation.tokens[i].toProvide - _swapInformation.tokens[i].reward;
+      uint256 _addToPlatformBalance = _swapInformation.tokens[i].platformFee;
 
-      // TODO: Check if it's cheaper to avoid checking the balance for tokens that had nothing to provide and that weren't borrowed
-      uint256 _currentBalance = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+      if (_swapInformation.tokens[i].toProvide > 0 || _borrow[i] > 0) {
+        uint256 _amountToHave = _beforeBalances[i] + _swapInformation.tokens[i].toProvide - _swapInformation.tokens[i].reward;
 
-      // Make sure tokens were sent back
-      if (_currentBalance < _amountToHave) {
-        revert IDCAHub.LiquidityNotReturned();
+        uint256 _currentBalance = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+
+        // Make sure tokens were sent back
+        if (_currentBalance < _amountToHave) {
+          revert IDCAHub.LiquidityNotReturned();
+        }
+
+        // Any extra tokens that might have been received, are set as platform balance
+        _addToPlatformBalance += (_currentBalance - _amountToHave);
       }
 
       // Update platform balance
-      platformBalance[_swapInformation.tokens[i].token] += _swapInformation.tokens[i].platformFee + (_currentBalance - _amountToHave);
+      if (_addToPlatformBalance > 0) {
+        platformBalance[_swapInformation.tokens[i].token] += _addToPlatformBalance;
+      }
     }
 
     // Emit event
