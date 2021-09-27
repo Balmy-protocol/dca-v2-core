@@ -46,8 +46,13 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     EnumerableSet.AddressSet storage _pools = _poolsForPair[__tokenA][__tokenB];
     uint256 _length = _pools.length();
     WeightedOracleLibrary.PeriodObservation[] memory _observations = new WeightedOracleLibrary.PeriodObservation[](_length);
+    uint16 _period = period;
+    uint192 _periodX160 = uint192(_period) * type(uint160).max;
+    uint32[] memory _secondsAgos = new uint32[](2);
+    _secondsAgos[0] = _period;
+    _secondsAgos[1] = 0;
     for (uint256 i; i < _length; i++) {
-      _observations[i] = WeightedOracleLibrary.consult(_pools.at(i), period);
+      _observations[i] = WeightedOracleLibrary.consult(_pools.at(i), _period, _periodX160, _secondsAgos);
     }
     int24 _arithmeticMeanWeightedTick = WeightedOracleLibrary.getArithmeticMeanTickWeightedByLiquidity(_observations);
     _amountOut = OracleLibrary.getQuoteAtTick(_arithmeticMeanWeightedTick, _amountIn, _tokenIn, _tokenOut);

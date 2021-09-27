@@ -16,14 +16,13 @@ library WeightedOracleLibrary {
   /// @param pool Address of the pool that we want to observe
   /// @param period Number of seconds in the past to start calculating the time-weighted observation
   /// @return observation An observation that has been time-weighted from (block.timestamp - period) to block.timestamp
-  function consult(address pool, uint32 period) internal view returns (PeriodObservation memory observation) {
+  function consult(
+    address pool,
+    uint32 period,
+    uint192 periodX160,
+    uint32[] memory secondsAgos
+  ) internal view returns (PeriodObservation memory observation) {
     require(period != 0, 'BP');
-
-    uint192 periodX160 = uint192(period) * type(uint160).max;
-
-    uint32[] memory secondsAgos = new uint32[](2);
-    secondsAgos[0] = period;
-    secondsAgos[1] = 0;
 
     (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s) = IUniswapV3Pool(pool).observe(secondsAgos);
     int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
