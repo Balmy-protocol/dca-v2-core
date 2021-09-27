@@ -48,27 +48,18 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     _amountOut = OracleLibrary.getQuoteAtTick(_arithmeticMeanWeightedTick, _amountIn, _tokenIn, _tokenOut);
   }
 
-  /**
-   * This function will take a pair and make sure that all Uniswap V3 pools for the pair are properly initialized for future use.
-   * It will also add all available pools to an internal list, to avoid future queries to the factory.
-   * It can be called multiple times for the same pair of tokens, to include and re-configure new pools that might appear in the future.
-   * Will revert if there are no pools available for the given pair of tokens.
-   */
-  function addSupportForPair(address _tokenA, address _tokenB) external override {
+  function reconfigureSupportForPair(address _tokenA, address _tokenB) external override {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
-    uint16 _cardinality = uint16(period / _AVERAGE_BLOCK_INTERVAL) + 10; // We add 10 just to be on the safe side
     delete _poolsForPair[__tokenA][__tokenB];
-    address[] storage _pools = _poolsForPair[__tokenA][__tokenB];
-    uint24[] memory _feeTiers = _supportedFeeTiers;
-    for (uint256 i; i < _feeTiers.length; i++) {
-      address _pool = factory.getPool(__tokenA, __tokenB, _feeTiers[i]);
-      if (_pool != address(0) && IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD) {
-        _pools.push(_pool);
-        IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_cardinality);
-      }
+    _addSupportForPair(__tokenA, __tokenB);
+  }
+
+  // TODO: Add to interface
+  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
+    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    if (_poolsForPair[__tokenA][__tokenB].length == 0) {
+      _addSupportForPair(__tokenA, __tokenB);
     }
-    require(_pools.length > 0, 'PairNotSupported');
-    emit AddedSupportForPair(__tokenA, __tokenB);
   }
 
   function poolsUsedForPair(address _tokenA, address _tokenB) external view override returns (address[] memory _usedPools) {
@@ -97,6 +88,21 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     _supportedFeeTiers.push(_feeTier);
 
     emit AddedFeeTier(_feeTier);
+  }
+
+  function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
+    uint16 _cardinality = uint16(period / _AVERAGE_BLOCK_INTERVAL) + 10; // We add 10 just to be on the safe side
+    address[] storage _pools = _poolsForPair[_tokenA][_tokenB];
+    uint24[] memory _feeTiers = _supportedFeeTiers;
+    for (uint256 i; i < _feeTiers.length; i++) {
+      address _pool = factory.getPool(_tokenA, _tokenB, _feeTiers[i]);
+      if (_pool != address(0) && IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD) {
+        _pools.push(_pool);
+        IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_cardinality);
+      }
+    }
+    require(_pools.length > 0, 'PairNotSupported');
+    emit AddedSupportForPair(_tokenA, _tokenB);
   }
 
   function _sortTokens(address _tokenA, address _tokenB) internal pure returns (address __tokenA, address __tokenB) {
