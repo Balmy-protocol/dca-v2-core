@@ -19,7 +19,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   IUniswapV3Factory public immutable override factory;
   uint16 public override period = 5 minutes;
   EnumerableSet.UintSet internal _supportedFeeTiers;
-  mapping(address => mapping(address => EnumerableSet.AddressSet)) internal _poolsForPair;
+  mapping(address => mapping(address => address[])) internal _poolsForPair;
 
   constructor(address _governor, IUniswapV3Factory _factory) Governable(_governor) {
     require(address(_factory) != address(0), 'ZeroAddress');
@@ -30,8 +30,8 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     uint256 _length = _supportedFeeTiers.length();
     for (uint256 i; i < _length; i++) {
       address _pool = factory.getPool(_tokenA, _tokenB, uint24(_supportedFeeTiers.at(i)));
-      if (_pool != address(0)) {
-        return IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD;
+      if (_pool != address(0) && IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD) {
+        return true;
       }
     }
     return false;
@@ -43,11 +43,10 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     address _tokenOut
   ) external view override returns (uint256 _amountOut) {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenIn, _tokenOut);
-    EnumerableSet.AddressSet storage _pools = _poolsForPair[__tokenA][__tokenB];
-    uint256 _length = _pools.length();
-    WeightedOracleLibrary.PeriodObservation[] memory _observations = new WeightedOracleLibrary.PeriodObservation[](_length);
-    for (uint256 i; i < _length; i++) {
-      _observations[i] = WeightedOracleLibrary.consult(_pools.at(i), period);
+    address[] memory _pools = _poolsForPair[__tokenA][__tokenB];
+    WeightedOracleLibrary.PeriodObservation[] memory _observations = new WeightedOracleLibrary.PeriodObservation[](_pools.length);
+    for (uint256 i; i < _pools.length; i++) {
+      _observations[i] = WeightedOracleLibrary.consult(_pools[i], period);
     }
     int24 _arithmeticMeanWeightedTick = WeightedOracleLibrary.getArithmeticMeanTickWeightedByLiquidity(_observations);
     _amountOut = OracleLibrary.getQuoteAtTick(_arithmeticMeanWeightedTick, _amountIn, _tokenIn, _tokenOut);
@@ -62,27 +61,23 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   function addSupportForPair(address _tokenA, address _tokenB) external override {
     uint256 _length = _supportedFeeTiers.length();
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
-    EnumerableSet.AddressSet storage _pools = _poolsForPair[__tokenA][__tokenB];
     uint16 _cardinality = uint16(period / _AVERAGE_BLOCK_INTERVAL) + 10; // We add 10 just to be on the safe side
+    delete _poolsForPair[__tokenA][__tokenB];
+    address[] storage _pools = _poolsForPair[__tokenA][__tokenB];
     for (uint256 i; i < _length; i++) {
       address _pool = factory.getPool(__tokenA, __tokenB, uint24(_supportedFeeTiers.at(i)));
-      if (_pool != address(0) && !_pools.contains(_pool) && IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD) {
-        _pools.add(_pool);
+      if (_pool != address(0) && IUniswapV3Pool(_pool).liquidity() >= MINIMUM_LIQUIDITY_THRESHOLD) {
+        _pools.push(_pool);
         IUniswapV3Pool(_pool).increaseObservationCardinalityNext(_cardinality);
       }
     }
-    require(_pools.length() > 0, 'PairNotSupported');
+    require(_pools.length > 0, 'PairNotSupported');
     emit AddedSupportForPair(__tokenA, __tokenB);
   }
 
   function poolsUsedForPair(address _tokenA, address _tokenB) external view override returns (address[] memory _usedPools) {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
-    EnumerableSet.AddressSet storage _pools = _poolsForPair[__tokenA][__tokenB];
-    uint256 _length = _pools.length();
-    _usedPools = new address[](_length);
-    for (uint256 i; i < _length; i++) {
-      _usedPools[i] = _pools.at(i);
-    }
+    _usedPools = _poolsForPair[__tokenA][__tokenB];
   }
 
   function supportedFeeTiers() external view override returns (uint24[] memory _feeTiers) {
