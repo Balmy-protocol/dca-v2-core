@@ -14,7 +14,7 @@ import {
 } from '@typechained';
 import { snapshot } from '@test-utils/evm';
 
-describe('UniswapV3Oracle', () => {
+describe.only('UniswapV3Oracle', () => {
   let owner: SignerWithAddress;
   let UniswapV3OracleContract: UniswapV3OracleMock__factory, UniswapV3FactoryContract: UniswapV3FactoryMock__factory;
   let UniswapV3PoolContract: UniswapV3PoolMock__factory;
@@ -89,6 +89,20 @@ describe('UniswapV3Oracle', () => {
 
       then('event is emmitted', async () => {
         await expect(tx).to.emit(UniswapV3Oracle, 'AddedFeeTier').withArgs(10);
+      });
+    });
+    when('fee tier is already added', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await supportFieTier(10);
+      });
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'addFeeTier',
+          args: [10],
+          message: 'FeeTierAlreadyPresent',
+        });
       });
     });
     behaviours.shouldBeExecutableOnlyByGovernor({
