@@ -18,6 +18,7 @@ describe('UniswapV3Oracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const FEE = 1000;
+  const INITIAL_FEE_TIERS = [500, 3000, 10000];
   let owner: SignerWithAddress;
   let UniswapV3OracleContract: UniswapV3OracleMock__factory, UniswapV3FactoryContract: UniswapV3FactoryMock__factory;
   let UniswapV3PoolContract: UniswapV3PoolMock__factory;
@@ -68,6 +69,10 @@ describe('UniswapV3Oracle', () => {
         const period = await UniswapV3Oracle.period();
         expect(period).to.equal(5 * 60);
       });
+      then('starting fee tiers are correct', async () => {
+        const feeTiers = await UniswapV3Oracle.supportedFeeTiers();
+        expect(feeTiers).to.eql(INITIAL_FEE_TIERS);
+      });
     });
   });
 
@@ -90,7 +95,7 @@ describe('UniswapV3Oracle', () => {
       });
 
       then('fee tier is added', async () => {
-        expect(await UniswapV3Oracle.supportedFeeTiers()).to.eql([10]);
+        expect(await UniswapV3Oracle.supportedFeeTiers()).to.eql([...INITIAL_FEE_TIERS, 10]);
       });
 
       then('event is emmitted', async () => {

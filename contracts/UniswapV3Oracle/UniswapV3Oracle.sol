@@ -14,7 +14,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
   uint8 private constant _AVERAGE_BLOCK_INTERVAL = 15 seconds;
   IUniswapV3Factory public immutable override factory;
   uint16 public override period = 5 minutes;
-  uint24[] internal _supportedFeeTiers;
+  uint24[] internal _supportedFeeTiers = [500, 3000, 10000];
   mapping(address => mapping(address => address[])) internal _poolsForPair;
 
   constructor(address _governor, IUniswapV3Factory _factory) Governable(_governor) {
