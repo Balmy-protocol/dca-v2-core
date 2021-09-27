@@ -14,7 +14,7 @@ import {
 } from '@typechained';
 import { snapshot } from '@test-utils/evm';
 
-describe('UniswapV3Oracle', () => {
+describe.only('UniswapV3Oracle', () => {
   let owner: SignerWithAddress;
   let UniswapV3OracleContract: UniswapV3OracleMock__factory, UniswapV3FactoryContract: UniswapV3FactoryMock__factory;
   let UniswapV3PoolContract: UniswapV3PoolMock__factory;
@@ -143,6 +143,23 @@ describe('UniswapV3Oracle', () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
       });
     });
+    when(`pools exists for pair on supported fie tier, but one of them doesn't have enough liquidity`, () => {
+      let UniswapV3Pool2: Contract;
+      const FEE_2 = 2000;
+
+      given(async () => {
+        await supportFieTier(FEE);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        await UniswapV3Pool.setLiquidity(0);
+
+        UniswapV3Pool2 = await UniswapV3PoolContract.deploy();
+        await supportFieTier(FEE_2);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE_2, UniswapV3Pool2.address);
+      });
+      then('pair is supported', async () => {
+        expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
+      });
+    });
   });
 
   describe('setPeriod', () => {
@@ -261,21 +278,6 @@ describe('UniswapV3Oracle', () => {
         expect(await UniswapV3Pool.cardinalitySent()).to.equal((5 * 60) / 15 + 10);
       });
     });
-    when('pool was already supported for the pair', () => {
-      given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
-        await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
-        await UniswapV3Pool.reset();
-
-        // Call it again
-        await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
-      });
-
-      then('pool is not called again', async () => {
-        expect(await UniswapV3Pool.cardinalitySent()).to.equal(0);
-      });
-    });
     when(`pair's addreses are inverted`, () => {
       given(async () => {
         await supportFieTier(FEE);
@@ -301,14 +303,8 @@ describe('UniswapV3Oracle', () => {
         // Support FEE_2
         await supportFieTier(FEE_2);
         UniswapV3Pool2 = await UniswapV3PoolContract.deploy();
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool2.address);
+        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE_2, UniswapV3Pool2.address);
         tx = await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
-      });
-
-      then('pool 1 is not called again', async () => {
-        await UniswapV3Oracle.addSupportForPair(TOKEN_A, TOKEN_B);
-        await supportFieTier(FEE_2);
-        expect(await UniswapV3Pool.cardinalitySent()).to.equal(0);
       });
 
       then(`it is added to list of pair's list of pools`, async () => {
