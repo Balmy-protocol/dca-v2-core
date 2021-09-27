@@ -6,6 +6,9 @@ import '../DCAHub/DCAHub.sol';
 /// @title The interface for generating a token's description
 /// @notice Contracts that implement this interface must return a base64 JSON with the entire description
 interface IDCATokenDescriptor {
+  /// @notice Thrown when a user tries get the description of an unsupported interval
+  error InvalidInterval();
+
   /// @notice Generates a token's description, both the JSON and the image inside
   /// @param _hub The address of the DCA Hub
   /// @param _tokenId The token/position id
