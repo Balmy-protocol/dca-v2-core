@@ -125,7 +125,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   }
 
   error InvalidPairs();
-  error InvalidTokens();
 
   function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
     public
@@ -185,7 +184,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       if (i > 0 && _tokens[i] <= _tokens[i - 1]) {
-        revert InvalidTokens();
+        revert IDCAHub.InvalidTokens();
       }
 
       _swapInformation.tokens[i].token = _tokens[i];
