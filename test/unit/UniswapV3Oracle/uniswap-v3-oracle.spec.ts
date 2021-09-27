@@ -91,6 +91,20 @@ describe('UniswapV3Oracle', () => {
         await expect(tx).to.emit(UniswapV3Oracle, 'AddedFeeTier').withArgs(10);
       });
     });
+    when('fee tier is already added', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await supportFieTier(10);
+      });
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'addFeeTier',
+          args: [10],
+          message: 'FeeTierAlreadyPresent',
+        });
+      });
+    });
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => UniswapV3Oracle,
       funcAndSignature: 'addFeeTier(uint24)',
