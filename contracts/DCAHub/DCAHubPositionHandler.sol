@@ -300,7 +300,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _to,
     bytes1 _swapIntervalMask
   ) internal view returns (uint32) {
-    // TODO: Check if it's better to just receive the in-memory DCA
     return (_from < _to) ? swapData[_from][_to][_swapIntervalMask].performedSwaps : swapData[_to][_from][_swapIntervalMask].performedSwaps;
   }
 }

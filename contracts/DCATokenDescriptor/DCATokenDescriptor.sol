@@ -36,7 +36,7 @@ contract DCATokenDescriptor is IDCATokenDescriptor {
       );
   }
 
-  function intervalToDescription(uint32 _swapInterval) public pure returns (string memory) {
+  function intervalToDescription(uint32 _swapInterval) public pure override returns (string memory) {
     if (_swapInterval == 5 minutes) return 'Every 5 minutes';
     if (_swapInterval == 15 minutes) return 'Every 15 minutes';
     if (_swapInterval == 30 minutes) return 'Every 30 minutes';

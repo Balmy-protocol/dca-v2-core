@@ -23,14 +23,9 @@ describe('DCAHubLoanHandler', () => {
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
     DCAHubLoanHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubLoanHandler.sol:DCAHubLoanHandlerMock');
-    tokenA = await erc20.deploy({
-      name: 'tokenA',
-      symbol: 'TKNA',
-    });
-    tokenB = await erc20.deploy({
-      name: 'tokenB',
-      symbol: 'TKNB',
-    });
+    const deploy = (decimals: number) => erc20.deploy({ name: 'A name', symbol: 'SYMB', decimals });
+    const tokens = await Promise.all([deploy(12), deploy(16)]);
+    [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
     DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(owner.address, owner.address, constants.NOT_ZERO_ADDRESS);
     snapshotId = await snapshot.take();
   });
