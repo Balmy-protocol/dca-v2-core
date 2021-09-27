@@ -28,7 +28,7 @@ contract('UniswapV3Oracle', () => {
     });
     await deployments.fixture('UniswapOracle', { keepExistingDeployments: false });
     oracle = await ethers.getContract('UniswapOracle');
-    await oracle.addSupportForPair(WETH, USDC);
+    await oracle.addSupportForPairIfNeeded(WETH, USDC);
   });
 
   describe('quote', () => {
