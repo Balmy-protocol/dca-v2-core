@@ -14,7 +14,7 @@ import {
 } from '@typechained';
 import { snapshot } from '@test-utils/evm';
 
-describe.only('UniswapV3Oracle', () => {
+describe('UniswapV3Oracle', () => {
   let owner: SignerWithAddress;
   let UniswapV3OracleContract: UniswapV3OracleMock__factory, UniswapV3FactoryContract: UniswapV3FactoryMock__factory;
   let UniswapV3PoolContract: UniswapV3PoolMock__factory;
