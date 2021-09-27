@@ -1,22 +1,22 @@
 export class SwapInterval {
-  static readonly FIVE_MINUTES = new SwapInterval(5 * 60, '0x01');
-  static readonly FIFTEEN_MINUTES = new SwapInterval(SwapInterval.FIVE_MINUTES.seconds * 3, '0x02');
-  static readonly THIRTY_MINUTES = new SwapInterval(SwapInterval.FIFTEEN_MINUTES.seconds * 2, '0x4');
-  static readonly ONE_HOUR = new SwapInterval(SwapInterval.THIRTY_MINUTES.seconds * 2, '0x08');
-  static readonly TWELVE_HOURS = new SwapInterval(SwapInterval.ONE_HOUR.seconds * 12, '0x10');
-  static readonly ONE_DAY = new SwapInterval(SwapInterval.TWELVE_HOURS.seconds * 2, '0x20');
-  static readonly ONE_WEEK = new SwapInterval(SwapInterval.ONE_DAY.seconds * 7, '0x40');
-  static readonly THIRTY_DAYS = new SwapInterval(SwapInterval.ONE_DAY.seconds * 30, '0x80');
+  static readonly ONE_MINUTE = new SwapInterval(60, '0x01');
+  static readonly FIVE_MINUTES = new SwapInterval(SwapInterval.ONE_MINUTE.seconds * 5, '0x02');
+  static readonly FIFTEEN_MINUTES = new SwapInterval(SwapInterval.FIVE_MINUTES.seconds * 3, '0x04');
+  static readonly THIRTY_MINUTES = new SwapInterval(SwapInterval.FIFTEEN_MINUTES.seconds * 2, '0x08');
+  static readonly ONE_HOUR = new SwapInterval(SwapInterval.THIRTY_MINUTES.seconds * 2, '0x10');
+  static readonly FOUR_HOURS = new SwapInterval(SwapInterval.ONE_HOUR.seconds * 4, '0x20');
+  static readonly ONE_DAY = new SwapInterval(SwapInterval.FOUR_HOURS.seconds * 6, '0x40');
+  static readonly ONE_WEEK = new SwapInterval(SwapInterval.ONE_DAY.seconds * 7, '0x80');
 
-  private static readonly INTERVALS = [
+  static readonly INTERVALS = [
+    SwapInterval.ONE_MINUTE,
     SwapInterval.FIVE_MINUTES,
     SwapInterval.FIFTEEN_MINUTES,
     SwapInterval.THIRTY_MINUTES,
     SwapInterval.ONE_HOUR,
-    SwapInterval.TWELVE_HOURS,
+    SwapInterval.FOUR_HOURS,
     SwapInterval.ONE_DAY,
     SwapInterval.ONE_WEEK,
-    SwapInterval.THIRTY_DAYS,
   ];
 
   private constructor(readonly seconds: number, readonly mask: string) {}

@@ -28,7 +28,8 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     // Transfer tokens
     for (uint256 i; i < _loan.length; i++) {
-      // TODO: Fail if tokens are not sorted (that way, we can detect duplicates)
+      // We are now making sure that tokens are sorted, as an easy way to detect duplicates
+      if (i > 0 && _loan[i].token <= _loan[i - 1].token) revert IDCAHub.InvalidTokens();
 
       IERC20Metadata(_loan[i].token).safeTransfer(_to, _loan[i].amount);
     }

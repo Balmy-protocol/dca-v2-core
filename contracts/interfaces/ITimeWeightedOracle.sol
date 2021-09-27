@@ -29,12 +29,12 @@ interface ITimeWeightedOracle {
     address _tokenOut
   ) external view returns (uint256 _amountOut);
 
-  /// @notice Add support for a given pair to the contract. This function will let the oracle take some actions to
-  /// configure the pair for future quotes. Could be called more than one in order to let the oracle re-configure for a new context.
+  /// @notice Reconfigures support for a given pair to the contract. This function will let the oracle take some actions to
+  /// configure the pair for future quotes. Can be called many times in order to let the oracle re-configure for a new context.
   /// @dev Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
   /// @param _tokenA One of the pair's tokens
   /// @param _tokenB The other of the pair's tokens
-  function addSupportForPair(address _tokenA, address _tokenB) external;
+  function reconfigureSupportForPair(address _tokenA, address _tokenB) external;
 }
 
 /// @title An implementation of ITimeWeightedOracle that uses Uniswap V3 pool oracles

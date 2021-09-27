@@ -23,14 +23,9 @@ describe('DCAHubLoanHandler', () => {
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
     DCAHubLoanHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubLoanHandler.sol:DCAHubLoanHandlerMock');
-    tokenA = await erc20.deploy({
-      name: 'tokenA',
-      symbol: 'TKNA',
-    });
-    tokenB = await erc20.deploy({
-      name: 'tokenB',
-      symbol: 'TKNB',
-    });
+    const deploy = (decimals: number) => erc20.deploy({ name: 'A name', symbol: 'SYMB', decimals });
+    const tokens = await Promise.all([deploy(12), deploy(16)]);
+    [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
     DCAHubLoanHandler = await DCAHubLoanHandlerContract.deploy(owner.address, owner.address, constants.NOT_ZERO_ADDRESS);
     snapshotId = await snapshot.take();
   });
@@ -61,39 +56,68 @@ describe('DCAHubLoanHandler', () => {
     flashLoanFailedTest({
       title: 'flash loans are paused',
       context: () => DCAHubLoanHandler.pause(),
-      amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
-      amountToBorrowTokenB: () => constants.ZERO,
+      toBorrow: [{ token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE }],
       errorMessage: 'Pausable: paused',
     });
 
     flashLoanFailedTest({
       title: 'caller intends to borrow more than available in a',
-      amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE.add(1),
-      amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE,
+      toBorrow: [
+        { token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE.add(1) },
+        { token: () => tokenB, amount: PAIR_TOKEN_B_INITIAL_BALANCE },
+      ],
       errorMessage: 'ERC20: transfer amount exceeds balance',
     });
 
     flashLoanFailedTest({
       title: 'caller intends to borrow more than available in b',
-      amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
-      amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE.add(1),
+      toBorrow: [
+        { token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE },
+        { token: () => tokenB, amount: PAIR_TOKEN_B_INITIAL_BALANCE.add(1) },
+      ],
       errorMessage: 'ERC20: transfer amount exceeds balance',
+    });
+
+    flashLoanFailedTest({
+      title: 'tokens are not sorted correctly',
+      toBorrow: [
+        { token: () => tokenB, amount: PAIR_TOKEN_B_INITIAL_BALANCE },
+        { token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE },
+      ],
+      errorMessage: 'InvalidTokens',
+    });
+
+    flashLoanFailedTest({
+      title: 'tokens are repeated',
+      toBorrow: [
+        { token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE.div(2) },
+        { token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE.div(2) },
+      ],
+      errorMessage: 'InvalidTokens',
     });
 
     flashLoanNotReturnedTest({
       title: 'returned token a is not enough',
-      amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
-      amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE,
-      amountToReturnTokenA: () => WITH_FEE(PAIR_TOKEN_A_INITIAL_BALANCE).sub(1),
-      amountToReturnTokenB: () => WITH_FEE(PAIR_TOKEN_B_INITIAL_BALANCE),
+      toBorrow: [
+        { token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE },
+        { token: () => tokenB, amount: PAIR_TOKEN_B_INITIAL_BALANCE },
+      ],
+      toReturn: [
+        { token: () => tokenA, amount: WITH_FEE(PAIR_TOKEN_A_INITIAL_BALANCE).sub(1) },
+        { token: () => tokenB, amount: WITH_FEE(PAIR_TOKEN_B_INITIAL_BALANCE) },
+      ],
     });
 
     flashLoanNotReturnedTest({
-      title: 'returned token b is not enough',
-      amountToBorrowTokenA: () => PAIR_TOKEN_A_INITIAL_BALANCE,
-      amountToBorrowTokenB: () => PAIR_TOKEN_B_INITIAL_BALANCE,
-      amountToReturnTokenA: () => WITH_FEE(PAIR_TOKEN_A_INITIAL_BALANCE),
-      amountToReturnTokenB: () => WITH_FEE(PAIR_TOKEN_B_INITIAL_BALANCE).sub(1),
+      title: 'returned token B is not enough',
+      toBorrow: [
+        { token: () => tokenA, amount: PAIR_TOKEN_A_INITIAL_BALANCE },
+        { token: () => tokenB, amount: PAIR_TOKEN_B_INITIAL_BALANCE },
+      ],
+      toReturn: [
+        { token: () => tokenA, amount: WITH_FEE(PAIR_TOKEN_A_INITIAL_BALANCE) },
+        { token: () => tokenB, amount: WITH_FEE(PAIR_TOKEN_B_INITIAL_BALANCE).sub(1) },
+      ],
     });
 
     when('flash loans are used', () => {
@@ -196,19 +220,15 @@ describe('DCAHubLoanHandler', () => {
 
     function flashLoanFailedTest({
       title,
-      amountToBorrowTokenA,
-      amountToBorrowTokenB,
-      amountToReturnTokenA,
-      amountToReturnTokenB,
+      toBorrow,
+      toReturn,
       errorMessage,
       context,
     }: {
       title: string;
       context?: () => Promise<any>;
-      amountToBorrowTokenA: () => BigNumber;
-      amountToBorrowTokenB: () => BigNumber;
-      amountToReturnTokenA?: () => BigNumber;
-      amountToReturnTokenB?: () => BigNumber;
+      toBorrow: { token: () => TokenContract; amount: BigNumber }[];
+      toReturn?: { token: () => TokenContract; amount: BigNumber }[];
       errorMessage: string;
     }) {
       when(title, () => {
@@ -218,17 +238,13 @@ describe('DCAHubLoanHandler', () => {
           if (context) {
             await context();
           }
-          if (amountToReturnTokenA && amountToReturnTokenB) {
-            await DCAHubLoanCallee.returnSpecificAmounts([tokenA.address, tokenB.address], [amountToReturnTokenA(), amountToReturnTokenB()]);
+          if (toReturn) {
+            const tokens = toReturn.map(({ token }) => token().address);
+            const amounts = toReturn.map(({ amount }) => amount);
+            await DCAHubLoanCallee.returnSpecificAmounts(tokens, amounts);
           }
-          tx = DCAHubLoanHandler.loan(
-            [
-              { token: tokenA.address, amount: amountToBorrowTokenA() },
-              { token: tokenB.address, amount: amountToBorrowTokenB() },
-            ],
-            DCAHubLoanCallee.address,
-            BYTES
-          );
+          const input = toBorrow.map(({ token, amount }) => ({ token: token().address, amount }));
+          tx = DCAHubLoanHandler.loan(input, DCAHubLoanCallee.address, BYTES);
           await behaviours.waitForTxAndNotThrow(tx);
         });
 
@@ -240,10 +256,8 @@ describe('DCAHubLoanHandler', () => {
 
     function flashLoanNotReturnedTest(params: {
       title: string;
-      amountToBorrowTokenA: () => BigNumber;
-      amountToBorrowTokenB: () => BigNumber;
-      amountToReturnTokenA: () => BigNumber;
-      amountToReturnTokenB: () => BigNumber;
+      toBorrow: { token: () => TokenContract; amount: BigNumber }[];
+      toReturn: { token: () => TokenContract; amount: BigNumber }[];
     }) {
       flashLoanFailedTest({
         ...params,

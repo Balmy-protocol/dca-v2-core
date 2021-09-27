@@ -12,8 +12,7 @@ contract DCAHubConfigHandlerMock is DCAHubConfigHandler, DCAHubParametersMock {
     ITimeWeightedOracle _oracle
   ) DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle) {}
 
-  function isSwapIntervalAllowed(uint32 _swapInterval) external view returns (bool) {
-    bytes1 _mask = intervalToMask(_swapInterval);
-    return allowedSwapIntervals & _mask != 0;
+  function isSwapIntervalAllowed(bytes1 _swapIntervalMask) external view returns (bool) {
+    return allowedSwapIntervals & _swapIntervalMask != 0;
   }
 }

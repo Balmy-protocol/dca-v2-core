@@ -12,68 +12,68 @@ contract DCAHubParametersMock is DCAHubParameters {
   function addActiveSwapInterval(
     address _tokenA,
     address _tokenB,
-    uint32 _activeInterval
+    bytes1 _swapIntervalMask
   ) external {
-    activeSwapIntervals[_tokenA][_tokenB] |= intervalToMask(_activeInterval);
+    activeSwapIntervals[_tokenA][_tokenB] |= _swapIntervalMask;
   }
 
   function removeActiveSwapInterval(
     address _tokenA,
     address _tokenB,
-    uint32 _activeInterval
+    bytes1 _swapIntervalMask
   ) external {
-    activeSwapIntervals[_tokenA][_tokenB] &= ~intervalToMask(_activeInterval);
+    activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
   }
 
   function isSwapIntervalActive(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval
+    bytes1 _swapIntervalMask
   ) external view returns (bool _isIntervalActive) {
     bytes1 _byte = _tokenA < _tokenB ? activeSwapIntervals[_tokenA][_tokenB] : activeSwapIntervals[_tokenB][_tokenA];
-    _isIntervalActive = _byte & intervalToMask(_swapInterval) != 0;
+    _isIntervalActive = _byte & _swapIntervalMask != 0;
   }
 
   function setSwapAmountDelta(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapIntervalMask,
     uint32 _swap,
     int128 _deltaAToB,
     int128 _deltaBToA
   ) external {
-    swapAmountDelta[_tokenA][_tokenB][intervalToMask(_swapInterval)][_swap] = SwapDelta(_deltaAToB, _deltaBToA);
+    swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swap] = SwapDelta(_deltaAToB, _deltaBToA);
   }
 
   function setAcummRatio(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapIntervalMask,
     uint32 _swap,
     uint256 _accumRatioAToB,
     uint256 _accumRatioBToA
   ) external {
-    accumRatio[_tokenA][_tokenB][intervalToMask(_swapInterval)][_swap] = AccumRatio(_accumRatioAToB, _accumRatioBToA);
+    accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swap] = AccumRatio(_accumRatioAToB, _accumRatioBToA);
   }
 
   function setNextAmountsToSwap(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapIntervalMask,
     uint224 _amountToSwapAToB,
     uint224 _amountToSwapBToA
   ) external {
-    swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].nextAmountToSwapAToB = _amountToSwapAToB;
-    swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].nextAmountToSwapBToA = _amountToSwapBToA;
+    swapData[_tokenA][_tokenB][_swapIntervalMask].nextAmountToSwapAToB = _amountToSwapAToB;
+    swapData[_tokenA][_tokenB][_swapIntervalMask].nextAmountToSwapBToA = _amountToSwapBToA;
   }
 
   function setPerformedSwaps(
     address _tokenA,
     address _tokenB,
-    uint32 _swapInterval,
+    bytes1 _swapIntervalMask,
     uint32 _performedSwaps
   ) external {
-    swapData[_tokenA][_tokenB][intervalToMask(_swapInterval)].performedSwaps = _performedSwaps;
+    swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps = _performedSwaps;
   }
 
   function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external pure returns (uint256) {

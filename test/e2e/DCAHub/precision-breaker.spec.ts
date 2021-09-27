@@ -1,5 +1,3 @@
-import moment from 'moment';
-import { expect } from 'chai';
 import { BigNumber, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import {
@@ -17,12 +15,11 @@ import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
-import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
+import { buildSwapInput } from 'js-lib/swap-utils';
+import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCAHub', () => {
   describe('Precision breaker', () => {
-    const SWAP_INTERVAL_1_HOUR = moment.duration(1, 'hour').as('seconds');
-
     let governor: SignerWithAddress;
     let alice: SignerWithAddress, john: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
@@ -58,7 +55,7 @@ contract('DCAHub', () => {
       DCAPermissionsManager.setHub(DCAHub.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(2000), tokenB.asUnits(2000)]);
-      await DCAHub.addSwapIntervalsToAllowedList([SWAP_INTERVAL_1_HOUR]);
+      await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.ONE_HOUR.seconds]);
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(alice, { tokenA: 0, tokenB: 10000 });
       await setInitialBalance(DCAHubSwapCallee, { tokenA: 2000, tokenB: 2000 });
@@ -72,7 +69,7 @@ contract('DCAHub', () => {
           tokenA.address,
           BigNumber.from('89509558490300730500').mul(3),
           3,
-          SWAP_INTERVAL_1_HOUR,
+          SwapInterval.ONE_HOUR.seconds,
           alice.address,
           []
         );
@@ -83,27 +80,27 @@ contract('DCAHub', () => {
           tokenA.address,
           utils.parseEther('200').mul(5),
           5,
-          SWAP_INTERVAL_1_HOUR,
+          SwapInterval.ONE_HOUR.seconds,
           john.address,
           []
         );
 
-        await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
         timeWeightedOracle.quote.returns(BigNumber.from('2246'));
         await flashSwap({ callee: DCAHubSwapCallee });
-        await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
         timeWeightedOracle.quote.returns(BigNumber.from('2209'));
         await flashSwap({ callee: DCAHubSwapCallee });
-        await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
         timeWeightedOracle.quote.returns(BigNumber.from('2190'));
         await flashSwap({ callee: DCAHubSwapCallee });
 
         await DCAHub.connect(alice).withdrawSwapped(1, wallet.generateRandomAddress());
 
-        await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
         timeWeightedOracle.quote.returns(BigNumber.from('2175'));
         await flashSwap({ callee: DCAHubSwapCallee });
-        await evm.advanceTimeAndBlock(SWAP_INTERVAL_1_HOUR);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
         timeWeightedOracle.quote.returns(BigNumber.from('2216'));
         await flashSwap({ callee: DCAHubSwapCallee });
       });

@@ -269,14 +269,14 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       return _swappedBeforeModified[_positionId];
     }
 
-    uint256 _accumPerUnit = _userPosition.from < _userPosition.to
+    uint256 _accumRatio = _userPosition.from < _userPosition.to
       ? accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioAToB -
         accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioAToB
       : accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
         accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
     uint256 _magnitude = 10**IERC20Metadata(_userPosition.from).decimals();
-    (bool _ok, uint256 _mult) = Math.tryMul(_accumPerUnit, _userPosition.rate);
-    uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumPerUnit / _magnitude) * _userPosition.rate;
+    (bool _ok, uint256 _mult) = Math.tryMul(_accumRatio, _userPosition.rate);
+    uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _userPosition.rate;
     _swapped = _swappedInCurrentPosition + _swappedBeforeModified[_positionId];
   }
 
@@ -300,7 +300,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _to,
     bytes1 _swapIntervalMask
   ) internal view returns (uint32) {
-    // TODO: Check if it's better to just receive the in-memory DCA
     return (_from < _to) ? swapData[_from][_to][_swapIntervalMask].performedSwaps : swapData[_to][_from][_swapIntervalMask].performedSwaps;
   }
 }

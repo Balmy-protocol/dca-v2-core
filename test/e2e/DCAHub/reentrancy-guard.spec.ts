@@ -1,4 +1,3 @@
-import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
@@ -21,6 +20,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { snapshot } from '@test-utils/evm';
+import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
@@ -35,8 +35,6 @@ contract('DCAHub', () => {
     let TimeWeightedOracle: TimeWeightedOracleMock;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let snapshotId: string;
-
-    const swapInterval = moment.duration(15, 'minutes').as('seconds');
 
     before('Setup accounts and contracts', async () => {
       [governor, dude] = await ethers.getSigners();
@@ -60,7 +58,7 @@ contract('DCAHub', () => {
         DCAPermissionsManager.address
       );
       await DCAPermissionsManager.setHub(DCAHub.address);
-      await DCAHub.addSwapIntervalsToAllowedList([swapInterval]);
+      await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.FIFTEEN_MINUTES.seconds]);
       snapshotId = await snapshot.take();
     });
 
@@ -260,7 +258,7 @@ contract('DCAHub', () => {
         to().address,
         from().asUnits(rate).mul(swaps),
         swaps,
-        swapInterval,
+        SwapInterval.FIFTEEN_MINUTES.seconds,
         depositor.address,
         []
       );

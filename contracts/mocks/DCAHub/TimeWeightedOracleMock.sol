@@ -21,7 +21,7 @@ contract TimeWeightedOracleMock is ITimeWeightedOracle {
     return true;
   }
 
-  function addSupportForPair(address _tokenA, address _tokenB) external override {}
+  function reconfigureSupportForPair(address _tokenA, address _tokenB) external override {}
 
   function quote(
     address,
