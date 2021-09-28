@@ -10,6 +10,6 @@ contract DCAPermissionsManagerMock is DCAPermissionsManager {
   constructor(address _governor, IDCATokenDescriptor _descriptor) DCAPermissionsManager(_governor, _descriptor) {}
 
   function operators(uint256 _id) external view returns (address[] memory _operators) {
-    _operators = _tokens[_id].operators.values();
+    _operators = _tokens[_id].operators;
   }
 }

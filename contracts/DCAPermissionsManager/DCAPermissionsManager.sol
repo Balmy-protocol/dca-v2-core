@@ -13,7 +13,7 @@ import '../utils/Governable.sol';
 contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionManager {
   struct TokenInfo {
     mapping(address => uint8) permissions;
-    AddressSet.Set operators;
+    address[] operators;
     // TODO: Test if avoiding enumerable set is cheaper
   }
 
@@ -54,7 +54,10 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   ) external {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
-    _setPermissions(_id, _permissions);
+    for (uint256 i; i < _permissions.length; i++) {
+      _tokens[_id].operators.push(_permissions[i].operator);
+      _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+    }
   }
 
   function hasPermission(
@@ -155,15 +158,15 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
-    for (uint256 i; i < _permissions.length; i++) {
-      if (_permissions[i].permissions.length == 0) {
-        _tokens[_id].operators.remove(_permissions[i].operator);
-        delete _tokens[_id].permissions[_permissions[i].operator];
-      } else {
-        _tokens[_id].operators.add(_permissions[i].operator);
-        _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
-      }
-    }
+    // for (uint256 i; i < _permissions.length; i++) {
+    //   if (_permissions[i].permissions.length == 0) {
+    //     _tokens[_id].operators.remove(_permissions[i].operator);
+    //     delete _tokens[_id].permissions[_permissions[i].operator];
+    //   } else {
+    //     _tokens[_id].operators.add(_permissions[i].operator);
+    //     _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
+    //   }
+    // }
   }
 
   function _beforeTokenTransfer(
@@ -172,10 +175,10 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     uint256 _id
   ) internal override {
     TokenInfo storage _info = _tokens[_id];
-    while (_info.operators.length() > 0) {
-      address _operator = _info.operators.at(0);
-      delete _info.permissions[_operator];
-      _info.operators.remove(_operator);
+    address[] memory _operators = _info.operators;
+    for (uint256 i; i < _operators.length; i++) {
+      delete _info.permissions[_operators[i]];
     }
+    delete _info.operators;
   }
 }

@@ -13,7 +13,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { _TypedDataEncoder } from '@ethersproject/hash';
 import { fromRpcSig } from 'ethereumjs-util';
 
-contract('DCAPermissionsManager', () => {
+contract.only('DCAPermissionsManager', () => {
   const NFT_NAME = 'Mean Finance DCA';
   const NFT_DESCRIPTOR = wallet.generateRandomAddress();
   let hub: SignerWithAddress, governor: SignerWithAddress;
@@ -263,7 +263,7 @@ contract('DCAPermissionsManager', () => {
       });
     });
   });
-  describe('modify', () => {
+  describe.skip('modify', () => {
     const TOKEN_ID = 1;
     const [OPERATOR_1, OPERATOR_2] = ['0x0000000000000000000000000000000000000001', '0x0000000000000000000000000000000000000002'];
 
@@ -487,7 +487,7 @@ contract('DCAPermissionsManager', () => {
     };
   });
 
-  describe('permissionPermit', () => {
+  describe.skip('permissionPermit', () => {
     const TOKEN_ID = 1;
     const OPERATOR = wallet.generateRandomAddress();
     let owner: Wallet, stranger: Wallet;
