@@ -3,6 +3,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '../interfaces/IDCAPermissionManager.sol';
+import '../interfaces/ITimeWeightedOracle.sol';
 
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the pair's current values
@@ -194,13 +195,118 @@ interface IDCAHubSwapHandler {
   error NoSwapsToExecute();
 }
 
-/// @title The interface for all loan related matters in a DCA pair
-/// @notice These methods allow users to ask how much is available for loans, and also to execute them
+/// @title The interface for all loan related matters
+/// @notice These methods allow users to execute flash loans
 interface IDCAHubLoanHandler {
+  /// @notice Emitted when a flash loan is executed
+  /// @param sender The address of the user that initiated the loan
+  /// @param to The address that received the loan
+  /// @param loan The tokens (and the amount) that were loaned
+  /// @param fee The loan fee at the moment of the loan
+  event Loaned(address indexed sender, address indexed to, IDCAHub.AmountOfToken[] loan, uint32 fee);
 
+  /// @notice Executes a flash loan, sending the required amounts to the specified loan recipient
+  /// @dev Will revert:
+  /// With Paused if loans are paused by protocol
+  /// With InvalidTokens if the tokens in `_loan` are not sorted
+  /// @param _loan The amount to borrow in each token
+  /// @param _to Address that will receive the loan. This address should be a contract that implements `IDCAPairLoanCallee`
+  /// @param _data Any data that should be passed through to the callback
+  function loan(
+    IDCAHub.AmountOfToken[] calldata _loan,
+    address _to,
+    bytes calldata _data
+  ) external;
 }
 
-interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler {
+/// @title The interface for handling all configuration
+/// @notice This contract will manage configuration that affects all pairs, swappers, etc
+interface IDCAHubConfigHandler {
+  /// @notice Emitted when a new oracle is set
+  /// @param _oracle The new oracle contract
+  event OracleSet(ITimeWeightedOracle _oracle);
+
+  /// @notice Emitted when a new swap fee is set
+  /// @param _feeSet The new swap fee
+  event SwapFeeSet(uint32 _feeSet);
+
+  /// @notice Emitted when a new loan fee is set
+  /// @param _feeSet The new loan fee
+  event LoanFeeSet(uint32 _feeSet);
+
+  /// @notice Emitted when new swap intervals are allowed
+  /// @param _swapIntervals The new swap intervals
+  event SwapIntervalsAllowed(uint32[] _swapIntervals);
+
+  /// @notice Emitted when some swap intervals are no longer allowed
+  /// @param _swapIntervals The swap intervals that are no longer allowed
+  event SwapIntervalsForbidden(uint32[] _swapIntervals);
+
+  /// @notice Thrown when trying to set a fee higher than the maximum allowed
+  error HighFee();
+
+  /// @notice Thrown when trying to set a fee that is not multiple of 100
+  error InvalidFee();
+
+  /// @notice Returns the fee charged on swaps
+  /// @return _swapFee The fee itself
+  function swapFee() external view returns (uint32 _swapFee);
+
+  /// @notice Returns the fee charged on loans
+  /// @return _loanFee The fee itself
+  function loanFee() external view returns (uint32 _loanFee);
+
+  /// @notice Returns the time-weighted oracle contract
+  /// @return _oracle The contract itself
+  function oracle() external view returns (ITimeWeightedOracle _oracle);
+
+  /// @notice Returns the max fee that can be set for either swap or loans
+  /// @dev Cannot be modified
+  /// @return _maxFee The maximum possible fee
+  // solhint-disable-next-line func-name-mixedcase
+  function MAX_FEE() external view returns (uint32 _maxFee);
+
+  /// @notice Returns a byte that represents allowed swap intervals
+  /// @return _allowedSwapIntervals The allowed swap intervals
+  function allowedSwapIntervals() external view returns (bytes1 _allowedSwapIntervals);
+
+  /// @notice Returns whether swaps and loans are currently paused
+  /// @return _isPaused Whether swaps and loans are currently paused
+  function paused() external view returns (bool _isPaused);
+
+  /// @notice Sets a new swap fee
+  /// @dev Will revert with HighFee if the fee is higher than the maximum
+  /// @dev Will revert with InvalidFee if the fee is not multiple of 100
+  /// @param _fee The new swap fee
+  function setSwapFee(uint32 _fee) external;
+
+  /// @notice Sets a new loan fee
+  /// @dev Will revert with HighFee if the fee is higher than the maximum
+  /// @dev Will revert with InvalidFee if the fee is not multiple of 100
+  /// @param _fee The new loan fee
+  function setLoanFee(uint32 _fee) external;
+
+  /// @notice Sets a new time-weighted oracle
+  /// @dev Will revert with ZeroAddress if the zero address is passed
+  /// @param _oracle The new oracle contract
+  function setOracle(ITimeWeightedOracle _oracle) external;
+
+  /// @notice Adds new swap intervals to the allowed list
+  /// @param _swapIntervals The new swap intervals
+  function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external;
+
+  /// @notice Removes some swap intervals from the allowed list
+  /// @param _swapIntervals The swap intervals to remove
+  function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external;
+
+  /// @notice Pauses all swaps and loans
+  function pause() external;
+
+  /// @notice Unpauses all swaps and loans
+  function unpause() external;
+}
+
+interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler, IDCAHubConfigHandler {
   struct AmountOfToken {
     address token;
     uint256 amount;

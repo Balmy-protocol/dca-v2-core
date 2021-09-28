@@ -7,15 +7,7 @@ import '@openzeppelin/contracts/security/Pausable.sol';
 import './DCAHubParameters.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
 
-abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable {
-  event OracleSet(ITimeWeightedOracle oracle);
-  event SwapFeeSet(uint32 feeSet);
-  event LoanFeeSet(uint32 feeSet);
-  event SwapIntervalsAllowed(uint32[] swapIntervals);
-  event SwapIntervalsForbidden(uint32[] swapIntervals);
-  error HighFee();
-  error InvalidFee();
-
+abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
   bytes32 public constant PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
@@ -80,5 +72,9 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function unpause() external onlyRole(IMMEDIATE_ROLE) {
     _unpause();
+  }
+
+  function paused() public view override(IDCAHubConfigHandler, Pausable) returns (bool) {
+    return super.paused();
   }
 }

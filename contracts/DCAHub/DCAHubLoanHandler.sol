@@ -2,15 +2,11 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-
 import '../interfaces/IDCAHubLoanCallee.sol';
-
 import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubLoanHandler {
   using SafeERC20 for IERC20Metadata;
-
-  event Loaned(address indexed sender, address indexed to, IDCAHub.AmountOfToken[] loan, uint32 fee);
 
   function loan(
     IDCAHub.AmountOfToken[] calldata _loan,
