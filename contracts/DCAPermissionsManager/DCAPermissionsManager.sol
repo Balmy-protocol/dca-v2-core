@@ -20,15 +20,15 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   using PermissionMath for uint8;
   using EnumerableSet for EnumerableSet.AddressSet;
 
-  bytes32 public constant override PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
-  bytes32 public constant override PERMISSION_PERMIT_TYPEHASH =
+  bytes32 public constant PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
+  bytes32 public constant PERMISSION_PERMIT_TYPEHASH =
     keccak256(
       'PermissionPermit(PermissionSet[] permissions,uint256 tokenId,uint256 nonce,uint256 deadline)PermissionSet(address operator,uint8[] permissions)'
     );
-  bytes32 public constant override PERMISSION_SET_TYPEHASH = keccak256('PermissionSet(address operator,uint8[] permissions)');
-  IDCATokenDescriptor public override nftDescriptor;
-  address public override hub;
-  mapping(address => uint256) public override nonces;
+  bytes32 public constant PERMISSION_SET_TYPEHASH = keccak256('PermissionSet(address operator,uint8[] permissions)');
+  IDCATokenDescriptor public nftDescriptor;
+  address public hub;
+  mapping(address => uint256) public nonces;
   mapping(uint256 => TokenInfo) internal _tokens;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
@@ -40,7 +40,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     nftDescriptor = _descriptor;
   }
 
-  function setHub(address _hub) external override {
+  function setHub(address _hub) external {
     if (_hub == address(0)) revert ZeroAddress();
     if (hub != address(0)) revert HubAlreadySet();
     hub = _hub;
@@ -50,7 +50,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     uint256 _id,
     address _owner,
     PermissionSet[] calldata _permissions
-  ) external override {
+  ) external {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
     _setPermissions(_id, _permissions);
@@ -60,22 +60,22 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     uint256 _id,
     address _address,
     Permission _permission
-  ) external view override returns (bool) {
+  ) external view returns (bool) {
     return ownerOf(_id) == _address || _tokens[_id].permissions[_address].hasPermission(_permission);
   }
 
-  function burn(uint256 _id) external override {
+  function burn(uint256 _id) external {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _burn(_id);
   }
 
-  function modify(uint256 _id, PermissionSet[] calldata _permissions) external override {
+  function modify(uint256 _id, PermissionSet[] calldata _permissions) external {
     if (msg.sender != ownerOf(_id)) revert NotOwner();
     _modify(_id, _permissions);
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function DOMAIN_SEPARATOR() external view override returns (bytes32) {
+  function DOMAIN_SEPARATOR() external view returns (bytes32) {
     return _domainSeparatorV4();
   }
 
@@ -86,7 +86,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) external override {
+  ) external {
     if (block.timestamp > _deadline) revert ExpiredDeadline();
 
     address _owner = ownerOf(_tokenId);
@@ -106,7 +106,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     uint8 _v,
     bytes32 _r,
     bytes32 _s
-  ) external override {
+  ) external {
     if (block.timestamp > _deadline) revert ExpiredDeadline();
 
     address _owner = ownerOf(_tokenId);
@@ -121,7 +121,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     _modify(_tokenId, _permissions);
   }
 
-  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external override onlyGovernor {
+  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external onlyGovernor {
     if (address(_descriptor) == address(0)) revert ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);

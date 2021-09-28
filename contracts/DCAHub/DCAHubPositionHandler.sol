@@ -29,7 +29,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     permissionManager = _permissionManager;
   }
 
-  function userPosition(uint256 _positionId) external view override returns (UserPosition memory _userPosition) {
+  function userPosition(uint256 _positionId) external view returns (UserPosition memory _userPosition) {
     DCA memory _position = _userPositions[_positionId];
     uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapIntervalMask);
     uint32 _newestSwapToConsider = _performedSwaps < _position.finalSwap ? _performedSwaps : _position.finalSwap;
@@ -53,7 +53,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _swapInterval,
     address _owner,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
-  ) external override nonReentrant whenNotPaused returns (uint256) {
+  ) external nonReentrant whenNotPaused returns (uint256) {
     if (_from == address(0) || _to == address(0) || _owner == address(0)) revert IDCAHub.ZeroAddress();
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
@@ -73,7 +73,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     return _idCounter;
   }
 
-  function withdrawSwapped(uint256 _positionId, address _recipient) external override nonReentrant returns (uint256) {
+  function withdrawSwapped(uint256 _positionId, address _recipient) external nonReentrant returns (uint256) {
     if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
 
     (uint256 _swapped, address _to) = _executeWithdraw(_positionId);
@@ -82,7 +82,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     return _swapped;
   }
 
-  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external override nonReentrant {
+  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external nonReentrant {
     if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
     uint256[] memory _swapped = new uint256[](_positions.length);
     for (uint256 i; i < _positions.length; i++) {
@@ -101,7 +101,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _positionId,
     address _recipientUnswapped,
     address _recipientSwapped
-  ) external override nonReentrant {
+  ) external nonReentrant {
     if (_recipientUnswapped == address(0) || _recipientSwapped == address(0)) revert IDCAHub.ZeroAddress();
 
     DCA memory _userPosition = _userPositions[_positionId];
@@ -130,7 +130,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _positionId,
     uint256 _amount,
     uint32 _newAmountOfSwaps
-  ) external override nonReentrant whenNotPaused {
+  ) external nonReentrant whenNotPaused {
     _modify(_positionId, _amount, _newAmountOfSwaps, true);
   }
 
@@ -234,7 +234,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint120 _rate,
     bool _add
   ) internal {
-    // Note: this function might look weird and unnecessary, but it was the best way to reduce contract size, while also avoding the need for unchecked math
+    // Note: this function might look weird and unnecessary, but after a few different tries, it was the best way to reduce contract size,
+    // while also avoding the need for unchecked math
     int120 _intRate = _add ? -int120(_rate) : int120(_rate);
     if (_from < _to) {
       if (_add) {

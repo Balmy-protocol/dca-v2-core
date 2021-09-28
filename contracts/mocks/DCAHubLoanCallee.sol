@@ -26,7 +26,7 @@ contract DCAHubLoanCalleeMock is IDCAHubLoanCallee {
     IDCAHub.AmountOfToken[] calldata _loan,
     uint32 _loanFee,
     bytes calldata _data
-  ) external override {
+  ) external {
     for (uint256 i; i < _loan.length; i++) {
       require(
         IERC20Metadata(_loan[i].token).balanceOf(address(this)) == _initialBalance[_loan[i].token] + _loan[i].amount,
@@ -85,7 +85,7 @@ contract ReentrantDCAHubLoanCalleeMock is IDCAHubLoanCallee {
     IDCAHub.AmountOfToken[] calldata,
     uint32,
     bytes calldata
-  ) external override {
+  ) external {
     (msg.sender).functionCall(_attack);
   }
 }

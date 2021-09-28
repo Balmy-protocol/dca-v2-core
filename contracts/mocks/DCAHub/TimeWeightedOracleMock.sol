@@ -17,17 +17,17 @@ contract TimeWeightedOracleMock is ITimeWeightedOracle {
     decimals = _decimals;
   }
 
-  function canSupportPair(address, address) external pure override returns (bool) {
+  function canSupportPair(address, address) external pure returns (bool) {
     return true;
   }
 
-  function reconfigureSupportForPair(address _tokenA, address _tokenB) external override {}
+  function reconfigureSupportForPair(address _tokenA, address _tokenB) external {}
 
   function quote(
     address,
     uint128 _amountIn,
     address
-  ) external view override returns (uint256 _amountOut) {
+  ) external view returns (uint256 _amountOut) {
     _amountOut = (_amountIn * rate) / 10**decimals;
   }
 }

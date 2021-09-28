@@ -26,7 +26,7 @@ contract DCAHubSwapCalleeMock is IDCAHubSwapCallee {
     IDCAHub.TokenInSwap[] calldata _tokens,
     uint256[] calldata _borrowed,
     bytes calldata _data
-  ) external override {
+  ) external {
     for (uint256 i; i < _tokens.length; i++) {
       require(
         IERC20Metadata(_tokens[i].token).balanceOf(address(this)) == _initialBalance[_tokens[i].token] + _borrowed[i] + _tokens[i].reward,
@@ -89,7 +89,7 @@ contract ReentrantDCAHubSwapCalleeMock is IDCAHubSwapCallee {
     IDCAHub.TokenInSwap[] calldata,
     uint256[] calldata,
     bytes calldata
-  ) external override {
+  ) external {
     (msg.sender).functionCall(_attack);
   }
 }

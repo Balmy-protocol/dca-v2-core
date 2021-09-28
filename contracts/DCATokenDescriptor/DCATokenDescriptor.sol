@@ -8,7 +8,7 @@ import '../libraries/NFTDescriptor.sol';
 /// @title Describes NFT token positions
 /// @notice Produces a string containing the data URI for a JSON metadata string
 contract DCATokenDescriptor is IDCATokenDescriptor {
-  function tokenURI(address _hub, uint256 _tokenId) external view override returns (string memory) {
+  function tokenURI(address _hub, uint256 _tokenId) external view returns (string memory) {
     // TODO: Stop using hub, and use interface when available
     IDCAHubPositionHandler.UserPosition memory _userPosition = DCAHub(_hub).userPosition(_tokenId);
 
@@ -32,7 +32,7 @@ contract DCATokenDescriptor is IDCATokenDescriptor {
       );
   }
 
-  function intervalToDescription(uint32 _swapInterval) public pure override returns (string memory) {
+  function intervalToDescription(uint32 _swapInterval) public pure returns (string memory) {
     if (_swapInterval == 1 minutes) return 'Every minute';
     if (_swapInterval == 5 minutes) return 'Every 5 minutes';
     if (_swapInterval == 15 minutes) return 'Every 15 minutes';
