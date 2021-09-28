@@ -157,16 +157,52 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     emit Modified(_id, _permissions);
   }
 
-  function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
-    // for (uint256 i; i < _permissions.length; i++) {
-    //   if (_permissions[i].permissions.length == 0) {
-    //     _tokens[_id].operators.remove(_permissions[i].operator);
-    //     delete _tokens[_id].permissions[_permissions[i].operator];
-    //   } else {
-    //     _tokens[_id].operators.add(_permissions[i].operator);
-    //     _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
-    //   }
-    // }
+  function _setPermissions(
+    uint256 _id,
+    PermissionSet[] calldata _add,
+    PermissionSet[] calldata _modify,
+    address[] calldata _remove
+  ) internal {
+    uint8 _added;
+
+    // First, delete all addresses that need deleting, and fill their space with the new
+
+    TokenInfo storage _info = _tokens[_id];
+    address[] memory _originalOperators = _info.operators;
+    for (uint256 i; i < _remove.length; i++) {
+      // Remove permissions
+      delete _info.permissions[_remove[i]];
+
+      uint8 _index = _findIndex(_remove[i], _originalOperators);
+      if (_added < _add.length) {
+        // Will set one of the new operators in that position
+        _info.operators[_index] = _add[_added].operator;
+        _info.permissions[_add[_added].operator] = _add[_added++].permissions.toUInt8();
+      } else {
+        uint256 _lastIndex = 2323;
+        if (_index < _lastIndex) {
+          // Will move the last operator to this position
+          _info.operators[_index] = _info.operators[_lastIndex];
+        }
+        _info.operators.pop();
+      }
+    }
+
+    while (_added < _add.length) {
+      _info.operators.push(_add[_added].operator);
+      _info.permissions[_add[_added].operator] = _add[_added++].permissions.toUInt8();
+    }
+
+    for (uint256 i; i < _modify.length; i++) {
+      // TODO: Make sure that it already exists
+      _info.permissions[_modify[i].operator] = _modify[i].permissions.toUInt8();
+    }
+  }
+
+  function _findIndex(address _find, address[] memory _array) internal pure returns (uint8 _index) {
+    while (_index < _array.length && _array[_index] != _find) {
+      _index++;
+    }
   }
 
   function _beforeTokenTransfer(
