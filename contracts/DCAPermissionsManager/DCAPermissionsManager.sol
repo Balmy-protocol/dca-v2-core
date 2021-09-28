@@ -160,10 +160,14 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
     uint32 _blockTimestamp = uint32(block.timestamp);
     for (uint256 i; i < _permissions.length; i++) {
-      _tokenPermissions[_id][_permissions[i].operator] = InternalPermission({
-        permissions: _permissions[i].permissions.toUInt8(),
-        lastUpdated: _blockTimestamp
-      });
+      if (_permissions[i].permissions.length == 0) {
+        delete _tokenPermissions[_id][_permissions[i].operator];
+      } else {
+        _tokenPermissions[_id][_permissions[i].operator] = InternalPermission({
+          permissions: _permissions[i].permissions.toUInt8(),
+          lastUpdated: _blockTimestamp
+        });
+      }
     }
   }
 
