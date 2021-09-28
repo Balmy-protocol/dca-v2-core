@@ -3,9 +3,8 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
-
-import './DCAHubParameters.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
+import './DCAHubParameters.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
   bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');

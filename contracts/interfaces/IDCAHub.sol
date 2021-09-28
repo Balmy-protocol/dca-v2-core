@@ -6,7 +6,7 @@ import '../interfaces/IDCAPermissionManager.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
 
 /// @title The interface for all state related queries
-/// @notice These methods allow users to read the pair's current values
+/// @notice These methods allow users to read the hubs's current values
 interface IDCAHubParameters {
   // TODO: See if we end up adding something. If not, delete
 }

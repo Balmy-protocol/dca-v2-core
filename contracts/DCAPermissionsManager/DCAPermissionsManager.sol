@@ -14,6 +14,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   struct TokenInfo {
     mapping(address => uint8) permissions;
     EnumerableSet.AddressSet operators;
+    // TODO: Test if avoiding enumerable set is cheaper
   }
 
   using PermissionMath for Permission[];

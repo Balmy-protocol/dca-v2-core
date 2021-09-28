@@ -2,6 +2,7 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubPlatformHandler is ReentrancyGuard, DCAHubConfigHandler {
