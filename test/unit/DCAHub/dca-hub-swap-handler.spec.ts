@@ -321,6 +321,31 @@ contract('DCAHubSwapHandler', () => {
       },
     });
 
+    getTotalAmountsToSwapTest({
+      when: `some swaps can be swapped, but the smallest one can't `,
+      currentTimestamp: SwapInterval.ONE_WEEK.seconds + 1,
+      activeIntervals: [
+        {
+          interval: SwapInterval.ONE_MINUTE,
+          lastSwappedAt: SwapInterval.ONE_WEEK.seconds,
+          amountToSwapTokenA: 10,
+          amountToSwapTokenB: 20,
+        },
+        // All intervals, except the first one
+        ...SwapInterval.INTERVALS.slice(1).map((interval) => ({
+          interval,
+          lastSwappedAt: 0,
+          amountToSwapTokenA: 30,
+          amountToSwapTokenB: 50,
+        })),
+      ],
+      expected: {
+        amountToSwapTokenA: 0,
+        amountToSwapTokenB: 0,
+        affectedIntervals: [],
+      },
+    });
+
     function getTotalAmountsToSwapTest({
       when: title,
       currentTimestamp,

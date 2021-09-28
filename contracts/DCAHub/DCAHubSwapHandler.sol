@@ -80,11 +80,16 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       if (_activeIntervals & _mask == _mask) {
         SwapData memory _swapData = swapData[_tokenA][_tokenB][_mask];
         uint32 _swapInterval = maskToInterval(_mask);
-        if (((_swapData.lastSwappedAt / _swapInterval) + 1) * _swapInterval <= _blockTimestamp) {
-          _intervalsInSwap |= _mask;
-          _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
-          _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
+        if (((_swapData.lastSwappedAt / _swapInterval) + 1) * _swapInterval > _blockTimestamp) {
+          // Note: this 'break' is both an optimization and a search for more CoW. Since this loop starts with the smaller intervals, it is
+          // highly unlikely that if a small interval can't be swapped, a bigger interval can. It could only happen when a position was just
+          // created for a new swap interval. At the same time, by adding this check, we force intervals to be swapped together. Therefore
+          // increasing the chance of CoW (Coincidence of Wants), and reducing the need for external funds.
+          break;
         }
+        _intervalsInSwap |= _mask;
+        _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
+        _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
       }
       _mask <<= 1;
     }
