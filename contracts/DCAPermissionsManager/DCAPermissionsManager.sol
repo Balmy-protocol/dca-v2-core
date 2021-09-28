@@ -2,24 +2,24 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
 import '../interfaces/IDCATokenDescriptor.sol';
 import '../interfaces/IDCAPermissionManager.sol';
 import '../libraries/PermissionMath.sol';
+import '../libraries/AddressSet.sol';
 import '../utils/Governable.sol';
 
 // Note: ideally, this would be part of the DCAHub. However, since we've reached the max bytecode size, we needed to make it its own contract
 contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionManager {
   struct TokenInfo {
     mapping(address => uint8) permissions;
-    EnumerableSet.AddressSet operators;
+    AddressSet.Set operators;
     // TODO: Test if avoiding enumerable set is cheaper
   }
 
   using PermissionMath for Permission[];
   using PermissionMath for uint8;
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using AddressSet for AddressSet.Set;
 
   bytes32 public constant PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
   bytes32 public constant PERMISSION_PERMIT_TYPEHASH =

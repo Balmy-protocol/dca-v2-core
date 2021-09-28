@@ -5,7 +5,7 @@ pragma solidity ^0.8.6;
 import '../../DCAPermissionsManager/DCAPermissionsManager.sol';
 
 contract DCAPermissionsManagerMock is DCAPermissionsManager {
-  using EnumerableSet for EnumerableSet.AddressSet;
+  using AddressSet for AddressSet.Set;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor) DCAPermissionsManager(_governor, _descriptor) {}
 
