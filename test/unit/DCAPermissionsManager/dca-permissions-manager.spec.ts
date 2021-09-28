@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { DCAPermissionsManagerMock__factory, DCAPermissionsManagerMock } from '@typechained';
+import { DCAPermissionsManager__factory, DCAPermissionsManager } from '@typechained';
 import { constants, wallet, behaviours } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -17,15 +17,15 @@ contract('DCAPermissionsManager', () => {
   const NFT_NAME = 'Mean Finance DCA';
   const NFT_DESCRIPTOR = wallet.generateRandomAddress();
   let hub: SignerWithAddress, governor: SignerWithAddress;
-  let DCAPermissionsManagerFactory: DCAPermissionsManagerMock__factory;
-  let DCAPermissionsManager: DCAPermissionsManagerMock;
+  let DCAPermissionsManagerFactory: DCAPermissionsManager__factory;
+  let DCAPermissionsManager: DCAPermissionsManager;
   let snapshotId: string;
   let chainId: BigNumber;
 
   before('Setup accounts and contracts', async () => {
     [hub, governor] = await ethers.getSigners();
     DCAPermissionsManagerFactory = await ethers.getContractFactory(
-      'contracts/mocks/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManagerMock'
+      'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
     );
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     await DCAPermissionsManager.setHub(hub.address);
@@ -38,7 +38,7 @@ contract('DCAPermissionsManager', () => {
   });
 
   describe('constructor', () => {
-    let DCAPermissionsManager: DCAPermissionsManagerMock;
+    let DCAPermissionsManager: DCAPermissionsManager;
     given(async () => {
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     });
@@ -92,7 +92,7 @@ contract('DCAPermissionsManager', () => {
 
     when('parameter is a valid address', () => {
       const ADDRESS = wallet.generateRandomAddress();
-      let DCAPermissionsManager: DCAPermissionsManagerMock;
+      let DCAPermissionsManager: DCAPermissionsManager;
       given(async () => {
         DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
         await DCAPermissionsManager.setHub(ADDRESS);
@@ -176,11 +176,6 @@ contract('DCAPermissionsManager', () => {
         }
       });
 
-      then('there operators are assigned', async () => {
-        const operators = await DCAPermissionsManager.operators(TOKEN_ID);
-        expect(operators).to.eql([OPERATOR]);
-      });
-
       then('nft is created and assigned to owner', async () => {
         const tokenOwner = await DCAPermissionsManager.ownerOf(TOKEN_ID);
         const balance = await DCAPermissionsManager.balanceOf(OWNER);
@@ -210,11 +205,6 @@ contract('DCAPermissionsManager', () => {
       then('previous operators lost permissions', async () => {
         const hasPermission = await DCAPermissionsManager.hasPermission(TOKEN_ID, OPERATOR, Permission.WITHDRAW);
         expect(hasPermission).to.be.false;
-      });
-
-      then('operators list is now empty', async () => {
-        const operators = await DCAPermissionsManager.operators(TOKEN_ID);
-        expect(operators).to.be.empty;
       });
     });
   });
@@ -255,11 +245,6 @@ contract('DCAPermissionsManager', () => {
           args: [TOKEN_ID, OPERATOR, Permission.WITHDRAW],
           message: 'ERC721: owner query for nonexistent token',
         });
-      });
-
-      then('operators list is now empty', async () => {
-        const operators = await DCAPermissionsManager.operators(TOKEN_ID);
-        expect(operators).to.be.empty;
       });
     });
   });
@@ -332,12 +317,10 @@ contract('DCAPermissionsManager', () => {
           tx = await DCAPermissionsManager.connect(owner).modify(TOKEN_ID, modify);
         });
         then('then permissions are updated correctly', async () => {
-          const operators = await DCAPermissionsManager.operators(TOKEN_ID);
           for (const { operator, permissions } of expected) {
             for (const permission of [Permission.INCREASE, Permission.REDUCE, Permission.TERMINATE, Permission.WITHDRAW]) {
               expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, operator, permission)).to.equal(permissions.includes(permission));
             }
-            expect(operators.includes(operator)).to.equal(permissions.length > 0);
           }
         });
         then('event is emitted', async () => {

@@ -2,7 +2,6 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
 import '../interfaces/IDCATokenDescriptor.sol';
 import '../interfaces/IDCAPermissionManager.sol';
@@ -11,15 +10,13 @@ import '../utils/Governable.sol';
 
 // Note: ideally, this would be part of the DCAHub. However, since we've reached the max bytecode size, we needed to make it its own contract
 contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionManager {
-  struct TokenInfo {
-    mapping(address => uint8) permissions;
-    EnumerableSet.AddressSet operators;
-    // TODO: Test if avoiding enumerable set is cheaper
+  struct InternalPermission {
+    uint8 permissions;
+    uint32 lastUpdated;
   }
 
   using PermissionMath for Permission[];
   using PermissionMath for uint8;
-  using EnumerableSet for EnumerableSet.AddressSet;
 
   bytes32 public constant PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
   bytes32 public constant PERMISSION_PERMIT_TYPEHASH =
@@ -30,7 +27,8 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   IDCATokenDescriptor public nftDescriptor;
   address public hub;
   mapping(address => uint256) public nonces;
-  mapping(uint256 => TokenInfo) internal _tokens;
+  mapping(uint256 => uint32) public lastOwnershipChange;
+  mapping(uint256 => mapping(address => InternalPermission)) internal _tokenPermissions;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
     ERC721('Mean Finance DCA', 'DCA')
@@ -62,7 +60,12 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     address _address,
     Permission _permission
   ) external view returns (bool) {
-    return ownerOf(_id) == _address || _tokens[_id].permissions[_address].hasPermission(_permission);
+    if (ownerOf(_id) == _address) {
+      return true;
+    }
+    InternalPermission memory _internalPermission = _tokenPermissions[_id][_address];
+    // If there was an ownership change after the permission was last updated, then the address doesn't have the permission
+    return _internalPermission.permissions.hasPermission(_permission) && lastOwnershipChange[_id] <= _internalPermission.lastUpdated;
   }
 
   function burn(uint256 _id) external {
@@ -155,14 +158,12 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
+    uint32 _blockTimestamp = uint32(block.timestamp);
     for (uint256 i; i < _permissions.length; i++) {
-      if (_permissions[i].permissions.length == 0) {
-        _tokens[_id].operators.remove(_permissions[i].operator);
-        delete _tokens[_id].permissions[_permissions[i].operator];
-      } else {
-        _tokens[_id].operators.add(_permissions[i].operator);
-        _tokens[_id].permissions[_permissions[i].operator] = _permissions[i].permissions.toUInt8();
-      }
+      _tokenPermissions[_id][_permissions[i].operator] = InternalPermission({
+        permissions: _permissions[i].permissions.toUInt8(),
+        lastUpdated: _blockTimestamp
+      });
     }
   }
 
@@ -171,11 +172,6 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     address,
     uint256 _id
   ) internal override {
-    TokenInfo storage _info = _tokens[_id];
-    while (_info.operators.length() > 0) {
-      address _operator = _info.operators.at(0);
-      delete _info.permissions[_operator];
-      _info.operators.remove(_operator);
-    }
+    lastOwnershipChange[_id] = uint32(block.timestamp);
   }
 }
