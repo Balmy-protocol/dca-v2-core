@@ -168,10 +168,16 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   function _beforeTokenTransfer(
-    address,
-    address,
+    address _from,
+    address _to,
     uint256 _id
   ) internal override {
-    lastOwnershipChange[_id] = uint32(block.timestamp);
+    if (_to == address(0)) {
+      // When token is being burned, we can delete this entry on the mapping
+      delete lastOwnershipChange[_id];
+    } else if (_from != address(0)) {
+      // If the token is being minted, then no need to write this
+      lastOwnershipChange[_id] = uint32(block.timestamp);
+    }
   }
 }
