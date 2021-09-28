@@ -80,6 +80,23 @@ contract('DCAHubConfigHandler', () => {
         const adminRole = await deployedContract.getRoleAdmin(await deployedContract.PLATFORM_WITHDRAW_ROLE());
         expect(adminRole).to.equal(timeLockedRole);
       });
+      then(`bigger intervals start allowed`, async () => {
+        const allowedIntervals = [SwapInterval.ONE_WEEK, SwapInterval.ONE_DAY, SwapInterval.FOUR_HOURS, SwapInterval.ONE_HOUR];
+        for (const interval of allowedIntervals) {
+          expect(await DCAHubConfigHandler.isSwapIntervalAllowed(interval.mask)).to.be.true;
+        }
+      });
+      then(`smaller intervals are not allowed`, async () => {
+        const nonAllowedInterval = [
+          SwapInterval.THIRTY_MINUTES,
+          SwapInterval.FIFTEEN_MINUTES,
+          SwapInterval.FIVE_MINUTES,
+          SwapInterval.ONE_MINUTE,
+        ];
+        for (const interval of nonAllowedInterval) {
+          expect(await DCAHubConfigHandler.isSwapIntervalAllowed(interval.mask)).to.be.false;
+        }
+      });
     });
   });
 

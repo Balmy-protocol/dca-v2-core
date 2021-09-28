@@ -23,7 +23,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
   uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
-  bytes1 public allowedSwapIntervals;
+  bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
 
   constructor(
     address _immediateGovernor,

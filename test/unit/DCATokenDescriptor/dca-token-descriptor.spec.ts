@@ -4,18 +4,18 @@ import { behaviours } from '@test-utils';
 import { contract, then, when } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
 import { expect } from 'chai';
-import { SUPPORTED_SWAP_INTERVALS } from '../DCAHub/dca-hub-parameters.spec';
+import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCATokenDescriptor', () => {
   const SWAP_INTERVALS_DESCRIPTIONS = [
+    'Every minute',
     'Every 5 minutes',
     'Every 15 minutes',
     'Every 30 minutes',
     'Hourly',
-    'Every 12 hours',
+    'Every 4 hours',
     'Daily',
     'Weekly',
-    'Monthy',
   ];
   let DCATokenDescriptor: DCATokenDescriptor;
   let snapshotId: string;
@@ -46,9 +46,9 @@ contract('DCATokenDescriptor', () => {
 
     when('calling intervalToDescription with a valid interval', () => {
       then('result is returned correctly', async () => {
-        for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
-          const interval = SUPPORTED_SWAP_INTERVALS[i];
-          expect(await DCATokenDescriptor.intervalToDescription(interval)).to.equal(SWAP_INTERVALS_DESCRIPTIONS[i]);
+        for (let i = 0; i < SwapInterval.INTERVALS.length; i++) {
+          const interval = SwapInterval.INTERVALS[i];
+          expect(await DCATokenDescriptor.intervalToDescription(interval.seconds)).to.equal(SWAP_INTERVALS_DESCRIPTIONS[i]);
         }
       });
     });

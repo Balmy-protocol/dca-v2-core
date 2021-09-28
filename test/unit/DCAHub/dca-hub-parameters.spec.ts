@@ -6,18 +6,7 @@ import { contract, then, when } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
 import { expect } from 'chai';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import moment from 'moment';
-
-export const SUPPORTED_SWAP_INTERVALS = [
-  moment.duration(5, 'minutes').asSeconds(),
-  moment.duration(15, 'minutes').asSeconds(),
-  moment.duration(30, 'minutes').asSeconds(),
-  moment.duration(1, 'hour').asSeconds(),
-  moment.duration(12, 'hours').asSeconds(),
-  moment.duration(1, 'day').asSeconds(),
-  moment.duration(1, 'week').asSeconds(),
-  moment.duration(30, 'days').asSeconds(),
-];
+import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCAHubParameters', () => {
   let owner: SignerWithAddress;
@@ -74,11 +63,10 @@ contract('DCAHubParameters', () => {
 
     when('calling intervalToMask/maskToInterval with a valid input', () => {
       then('result is returned correctly', async () => {
-        for (let i = 0; i < SUPPORTED_SWAP_INTERVALS.length; i++) {
-          const interval = SUPPORTED_SWAP_INTERVALS[i];
-          const mask = '0x' + (1 << i).toString(16).padStart(2, '0');
-          expect(await DCAHubParameters.intervalToMask(interval)).to.equal(mask);
-          expect(await DCAHubParameters.maskToInterval(mask)).to.equal(interval);
+        for (let i = 0; i < SwapInterval.INTERVALS.length; i++) {
+          const interval = SwapInterval.INTERVALS[i];
+          expect(await DCAHubParameters.intervalToMask(interval.seconds)).to.equal(interval.mask);
+          expect(await DCAHubParameters.maskToInterval(interval.mask)).to.equal(interval.seconds);
         }
       });
     });
