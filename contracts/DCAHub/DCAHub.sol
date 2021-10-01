@@ -8,12 +8,23 @@ import './DCAHubLoanHandler.sol';
 import './DCAHubConfigHandler.sol';
 import './DCAHubPlatformHandler.sol';
 
-// TODO: Implement interface again
-contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCAHubPositionHandler, DCAHubLoanHandler, DCAHubPlatformHandler {
+contract DCAHub is
+  DCAHubParameters,
+  DCAHubConfigHandler,
+  DCAHubSwapHandler,
+  DCAHubPositionHandler,
+  DCAHubLoanHandler,
+  DCAHubPlatformHandler,
+  IDCAHub
+{
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
     ITimeWeightedOracle _oracle,
     IDCAPermissionManager _permissionManager
   ) DCAHubPositionHandler(_permissionManager) DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle) {}
+
+  function paused() public view override(IDCAHubConfigHandler, DCAHubConfigHandler) returns (bool) {
+    return super.paused();
+  }
 }

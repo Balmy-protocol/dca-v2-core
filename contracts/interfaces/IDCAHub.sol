@@ -279,7 +279,7 @@ interface IDCAHubSwapHandler {
 
   /// @notice Returns all information related to the next swap
   /// @dev Will revert with:
-  /// With InvalidTokens if _tokens are not sorted, or if there are duplicated
+  /// With InvalidTokens if _tokens are not sorted, or if there are duplicates
   /// With InvalidPairs if _pairs are not sorted (first by indexTokenA and then indexTokenB), or if indexTokenA >= indexTokenB for any pair
   /// @param _tokens The tokens involved in the next swap
   /// @param _pairs The pairs that you want to swap. Each element of the list points to the index of the token in the _tokens array
@@ -288,7 +288,7 @@ interface IDCAHubSwapHandler {
 
   /// @notice Executes a flash swap
   /// @dev Will revert with:
-  /// With InvalidTokens if _tokens are not sorted, or if there are duplicated
+  /// With InvalidTokens if _tokens are not sorted, or if there are duplicates
   /// With InvalidPairs if _pairs are not sorted (first by indexTokenA and then indexTokenB), or if indexTokenA >= indexTokenB for any pair
   /// Paused if swaps are paused by protocol
   /// NoSwapsToExecute if there are no swaps to execute for the given pairs
@@ -435,19 +435,26 @@ interface IDCAHubPlatformHandler {
 
 interface IDCAHub is
   IDCAHubParameters,
+  IDCAHubConfigHandler,
   IDCAHubSwapHandler,
   IDCAHubPositionHandler,
   IDCAHubLoanHandler,
-  IDCAHubConfigHandler,
   IDCAHubPlatformHandler
 {
-  // TODO: Add doc
+  /// @notice Specifies an amount of a token. For example to determine how much to borrow from certain tokens
   struct AmountOfToken {
+    // The tokens' address
     address token;
+    // How much to borrow or withdraw of the specified token
     uint256 amount;
   }
 
+  /// @notice Thrown when one of the parameters is a zero address
   error ZeroAddress();
+
+  /// @notice Thrown when the expected liquidity is not returned, either in flash loans or swaps
   error LiquidityNotReturned();
+
+  /// @notice Thrown when a list of token pairs is not sorted, or if there are duplicates
   error InvalidTokens();
 }

@@ -75,7 +75,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     _unpause();
   }
 
-  function paused() public view override(IDCAHubConfigHandler, Pausable) returns (bool) {
+  function paused() public view virtual override(IDCAHubConfigHandler, Pausable) returns (bool) {
     return super.paused();
   }
 

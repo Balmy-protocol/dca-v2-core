@@ -9,7 +9,7 @@ import '../libraries/NFTDescriptor.sol';
 /// @notice Produces a string containing the data URI for a JSON metadata string
 contract DCATokenDescriptor is IDCATokenDescriptor {
   function tokenURI(address _hub, uint256 _tokenId) external view returns (string memory) {
-    IDCAHubPositionHandler.UserPosition memory _userPosition = IDCAHub(_hub).userPosition(_tokenId);
+    IDCAHub.UserPosition memory _userPosition = IDCAHub(_hub).userPosition(_tokenId);
 
     return
       NFTDescriptor.constructTokenURI(
