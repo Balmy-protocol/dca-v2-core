@@ -8,15 +8,12 @@ import './DCAHubParameters.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
   // Internal constants (should be constants, but apparently the byte code size increases when they are)
-
-  // solhint-disable-next-line var-name-mixedcase
+  // solhint-disable var-name-mixedcase
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
-  // solhint-disable-next-line var-name-mixedcase
   bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
-  // solhint-disable-next-line var-name-mixedcase
   bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
-  // solhint-disable-next-line var-name-mixedcase
   uint32 public MAX_FEE = 10 * FEE_PRECISION; // 10%
+  // solhint-enable var-name-mixedcase
 
   ITimeWeightedOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
