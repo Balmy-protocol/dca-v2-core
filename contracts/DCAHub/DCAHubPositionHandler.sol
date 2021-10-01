@@ -130,7 +130,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _amount,
     uint32 _newAmountOfSwaps
   ) external nonReentrant whenNotPaused {
-    _modify(_positionId, _amount, _newAmountOfSwaps, address(0), true);
+    _modify(_positionId, _amount, _newAmountOfSwaps, address(0));
   }
 
   function reducePosition(
@@ -140,17 +140,17 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _recipient
   ) external nonReentrant {
     if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
-    _modify(_positionId, _amount, _newAmountOfSwaps, _recipient, false);
+    _modify(_positionId, _amount, _newAmountOfSwaps, _recipient);
   }
 
   function _modify(
     uint256 _positionId,
     uint256 _amount,
     uint32 _newAmountOfSwaps,
-    address _recipient,
-    bool _increase
+    address _recipient
   ) internal {
     DCA memory _userPosition = _userPositions[_positionId];
+    bool _increase = _recipient == address(0);
     _assertPositionExistsAndCallerHasPermission(
       _positionId,
       _userPosition,
