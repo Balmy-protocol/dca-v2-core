@@ -306,7 +306,29 @@ interface IDCAHubConfigHandler {
   function unpause() external;
 }
 
-interface IDCAHub is IDCAHubParameters, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubLoanHandler, IDCAHubConfigHandler {
+/// @title The interface for handling platform related actions
+/// @notice This contract will handle all actions that affect the platform in some way
+interface IDCAHubPlatformHandler {
+  /// @notice Emitted when someone withdraws from the paltform balance
+  /// @param sender The address of the user that initiated the withdraw
+  /// @param recipient The address that received the withdraw
+  /// @param amounts The tokens (and the amount) that were withdrawn
+  event WithdrewFromPlatform(address indexed sender, address indexed recipient, IDCAHub.AmountOfToken[] amounts);
+
+  /// @notice Withdraws tokens from the platform balance
+  /// @param _amounts The amounts to withdraw
+  /// @param _recipient The address that will receive the tokens
+  function withdrawFromPlatformBalance(IDCAHub.AmountOfToken[] calldata _amounts, address _recipient) external;
+}
+
+interface IDCAHub is
+  IDCAHubParameters,
+  IDCAHubSwapHandler,
+  IDCAHubPositionHandler,
+  IDCAHubLoanHandler,
+  IDCAHubConfigHandler,
+  IDCAHubPlatformHandler
+{
   struct AmountOfToken {
     address token;
     uint256 amount;

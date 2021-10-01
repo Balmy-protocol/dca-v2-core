@@ -5,10 +5,8 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './DCAHubConfigHandler.sol';
 
-abstract contract DCAHubPlatformHandler is ReentrancyGuard, DCAHubConfigHandler {
+abstract contract DCAHubPlatformHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPlatformHandler {
   using SafeERC20 for IERC20Metadata;
-
-  event WithdrewFromPlatform(address indexed sender, address indexed recipient, IDCAHub.AmountOfToken[] amounts);
 
   function withdrawFromPlatformBalance(IDCAHub.AmountOfToken[] calldata _amounts, address _recipient)
     external
