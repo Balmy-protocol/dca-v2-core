@@ -342,7 +342,12 @@ contract('DCAHub', () => {
     async function reducePosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {
       const token = position.from.address === tokenA.address ? tokenA : tokenB;
       await token.connect(position.owner).approve(DCAHub.address, token.asUnits(args.amount).mul(args.newSwaps));
-      const response = await DCAHub.connect(position.owner).reducePosition(position.id, token.asUnits(args.amount), args.newSwaps);
+      const response = await DCAHub.connect(position.owner).reducePosition(
+        position.id,
+        token.asUnits(args.amount),
+        args.newSwaps,
+        position.owner.address
+      );
       position.amountOfSwaps = BigNumber.from(args.newSwaps);
       position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }

@@ -207,7 +207,7 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.reducePosition(0, 0, 0)).data!,
+        attack: async () => (await DCAHub.populateTransaction.reducePosition(0, 0, 0, wallet.generateRandomAddress())).data!,
       });
 
       testReentrantAttack({

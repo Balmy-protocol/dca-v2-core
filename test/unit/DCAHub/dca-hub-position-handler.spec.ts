@@ -800,7 +800,7 @@ contract('DCAPositionHandler', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'reducePosition',
-          args: [100, tokenA.asUnits(AMOUNT_TO_REMOVE_1), POSITION_SWAPS_TO_PERFORM_10],
+          args: [100, tokenA.asUnits(AMOUNT_TO_REMOVE_1), POSITION_SWAPS_TO_PERFORM_10, wallet.generateRandomAddress()],
           message: 'InvalidPosition',
         });
       });
@@ -818,7 +818,7 @@ contract('DCAPositionHandler', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'reducePosition',
-          args: [positionId, tokenA.asUnits(POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10).add(1), 0],
+          args: [positionId, tokenA.asUnits(POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10).add(1), 0, wallet.generateRandomAddress()],
           message:
             'VM Exception while processing transaction: reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)',
         });
@@ -837,13 +837,33 @@ contract('DCAPositionHandler', () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPositionHandler,
           func: 'reducePosition',
-          args: [positionId, tokenA.asUnits(AMOUNT_TO_REMOVE_1), 0],
+          args: [positionId, tokenA.asUnits(AMOUNT_TO_REMOVE_1), 0, wallet.generateRandomAddress()],
           message: 'ZeroSwaps',
         });
       });
     });
 
-    permissionTest(Permission.REDUCE, ({ token, contract, positionId }) => contract.reducePosition(positionId, token.asUnits(1), 2));
+    when('removing funds but with an invalid recipient', () => {
+      then('tx is reverted with message', async () => {
+        const { positionId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        });
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'reducePosition',
+          args: [positionId, tokenA.asUnits(AMOUNT_TO_REMOVE_1), 1, constants.ZERO_ADDRESS],
+          message: 'ZeroAddress',
+        });
+      });
+    });
+
+    permissionTest(Permission.REDUCE, ({ token, contract, positionId }) =>
+      contract.reducePosition(positionId, token.asUnits(1), 2, wallet.generateRandomAddress())
+    );
 
     modifyPositionTest({
       title: `using remove funds to re-organize the unswapped balance`,
@@ -1180,7 +1200,7 @@ contract('DCAPositionHandler', () => {
   }
 
   function reducePosition(token: TokenContract, positionId: BigNumber, amount: number, swaps: number): Promise<TransactionResponse> {
-    return DCAPositionHandler.reducePosition(positionId, token.asUnits(amount), swaps);
+    return DCAPositionHandler.reducePosition(positionId, token.asUnits(amount), swaps, owner.address);
   }
 
   function withdrawSwapped(positionId: BigNumber, recipient: string): Promise<TransactionResponse> {

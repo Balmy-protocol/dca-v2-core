@@ -130,22 +130,24 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _amount,
     uint32 _newAmountOfSwaps
   ) external nonReentrant whenNotPaused {
-    _modify(_positionId, _amount, _newAmountOfSwaps, true);
+    _modify(_positionId, _amount, _newAmountOfSwaps, address(0), true);
   }
 
-  // TODO: Should we add a recipient?
   function reducePosition(
     uint256 _positionId,
     uint256 _amount,
-    uint32 _newAmountOfSwaps
+    uint32 _newAmountOfSwaps,
+    address _recipient
   ) external nonReentrant {
-    _modify(_positionId, _amount, _newAmountOfSwaps, false);
+    if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
+    _modify(_positionId, _amount, _newAmountOfSwaps, _recipient, false);
   }
 
   function _modify(
     uint256 _positionId,
     uint256 _amount,
     uint32 _newAmountOfSwaps,
+    address _recipient,
     bool _increase
   ) internal {
     DCA memory _userPosition = _userPositions[_positionId];
@@ -177,7 +179,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_increase) {
       IERC20Metadata(_userPosition.from).safeTransferFrom(msg.sender, address(this), _amount);
     } else {
-      IERC20Metadata(_userPosition.from).safeTransfer(msg.sender, _amount);
+      IERC20Metadata(_userPosition.from).safeTransfer(_recipient, _amount);
     }
 
     emit Modified(msg.sender, _positionId, _newRate, _startingSwap, _finalSwap);
