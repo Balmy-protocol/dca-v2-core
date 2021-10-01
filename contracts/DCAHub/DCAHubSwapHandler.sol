@@ -106,26 +106,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
   }
 
-  struct PairIndexes {
-    uint8 indexTokenA;
-    uint8 indexTokenB;
-  }
-
-  struct SwapInfo {
-    TokenInSwap[] tokens;
-    PairInSwap[] pairs;
-  }
-
-  struct PairInSwap {
-    address tokenA;
-    address tokenB;
-    uint256 ratioAToB;
-    uint256 ratioBToA;
-    bytes1 intervalsInSwap;
-  }
-
-  error InvalidPairs();
-
   function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
     public
     view
@@ -212,8 +192,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
     }
   }
-
-  event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
 
   function swap(
     address[] calldata _tokens,

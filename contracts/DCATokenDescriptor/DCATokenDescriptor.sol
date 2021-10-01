@@ -2,15 +2,14 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '../interfaces/IDCATokenDescriptor.sol';
-import '../DCAHub/DCAHub.sol';
+import '../interfaces/IDCAHub.sol';
 import '../libraries/NFTDescriptor.sol';
 
 /// @title Describes NFT token positions
 /// @notice Produces a string containing the data URI for a JSON metadata string
 contract DCATokenDescriptor is IDCATokenDescriptor {
   function tokenURI(address _hub, uint256 _tokenId) external view returns (string memory) {
-    // TODO: Stop using hub, and use interface when available
-    IDCAHubPositionHandler.UserPosition memory _userPosition = DCAHub(_hub).userPosition(_tokenId);
+    IDCAHubPositionHandler.UserPosition memory _userPosition = IDCAHub(_hub).userPosition(_tokenId);
 
     return
       NFTDescriptor.constructTokenURI(

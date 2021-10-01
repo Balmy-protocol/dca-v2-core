@@ -218,18 +218,93 @@ interface IDCAHubPositionHandler {
   ) external;
 }
 
-/// @title The interface for all swap related matters in a DCA pair
+/// @title The interface for all swap related matters
 /// @notice These methods allow users to get information about the next swap, and how to execute it
 interface IDCAHubSwapHandler {
+  /// @notice Information about a swap
+  struct SwapInfo {
+    // The tokens involved in the swap
+    TokenInSwap[] tokens;
+    // The pairs involved in the swap
+    PairInSwap[] pairs;
+  }
+
+  /// @notice Information about a token's role in a swap
   struct TokenInSwap {
+    // The token's address
     address token;
+    // How much will be given of this token as a reward
     uint256 reward;
+    // How much of this token needs to be provided by swapper
     uint256 toProvide;
+    // How much of this token will be paid to the platform
     uint256 platformFee;
   }
 
-  /// @notice Thrown when trying to execute a swap, but none is available
+  /// @notice Information about a pair in a swap
+  struct PairInSwap {
+    // The address of one of the tokens
+    address tokenA;
+    // The address of the other token
+    address tokenB;
+    // How much is 1 unit of token A when converted to B
+    uint256 ratioAToB;
+    // How much is 1 unit of token B when converted to A
+    uint256 ratioBToA;
+    // The swap intervals involved in the swap, represented as a byte
+    bytes1 intervalsInSwap;
+  }
+
+  /// @notice A pair of tokens, represented by their indexes in an array
+  struct PairIndexes {
+    // The index of the token A
+    uint8 indexTokenA;
+    // The index of the token B
+    uint8 indexTokenB;
+  }
+
+  /// @notice Emitted when a swap is executed
+  /// @param sender The address of the user that initiated the swap
+  /// @param to The address that received the reward + loan
+  /// @param swapInformation All information related to the swap
+  /// @param borrowed How much was borrowed
+  /// @param fee The swap fee at the moment of the swap
+  event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
+
+  /// @notice Thrown when pairs indexes are not sorted correctly
+  error InvalidPairs();
+
+  /// @notice Thrown when trying to execute a swap, but there is nothing to swap
   error NoSwapsToExecute();
+
+  /// @notice Returns all information related to the next swap
+  /// @dev Will revert with:
+  /// With InvalidTokens if _tokens are not sorted, or if there are duplicated
+  /// With InvalidPairs if _pairs are not sorted (first by indexTokenA and then indexTokenB), or if indexTokenA >= indexTokenB for any pair
+  /// @param _tokens The tokens involved in the next swap
+  /// @param _pairs The pairs that you want to swap. Each element of the list points to the index of the token in the _tokens array
+  /// @return _swapInformation The information about the next swap
+  function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs) external view returns (SwapInfo memory _swapInformation);
+
+  /// @notice Executes a flash swap
+  /// @dev Will revert with:
+  /// With InvalidTokens if _tokens are not sorted, or if there are duplicated
+  /// With InvalidPairs if _pairs are not sorted (first by indexTokenA and then indexTokenB), or if indexTokenA >= indexTokenB for any pair
+  /// Paused if swaps are paused by protocol
+  /// NoSwapsToExecute if there are no swaps to execute for the given pairs
+  /// LiquidityNotReturned if the required tokens were not back during the callback
+  /// @param _tokens The tokens involved in the next swap
+  /// @param _pairsToSwap The pairs that you want to swap. Each element of the list points to the index of the token in the _tokens array
+  /// @param _borrow How much to borrow of each of the tokens in _tokens. The amount must match the position of the token in the _tokens array
+  /// @param _to Address to send the reward + the borrowed tokens
+  /// @param _data Bytes to send to the caller during the callback
+  function swap(
+    address[] calldata _tokens,
+    PairIndexes[] calldata _pairsToSwap,
+    uint256[] calldata _borrow,
+    address _to,
+    bytes calldata _data
+  ) external;
 }
 
 /// @title The interface for all loan related matters
@@ -366,6 +441,7 @@ interface IDCAHub is
   IDCAHubConfigHandler,
   IDCAHubPlatformHandler
 {
+  // TODO: Add doc
   struct AmountOfToken {
     address token;
     uint256 amount;
