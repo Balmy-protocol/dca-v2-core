@@ -7,13 +7,17 @@ import '../interfaces/ITimeWeightedOracle.sol';
 import './DCAHubParameters.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
-  bytes32 public constant IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
-  bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
-  bytes32 public constant PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
+  // Internal constants (should be constants, but apparently the byte code size increases when they are)
+  // solhint-disable var-name-mixedcase
+  bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
+  bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
+  bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
+  uint32 public MAX_FEE = 10 * FEE_PRECISION; // 10%
+  // solhint-enable var-name-mixedcase
+
   ITimeWeightedOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
-  uint32 public constant MAX_FEE = 10 * FEE_PRECISION; // 10%
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
 
   constructor(
@@ -38,15 +42,13 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   }
 
   function setSwapFee(uint32 _swapFee) external onlyRole(TIME_LOCKED_ROLE) {
-    if (_swapFee > MAX_FEE) revert HighFee();
-    if (_swapFee % 100 != 0) revert InvalidFee();
+    _validateFee(_swapFee);
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
   }
 
   function setLoanFee(uint32 _loanFee) external onlyRole(TIME_LOCKED_ROLE) {
-    if (_loanFee > MAX_FEE) revert HighFee();
-    if (_loanFee % 100 != 0) revert InvalidFee();
+    _validateFee(_loanFee);
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
   }
@@ -75,5 +77,10 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function paused() public view override(IDCAHubConfigHandler, Pausable) returns (bool) {
     return super.paused();
+  }
+
+  function _validateFee(uint32 _fee) internal view {
+    if (_fee > MAX_FEE) revert HighFee();
+    if (_fee % 100 != 0) revert InvalidFee();
   }
 }

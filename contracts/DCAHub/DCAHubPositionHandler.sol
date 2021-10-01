@@ -35,14 +35,16 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _newestSwapToConsider = _performedSwaps < _position.finalSwap ? _performedSwaps : _position.finalSwap;
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
-    _userPosition.swapInterval = _position.swapIntervalMask > 0 ? maskToInterval(_position.swapIntervalMask) : 0;
     _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _newestSwapToConsider
       ? _newestSwapToConsider - _position.swapWhereLastUpdated
       : 0;
-    _userPosition.swapped = _position.swapIntervalMask > 0 ? _calculateSwapped(_positionId, _position, _performedSwaps) : 0;
     _userPosition.swapsLeft = _position.finalSwap > _performedSwaps ? _position.finalSwap - _performedSwaps : 0;
     _userPosition.remaining = _calculateUnswapped(_position, _performedSwaps);
     _userPosition.rate = _position.rate;
+    if (_position.swapIntervalMask > 0) {
+      _userPosition.swapInterval = maskToInterval(_position.swapIntervalMask);
+      _userPosition.swapped = _calculateSwapped(_positionId, _position, _performedSwaps);
+    }
   }
 
   function deposit(
@@ -61,7 +63,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     bytes1 _mask = intervalToMask(_swapInterval);
     if (allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
-    uint120 _rate = uint120(_amount / _amountOfSwaps);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
     if (_from < _to) {
@@ -69,7 +70,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     } else {
       activeSwapIntervals[_to][_from] |= _mask;
     }
-    _addPosition(_idCounter, _from, _to, _rate, _amountOfSwaps, _mask, _swapInterval, _owner);
+    _addPosition(_idCounter, _from, _to, uint120(_amount / _amountOfSwaps), _amountOfSwaps, _mask, _swapInterval, _owner);
     return _idCounter;
   }
 
@@ -203,11 +204,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _owner
   ) internal {
     uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _swapIntervalMask);
-    uint32 _startingSwap = _performedSwaps + 1;
     uint32 _finalSwap = _performedSwaps + _amountOfSwaps;
     _addToDelta(_from, _to, _swapIntervalMask, _finalSwap, _rate);
     _userPositions[_positionId] = DCA(_performedSwaps, _finalSwap, _swapIntervalMask, _rate, _from, _to);
-    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _startingSwap, _swapInterval, _finalSwap);
+    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _performedSwaps + 1, _swapInterval, _finalSwap);
   }
 
   function _addToDelta(
