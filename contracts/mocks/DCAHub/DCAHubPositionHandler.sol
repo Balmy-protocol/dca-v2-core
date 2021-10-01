@@ -12,11 +12,11 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandler
   {}
 
   // PositionHandler
-  function internalPosition(uint256 _dcaId) external view returns (DCA memory _dca) {
-    _dca = _userPositions[_dcaId];
+  function internalPosition(uint256 _positionId) external view returns (DCA memory _dca) {
+    _dca = _userPositions[_positionId];
   }
 
-  function setLastUpdated(uint256 _dcaId, uint32 _lastUpdated) external {
-    _userPositions[_dcaId].swapWhereLastUpdated = _lastUpdated;
+  function setLastUpdated(uint256 _positionId, uint32 _lastUpdated) external {
+    _userPositions[_positionId].swapWhereLastUpdated = _lastUpdated;
   }
 }

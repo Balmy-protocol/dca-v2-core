@@ -262,8 +262,8 @@ contract('DCAHub', () => {
         depositor.address,
         []
       );
-      const dcaId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
-      return { response, dcaId };
+      const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'positionId');
+      return { response, positionId };
     }
   });
 });

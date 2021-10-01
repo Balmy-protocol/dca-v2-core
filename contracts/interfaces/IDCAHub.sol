@@ -11,7 +11,7 @@ interface IDCAHubParameters {
   // TODO: See if we end up adding something. If not, delete
 }
 
-/// @title The interface for all position related matters in a DCA pair
+/// @title The interface for all position related matters
 /// @notice These methods allow users to create, modify and terminate their positions
 interface IDCAHubPositionHandler {
   /// @notice The position of a certain user
@@ -34,8 +34,11 @@ interface IDCAHubPositionHandler {
     uint120 rate;
   }
 
+  /// @notice A list of positions that all have the same `to` token
   struct PositionSet {
+    // The `to` token
     address token;
+    // The position ids
     uint256[] positionIds;
   }
 
@@ -43,14 +46,14 @@ interface IDCAHubPositionHandler {
   /// @param user The address of the user that terminated the position
   /// @param recipientUnswapped The address of the user that will receive the unswapped tokens
   /// @param recipientSwapped The address of the user that will receive the swapped tokens
-  /// @param dcaId The id of the position that was terminated
+  /// @param positionId The id of the position that was terminated
   /// @param returnedUnswapped How many "from" tokens were returned to the caller
   /// @param returnedSwapped How many "to" tokens were returned to the caller
   event Terminated(
     address indexed user,
     address indexed recipientUnswapped,
     address indexed recipientSwapped,
-    uint256 dcaId,
+    uint256 positionId,
     uint256 returnedUnswapped,
     uint256 returnedSwapped
   );
@@ -58,32 +61,32 @@ interface IDCAHubPositionHandler {
   /// @notice Emitted when a position is created
   /// @param depositor The address of the user that creates the position
   /// @param owner The address of the user that will own the position
-  /// @param dcaId The id of the position that was created
+  /// @param positionId The id of the position that was created
   /// @param fromToken The address of the "from" token
   /// @param toToken The address of the "to" token
+  /// @param swapInterval How frequently the position's swaps should be executed
   /// @param rate How many "from" tokens need to be traded in each swap
   /// @param startingSwap The number of the swap when the position will be executed for the first time
-  /// @param swapInterval How frequently the position's swaps should be executed
   /// @param lastSwap The number of the swap when the position will be executed for the last time
   event Deposited(
     address indexed depositor,
     address indexed owner,
-    uint256 dcaId,
+    uint256 positionId,
     address fromToken,
     address toToken,
+    uint32 swapInterval,
     uint120 rate,
     uint32 startingSwap,
-    uint32 swapInterval, // TODO: This order makes no sense. Why is swap interval between starting and last?
     uint32 lastSwap
   );
 
   /// @notice Emitted when a user withdraws all swapped tokens from a position
   /// @param withdrawer The address of the user that executed the withdraw
   /// @param recipient The address of the user that will receive the withdrawn tokens
-  /// @param dcaId The id of the position that was affected
+  /// @param positionId The id of the position that was affected
   /// @param token The address of the withdrawn tokens. It's the same as the position's "to" token
   /// @param amount The amount that was withdrawn
-  event Withdrew(address indexed withdrawer, address indexed recipient, uint256 dcaId, address token, uint256 amount);
+  event Withdrew(address indexed withdrawer, address indexed recipient, uint256 positionId, address token, uint256 amount);
 
   /// @notice Emitted when a user withdraws all swapped tokens from many positions
   /// @param withdrawer The address of the user that executed the withdraws
@@ -94,14 +97,17 @@ interface IDCAHubPositionHandler {
 
   /// @notice Emitted when a position is modified
   /// @param user The address of the user that modified the position
-  /// @param dcaId The id of the position that was modified
+  /// @param positionId The id of the position that was modified
   /// @param rate How many "from" tokens need to be traded in each swap
   /// @param startingSwap The number of the swap when the position will be executed for the first time
   /// @param lastSwap The number of the swap when the position will be executed for the last time
-  event Modified(address indexed user, uint256 dcaId, uint120 rate, uint32 startingSwap, uint32 lastSwap);
+  event Modified(address indexed user, uint256 positionId, uint120 rate, uint32 startingSwap, uint32 lastSwap);
 
-  /// @notice Thrown when a user tries to create a position with a token that is neither token A nor token B
+  /// @notice Thrown when a user tries to create a position with the same `from` & `to`
   error InvalidToken();
+
+  /// @notice Thrown when a user tries to create a position with a swap interval that is not allowed
+  error IntervalNotAllowed();
 
   /// @notice Thrown when a user tries operate on a position that doesn't exist (it might have been already terminated)
   error InvalidPosition();
@@ -109,25 +115,34 @@ interface IDCAHubPositionHandler {
   /// @notice Thrown when a user tries operate on a position that they don't have access to
   error UnauthorizedCaller();
 
-  /// @notice Thrown when a user tries to create or modify a position by setting the rate to be zero
-  error ZeroRate();
-
   /// @notice Thrown when a user tries to create a position with zero swaps
   error ZeroSwaps();
 
-  /// @notice Thrown when a user tries to add zero funds to their position
+  /// @notice Thrown when a user tries to create a position with zero funds
   error ZeroAmount();
 
-  /// @notice Thrown when a user tries to modify the rate of a position that has already been completed
-  error PositionCompleted();
-
+  /// @notice Thrown when a user tries to withdraw a position whose `to` token doesn't match the specified one
   error PositionDoesNotMatchToken();
 
-  /// @notice Returns a DCA position
-  /// @param _dcaId The id of the position
+  /// @notice Returns a user position
+  /// @param _positionId The id of the position
   /// @return _position The position itself
-  function userPosition(uint256 _dcaId) external view returns (UserPosition memory _position);
+  function userPosition(uint256 _positionId) external view returns (UserPosition memory _position);
 
+  /// @notice Creates a new position
+  /// @dev Will revert:
+  /// With ZeroAddress if _from, _to or _owner are zero
+  /// With InvalidToken if _from == _to
+  /// With ZeroAmount if _amount is zero
+  /// With ZeroSwaps if _amountOfSwaps is zero
+  /// With IntervalNotAllowed if _swapInterval is not allowed
+  /// @param _from The address of the "from" token
+  /// @param _to The address of the "to" token
+  /// @param _amount How many "from" tokens will be swapped in total
+  /// @param _amountOfSwaps How many swaps to execute for this position
+  /// @param _swapInterval How frequently the position's swaps should be executed
+  /// @param _owner The address of the owner of the position being created
+  /// @return _positionId The id of the created position
   function deposit(
     address _from,
     address _to,
@@ -136,46 +151,68 @@ interface IDCAHubPositionHandler {
     uint32 _swapInterval,
     address _owner,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
-  ) external returns (uint256 _dcaId);
+  ) external returns (uint256 _positionId);
 
   /// @notice Withdraws all swapped tokens from a position to a recipient
   /// @dev Will revert:
-  /// With ZeroAddress if recipient is zero
-  /// With InvalidPosition if _dcaId is invalid
+  /// With InvalidPosition if _positionId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
-  /// @param _dcaId The position's id
+  /// With ZeroAddress if recipient is zero
+  /// @param _positionId The position's id
   /// @param _recipient The address to withdraw swapped tokens to
   /// @return _swapped How much was withdrawn
-  function withdrawSwapped(uint256 _dcaId, address _recipient) external returns (uint256 _swapped);
+  function withdrawSwapped(uint256 _positionId, address _recipient) external returns (uint256 _swapped);
 
+  /// @notice Withdraws all swapped tokens from multiple positions
+  /// @dev Will revert:
+  /// With InvalidPosition if any of the position ids are invalid
+  /// With UnauthorizedCaller if the caller doesn't have access to the position to any of the given positions
+  /// With ZeroAddress if recipient is zero
+  /// With PositionDoesNotMatchToken if any of the positions do not match the token in their position set
+  /// @param _positions A list positions, grouped by `to` token
+  /// @param _recipient The address to withdraw swapped tokens to
   function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external;
 
   /// @notice Takes the unswapped balance, adds the new deposited funds and modifies the position so that
   /// it is executed in _newSwaps swaps
   /// @dev Will revert:
-  /// With InvalidPosition if _dcaId is invalid
+  /// With InvalidPosition if _positionId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// With ZeroAmount if _amount is zero
-  /// With ZeroSwaps if _newSwaps is zero
-  /// @param _dcaId The position's id
-  /// @param _amount Amounts of funds to add to the position
+  /// @param _positionId The position's id
+  /// @param _amount Amount of funds to add to the position
   /// @param _newSwaps The new amount of swaps
   function increasePosition(
-    uint256 _dcaId,
+    uint256 _positionId,
     uint256 _amount,
     uint32 _newSwaps
   ) external;
 
-  /// @notice Terminates the position and sends all unswapped and swapped balance to the caller
+  /// @notice Withdraws the specified amount from the unswapped balance and modifies the position so that
+  /// it is executed in _newSwaps swaps
   /// @dev Will revert:
-  /// With ZeroAddress if _recipientUnswapped or _recipientSwapped is zero
-  /// With InvalidPosition if _dcaId is invalid
+  /// With InvalidPosition if _positionId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
-  /// @param _dcaId The position's id
+  /// With ZeroSwaps if _newSwaps is zero and _amount is not the total unswapped balance
+  /// @param _positionId The position's id
+  /// @param _amount Amount of funds to withdraw from the position
+  /// @param _newSwaps The new amount of swaps
+  function reducePosition(
+    uint256 _positionId,
+    uint256 _amount,
+    uint32 _newSwaps
+  ) external;
+
+  /// @notice Terminates the position and sends all unswapped and swapped balance to the specified recipients
+  /// @dev Will revert:
+  /// With InvalidPosition if _positionId is invalid
+  /// With UnauthorizedCaller if the caller doesn't have access to the position
+  /// With ZeroAddress if _recipientUnswapped or _recipientSwapped is zero
+  /// @param _positionId The position's id
   /// @param _recipientUnswapped The address to withdraw unswapped tokens to
   /// @param _recipientSwapped The address to withdraw swapped tokens to
   function terminate(
-    uint256 _dcaId,
+    uint256 _positionId,
     address _recipientUnswapped,
     address _recipientSwapped
   ) external;

@@ -372,7 +372,7 @@ contract('DCAHub', () => {
         depositor.address,
         []
       );
-      const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'dcaId');
+      const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'positionId');
       return {
         id: positionId,
         owner: depositor,

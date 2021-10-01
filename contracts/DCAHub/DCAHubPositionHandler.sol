@@ -15,8 +15,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address to;
   }
 
-  error IntervalNotAllowed();
-
   using SafeERC20 for IERC20Metadata;
 
   IDCAPermissionManager public permissionManager;
@@ -135,6 +133,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _modify(_positionId, _amount, _newAmountOfSwaps, true);
   }
 
+  // TODO: Should we add a recipient?
   function reducePosition(
     uint256 _positionId,
     uint256 _amount,
@@ -207,7 +206,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _finalSwap = _performedSwaps + _amountOfSwaps;
     _addToDelta(_from, _to, _swapIntervalMask, _finalSwap, _rate);
     _userPositions[_positionId] = DCA(_performedSwaps, _finalSwap, _swapIntervalMask, _rate, _from, _to);
-    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _rate, _performedSwaps + 1, _swapInterval, _finalSwap);
+    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _swapInterval, _rate, _performedSwaps + 1, _finalSwap);
   }
 
   function _addToDelta(
