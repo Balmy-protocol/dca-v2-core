@@ -54,11 +54,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     if (_numerator % _fromTokenMagnitude != 0) _amountTo++;
   }
 
-  struct Pair {
-    address tokenA;
-    address tokenB;
-  }
-
   function _getTimestamp() internal view virtual returns (uint32 _blockTimestamp) {
     _blockTimestamp = uint32(block.timestamp);
   }
