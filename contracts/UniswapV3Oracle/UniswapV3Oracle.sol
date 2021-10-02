@@ -52,8 +52,7 @@ contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
     _addSupportForPair(__tokenA, __tokenB);
   }
 
-  // TODO: Add to interface
-  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
+  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external override {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     if (_poolsForPair[__tokenA][__tokenB].length == 0) {
       _addSupportForPair(__tokenA, __tokenB);

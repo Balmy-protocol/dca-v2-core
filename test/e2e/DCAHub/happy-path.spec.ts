@@ -4,14 +4,13 @@ import { ethers } from 'hardhat';
 import {
   DCAHub,
   DCAHub__factory,
-  TimeWeightedOracleMock,
-  TimeWeightedOracleMock__factory,
   DCAHubSwapCalleeMock,
   DCAHubSwapCalleeMock__factory,
   DCAHubLoanCalleeMock,
   DCAHubLoanCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
+  ITimeWeightedOracle,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
@@ -21,6 +20,7 @@ import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 import { SwapInterval } from 'js-lib/interval-utils';
+import { FakeContract, smock } from '@defi-wonderland/smock';
 
 contract('DCAHub', () => {
   describe('Full e2e test', () => {
@@ -28,7 +28,7 @@ contract('DCAHub', () => {
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let timeWeightedOracleFactory: TimeWeightedOracleMock__factory, timeWeightedOracle: TimeWeightedOracleMock;
+    let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
     let DCAHubLoanCalleeFactory: DCAHubLoanCalleeMock__factory, DCAHubLoanCallee: DCAHubLoanCalleeMock;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
@@ -40,7 +40,6 @@ contract('DCAHub', () => {
     before('Setup accounts and contracts', async () => {
       [governor, john, lucy, sarah] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
-      timeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
       DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
       DCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:DCAHubLoanCalleeMock');
       DCAPermissionsManagerFactory = await ethers.getContractFactory(
@@ -61,9 +60,9 @@ contract('DCAHub', () => {
         decimals: 16,
       });
 
-      timeWeightedOracle = await timeWeightedOracleFactory.deploy(0, 0);
+      timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
-      await setSwapRatio(swapRatio1);
+      setSwapRatio(swapRatio1);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
       await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.FIFTEEN_MINUTES.seconds, SwapInterval.ONE_HOUR.seconds]);
@@ -120,7 +119,7 @@ contract('DCAHub', () => {
       await assertAmountsToSwapAre({ tokenA: 100, tokenB: 200 });
 
       const swapRatio2: SwapRatio = { tokenA: 1, tokenB: 1 };
-      await setSwapRatio(swapRatio2);
+      setSwapRatio(swapRatio2);
       await flashSwap({ callee: DCAHubSwapCallee });
 
       await assertNoSwapsCanBeExecutedNow();
@@ -209,7 +208,7 @@ contract('DCAHub', () => {
       const swapFee2 = 0.2;
       const swapRatio3: SwapRatio = { tokenA: 1, tokenB: 2 };
       await setSwapFee(swapFee2);
-      await setSwapRatio(swapRatio3);
+      setSwapRatio(swapRatio3);
       await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
 
       await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES, SwapInterval.ONE_HOUR);
@@ -302,8 +301,10 @@ contract('DCAHub', () => {
       position.rate = await readArgFromEventOrFail<BigNumber>(response, 'Modified', 'rate');
     }
 
-    async function setSwapRatio(ratio: SwapRatio) {
-      await timeWeightedOracle.setRate(tokenA.asUnits(ratio.tokenA / ratio.tokenB), tokenB.amountOfDecimals);
+    function setSwapRatio(ratio: SwapRatio) {
+      timeWeightedOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) =>
+        _amountIn.mul(tokenA.asUnits(ratio.tokenA / ratio.tokenB)).div(tokenB.magnitude)
+      );
     }
 
     async function withdraw(position: UserPositionDefinition, recipient: string): Promise<void> {

@@ -9,9 +9,8 @@ import {
   DCAHub__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  IUniswapV3OracleAggregator,
+  ITimeWeightedOracle,
 } from '@typechained';
-import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
 import { constants, erc20, evm } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -26,7 +25,7 @@ contract('DCAHub', () => {
     let alice: SignerWithAddress, john: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let timeWeightedOracle: FakeContract<IUniswapV3OracleAggregator>;
+    let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
 
@@ -43,7 +42,7 @@ contract('DCAHub', () => {
       const deploy = () => erc20.deploy({ name: 'A name', symbol: 'SYMB' });
       const tokens = [await deploy(), await deploy()];
       [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
-      timeWeightedOracle = await smock.fake(IUniswapV3OracleAggregatorABI);
+      timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);

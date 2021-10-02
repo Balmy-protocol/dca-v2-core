@@ -15,12 +15,12 @@ import {
   DCAPermissionsManager__factory,
   DCATokenDescriptor,
   DCATokenDescriptor__factory,
-  TimeWeightedOracleMock,
-  TimeWeightedOracleMock__factory,
+  ITimeWeightedOracle,
 } from '@typechained';
 import isSvg from 'is-svg';
 import { expect } from 'chai';
 import { buildSwapInput } from 'js-lib/swap-utils';
+import { FakeContract, smock } from '@defi-wonderland/smock';
 
 contract('DCATokenDescriptor', () => {
   let governor: SignerWithAddress;
@@ -31,8 +31,7 @@ contract('DCATokenDescriptor', () => {
   let DCATokenDescriptor: DCATokenDescriptor;
   let DCAPermissionsManagerFactory: DCAPermissionsManager__factory;
   let DCAPermissionsManager: DCAPermissionsManager;
-  let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
-  let TimeWeightedOracle: TimeWeightedOracleMock;
+  let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
   let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
   const swapInterval = moment.duration(1, 'day').as('seconds');
 
@@ -43,7 +42,6 @@ contract('DCATokenDescriptor', () => {
     DCAPermissionsManagerFactory = await ethers.getContractFactory(
       'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
     );
-    TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
     DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
   });
 
@@ -57,13 +55,14 @@ contract('DCATokenDescriptor', () => {
       name: 'tokenB',
       symbol: 'TKNB',
     });
-    TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(tokenA.asUnits(1), tokenA.amountOfDecimals); // Rate is 1 token A = 1 token B
+    timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
+    timeWeightedOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(tokenA.asUnits(1)).div(tokenB.magnitude));
     DCATokenDescriptor = await DCATokenDescriptorFactory.deploy();
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
     DCAHub = await DCAHubContract.deploy(
       governor.address,
       constants.NOT_ZERO_ADDRESS,
-      TimeWeightedOracle.address,
+      timeWeightedOracle.address,
       DCAPermissionsManager.address
     );
 

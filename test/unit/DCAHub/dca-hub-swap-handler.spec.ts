@@ -2,7 +2,7 @@ import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, BigNumberish, Contract } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHubSwapHandlerMock, DCAHubSwapHandlerMock__factory, TimeWeightedOracleMock, TimeWeightedOracleMock__factory } from '@typechained';
+import { DCAHubSwapHandlerMock, DCAHubSwapHandlerMock__factory, ITimeWeightedOracle } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, bn, behaviours } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -12,6 +12,7 @@ import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';
 import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 import { SwapInterval } from 'js-lib/interval-utils';
+import { FakeContract, smock } from '@defi-wonderland/smock';
 
 const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumber) => bn.mul(994).div(1000);
@@ -22,14 +23,12 @@ contract('DCAHubSwapHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
   let DCAHubSwapHandlerContract: DCAHubSwapHandlerMock__factory;
   let DCAHubSwapHandler: DCAHubSwapHandlerMock;
-  let timeWeightedOracleContract: TimeWeightedOracleMock__factory;
-  let timeWeightedOracle: TimeWeightedOracleMock;
+  let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
     [owner, swapper] = await ethers.getSigners();
     DCAHubSwapHandlerContract = await ethers.getContractFactory('contracts/mocks/DCAHub/DCAHubSwapHandler.sol:DCAHubSwapHandlerMock');
-    timeWeightedOracleContract = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
 
     const deploy = (decimals: number) =>
       erc20.deploy({
@@ -44,7 +43,7 @@ contract('DCAHubSwapHandler', () => {
 
     [tokenA, tokenB, tokenC] = tokens.sort((a, b) => a.address.localeCompare(b.address));
 
-    timeWeightedOracle = await timeWeightedOracleContract.deploy(0, 0);
+    timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
     DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(owner.address, owner.address, timeWeightedOracle.address);
     snapshotId = await snapshot.take();
   });
@@ -399,7 +398,7 @@ contract('DCAHubSwapHandler', () => {
       let ratioAToB: BigNumber;
       let ratioBToA: BigNumber;
       given(async () => {
-        await setOracleData({ ratioBToA: tokenA.asUnits(0.6) });
+        setOracleData({ ratioBToA: tokenA.asUnits(0.6) });
         [ratioAToB, ratioBToA] = await DCAHubSwapHandler.calculateRatio(
           tokenA.address,
           tokenB.address,
@@ -841,8 +840,8 @@ contract('DCAHubSwapHandler', () => {
     });
   });
 
-  const setOracleData = async ({ ratioBToA }: { ratioBToA: BigNumber }) => {
-    await timeWeightedOracle.setRate(ratioBToA, tokenB.amountOfDecimals);
+  const setOracleData = ({ ratioBToA }: { ratioBToA: BigNumber }) => {
+    timeWeightedOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(ratioBToA).div(tokenB.magnitude));
   };
 
   describe('flash swap', () => {

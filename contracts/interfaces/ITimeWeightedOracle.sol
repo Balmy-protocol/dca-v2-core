@@ -35,6 +35,13 @@ interface ITimeWeightedOracle {
   /// @param _tokenA One of the pair's tokens
   /// @param _tokenB The other of the pair's tokens
   function reconfigureSupportForPair(address _tokenA, address _tokenB) external;
+
+  /// @notice Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported,
+  /// then nothing will happen. This function will let the oracle take some actions to configure the pair for future quotes.
+  /// @dev Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+  /// @param _tokenA One of the pair's tokens
+  /// @param _tokenB The other of the pair's tokens
+  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external;
 }
 
 /// @title An implementation of ITimeWeightedOracle that uses Uniswap V3 pool oracles

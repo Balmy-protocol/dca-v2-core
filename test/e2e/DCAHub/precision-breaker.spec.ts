@@ -7,9 +7,8 @@ import {
   DCAHub__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  IUniswapV3OracleAggregator,
+  ITimeWeightedOracle,
 } from '@typechained';
-import { abi as IUniswapV3OracleAggregatorABI } from '@artifacts/contracts/interfaces/ITimeWeightedOracle.sol/IUniswapV3OracleAggregator.json';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -24,7 +23,7 @@ contract('DCAHub', () => {
     let alice: SignerWithAddress, john: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let timeWeightedOracle: FakeContract<IUniswapV3OracleAggregator>;
+    let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
 
@@ -49,7 +48,7 @@ contract('DCAHub', () => {
         symbol: 'DAI',
         decimals: 18,
       });
-      timeWeightedOracle = await smock.fake(IUniswapV3OracleAggregatorABI);
+      timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
       DCAPermissionsManager.setHub(DCAHub.address);

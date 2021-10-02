@@ -5,14 +5,13 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import {
   DCAHub,
   DCAHub__factory,
-  TimeWeightedOracleMock,
-  TimeWeightedOracleMock__factory,
   ReentrantDCAHubSwapCalleeMock,
   ReentrantDCAHubSwapCalleeMock__factory,
   ReentrantDCAHubLoanCalleeMock,
   ReentrantDCAHubLoanCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
+  ITimeWeightedOracle,
 } from '@typechained';
 import { constants, erc20, wallet } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
@@ -21,6 +20,7 @@ import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { snapshot } from '@test-utils/evm';
 import { SwapInterval } from 'js-lib/interval-utils';
+import { FakeContract, smock } from '@defi-wonderland/smock';
 
 contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
@@ -31,8 +31,7 @@ contract('DCAHub', () => {
     let DCAHub: DCAHub;
     let reentrantDCAHubSwapCalleeFactory: ReentrantDCAHubSwapCalleeMock__factory;
     let reentrantDCAHubLoanCalleeFactory: ReentrantDCAHubLoanCalleeMock__factory;
-    let TimeWeightedOracleFactory: TimeWeightedOracleMock__factory;
-    let TimeWeightedOracle: TimeWeightedOracleMock;
+    let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let snapshotId: string;
 
@@ -41,7 +40,6 @@ contract('DCAHub', () => {
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       reentrantDCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');
-      TimeWeightedOracleFactory = await ethers.getContractFactory('contracts/mocks/DCAHub/TimeWeightedOracleMock.sol:TimeWeightedOracleMock');
       DCAPermissionsManagerFactory = await ethers.getContractFactory(
         'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
       );
@@ -49,12 +47,12 @@ contract('DCAHub', () => {
       const deploy = () => erc20.deploy({ name: 'A name', symbol: 'SYMB' });
       const tokens = [await deploy(), await deploy()];
       [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
-      TimeWeightedOracle = await TimeWeightedOracleFactory.deploy(0, 0);
+      timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(
         governor.address,
         constants.NOT_ZERO_ADDRESS,
-        TimeWeightedOracle.address,
+        timeWeightedOracle.address,
         DCAPermissionsManager.address
       );
       await DCAPermissionsManager.setHub(DCAHub.address);
@@ -93,7 +91,7 @@ contract('DCAHub', () => {
       const swapsTokenA = 13;
       let reentrantDCAHubSwapCallee: ReentrantDCAHubSwapCalleeMock;
       given(async () => {
-        await TimeWeightedOracle.setRate(tokenA.asUnits('1'), 18);
+        timeWeightedOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(tokenA.asUnits(1).div(tokenB.magnitude)));
         await deposit({
           from: () => tokenA,
           to: () => tokenB,

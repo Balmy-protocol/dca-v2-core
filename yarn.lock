@@ -199,11 +199,12 @@
   dependencies:
     "@cspotcode/source-map-consumer" "0.8.0"
 
-"@defi-wonderland/smock@2.0.2":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@defi-wonderland/smock/-/smock-2.0.2.tgz#0be863a61420fb162190c9be8798befada179f30"
-  integrity sha512-nZtnUftPkMmFedqDzBqQrZWX+6Q3fK5MNMK3R6mLTg8Ig087A7ifs1KH9vGGpZ3p9RdgC+scUy9KfDASp2SKxg==
+"@defi-wonderland/smock@2.0.7":
+  version "2.0.7"
+  resolved "https://registry.yarnpkg.com/@defi-wonderland/smock/-/smock-2.0.7.tgz#59d5fc93e175ad120c5dcdd8294e07525606c855"
+  integrity sha512-RVpODLKZ/Cr0C1bCbhJ2aXbAr2Ll/K2WO7hDL96tqhMzCsA7ToWdDIgiNpV5Vtqqvpftu5ddO7v3TAurQNSU0w==
   dependencies:
+    "@nomiclabs/ethereumjs-vm" "^4.2.2"
     diff "^5.0.0"
     lodash.isequal "^4.5.0"
     lodash.isequalwith "^4.4.0"
@@ -744,7 +745,7 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@nomiclabs/ethereumjs-vm@4.2.2":
+"@nomiclabs/ethereumjs-vm@4.2.2", "@nomiclabs/ethereumjs-vm@^4.2.2":
   version "4.2.2"
   resolved "https://registry.yarnpkg.com/@nomiclabs/ethereumjs-vm/-/ethereumjs-vm-4.2.2.tgz#2f8817113ca0fb6c44c1b870d0a809f0e026a6cc"
   integrity sha512-8WmX94mMcJaZ7/m7yBbyuS6B+wuOul+eF+RY9fBpGhNaUpyMR/vFIcDojqcWQ4Yafe1tMKY5LDu2yfT4NZgV4Q==
