@@ -21,11 +21,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapIntervalMask];
     if (_swapData.nextAmountToSwapAToB > 0 || _swapData.nextAmountToSwapBToA > 0) {
       AccumRatio memory _accumRatio = accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps];
-      SwapDelta memory _swapDelta = swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
       accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 1] = AccumRatio({
         accumRatioAToB: _accumRatio.accumRatioAToB + _ratioAToB,
         accumRatioBToA: _accumRatio.accumRatioBToA + _ratioBToA
       });
+      SwapDelta memory _swapDelta = swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
       swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapData.performedSwaps + 1,
         lastSwappedAt: _timestamp,
@@ -134,8 +134,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       _swapInformation.pairs[i].tokenA = _tokens[indexTokenA];
       _swapInformation.pairs[i].tokenB = _tokens[indexTokenB];
-      uint120 _magnitudeA = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenA).decimals());
-      uint120 _magnitudeB = uint120(10**IERC20Metadata(_swapInformation.pairs[i].tokenB).decimals());
+      uint120 _magnitudeA = _calculateMagnitude(_swapInformation.pairs[i].tokenA);
+      uint120 _magnitudeB = _calculateMagnitude(_swapInformation.pairs[i].tokenB);
 
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;

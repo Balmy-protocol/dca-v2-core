@@ -35,6 +35,10 @@ abstract contract DCAHubParameters is IDCAHubParameters {
   mapping(address => mapping(address => bytes1)) public activeSwapIntervals; // token A => token B => active swap intervals
   mapping(address => uint256) public platformBalance; // token => balance
 
+  function _calculateMagnitude(address _token) internal view returns (uint120) {
+    return uint120(10**IERC20Metadata(_token).decimals());
+  }
+
   function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
     return (_amount * _feeAmount) / FEE_PRECISION / 100;
   }
