@@ -61,13 +61,24 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     bytes1 _mask = intervalToMask(_swapInterval);
     if (allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
-    oracle.addSupportForPairIfNeeded(_from, _to);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
     if (_from < _to) {
-      activeSwapIntervals[_from][_to] |= _mask;
+      bytes1 _lala = activeSwapIntervals[_from][_to];
+      if (_lala & _mask == 0) {
+        if (_lala == 0) {
+          oracle.addSupportForPairIfNeeded(_from, _to);
+        }
+        activeSwapIntervals[_from][_to] = _lala | _mask;
+      }
     } else {
-      activeSwapIntervals[_to][_from] |= _mask;
+      bytes1 _lala = activeSwapIntervals[_to][_from];
+      if (_lala & _mask == 0) {
+        if (_lala == 0) {
+          oracle.addSupportForPairIfNeeded(_from, _to);
+        }
+        activeSwapIntervals[_to][_from] = _lala | _mask;
+      }
     }
     _addPosition(_idCounter, _from, _to, uint120(_amount / _amountOfSwaps), _amountOfSwaps, _mask, _swapInterval, _owner);
     return _idCounter;
