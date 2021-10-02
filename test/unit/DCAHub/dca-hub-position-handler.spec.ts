@@ -67,7 +67,7 @@ contract('DCAPositionHandler', () => {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAPositionHandlerContract,
-          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          args: [constants.NOT_ZERO_ADDRESS, timeWeightedOracle.address, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -239,6 +239,7 @@ contract('DCAPositionHandler', () => {
       const nftOwner = wallet.generateRandomAddress();
 
       given(async () => {
+        timeWeightedOracle.addSupportForPairIfNeeded.reset();
         const depositTx = await deposit({ owner: nftOwner, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
         tx = depositTx.response;
         positionId = depositTx.positionId;
