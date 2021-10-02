@@ -323,6 +323,17 @@ contract('DCAPositionHandler', () => {
         expect(timeWeightedOracle.addSupportForPairIfNeeded).to.have.been.calledOnceWith(tokenA.address, tokenB.address);
       });
     });
+    when('making a deposit and the interval is already active', async () => {
+      given(async () => {
+        timeWeightedOracle.addSupportForPairIfNeeded.reset();
+        await DCAPositionHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SwapInterval.ONE_DAY.mask);
+        await deposit({ owner: wallet.generateRandomAddress(), token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+      });
+
+      then('oracle is not called', () => {
+        expect(timeWeightedOracle.addSupportForPairIfNeeded).to.not.have.been.called;
+      });
+    });
   });
 
   describe('withdrawSwapped', () => {
