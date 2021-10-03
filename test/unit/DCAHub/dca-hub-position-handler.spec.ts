@@ -1,6 +1,6 @@
 import { BigNumber, Contract, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermissionsManager } from '@typechained';
+import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermissionsManager, ITimeWeightedOracle } from '@typechained';
 import { erc20, behaviours, constants, wallet } from '@test-utils';
 import chai, { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
@@ -32,6 +32,7 @@ contract('DCAPositionHandler', () => {
   let DCAPositionHandlerContract: DCAHubPositionHandlerMock__factory;
   let DCAPositionHandler: DCAHubPositionHandlerMock;
   let DCAPermissionManager: FakeContract<DCAPermissionsManager>;
+  let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -45,7 +46,8 @@ contract('DCAPositionHandler', () => {
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
     DCAPermissionManager = await smock.fake('DCAPermissionsManager');
-    DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, DCAPermissionManager.address);
+    timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
+    DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, timeWeightedOracle.address, DCAPermissionManager.address);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
@@ -65,7 +67,7 @@ contract('DCAPositionHandler', () => {
       then('deployment is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: DCAPositionHandlerContract,
-          args: [constants.NOT_ZERO_ADDRESS, constants.ZERO_ADDRESS],
+          args: [constants.NOT_ZERO_ADDRESS, timeWeightedOracle.address, constants.ZERO_ADDRESS],
           message: 'ZeroAddress',
         });
       });
@@ -237,6 +239,7 @@ contract('DCAPositionHandler', () => {
       const nftOwner = wallet.generateRandomAddress();
 
       given(async () => {
+        timeWeightedOracle.addSupportForPairIfNeeded.reset();
         const depositTx = await deposit({ owner: nftOwner, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
         tx = depositTx.response;
         positionId = depositTx.positionId;
@@ -314,6 +317,21 @@ contract('DCAPositionHandler', () => {
 
       then('interval is now active', async () => {
         expect(await DCAPositionHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SwapInterval.ONE_DAY.mask)).to.be.true;
+      });
+
+      then('oracle is initialized', () => {
+        expect(timeWeightedOracle.addSupportForPairIfNeeded).to.have.been.calledOnceWith(tokenA.address, tokenB.address);
+      });
+    });
+    when('making a deposit and the interval is already active', async () => {
+      given(async () => {
+        timeWeightedOracle.addSupportForPairIfNeeded.reset();
+        await DCAPositionHandler.addActiveSwapInterval(tokenA.address, tokenB.address, SwapInterval.ONE_DAY.mask);
+        await deposit({ owner: wallet.generateRandomAddress(), token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+      });
+
+      then('oracle is not called', () => {
+        expect(timeWeightedOracle.addSupportForPairIfNeeded).to.not.have.been.called;
       });
     });
   });

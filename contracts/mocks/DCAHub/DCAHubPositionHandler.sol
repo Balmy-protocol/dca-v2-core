@@ -6,10 +6,11 @@ import '../../DCAHub/DCAHubPositionHandler.sol';
 import './DCAHubConfigHandler.sol';
 
 contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandlerMock {
-  constructor(address _immediateGovernor, IDCAPermissionManager _permissionManager)
-    DCAHubConfigHandlerMock(_immediateGovernor, address(1), ITimeWeightedOracle(address(1)))
-    DCAHubPositionHandler(_permissionManager)
-  {}
+  constructor(
+    address _immediateGovernor,
+    ITimeWeightedOracle _oracle,
+    IDCAPermissionManager _permissionManager
+  ) DCAHubConfigHandlerMock(_immediateGovernor, address(1), _oracle) DCAHubPositionHandler(_permissionManager) {}
 
   // PositionHandler
   function internalPosition(uint256 _positionId) external view returns (DCA memory _dca) {

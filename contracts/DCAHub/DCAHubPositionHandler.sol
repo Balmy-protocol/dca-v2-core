@@ -64,9 +64,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
     if (_from < _to) {
-      activeSwapIntervals[_from][_to] |= _mask;
+      _updateActiveIntervalsAndOracle(_from, _to, _mask);
     } else {
-      activeSwapIntervals[_to][_from] |= _mask;
+      _updateActiveIntervalsAndOracle(_to, _from, _mask);
     }
     _addPosition(_idCounter, _from, _to, uint120(_amount / _amountOfSwaps), _amountOfSwaps, _mask, _swapInterval, _owner);
     return _idCounter;
@@ -252,6 +252,20 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA -= _rate;
       }
       swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _intRate;
+    }
+  }
+
+  function _updateActiveIntervalsAndOracle(
+    address _tokenA,
+    address _tokenB,
+    bytes1 _mask
+  ) internal {
+    bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
+    if (_activeIntervals & _mask == 0) {
+      if (_activeIntervals == 0) {
+        oracle.addSupportForPairIfNeeded(_tokenA, _tokenB);
+      }
+      activeSwapIntervals[_tokenA][_tokenB] = _activeIntervals | _mask;
     }
   }
 
