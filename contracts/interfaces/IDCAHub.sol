@@ -362,7 +362,11 @@ interface IDCAHubConfigHandler {
   /// @notice Thrown when trying to set a fee that is not multiple of 100
   error InvalidFee();
 
-  // TODO: Add FEE_PRECISION
+  /// @notice Returns the precision used for fees. In other terms, how a 1% fee would look like
+  /// @dev Cannot be modified
+  /// @return The fee precision
+  // solhint-disable-next-line func-name-mixedcase
+  function FEE_PRECISION() external view returns (uint32);
 
   /// @notice Returns the fee charged on swaps
   /// @return _swapFee The fee itself

@@ -81,6 +81,11 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     return super.paused();
   }
 
+  // solhint-disable-next-line func-name-mixedcase
+  function FEE_PRECISION() public pure returns (uint32) {
+    return FeeMath.FEE_PRECISION;
+  }
+
   function _validateFee(uint32 _fee) internal view {
     if (_fee > MAX_FEE) revert HighFee();
     if (_fee % 100 != 0) revert InvalidFee();
