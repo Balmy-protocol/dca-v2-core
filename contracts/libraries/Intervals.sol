@@ -26,7 +26,7 @@ library Intervals {
     revert InvalidInterval();
   }
 
-  /// @notice Takes a a byte representation of a swap interval and returns the swap interval
+  /// @notice Takes a byte representation of a swap interval and returns the swap interval
   /// @dev Will revert with InvalidMask if the byte representation is not valid
   /// @param _mask The byte representation
   /// @return The swap interval
@@ -42,5 +42,19 @@ library Intervals {
     revert InvalidMask();
   }
 
-  // TODO: Add way to convert from combined byte to array
+  /// @notice Takes a byte representation of a set of swap intervals and returns which ones are in the set
+  /// @dev Will always return an array of length 8, with zeros at the end if there are less than 8 intervals
+  /// @param _byte The byte representation
+  /// @return _intervals The swap intervals in the set
+  function intervalsInByte(bytes1 _byte) internal pure returns (uint32[] memory _intervals) {
+    _intervals = new uint32[](8);
+    uint8 _index;
+    bytes1 _mask = 0x01;
+    while (_byte >= _mask && _mask > 0) {
+      if (_byte & _mask == _mask) {
+        _intervals[_index++] = maskToInterval(_mask);
+      }
+      _mask <<= 1;
+    }
+  }
 }

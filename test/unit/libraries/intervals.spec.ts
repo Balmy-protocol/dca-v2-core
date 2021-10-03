@@ -50,4 +50,35 @@ describe('Intervals', () => {
       });
     });
   });
+
+  describe('intervalsInByte', () => {
+    intervalsInByteTest({
+      when: 'byte is zero',
+      byte: '0x00',
+      expected: [],
+    });
+
+    intervalsInByteTest({
+      when: 'byte is full',
+      byte: '0xFF',
+      expected: SwapInterval.INTERVALS,
+    });
+
+    intervalsInByteTest({
+      when: 'byte has only some intervals',
+      byte: '0x83',
+      expected: [SwapInterval.ONE_MINUTE, SwapInterval.FIVE_MINUTES, SwapInterval.ONE_WEEK],
+    });
+
+    function intervalsInByteTest({ when: title, byte, expected }: { when: string; byte: string; expected: SwapInterval[] }) {
+      when(title, () => {
+        then('intervals are returned as expected', async () => {
+          const intervalsInByte = await intervals.intervalsInByte(byte);
+          expect(intervalsInByte.length).to.equal(8);
+          expect(intervalsInByte.slice(0, expected.length)).to.eql(expected.map((interval) => interval.seconds));
+          expect(intervalsInByte.slice(expected.length)).to.eql(new Array(8 - expected.length).fill(0));
+        });
+      });
+    }
+  });
 });

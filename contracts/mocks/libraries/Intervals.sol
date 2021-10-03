@@ -11,4 +11,8 @@ contract IntervalsMock {
   function maskToInterval(bytes1 _mask) external pure returns (uint32) {
     return Intervals.maskToInterval(_mask);
   }
+
+  function intervalsInByte(bytes1 _byte) external pure returns (uint32[] memory) {
+    return Intervals.intervalsInByte(_byte);
+  }
 }
