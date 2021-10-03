@@ -21,9 +21,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     uint256 accumRatioBToA;
   }
 
-  // Internal constants
-  uint24 public constant FEE_PRECISION = 10000;
-
   // Tracking
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
@@ -37,13 +34,5 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   function _calculateMagnitude(address _token) internal view returns (uint120) {
     return uint120(10**IERC20Metadata(_token).decimals());
-  }
-
-  function _getFeeFromAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
-    return (_amount * _feeAmount) / FEE_PRECISION / 100;
-  }
-
-  function _applyFeeToAmount(uint32 _feeAmount, uint256 _amount) internal pure returns (uint256) {
-    return (_amount * (FEE_PRECISION - _feeAmount / 100)) / FEE_PRECISION;
   }
 }

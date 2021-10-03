@@ -75,8 +75,4 @@ contract DCAHubParametersMock is DCAHubParameters {
   ) external {
     swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps = _performedSwaps;
   }
-
-  function getFeeFromAmount(uint32 _feeAmount, uint256 _amount) external pure returns (uint256) {
-    return _getFeeFromAmount(_feeAmount, _amount);
-  }
 }

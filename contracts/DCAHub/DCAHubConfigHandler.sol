@@ -5,6 +5,7 @@ import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
 import '../libraries/Intervals.sol';
+import '../libraries/FeeMath.sol';
 import './DCAHubParameters.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
@@ -13,7 +14,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
   bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
-  uint32 public MAX_FEE = 10 * FEE_PRECISION; // 10%
+  uint32 public MAX_FEE = 10 * FeeMath.FEE_PRECISION; // 10%
   // solhint-enable var-name-mixedcase
 
   ITimeWeightedOracle public oracle;

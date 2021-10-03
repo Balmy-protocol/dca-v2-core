@@ -4,6 +4,7 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '../interfaces/IDCAHubLoanCallee.sol';
+import '../libraries/FeeMath.sol';
 import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubLoanHandler {
@@ -38,7 +39,7 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       uint256 _afterBalance = IERC20Metadata(_loan[i].token).balanceOf(address(this));
 
       // Make sure that they sent the tokens back
-      if (_afterBalance < _beforeBalances[i] + _getFeeFromAmount(_loanFee, _loan[i].amount)) {
+      if (_afterBalance < _beforeBalances[i] + FeeMath.calculateFeeForAmount(_loanFee, _loan[i].amount)) {
         revert IDCAHub.LiquidityNotReturned();
       }
 

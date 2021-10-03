@@ -6,6 +6,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/math/Math.sol';
 import '../interfaces/IDCAHubSwapCallee.sol';
 import '../libraries/Intervals.sol';
+import '../libraries/FeeMath.sol';
 import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
@@ -49,7 +50,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _rateFromTo,
     uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    uint256 _numerator = (_amountFrom * _applyFeeToAmount(_swapFee, _rateFromTo));
+    uint256 _numerator = (_amountFrom * FeeMath.substractFeeFromAmount(_swapFee, _rateFromTo));
     _amountTo = _numerator / _fromTokenMagnitude;
     // Note: we need to round up because we can't ask for less than what we actually need
     if (_numerator % _fromTokenMagnitude != 0) _amountTo++;
@@ -175,10 +176,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
         // We are un-applying the fee here
-        uint256 _neededWithoutFee = (_neededWithFee * FEE_PRECISION) / (FEE_PRECISION - _swapFee / 100);
+        uint256 _neededWithoutFee = FeeMath.unapplyFeeToAmount(_swapFee, _neededWithFee);
 
         // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
-        int256 _platformFee = int256(_getFeeFromAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
+        int256 _platformFee = int256(FeeMath.calculateFeeForAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
 
         // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
         int256 _diff = int256(_totalBeingSwapped) - int256(_neededWithFee);
@@ -219,8 +220,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
               _swapInformation.pairs[i].tokenA,
               _swapInformation.pairs[i].tokenB,
               _mask,
-              _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioAToB),
-              _applyFeeToAmount(_swapFee, _swapInformation.pairs[i].ratioBToA),
+              FeeMath.substractFeeFromAmount(_swapFee, _swapInformation.pairs[i].ratioAToB),
+              FeeMath.substractFeeFromAmount(_swapFee, _swapInformation.pairs[i].ratioBToA),
               _timestamp
             );
           }
