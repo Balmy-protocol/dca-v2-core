@@ -2,7 +2,6 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '../interfaces/IDCAHub.sol';
-import './utils/Math.sol';
 
 abstract contract DCAHubParameters is IDCAHubParameters {
   struct SwapData {

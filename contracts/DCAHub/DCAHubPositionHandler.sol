@@ -3,6 +3,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '../libraries/Intervals.sol';
 import './DCAHubConfigHandler.sol';
 
@@ -292,7 +293,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       : accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
         accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
     uint256 _magnitude = _calculateMagnitude(_userPosition.from);
-    (bool _ok, uint256 _mult) = Math.tryMul(_accumRatio, _userPosition.rate);
+    (bool _ok, uint256 _mult) = SafeMath.tryMul(_accumRatio, _userPosition.rate);
     uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _userPosition.rate;
     _swapped = _swappedInCurrentPosition + _swappedBeforeModified[_positionId];
   }
