@@ -233,6 +233,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
     }
 
+    // Remember balances before callback
     uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
     for (uint256 i; i < _beforeBalances.length; i++) {
       if (_swapInformation.tokens[i].toProvide > 0 || _borrow[i] > 0) {
@@ -248,11 +249,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
     }
 
-    if (_data.length > 0) {
-      // Make call
-      IDCAHubSwapCallee(_to).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _data);
-    }
+    // Make call
+    IDCAHubSwapCallee(_to).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _data);
 
+    // Checks and balance updates
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       uint256 _addToPlatformBalance = _swapInformation.tokens[i].platformFee;
 

@@ -36,7 +36,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   }
 
   function setOracle(ITimeWeightedOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
-    if (address(_oracle) == address(0)) revert IDCAHub.ZeroAddress();
+    _assertNonZeroAddress(address(_oracle));
     oracle = _oracle;
     emit OracleSet(_oracle);
   }

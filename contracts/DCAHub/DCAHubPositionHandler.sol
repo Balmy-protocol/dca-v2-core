@@ -23,7 +23,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   uint256 internal _idCounter;
 
   constructor(IDCAPermissionManager _permissionManager) {
-    if (address(_permissionManager) == address(0)) revert IDCAHub.ZeroAddress();
+    _assertNonZeroAddress(address(_permissionManager));
     permissionManager = _permissionManager;
   }
 
@@ -73,7 +73,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   function withdrawSwapped(uint256 _positionId, address _recipient) external nonReentrant returns (uint256) {
-    if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
+    _assertNonZeroAddress(_recipient);
 
     (uint256 _swapped, address _to) = _executeWithdraw(_positionId);
     IERC20Metadata(_to).safeTransfer(_recipient, _swapped);
@@ -82,7 +82,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external nonReentrant {
-    if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
+    _assertNonZeroAddress(_recipient);
     uint256[] memory _swapped = new uint256[](_positions.length);
     for (uint256 i; i < _positions.length; i++) {
       address _token = _positions[i].token;
@@ -139,7 +139,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _newAmountOfSwaps,
     address _recipient
   ) external nonReentrant {
-    if (_recipient == address(0)) revert IDCAHub.ZeroAddress();
+    _assertNonZeroAddress(_recipient);
     _modify(_positionId, _amount, _newAmountOfSwaps, _recipient);
   }
 
