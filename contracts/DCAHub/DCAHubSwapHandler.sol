@@ -4,6 +4,7 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '../interfaces/IDCAHubSwapCallee.sol';
+import '../libraries/Intervals.sol';
 import './utils/Math.sol';
 import './DCAHubConfigHandler.sol';
 
@@ -74,7 +75,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     while (_activeIntervals >= _mask && _mask > 0) {
       if (_activeIntervals & _mask == _mask) {
         SwapData memory _swapData = swapData[_tokenA][_tokenB][_mask];
-        uint32 _swapInterval = maskToInterval(_mask);
+        uint32 _swapInterval = Intervals.maskToInterval(_mask);
         if (((_swapData.lastSwappedAt / _swapInterval) + 1) * _swapInterval > _blockTimestamp) {
           // Note: this 'break' is both an optimization and a search for more CoW. Since this loop starts with the smaller intervals, it is
           // highly unlikely that if a small interval can't be swapped, a bigger interval can. It could only happen when a position was just

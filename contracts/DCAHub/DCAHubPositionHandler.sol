@@ -3,6 +3,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import '../libraries/Intervals.sol';
 import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPositionHandler {
@@ -40,7 +41,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _userPosition.remaining = _calculateUnswapped(_position, _performedSwaps);
     _userPosition.rate = _position.rate;
     if (_position.swapIntervalMask > 0) {
-      _userPosition.swapInterval = maskToInterval(_position.swapIntervalMask);
+      _userPosition.swapInterval = Intervals.maskToInterval(_position.swapIntervalMask);
       _userPosition.swapped = _calculateSwapped(_positionId, _position, _performedSwaps);
     }
   }
@@ -58,7 +59,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    bytes1 _mask = intervalToMask(_swapInterval);
+    bytes1 _mask = Intervals.intervalToMask(_swapInterval);
     if (allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     _idCounter += 1;

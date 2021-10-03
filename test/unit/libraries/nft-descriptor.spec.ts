@@ -8,7 +8,7 @@ describe('NFTDescriptor', () => {
   let NFTDescriptor: NFTDescriptorMock;
 
   before('Setup accounts and contracts', async () => {
-    NFTDescriptorContract = await ethers.getContractFactory('contracts/mocks/NFTDescriptor.sol:NFTDescriptorMock');
+    NFTDescriptorContract = await ethers.getContractFactory('contracts/mocks/libraries/NFTDescriptor.sol:NFTDescriptorMock');
   });
 
   beforeEach('Deploy and configure', async () => {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.7 <0.9.0;
 
-import '../libraries/NFTDescriptor.sol';
+import '../../libraries/NFTDescriptor.sol';
 
 contract NFTDescriptorMock {
   function fixedPointToDecimalString(uint256 value, uint8 decimals) external pure returns (string memory) {

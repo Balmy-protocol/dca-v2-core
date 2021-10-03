@@ -4,6 +4,7 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
 import '../interfaces/ITimeWeightedOracle.sol';
+import '../libraries/Intervals.sol';
 import './DCAHubParameters.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
@@ -55,14 +56,14 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      allowedSwapIntervals |= intervalToMask(_swapIntervals[i]);
+      allowedSwapIntervals |= Intervals.intervalToMask(_swapIntervals[i]);
     }
     emit SwapIntervalsAllowed(_swapIntervals);
   }
 
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
-      allowedSwapIntervals &= ~intervalToMask(_swapIntervals[i]);
+      allowedSwapIntervals &= ~Intervals.intervalToMask(_swapIntervals[i]);
     }
     emit SwapIntervalsForbidden(_swapIntervals);
   }

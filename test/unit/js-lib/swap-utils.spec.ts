@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { buildGetNextSwapInfoInput, buildSwapInput } from '../../../js-lib/swap-utils';
-import { when, then } from '../../utils/bdd';
+import { when, then } from '@test-utils/bdd';
 
 describe('Swap Utils', () => {
   describe('buildGetNextSwapInfoInput', () => {
