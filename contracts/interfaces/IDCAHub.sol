@@ -197,10 +197,12 @@ interface IDCAHubPositionHandler {
   /// @param _positionId The position's id
   /// @param _amount Amount of funds to withdraw from the position
   /// @param _newSwaps The new amount of swaps
+  /// @param _recipient The address to send tokens to
   function reducePosition(
     uint256 _positionId,
     uint256 _amount,
-    uint32 _newSwaps
+    uint32 _newSwaps,
+    address _recipient
   ) external;
 
   /// @notice Terminates the position and sends all unswapped and swapped balance to the specified recipients
