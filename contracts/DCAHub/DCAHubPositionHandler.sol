@@ -60,14 +60,22 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     bytes1 _mask = Intervals.intervalToMask(_swapInterval);
     if (allowedSwapIntervals & _mask == 0) revert IntervalNotAllowed();
+    uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _mask);
+    DCA memory _userPosition = DCA({
+      swapWhereLastUpdated: _performedSwaps,
+      finalSwap: _performedSwaps + _amountOfSwaps,
+      swapIntervalMask: _mask,
+      rate: uint120(_amount / _amountOfSwaps),
+      from: _from,
+      to: _to
+    });
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
-    {
-      (address _tokenA, address _tokenB) = _sortTokens(_from, _to);
-      _updateActiveIntervalsAndOracle(_tokenA, _tokenB, _mask);
-    }
-    _addPosition(_idCounter, _from, _to, uint120(_amount / _amountOfSwaps), _amountOfSwaps, _mask, _swapInterval, _owner);
+    _updateActiveIntervalsAndOracle(_from, _to, _mask);
+    _addToDelta(_from, _to, _mask, _userPosition.finalSwap, _userPosition.rate);
+    _userPositions[_idCounter] = _userPosition;
+    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _swapInterval, _userPosition.rate, _performedSwaps + 1, _userPosition.finalSwap);
     return _idCounter;
   }
 
@@ -193,23 +201,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (!permissionManager.hasPermission(_positionId, msg.sender, _permission)) revert UnauthorizedCaller();
   }
 
-  function _addPosition(
-    uint256 _positionId,
-    address _from,
-    address _to,
-    uint120 _rate,
-    uint32 _amountOfSwaps,
-    bytes1 _swapIntervalMask,
-    uint32 _swapInterval,
-    address _owner
-  ) internal {
-    uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _swapIntervalMask);
-    uint32 _finalSwap = _performedSwaps + _amountOfSwaps;
-    _addToDelta(_from, _to, _swapIntervalMask, _finalSwap, _rate);
-    _userPositions[_positionId] = DCA(_performedSwaps, _finalSwap, _swapIntervalMask, _rate, _from, _to);
-    emit Deposited(msg.sender, _owner, _idCounter, _from, _to, _swapInterval, _rate, _performedSwaps + 1, _finalSwap);
-  }
-
   function _addToDelta(
     address _from,
     address _to,
@@ -255,10 +246,11 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   function _updateActiveIntervalsAndOracle(
-    address _tokenA,
-    address _tokenB,
+    address _from,
+    address _to,
     bytes1 _mask
   ) internal {
+    (address _tokenA, address _tokenB) = _sortTokens(_from, _to);
     bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
     if (_activeIntervals & _mask == 0) {
       if (_activeIntervals == 0) {
