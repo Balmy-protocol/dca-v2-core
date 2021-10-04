@@ -31,17 +31,17 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapData.performedSwaps + 1,
         lastSwappedAt: _timestamp,
-        nextAmountToSwapAToB: _swapDelta.swapDeltaAToB < 0
-          ? _swapData.nextAmountToSwapAToB - uint128(-_swapDelta.swapDeltaAToB)
-          : _swapData.nextAmountToSwapAToB + uint128(_swapDelta.swapDeltaAToB),
-        nextAmountToSwapBToA: _swapDelta.swapDeltaBToA < 0
-          ? _swapData.nextAmountToSwapBToA - uint128(-_swapDelta.swapDeltaBToA)
-          : _swapData.nextAmountToSwapBToA + uint128(_swapDelta.swapDeltaBToA)
+        nextAmountToSwapAToB: _addDeltaToNextAmount(_swapData.nextAmountToSwapAToB, _swapDelta.swapDeltaAToB),
+        nextAmountToSwapBToA: _addDeltaToNextAmount(_swapData.nextAmountToSwapBToA, _swapDelta.swapDeltaBToA)
       });
       delete swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
     } else {
       activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
+  }
+
+  function _addDeltaToNextAmount(uint224 _nextAmountToSwap, int128 _swapDelta) internal pure returns (uint224) {
+    return _swapDelta < 0 ? _nextAmountToSwap - uint128(-_swapDelta) : _nextAmountToSwap + uint128(_swapDelta);
   }
 
   function _convertTo(

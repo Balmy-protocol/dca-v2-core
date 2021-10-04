@@ -32,13 +32,11 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   function userPosition(uint256 _positionId) external view returns (UserPosition memory _userPosition) {
     DCA memory _position = _userPositions[_positionId];
     uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapIntervalMask);
-    uint32 _newestSwapToConsider = _performedSwaps < _position.finalSwap ? _performedSwaps : _position.finalSwap;
+    uint32 _newestSwapToConsider = _min(_performedSwaps, _position.finalSwap);
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
-    _userPosition.swapsExecuted = _position.swapWhereLastUpdated < _newestSwapToConsider
-      ? _newestSwapToConsider - _position.swapWhereLastUpdated
-      : 0;
-    _userPosition.swapsLeft = _position.finalSwap > _performedSwaps ? _position.finalSwap - _performedSwaps : 0;
+    _userPosition.swapsExecuted = _substractIfPossible(_newestSwapToConsider, _position.swapWhereLastUpdated);
+    _userPosition.swapsLeft = _substractIfPossible(_position.finalSwap, _performedSwaps);
     _userPosition.remaining = _calculateUnswapped(_position, _performedSwaps);
     _userPosition.rate = _position.rate;
     if (_position.swapIntervalMask > 0) {
@@ -277,7 +275,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     DCA memory _userPosition,
     uint32 _performedSwaps
   ) internal view returns (uint256 _swapped) {
-    uint32 _newestSwapToConsider = _performedSwaps < _userPosition.finalSwap ? _performedSwaps : _userPosition.finalSwap;
+    uint32 _newestSwapToConsider = _min(_performedSwaps, _userPosition.finalSwap);
 
     if (_userPosition.swapWhereLastUpdated > _newestSwapToConsider) {
       // If last update happened after the position's final swap, then a withdraw was executed, and we just return 0
@@ -300,7 +298,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
   /** Returns how many FROM remains unswapped  */
   function _calculateUnswapped(DCA memory _userPosition, uint32 _performedSwaps) internal pure returns (uint256 _unswapped) {
-    _unswapped = (_userPosition.finalSwap <= _performedSwaps) ? 0 : (_userPosition.finalSwap - _performedSwaps) * _userPosition.rate;
+    _unswapped = _substractIfPossible(_userPosition.finalSwap, _performedSwaps) * _userPosition.rate;
   }
 
   function _executeWithdraw(uint256 _positionId) internal returns (uint256 _swapped, address _to) {
@@ -319,5 +317,13 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     bytes1 _swapIntervalMask
   ) internal view returns (uint32) {
     return (_from < _to) ? swapData[_from][_to][_swapIntervalMask].performedSwaps : swapData[_to][_from][_swapIntervalMask].performedSwaps;
+  }
+
+  function _min(uint32 _a, uint32 _b) internal pure returns (uint32) {
+    return _a > _b ? _b : _a;
+  }
+
+  function _substractIfPossible(uint32 _a, uint32 _b) internal pure returns (uint32) {
+    return _a > _b ? _a - _b : 0;
   }
 }
