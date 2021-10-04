@@ -20,21 +20,21 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _ratioBToA,
     uint32 _timestamp
   ) internal virtual {
-    SwapData memory _swapData = swapData[_tokenA][_tokenB][_swapIntervalMask];
-    if (_swapData.nextAmountToSwapAToB > 0 || _swapData.nextAmountToSwapBToA > 0) {
-      AccumRatio memory _accumRatio = accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps];
-      accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 1] = AccumRatio({
-        accumRatioAToB: _accumRatio.accumRatioAToB + _ratioAToB,
-        accumRatioBToA: _accumRatio.accumRatioBToA + _ratioBToA
+    SwapData memory _swapDataMem = _swapData[_tokenA][_tokenB][_swapIntervalMask];
+    if (_swapDataMem.nextAmountToSwapAToB > 0 || _swapDataMem.nextAmountToSwapBToA > 0) {
+      AccumRatio memory _accumRatioMem = _accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps];
+      _accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 1] = AccumRatio({
+        accumRatioAToB: _accumRatioMem.accumRatioAToB + _ratioAToB,
+        accumRatioBToA: _accumRatioMem.accumRatioBToA + _ratioBToA
       });
-      SwapDelta memory _swapDelta = swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
-      swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
-        performedSwaps: _swapData.performedSwaps + 1,
+      SwapDelta memory _swapDeltaMem = _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
+      _swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
+        performedSwaps: _swapDataMem.performedSwaps + 1,
         lastSwappedAt: _timestamp,
-        nextAmountToSwapAToB: _addDeltaToNextAmount(_swapData.nextAmountToSwapAToB, _swapDelta.swapDeltaAToB),
-        nextAmountToSwapBToA: _addDeltaToNextAmount(_swapData.nextAmountToSwapBToA, _swapDelta.swapDeltaBToA)
+        nextAmountToSwapAToB: _addDeltaToNextAmount(_swapDataMem.nextAmountToSwapAToB, _swapDeltaMem.swapDeltaAToB),
+        nextAmountToSwapBToA: _addDeltaToNextAmount(_swapDataMem.nextAmountToSwapBToA, _swapDeltaMem.swapDeltaBToA)
       });
-      delete swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapData.performedSwaps + 2];
+      delete _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
     } else {
       activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
@@ -75,9 +75,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
       if (_activeIntervals & _mask == _mask) {
-        SwapData memory _swapData = swapData[_tokenA][_tokenB][_mask];
+        SwapData memory _swapDataMem = _swapData[_tokenA][_tokenB][_mask];
         uint32 _swapInterval = Intervals.maskToInterval(_mask);
-        if (((_swapData.lastSwappedAt / _swapInterval) + 1) * _swapInterval > _blockTimestamp) {
+        if (((_swapDataMem.lastSwappedAt / _swapInterval) + 1) * _swapInterval > _blockTimestamp) {
           // Note: this 'break' is both an optimization and a search for more CoW. Since this loop starts with the smaller intervals, it is
           // highly unlikely that if a small interval can't be swapped, a bigger interval can. It could only happen when a position was just
           // created for a new swap interval. At the same time, by adding this check, we force intervals to be swapped together. Therefore
@@ -85,8 +85,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
           break;
         }
         _intervalsInSwap |= _mask;
-        _totalAmountToSwapTokenA += _swapData.nextAmountToSwapAToB;
-        _totalAmountToSwapTokenB += _swapData.nextAmountToSwapBToA;
+        _totalAmountToSwapTokenA += _swapDataMem.nextAmountToSwapAToB;
+        _totalAmountToSwapTokenB += _swapDataMem.nextAmountToSwapBToA;
       }
       _mask <<= 1;
     }

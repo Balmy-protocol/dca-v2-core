@@ -33,7 +33,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     int128 _deltaAToB,
     int128 _deltaBToA
   ) external {
-    swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swap] = SwapDelta(_deltaAToB, _deltaBToA);
+    _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swap] = SwapDelta(_deltaAToB, _deltaBToA);
   }
 
   function setAcummRatio(
@@ -44,7 +44,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     uint256 _accumRatioAToB,
     uint256 _accumRatioBToA
   ) external {
-    accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swap] = AccumRatio(_accumRatioAToB, _accumRatioBToA);
+    _accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swap] = AccumRatio(_accumRatioAToB, _accumRatioBToA);
   }
 
   function setNextAmountsToSwap(
@@ -54,8 +54,8 @@ contract DCAHubParametersMock is DCAHubParameters {
     uint224 _amountToSwapAToB,
     uint224 _amountToSwapBToA
   ) external {
-    swapData[_tokenA][_tokenB][_swapIntervalMask].nextAmountToSwapAToB = _amountToSwapAToB;
-    swapData[_tokenA][_tokenB][_swapIntervalMask].nextAmountToSwapBToA = _amountToSwapBToA;
+    _swapData[_tokenA][_tokenB][_swapIntervalMask].nextAmountToSwapAToB = _amountToSwapAToB;
+    _swapData[_tokenA][_tokenB][_swapIntervalMask].nextAmountToSwapBToA = _amountToSwapBToA;
   }
 
   function setPerformedSwaps(
@@ -64,7 +64,7 @@ contract DCAHubParametersMock is DCAHubParameters {
     bytes1 _swapIntervalMask,
     uint32 _performedSwaps
   ) external {
-    swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps = _performedSwaps;
+    _swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps = _performedSwaps;
   }
 
   function setLastSwappedAt(
@@ -73,6 +73,6 @@ contract DCAHubParametersMock is DCAHubParameters {
     bytes1 _swapIntervalMask,
     uint32 _lastSwappedAt
   ) external {
-    swapData[_tokenA][_tokenB][_swapIntervalMask].lastSwappedAt = _lastSwappedAt;
+    _swapData[_tokenA][_tokenB][_swapIntervalMask].lastSwappedAt = _lastSwappedAt;
   }
 }

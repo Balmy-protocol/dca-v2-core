@@ -63,10 +63,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     _idCounter += 1;
     permissionManager.mint(_idCounter, _owner, _permissions);
-    if (_from < _to) {
-      _updateActiveIntervalsAndOracle(_from, _to, _mask);
-    } else {
-      _updateActiveIntervalsAndOracle(_to, _from, _mask);
+    {
+      (address _tokenA, address _tokenB) = _sortTokens(_from, _to);
+      _updateActiveIntervalsAndOracle(_tokenA, _tokenB, _mask);
     }
     _addPosition(_idCounter, _from, _to, uint120(_amount / _amountOfSwaps), _amountOfSwaps, _mask, _swapInterval, _owner);
     return _idCounter;
@@ -240,18 +239,18 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     int120 _intRate = _add ? -int120(_rate) : int120(_rate);
     if (_from < _to) {
       if (_add) {
-        swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
+        _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
       } else {
-        swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB -= _rate;
+        _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB -= _rate;
       }
-      swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _intRate;
+      _swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _intRate;
     } else {
       if (_add) {
-        swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += _rate;
+        _swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += _rate;
       } else {
-        swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA -= _rate;
+        _swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA -= _rate;
       }
-      swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _intRate;
+      _swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _intRate;
     }
   }
 
@@ -286,10 +285,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     }
 
     uint256 _accumRatio = _userPosition.from < _userPosition.to
-      ? accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioAToB -
-        accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioAToB
-      : accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
-        accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
+      ? _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioAToB -
+        _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioAToB
+      : _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
+        _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
     uint256 _magnitude = _calculateMagnitude(_userPosition.from);
     (bool _ok, uint256 _mult) = SafeMath.tryMul(_accumRatio, _userPosition.rate);
     uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _userPosition.rate;
@@ -316,7 +315,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _to,
     bytes1 _swapIntervalMask
   ) internal view returns (uint32) {
-    return (_from < _to) ? swapData[_from][_to][_swapIntervalMask].performedSwaps : swapData[_to][_from][_swapIntervalMask].performedSwaps;
+    (address _tokenA, address _tokenB) = _sortTokens(_from, _to);
+    return _swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps;
   }
 
   function _min(uint32 _a, uint32 _b) internal pure returns (uint32) {

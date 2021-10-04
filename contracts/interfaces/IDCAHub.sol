@@ -8,7 +8,73 @@ import '../interfaces/ITimeWeightedOracle.sol';
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the hubs's current values
 interface IDCAHubParameters {
-  // TODO: See if we end up adding something. If not, delete
+  /// @notice Swap information about a specific pair
+  struct SwapData {
+    // How many swaps have been executed
+    uint32 performedSwaps;
+    // How much of token A will be swapped on the next swap
+    uint224 nextAmountToSwapAToB;
+    // Timestamp of the last swap
+    uint32 lastSwappedAt;
+    // How much of token B will be swapped on the next swap
+    uint224 nextAmountToSwapBToA;
+  }
+
+  /// @notice The difference of tokens to swap between a swap, and the previous one
+  struct SwapDelta {
+    // How much (could be more, or could be less) of token A will the following swap require
+    int128 swapDeltaAToB;
+    // How much (could be more, or could be less) of token B will the following swap require
+    int128 swapDeltaBToA;
+  }
+
+  /// @notice The sum of the ratios the oracle reported in all executed swaps
+  struct AccumRatio {
+    // The sum of all ratios from A to B
+    uint256 accumRatioAToB;
+    // The sum of all ratios from B to A
+    uint256 accumRatioBToA;
+  }
+
+  /// @notice Returns how much will the amount to swap differ from the previous swap. f.e. if the returned value is -100, then the amount to swap will be 100 less than the swap just before it
+  /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+  /// @param _tokenA One of the pair's token
+  /// @param _tokenB The other of the pair's token
+  /// @param _swapIntervalMask The byte representation of the swap interval to check
+  /// @param _swapNumber The swap number to check
+  /// @return How much will the amount to swap differ, when compared to the swap just before this one
+  function swapAmountDelta(
+    address _tokenA,
+    address _tokenB,
+    bytes1 _swapIntervalMask,
+    uint32 _swapNumber
+  ) external view returns (SwapDelta memory);
+
+  /// @notice Returns the sum of the ratios reported in all swaps executed until the given swap number
+  /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+  /// @param _tokenA One of the pair's token
+  /// @param _tokenB The other of the pair's token
+  /// @param _swapIntervalMask The byte representation of the swap interval to check
+  /// @param _swapNumber The swap number to check
+  /// @return The sum of the ratios
+  function accumRatio(
+    address _tokenA,
+    address _tokenB,
+    bytes1 _swapIntervalMask,
+    uint32 _swapNumber
+  ) external view returns (AccumRatio memory);
+
+  /// @notice Returns swapping information about a specific pair
+  /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+  /// @param _tokenA One of the pair's token
+  /// @param _tokenB The other of the pair's token
+  /// @param _swapIntervalMask The byte representation of the swap interval to check
+  /// @return The swapping information
+  function swapData(
+    address _tokenA,
+    address _tokenB,
+    bytes1 _swapIntervalMask
+  ) external view returns (SwapData memory);
 }
 
 /// @title The interface for all position related matters
