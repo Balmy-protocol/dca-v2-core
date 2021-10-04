@@ -46,15 +46,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     }
   }
 
-  function _mergeRate(DCA memory _userPosition) internal pure returns (uint120) {
-    return (uint120(_userPosition.rateHigher) << 24) + _userPosition.rateLower;
-  }
-
-  function _splitRate(uint120 _rate) internal pure returns (uint24 _lower, uint96 _higher) {
-    _lower = uint24(_rate);
-    _higher = uint96(_rate >> 24);
-  }
-
   function deposit(
     address _from,
     address _to,
@@ -89,26 +80,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _userPosition.finalSwap
     );
     return _positionId;
-  }
-
-  function _buildPosition(
-    address _from,
-    address _to,
-    uint32 _amountOfSwaps,
-    bytes1 _mask,
-    uint120 _rate
-  ) internal view returns (DCA memory _userPosition) {
-    uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _mask);
-    (uint24 _lower, uint96 _higher) = _splitRate(_rate);
-    _userPosition = DCA({
-      swapWhereLastUpdated: _performedSwaps,
-      finalSwap: _performedSwaps + _amountOfSwaps,
-      swapIntervalMask: _mask,
-      rateLower: _lower,
-      rateHigher: _higher,
-      from: _from,
-      to: _to
-    });
   }
 
   function withdrawSwapped(uint256 _positionId, address _recipient) external nonReentrant returns (uint256) {
@@ -202,18 +173,16 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_total != 0 && _newAmountOfSwaps == 0) revert ZeroSwaps();
     if (_total == 0 && _newAmountOfSwaps > 0) _newAmountOfSwaps = 0;
 
-    uint96 _newRate = _newAmountOfSwaps == 0 ? 0 : uint96(_total / _newAmountOfSwaps);
-    uint256 _swapped = _calculateSwapped(_positionId, _userPosition, _performedSwaps);
+    uint120 _newRate = _newAmountOfSwaps == 0 ? 0 : uint120(_total / _newAmountOfSwaps);
+    (_userPositions[_positionId].rateLower, _userPositions[_positionId].rateHigher) = _splitRate(_newRate);
+
     uint32 _finalSwap = _performedSwaps + _newAmountOfSwaps;
+    _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
+    _userPositions[_positionId].finalSwap = _finalSwap;
+    _swappedBeforeModified[_positionId] = _calculateSwapped(_positionId, _userPosition, _performedSwaps);
 
     _removeFromDelta(_userPosition, _performedSwaps);
     _addToDelta(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask, _finalSwap, _newRate);
-
-    DCA storage _storagePosition = _userPositions[_positionId];
-    _storagePosition.swapWhereLastUpdated = _performedSwaps;
-    _storagePosition.finalSwap = _finalSwap;
-    (_storagePosition.rateLower, _storagePosition.rateHigher) = _splitRate(_newRate);
-    _swappedBeforeModified[_positionId] = _swapped;
 
     if (_increase) {
       IERC20Metadata(_userPosition.from).safeTransferFrom(msg.sender, address(this), _amount);
@@ -349,6 +318,35 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) internal view returns (uint32) {
     (address _tokenA, address _tokenB) = _sortTokens(_from, _to);
     return _swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps;
+  }
+
+  function _buildPosition(
+    address _from,
+    address _to,
+    uint32 _amountOfSwaps,
+    bytes1 _mask,
+    uint120 _rate
+  ) internal view returns (DCA memory _userPosition) {
+    uint32 _performedSwaps = _getPerformedSwaps(_from, _to, _mask);
+    (uint24 _lower, uint96 _higher) = _splitRate(_rate);
+    _userPosition = DCA({
+      swapWhereLastUpdated: _performedSwaps,
+      finalSwap: _performedSwaps + _amountOfSwaps,
+      swapIntervalMask: _mask,
+      rateLower: _lower,
+      rateHigher: _higher,
+      from: _from,
+      to: _to
+    });
+  }
+
+  function _mergeRate(DCA memory _userPosition) internal pure returns (uint120) {
+    return (uint120(_userPosition.rateHigher) << 24) + _userPosition.rateLower;
+  }
+
+  function _splitRate(uint120 _rate) internal pure returns (uint24 _lower, uint96 _higher) {
+    _lower = uint24(_rate);
+    _higher = uint96(_rate >> 24);
   }
 
   function _min(uint32 _a, uint32 _b) internal pure returns (uint32) {
