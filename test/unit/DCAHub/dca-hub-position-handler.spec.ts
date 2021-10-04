@@ -237,10 +237,17 @@ contract('DCAPositionHandler', () => {
       let tx: TransactionResponse;
 
       const nftOwner = wallet.generateRandomAddress();
+      const permissions = [{ operator: constants.NOT_ZERO_ADDRESS, permissions: [Permission.TERMINATE] }];
 
       given(async () => {
         timeWeightedOracle.addSupportForPairIfNeeded.reset();
-        const depositTx = await deposit({ owner: nftOwner, token: tokenA, rate: POSITION_RATE_5, swaps: POSITION_SWAPS_TO_PERFORM_10 });
+        const depositTx = await deposit({
+          owner: nftOwner,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+          permissions,
+        });
         tx = depositTx.response;
         positionId = depositTx.positionId;
       });
@@ -312,7 +319,7 @@ contract('DCAPositionHandler', () => {
       });
 
       then('permission manager is called correctly', async () => {
-        expect(DCAPermissionManager.mint).to.have.been.calledWith(positionId, nftOwner, []);
+        expect(DCAPermissionManager.mint).to.have.been.calledWith(positionId, nftOwner, permissions);
       });
 
       then('interval is now active', async () => {
@@ -1235,7 +1242,19 @@ contract('DCAPositionHandler', () => {
     return swapped;
   }
 
-  async function deposit({ owner, token, rate, swaps }: { owner: string; token: TokenContract; rate: number; swaps: number }) {
+  async function deposit({
+    owner,
+    token,
+    rate,
+    swaps,
+    permissions,
+  }: {
+    owner: string;
+    token: TokenContract;
+    rate: number;
+    swaps: number;
+    permissions?: { operator: string; permissions: Permission[] }[];
+  }) {
     const to = tokenA == token ? tokenB : tokenA;
     const response: TransactionResponse = await DCAPositionHandler.deposit(
       token.address,
@@ -1244,7 +1263,7 @@ contract('DCAPositionHandler', () => {
       swaps,
       SwapInterval.ONE_DAY.seconds,
       owner,
-      []
+      permissions ?? []
     );
     const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'positionId');
     return { response, positionId };
