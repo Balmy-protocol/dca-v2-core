@@ -161,13 +161,13 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _total = _increase ? _unswapped + _amount : _unswapped - _amount;
     if (_total != 0 && _newAmountOfSwaps == 0) revert ZeroSwaps();
     if (_total == 0 && _newAmountOfSwaps > 0) _newAmountOfSwaps = 0;
+
     uint120 _newRate = _newAmountOfSwaps == 0 ? 0 : uint120(_total / _newAmountOfSwaps);
-
     uint256 _swapped = _calculateSwapped(_positionId, _userPosition, _performedSwaps);
-
-    _removeFromDelta(_userPosition, _performedSwaps);
     uint32 _startingSwap = _performedSwaps + 1;
     uint32 _finalSwap = _performedSwaps + _newAmountOfSwaps;
+
+    _removeFromDelta(_userPosition, _performedSwaps);
     _addToDelta(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask, _finalSwap, _newRate);
 
     _userPositions[_positionId].swapWhereLastUpdated = _performedSwaps;
