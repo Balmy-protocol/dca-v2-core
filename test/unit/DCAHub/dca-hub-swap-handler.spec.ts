@@ -99,7 +99,8 @@ contract('DCAHubSwapHandler', () => {
         );
       });
       then('interval is removed from active list', async () => {
-        expect(await DCAHubSwapHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SwapInterval.ONE_DAY.mask)).to.be.false;
+        const byteSet = await DCAHubSwapHandler.activeSwapIntervals(tokenA.address, tokenB.address);
+        expect(SwapInterval.ONE_DAY.isInByteSet(byteSet)).to.be.false;
       });
       then('next delta is not modified', async () => {
         const { swapDeltaAToB, swapDeltaBToA } = await swapAmountDelta(tokenA, tokenB, SwapInterval.ONE_DAY, NEXT_SWAP + 1);

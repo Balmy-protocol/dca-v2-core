@@ -21,6 +21,10 @@ export class SwapInterval {
 
   private constructor(readonly seconds: number, readonly mask: string) {}
 
+  public isInByteSet(byte: string): boolean {
+    return (parseInt(byte) & parseInt(this.mask)) != 0;
+  }
+
   static intervalsToByte(...intervals: SwapInterval[]): string {
     const finalMask = intervals.map((intervals) => parseInt(intervals.mask)).reduce((a, b) => a | b, 0);
     return '0x' + finalMask.toString(16).padStart(2, '0');

@@ -316,7 +316,8 @@ contract('DCAPositionHandler', () => {
       });
 
       then('interval is now active', async () => {
-        expect(await DCAPositionHandler.isSwapIntervalActive(tokenA.address, tokenB.address, SwapInterval.ONE_DAY.mask)).to.be.true;
+        const byteSet = await DCAPositionHandler.activeSwapIntervals(tokenA.address, tokenB.address);
+        expect(SwapInterval.ONE_DAY.isInByteSet(byteSet)).to.be.true;
       });
 
       then('oracle is initialized', () => {

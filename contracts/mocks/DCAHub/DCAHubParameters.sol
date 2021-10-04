@@ -25,15 +25,6 @@ contract DCAHubParametersMock is DCAHubParameters {
     activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
   }
 
-  function isSwapIntervalActive(
-    address _tokenA,
-    address _tokenB,
-    bytes1 _swapIntervalMask
-  ) external view returns (bool _isIntervalActive) {
-    bytes1 _byte = _tokenA < _tokenB ? activeSwapIntervals[_tokenA][_tokenB] : activeSwapIntervals[_tokenB][_tokenA];
-    _isIntervalActive = _byte & _swapIntervalMask != 0;
-  }
-
   function setSwapAmountDelta(
     address _tokenA,
     address _tokenB,
@@ -74,5 +65,14 @@ contract DCAHubParametersMock is DCAHubParameters {
     uint32 _performedSwaps
   ) external {
     swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps = _performedSwaps;
+  }
+
+  function setLastSwappedAt(
+    address _tokenA,
+    address _tokenB,
+    bytes1 _swapIntervalMask,
+    uint32 _lastSwappedAt
+  ) external {
+    swapData[_tokenA][_tokenB][_swapIntervalMask].lastSwappedAt = _lastSwappedAt;
   }
 }
