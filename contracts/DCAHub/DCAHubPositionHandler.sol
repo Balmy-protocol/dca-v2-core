@@ -12,8 +12,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 swapWhereLastUpdated; // Includes both modify and withdraw
     uint32 finalSwap;
     bytes1 swapIntervalMask;
-    uint120 rate;
     address from;
+    uint96 rate;
     address to;
   }
 
@@ -65,7 +65,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       swapWhereLastUpdated: _performedSwaps,
       finalSwap: _performedSwaps + _amountOfSwaps,
       swapIntervalMask: _mask,
-      rate: uint120(_amount / _amountOfSwaps),
+      rate: uint96(_amount / _amountOfSwaps),
       from: _from,
       to: _to
     });
@@ -170,7 +170,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_total != 0 && _newAmountOfSwaps == 0) revert ZeroSwaps();
     if (_total == 0 && _newAmountOfSwaps > 0) _newAmountOfSwaps = 0;
 
-    uint120 _newRate = _newAmountOfSwaps == 0 ? 0 : uint120(_total / _newAmountOfSwaps);
+    uint96 _newRate = _newAmountOfSwaps == 0 ? 0 : uint96(_total / _newAmountOfSwaps);
     uint256 _swapped = _calculateSwapped(_positionId, _userPosition, _performedSwaps);
     uint32 _startingSwap = _performedSwaps + 1;
     uint32 _finalSwap = _performedSwaps + _newAmountOfSwaps;
