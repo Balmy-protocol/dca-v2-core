@@ -16,7 +16,7 @@ import { SwapInterval } from 'js-lib/interval-utils';
 
 chai.use(smock.matchers);
 
-contract('DCAPositionHandler', () => {
+contract.only('DCAPositionHandler', () => {
   const PERFORMED_SWAPS_10 = 10;
   const POSITION_RATE_5 = 5;
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
