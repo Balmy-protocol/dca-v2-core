@@ -7,12 +7,12 @@ library FeeMath {
   /// @notice How much would a 1% fee be
   uint24 public constant FEE_PRECISION = 10000;
 
-  /// @notice Takes a fee and a certain amount that already has the fee applied, and returns the original amount (without the fee)
+  /// @notice Takes a fee and an amount that has had the fee substracted, and returns the amount that was substracted
   /// @param _fee Fee that was applied
-  /// @param _amount Amount that had the fee applied
-  /// @return The original amount (without the fee)
-  function unapplyFeeToAmount(uint32 _fee, uint256 _amount) internal pure returns (uint256) {
-    return (_amount * FEE_PRECISION) / (FEE_PRECISION - _fee / 100);
+  /// @param _substractionResult Amount that had the fee substracted
+  /// @return The amount that was substracted
+  function calculateSubstractedFee(uint32 _fee, uint256 _substractionResult) internal pure returns (uint256) {
+    return (_substractionResult * _fee) / (FEE_PRECISION * 100 - _fee);
   }
 
   /// @notice Takes a fee and applies it to a certain amount. So if fee is 0.6%, it would return the 0.6% of the given amount

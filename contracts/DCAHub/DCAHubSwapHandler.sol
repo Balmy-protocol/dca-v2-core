@@ -171,18 +171,14 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       _swapInformation.tokens[i].token = _tokens[i];
 
-      uint256 _neededWithFee = _needed[i];
-      uint256 _totalBeingSwapped = _total[i];
+      if (_needed[i] > 0 || _total[i] > 0) {
+        uint256 _totalFee = FeeMath.calculateSubstractedFee(_swapFee, _needed[i]);
 
-      if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
-        // We are un-applying the fee here
-        uint256 _neededWithoutFee = FeeMath.unapplyFeeToAmount(_swapFee, _neededWithFee);
-
-        // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
-        int256 _platformFee = int256(FeeMath.calculateFeeForAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
+        // TODO: Make platform vs swapper fee ratio configurable. Now it's hardcoded to 50% each
+        int256 _platformFee = int256(_totalFee / 2);
 
         // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
-        int256 _diff = int256(_totalBeingSwapped) - int256(_neededWithFee);
+        int256 _diff = int256(_total[i]) - int256(_needed[i]);
 
         // Instead of checking if diff is positive or not, we compare against the platform fee. This is to avoid any rounding issues
         if (_diff > _platformFee) {
