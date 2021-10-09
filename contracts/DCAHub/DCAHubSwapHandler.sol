@@ -134,7 +134,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         revert InvalidPairs();
       }
 
-      PairInSwap memory _pairInSwap = _swapInformation.pairs[i];
+      PairInSwap memory _pairInSwap;
       _pairInSwap.tokenA = _tokens[indexTokenA];
       _pairInSwap.tokenB = _tokens[indexTokenB];
       uint120 _magnitudeA = _calculateMagnitude(_pairInSwap.tokenA);
@@ -213,17 +213,17 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
       for (uint256 i; i < _swapInformation.pairs.length; i++) {
-        // TODO: Evaluate reading _swapInformation.pairs[i] once
-        bytes1 _intervalsInSwap = _swapInformation.pairs[i].intervalsInSwap;
+        PairInSwap memory _pairInSwap = _swapInformation.pairs[i];
+        bytes1 _intervalsInSwap = _pairInSwap.intervalsInSwap;
         bytes1 _mask = 0x01;
         while (_intervalsInSwap >= _mask && _mask > 0) {
           if (_intervalsInSwap & _mask == _mask) {
             _registerSwap(
-              _swapInformation.pairs[i].tokenA,
-              _swapInformation.pairs[i].tokenB,
+              _pairInSwap.tokenA,
+              _pairInSwap.tokenB,
               _mask,
-              FeeMath.substractFeeFromAmount(_swapFee, _swapInformation.pairs[i].ratioAToB),
-              FeeMath.substractFeeFromAmount(_swapFee, _swapInformation.pairs[i].ratioBToA),
+              FeeMath.substractFeeFromAmount(_swapFee, _pairInSwap.ratioAToB),
+              FeeMath.substractFeeFromAmount(_swapFee, _pairInSwap.ratioBToA),
               _timestamp
             );
           }
@@ -237,19 +237,19 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
     }
 
-    // Remember balances before callback
     uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
-    for (uint256 i; i < _beforeBalances.length; i++) {
-      if (_swapInformation.tokens[i].toProvide > 0 || _borrow[i] > 0) {
-        _beforeBalances[i] = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
-      }
-    }
-
-    // Optimistically transfer tokens
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
-      uint256 _amountToSend = _swapInformation.tokens[i].reward + _borrow[i];
+      TokenInSwap memory _tokenInSwap = _swapInformation.tokens[i];
+
+      // Remember balances before callback
+      if (_tokenInSwap.toProvide > 0 || _borrow[i] > 0) {
+        _beforeBalances[i] = IERC20Metadata(_tokenInSwap.token).balanceOf(address(this));
+      }
+
+      // Optimistically transfer tokens
+      uint256 _amountToSend = _tokenInSwap.reward + _borrow[i];
       if (_amountToSend > 0) {
-        IERC20Metadata(_swapInformation.tokens[i].token).safeTransfer(_to, _amountToSend);
+        IERC20Metadata(_tokenInSwap.token).safeTransfer(_to, _amountToSend);
       }
     }
 
@@ -258,13 +258,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     // Checks and balance updates
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
-      // TODO: Evaluate reading _swapInformation.tokens[i] once
-      uint256 _addToPlatformBalance = _swapInformation.tokens[i].platformFee;
+      TokenInSwap memory _tokenInSwap = _swapInformation.tokens[i];
+      uint256 _addToPlatformBalance = _tokenInSwap.platformFee;
 
-      if (_swapInformation.tokens[i].toProvide > 0 || _borrow[i] > 0) {
-        uint256 _amountToHave = _beforeBalances[i] + _swapInformation.tokens[i].toProvide - _swapInformation.tokens[i].reward;
+      if (_tokenInSwap.toProvide > 0 || _borrow[i] > 0) {
+        uint256 _amountToHave = _beforeBalances[i] + _tokenInSwap.toProvide - _tokenInSwap.reward;
 
-        uint256 _currentBalance = IERC20Metadata(_swapInformation.tokens[i].token).balanceOf(address(this));
+        uint256 _currentBalance = IERC20Metadata(_tokenInSwap.token).balanceOf(address(this));
 
         // Make sure tokens were sent back
         if (_currentBalance < _amountToHave) {
@@ -277,7 +277,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       // Update platform balance
       if (_addToPlatformBalance > 0) {
-        platformBalance[_swapInformation.tokens[i].token] += _addToPlatformBalance;
+        platformBalance[_tokenInSwap.token] += _addToPlatformBalance;
       }
     }
 
