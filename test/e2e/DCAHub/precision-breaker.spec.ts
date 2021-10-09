@@ -15,10 +15,13 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import { buildSwapInput } from 'js-lib/swap-utils';
+import Web3 from 'web3';
 import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCAHub', () => {
   describe('Precision breaker', () => {
+    const PLATFORM_WITHDRAW_ROLE: string = new Web3().utils.soliditySha3('PLATFORM_WITHDRAW_ROLE') as string;
+
     let governor: SignerWithAddress;
     let alice: SignerWithAddress, john: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
@@ -51,6 +54,7 @@ contract('DCAHub', () => {
       timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
+      await DCAHub.connect(governor).grantRole(PLATFORM_WITHDRAW_ROLE, governor.address);
       DCAPermissionsManager.setHub(DCAHub.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(2000), tokenB.asUnits(2000)]);
@@ -102,12 +106,27 @@ contract('DCAHub', () => {
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
         timeWeightedOracle.quote.returns(BigNumber.from('2216'));
         await flashSwap({ callee: DCAHubSwapCallee });
+
+        // We need to withdraw all platform balance, so that it isn't used if the precision is wrong
+        await withdrawAllPlatformBalance();
       });
 
       then('user can withdraw without any problems', async () => {
         await DCAHub.connect(john).withdrawSwapped(2, wallet.generateRandomAddress());
       });
     });
+
+    async function withdrawAllPlatformBalance() {
+      const balanceTokenA = await DCAHub.platformBalance(tokenA.address);
+      const balanceTokenB = await DCAHub.platformBalance(tokenB.address);
+      await DCAHub.connect(governor).withdrawFromPlatformBalance(
+        [
+          { token: tokenA.address, amount: balanceTokenA },
+          { token: tokenB.address, amount: balanceTokenB },
+        ],
+        governor.address
+      );
+    }
 
     async function flashSwap({ callee }: { callee: HasAddress }) {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);

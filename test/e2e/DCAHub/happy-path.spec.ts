@@ -126,9 +126,7 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(johnsPosition, { expectedSwapped: swapped({ rate: 100, ratio: swapRatioAB1, fee: swapFee1 }) });
       await assertPositionIsConsistent(joesPosition, { expectedSwapped: swapped({ rate: 50, ratio: swapRatioAC1, fee: swapFee1 }) });
       await assertNoSwapsCanBeExecutedNow();
-      await assertHubBalanceDifferencesAre({ tokenA: -50, tokenB: +49.85, tokenC: -50 });
-      await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +50, tokenB: -49.85, tokenC: +50 });
-      await assertPlatformBalanceIncreasedBy({ tokenA: 0.15, tokenB: 0, tokenC: 0 });
+      await assertSwapOutcomeWas({ tokens: { tokenA: -50, tokenB: +50, tokenC: -50 }, totalFees: { tokenA: 0.15, tokenB: 0.15 } });
 
       const lucysPosition = await deposit({
         owner: lucy,
@@ -160,9 +158,7 @@ contract('DCAHub', () => {
         expectedSwapped: swapped({ rate: 50, ratio: swapRatioAC1, fee: swapFee1 }, { rate: 50, ratio: swapRatioAC1, fee: swapFee1 }),
       });
       await assertPositionIsConsistent(lucysPosition, { expectedSwapped: swapped({ rate: 200, ratio: swapRatioAB2, fee: swapFee1 }) });
-      await assertHubBalanceDifferencesAre({ tokenA: +149.55, tokenB: -100, tokenC: -50 });
-      await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: -149.55, tokenB: +100, tokenC: +50 });
-      await assertPlatformBalanceIncreasedBy({ tokenA: +0.3, tokenB: +0.3 });
+      await assertSwapOutcomeWas({ tokens: { tokenA: +150, tokenB: -100, tokenC: -50 }, totalFees: { tokenA: 0.75, tokenB: 0.3 } });
 
       const sarahsPosition1 = await deposit({
         owner: sarah,
@@ -231,9 +227,10 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(sarahsPosition1, { expectedSwapped: swapped({ rate: 500, ratio: swapRatioAB2, fee: swapFee1 }) });
       await assertPositionIsConsistent(sarahsPosition2, { expectedSwapped: swapped({ rate: 100, ratio: swapRatioAB2, fee: swapFee1 }) });
       await assertPositionIsConsistent(larrysPosition, { expectedSwapped: swapped({ rate: 100, ratio: swapRatioBC1, fee: swapFee1 }) });
-      await assertHubBalanceDifferencesAre({ tokenA: -200, tokenB: +149.55, tokenC: +149.55 });
-      await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +200, tokenB: -149.55, tokenC: -149.55 });
-      await assertPlatformBalanceIncreasedBy({ tokenA: +1.05, tokenB: +1.2, tokenC: +0.15 });
+      await assertSwapOutcomeWas({
+        tokens: { tokenA: -200, tokenB: +150, tokenC: +150 },
+        totalFees: { tokenA: 1.05, tokenB: 1.65, tokenC: 0.6 },
+      });
 
       const availableForWithdraw = calculateSwapped(
         johnsPosition,
@@ -252,11 +249,13 @@ contract('DCAHub', () => {
       await assertBalanceDifferencesAre(larry, { tokenA: +49.85, tokenC: +50 });
       await assertPositionIsTerminated(joesPosition);
 
-      await loan({ callee: DCAHubLoanCallee, tokenA: 1849.7, tokenB: 799.7 });
+      const [balanceTokenA, balanceTokenB] = [await tokenA.balanceOf(DCAHub.address), await tokenB.balanceOf(DCAHub.address)];
+      await loan({ callee: DCAHubLoanCallee, tokenA: balanceTokenA, tokenB: balanceTokenB });
 
-      await assertHubBalanceDifferencesAre({ tokenA: +1.8497, tokenB: +0.7997 });
-      await assertPlatformBalanceIncreasedBy({ tokenA: +1.8497, tokenB: +0.7997 });
-      await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: -1.8497, tokenB: -0.7997 });
+      const [loanFeeTokenA, loanFeeTokenB] = [balanceTokenA.div(1000), balanceTokenB.div(1000)];
+      await assertHubBalanceDifferencesAre({ tokenA: loanFeeTokenA, tokenB: loanFeeTokenB });
+      await assertPlatformBalanceIncreasedBy({ tokenA: loanFeeTokenA, tokenB: loanFeeTokenB });
+      await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: loanFeeTokenA.mul(-1), tokenB: loanFeeTokenB.mul(-1) });
 
       await increasePosition(johnsPosition, { newSwaps: 10, amount: 100 });
 
@@ -294,9 +293,10 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(larrysPosition, {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatioBC1, fee: swapFee1 }, { rate: 100, ratio: swapRatioBC2, fee: swapFee2 }),
       });
-      await assertHubBalanceDifferencesAre({ tokenA: -495, tokenB: +888.22, tokenC: +99.8 });
-      await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +495, tokenB: -888.22, tokenC: -99.8 });
-      await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.4 });
+      await assertSwapOutcomeWas({
+        tokens: { tokenA: -495, tokenB: +890, tokenC: +100 },
+        totalFees: { tokenA: 0.1, tokenB: 2.18, tokenC: 0.2 },
+      });
 
       await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
       await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES); // Even after waiting an hour, the 1 hour interval is not available. This is because it was marked as inactive on the last swap, since there were no more swaps on it
@@ -334,9 +334,7 @@ contract('DCAHub', () => {
       await assertPositionIsConsistent(larrysPosition, {
         expectedSwapped: swapped({ rate: 100, ratio: swapRatioBC1, fee: swapFee1 }, { rate: 100, ratio: swapRatioBC2, fee: swapFee2 }),
       });
-      await assertHubBalanceDifferencesAre({ tokenA: -450, tokenB: +898.2 });
-      await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: +450, tokenB: -898.2 });
-      await assertPlatformBalanceIncreasedBy({ tokenA: +0.1, tokenB: +0.2 });
+      await assertSwapOutcomeWas({ tokens: { tokenA: -450, tokenB: +900 }, totalFees: { tokenA: 0.1, tokenB: 2 } });
 
       await evm.advanceTimeAndBlock(SwapInterval.FIFTEEN_MINUTES.seconds);
       await assertAmountsToSwapAre({ tokenA: 0, tokenB: 100, tokenC: 0 });
@@ -426,11 +424,19 @@ contract('DCAHub', () => {
       await DCAHub.swap(tokens, pairIndexes, borrow, callee.address, ethers.utils.randomBytes(5));
     }
 
-    async function loan({ callee, tokenA: amountTokenA, tokenB: amountTokenB }: { callee: HasAddress; tokenA: number; tokenB: number }) {
+    async function loan({
+      callee,
+      tokenA: amountTokenA,
+      tokenB: amountTokenB,
+    }: {
+      callee: HasAddress;
+      tokenA: number | BigNumber;
+      tokenB: number | BigNumber;
+    }) {
       await DCAHub.loan(
         [
-          { token: tokenA.address, amount: tokenA.asUnits(amountTokenA) },
-          { token: tokenB.address, amount: tokenB.asUnits(amountTokenB) },
+          { token: tokenA.address, amount: asUnitsIfNeeded(tokenA, amountTokenA) },
+          { token: tokenB.address, amount: asUnitsIfNeeded(tokenB, amountTokenB) },
         ],
         callee.address,
         ethers.utils.randomBytes(5)
@@ -528,7 +534,7 @@ contract('DCAHub', () => {
       return assertIntervalsToSwapNowAre();
     }
 
-    async function assertAmountsToSwapAre({ tokenA: expectedTokenA, tokenB: expectedTokenB, tokenC: expectedTokenC }: AmountForTokens) {
+    async function assertAmountsToSwapAre({ tokenA: expectedTokenA, tokenB: expectedTokenB, tokenC: expectedTokenC }: AmountForTokensBN) {
       const { pairs } = await getNextSwapInfo();
       const totalAmountsToSwap: Map<string, BigNumber> = new Map([
         [tokenA.address, constants.ZERO],
@@ -593,7 +599,7 @@ contract('DCAHub', () => {
       expect(swapped).to.equal(0);
     }
 
-    async function assertHubBalanceDifferencesAre(args: AtLeastOneToken) {
+    async function assertHubBalanceDifferencesAre(args: AtLeastOneTokenBN) {
       await assertBalanceDifferencesAre(DCAHub, args);
     }
 
@@ -602,7 +608,7 @@ contract('DCAHub', () => {
     let lastBalanceTokenC: Map<string, BigNumber> = new Map();
     async function assertBalanceDifferencesAre(
       hasAddress: HasAddress,
-      { tokenA: diffTokenA, tokenB: diffTokenB, tokenC: diffTokenC }: AtLeastOneToken
+      { tokenA: diffTokenA, tokenB: diffTokenB, tokenC: diffTokenC }: AtLeastOneTokenBN
     ) {
       const diffA = !diffTokenA ? 0 : asUnitsIfNeeded(tokenA, diffTokenA);
       const diffB = !diffTokenB ? 0 : asUnitsIfNeeded(tokenB, diffTokenB);
@@ -625,7 +631,7 @@ contract('DCAHub', () => {
       tokenA: increasedTokenA,
       tokenB: increasedTokenB,
       tokenC: increasedTokenC,
-    }: AtLeastOneToken) {
+    }: AtLeastOneTokenBN) {
       const diffA = !increasedTokenA ? 0 : asUnitsIfNeeded(tokenA, increasedTokenA);
       const diffB = !increasedTokenB ? 0 : asUnitsIfNeeded(tokenB, increasedTokenB);
       const diffC = !increasedTokenC ? 0 : asUnitsIfNeeded(tokenC, increasedTokenC);
@@ -650,7 +656,7 @@ contract('DCAHub', () => {
 
     async function setInitialBalance(
       hasAddress: HasAddress,
-      { tokenA: amountTokenA, tokenB: amountTokenB, tokenC: amountTokenC }: AmountForTokens
+      { tokenA: amountTokenA, tokenB: amountTokenB, tokenC: amountTokenC }: AmountForTokensBN
     ) {
       await tokenA.mint(hasAddress.address, asUnitsIfNeeded(tokenA, amountTokenA));
       await tokenB.mint(hasAddress.address, asUnitsIfNeeded(tokenB, amountTokenB));
@@ -662,6 +668,19 @@ contract('DCAHub', () => {
 
     function asUnitsIfNeeded(token: TokenContract, amount: BigNumber | number) {
       return BigNumber.isBigNumber(amount) ? amount : token.asUnits(amount);
+    }
+
+    function orZero(value?: number) {
+      return value ?? 0;
+    }
+
+    async function assertSwapOutcomeWas({ tokens, totalFees }: { tokens: AtLeastOneToken; totalFees: AtLeastOneToken }) {
+      const [feeTokenA, feeTokenB, feeTokenC] = [orZero(totalFees.tokenA) / 2, orZero(totalFees.tokenB) / 2, orZero(totalFees.tokenC) / 2];
+      const [outcomeTokenA, outcomeTokenB, outcomeTokenC] = [orZero(tokens.tokenA), orZero(tokens.tokenB), orZero(tokens.tokenC)];
+      const [diffTokenA, diffTokenB, diffTokenC] = [outcomeTokenA - feeTokenA, outcomeTokenB - feeTokenB, outcomeTokenC - feeTokenC];
+      await assertHubBalanceDifferencesAre({ tokenA: diffTokenA, tokenB: diffTokenB, tokenC: diffTokenC });
+      await assertBalanceDifferencesAre(DCAHubSwapCallee, { tokenA: -diffTokenA, tokenB: -diffTokenB, tokenC: -diffTokenC });
+      await assertPlatformBalanceIncreasedBy({ tokenA: feeTokenA, tokenB: feeTokenB, tokenC: feeTokenC });
     }
 
     const sumBN = (accum: BigNumber, newValue: BigNumber) => accum.add(newValue);
@@ -693,9 +712,10 @@ contract('DCAHub', () => {
       readonly address: string;
     };
 
-    type AmountForTokens = { tokenA: number | BigNumber; tokenB: number | BigNumber; tokenC: number | BigNumber };
-
+    type AmountForTokens = { tokenA: number; tokenB: number; tokenC: number };
     type AtLeastOneToken = RequireAtLeastOne<AmountForTokens, 'tokenA' | 'tokenB' | 'tokenC'>;
+    type AmountForTokensBN = { tokenA: number | BigNumber; tokenB: number | BigNumber; tokenC: number | BigNumber };
+    type AtLeastOneTokenBN = RequireAtLeastOne<AmountForTokensBN, 'tokenA' | 'tokenB' | 'tokenC'>;
 
     type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Pick<T, Exclude<keyof T, Keys>> &
       {

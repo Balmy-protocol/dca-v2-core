@@ -134,32 +134,32 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         revert InvalidPairs();
       }
 
-      _swapInformation.pairs[i].tokenA = _tokens[indexTokenA];
-      _swapInformation.pairs[i].tokenB = _tokens[indexTokenB];
-      uint120 _magnitudeA = _calculateMagnitude(_swapInformation.pairs[i].tokenA);
-      uint120 _magnitudeB = _calculateMagnitude(_swapInformation.pairs[i].tokenB);
+      PairInSwap memory _pairInSwap = _swapInformation.pairs[i];
+      _pairInSwap.tokenA = _tokens[indexTokenA];
+      _pairInSwap.tokenB = _tokens[indexTokenB];
+      uint120 _magnitudeA = _calculateMagnitude(_pairInSwap.tokenA);
+      uint120 _magnitudeB = _calculateMagnitude(_pairInSwap.tokenB);
 
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;
 
-      (_amountToSwapTokenA, _amountToSwapTokenB, _swapInformation.pairs[i].intervalsInSwap) = _getTotalAmountsToSwap(
-        _swapInformation.pairs[i].tokenA,
-        _swapInformation.pairs[i].tokenB
-      );
+      (_amountToSwapTokenA, _amountToSwapTokenB, _pairInSwap.intervalsInSwap) = _getTotalAmountsToSwap(_pairInSwap.tokenA, _pairInSwap.tokenB);
 
       _total[indexTokenA] += _amountToSwapTokenA;
       _total[indexTokenB] += _amountToSwapTokenB;
 
-      (_swapInformation.pairs[i].ratioAToB, _swapInformation.pairs[i].ratioBToA) = _calculateRatio(
-        _swapInformation.pairs[i].tokenA,
-        _swapInformation.pairs[i].tokenB,
+      (_pairInSwap.ratioAToB, _pairInSwap.ratioBToA) = _calculateRatio(
+        _pairInSwap.tokenA,
+        _pairInSwap.tokenB,
         _magnitudeA,
         _magnitudeB,
         _oracle
       );
 
-      _needed[indexTokenA] += _convertTo(_magnitudeB, _amountToSwapTokenB, _swapInformation.pairs[i].ratioBToA, _swapFee);
-      _needed[indexTokenB] += _convertTo(_magnitudeA, _amountToSwapTokenA, _swapInformation.pairs[i].ratioAToB, _swapFee);
+      _needed[indexTokenA] += _convertTo(_magnitudeB, _amountToSwapTokenB, _pairInSwap.ratioBToA, _swapFee);
+      _needed[indexTokenB] += _convertTo(_magnitudeA, _amountToSwapTokenA, _pairInSwap.ratioAToB, _swapFee);
+
+      _swapInformation.pairs[i] = _pairInSwap;
     }
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
@@ -169,29 +169,30 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         revert IDCAHub.InvalidTokens();
       }
 
-      _swapInformation.tokens[i].token = _tokens[i];
+      TokenInSwap memory _tokenInSwap;
+      _tokenInSwap.token = _tokens[i];
 
-      uint256 _neededWithFee = _needed[i];
+      uint256 _neededInSwap = _needed[i];
       uint256 _totalBeingSwapped = _total[i];
 
-      if (_neededWithFee > 0 || _totalBeingSwapped > 0) {
-        // We are un-applying the fee here
-        uint256 _neededWithoutFee = FeeMath.unapplyFeeToAmount(_swapFee, _neededWithFee);
+      if (_neededInSwap > 0 || _totalBeingSwapped > 0) {
+        uint256 _totalFee = FeeMath.calculateSubstractedFee(_swapFee, _neededInSwap);
 
-        // We are calculating the CoW by finding the min between what's needed and what we already have. Then, we just calculate the fee for that
-        int256 _platformFee = int256(FeeMath.calculateFeeForAmount(_swapFee, Math.min(_neededWithoutFee, _totalBeingSwapped)));
+        // TODO: Make platform vs swapper fee ratio configurable. Now it's hardcoded to 50% each
+        int256 _platformFee = int256(_totalFee / 2);
 
         // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
-        int256 _diff = int256(_totalBeingSwapped) - int256(_neededWithFee);
+        int256 _diff = int256(_totalBeingSwapped) - int256(_neededInSwap);
 
         // Instead of checking if diff is positive or not, we compare against the platform fee. This is to avoid any rounding issues
         if (_diff > _platformFee) {
-          _swapInformation.tokens[i].reward = uint256(_diff - _platformFee);
+          _tokenInSwap.reward = uint256(_diff - _platformFee);
         } else if (_diff < _platformFee) {
-          _swapInformation.tokens[i].toProvide = uint256(_platformFee - _diff);
+          _tokenInSwap.toProvide = uint256(_platformFee - _diff);
         }
-        _swapInformation.tokens[i].platformFee = uint256(_platformFee);
+        _tokenInSwap.platformFee = uint256(_platformFee);
       }
+      _swapInformation.tokens[i] = _tokenInSwap;
     }
   }
 
@@ -212,6 +213,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
       for (uint256 i; i < _swapInformation.pairs.length; i++) {
+        // TODO: Evaluate reading _swapInformation.pairs[i] once
         bytes1 _intervalsInSwap = _swapInformation.pairs[i].intervalsInSwap;
         bytes1 _mask = 0x01;
         while (_intervalsInSwap >= _mask && _mask > 0) {
@@ -256,6 +258,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     // Checks and balance updates
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
+      // TODO: Evaluate reading _swapInformation.tokens[i] once
       uint256 _addToPlatformBalance = _swapInformation.tokens[i].platformFee;
 
       if (_swapInformation.tokens[i].toProvide > 0 || _borrow[i] > 0) {

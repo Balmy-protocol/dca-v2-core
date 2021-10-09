@@ -1,4 +1,3 @@
-import moment from 'moment';
 import { expect } from 'chai';
 import { BigNumber, BigNumberish, Contract } from 'ethers';
 import { ethers } from 'hardhat';
@@ -425,11 +424,36 @@ contract('DCAHubSwapHandler', () => {
       ratioBToA: number;
     };
 
-    type Token = { token: () => TokenContract } & ({ CoW: number } | { platformFee: number }) & ({ required: number } | { reward: number } | {});
+    type Token = { token: () => TokenContract; platformFee: BigNumber; required: BigNumber; reward: BigNumber };
+    type TotalAmounts = { token: () => TokenContract; available: number; needed: number };
 
-    function getNextSwapInfoTest({ title, pairs, result }: { title: string; pairs: Pair[]; result: Token[] }) {
+    // TODO: also test 0 and 1
+    const FEE_RATIOS = [0.5];
+    function getNextSwapInfoTest({ title, pairs, total }: { title: string; pairs: Pair[]; total: TotalAmounts[] }) {
+      for (const protocolFeeRatio of FEE_RATIOS) {
+        invidiualGetNextSwapInfoTest({
+          title: title + ` (${protocolFeeRatio}% protocol fee split)`,
+          pairs,
+          protocolFeeRatio,
+          total,
+        });
+      }
+    }
+
+    function invidiualGetNextSwapInfoTest({
+      title,
+      pairs,
+      protocolFeeRatio,
+      total,
+    }: {
+      title: string;
+      protocolFeeRatio: number;
+      pairs: Pair[];
+      total: TotalAmounts[];
+    }) {
       when(title, () => {
         let expectedRatios: Map<string, { ratioAToB: BigNumber; ratioBToA: BigNumber }>;
+        let expectedTokenResults: Token[];
         let swapInformation: SwapInformation;
 
         given(async () => {
@@ -448,6 +472,24 @@ contract('DCAHubSwapHandler', () => {
               ratioAToB: tokenB().asUnits(1 / ratioBToA),
             });
           }
+          expectedTokenResults = total.map(({ token, available, needed }) => {
+            const availableBN = token().asUnits(available);
+            const neededBN = token().asUnits(needed);
+
+            const totalFee = CALCULATE_FEE(neededBN);
+            const platformFee = totalFee.mul(protocolFeeRatio * 10).div(10);
+            const swapperFee = totalFee.sub(platformFee);
+
+            let reward = constants.ZERO;
+            let required = constants.ZERO;
+
+            if (availableBN.lt(neededBN)) {
+              required = neededBN.sub(availableBN).sub(swapperFee);
+            } else {
+              reward = availableBN.sub(neededBN).add(swapperFee);
+            }
+            return { token, reward, required, platformFee };
+          });
           const { tokens, pairIndexes } = buildGetNextSwapInfoInput(
             pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address })),
             []
@@ -472,24 +514,12 @@ contract('DCAHubSwapHandler', () => {
 
         then('token amounts and roles are calculated correctly', () => {
           const tokens = new Map(swapInformation.tokens.map(({ token, ...information }) => [token, information]));
-          for (const tokenData of result) {
+          for (const tokenData of expectedTokenResults) {
             const token = tokenData.token();
             const { reward, toProvide, platformFee } = tokens.get(token.address)!;
-            if ('CoW' in tokenData) {
-              expect(platformFee).to.equal(CALCULATE_FEE(token.asUnits(tokenData.CoW)));
-            } else {
-              expect(platformFee).to.equal(APPLY_FEE(token.asUnits(tokenData.platformFee)));
-            }
-            if ('required' in tokenData) {
-              expect(toProvide).to.equal(APPLY_FEE(token.asUnits(tokenData.required)));
-              expect(reward).to.equal(0);
-            } else if ('reward' in tokenData) {
-              expect(reward).to.equal(token.asUnits(tokenData.reward));
-              expect(toProvide).to.equal(0);
-            } else {
-              expect(reward).to.equal(0);
-              expect(toProvide).to.equal(0);
-            }
+            expect(platformFee).to.equal(tokenData.platformFee);
+            expect(toProvide).to.equal(tokenData.required);
+            expect(reward).to.equal(tokenData.reward);
           }
         });
       });
@@ -526,7 +556,7 @@ contract('DCAHubSwapHandler', () => {
     getNextSwapInfoTest({
       title: 'no pairs are sent',
       pairs: [],
-      result: [],
+      total: [],
     });
 
     getNextSwapInfoTest({
@@ -540,16 +570,16 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 2,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          CoW: 0,
-          reward: 100,
+          available: 100,
+          needed: 0,
         },
         {
           token: () => tokenB,
-          CoW: 0,
-          required: 50,
+          available: 0,
+          needed: 50,
         },
       ],
     });
@@ -565,16 +595,16 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 0.5,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          CoW: 0,
-          required: 50,
+          available: 0,
+          needed: 50,
         },
         {
           token: () => tokenB,
-          CoW: 0,
-          reward: 100,
+          available: 100,
+          needed: 0,
         },
       ],
     });
@@ -590,16 +620,16 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 1,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          CoW: 50,
-          required: 50,
+          available: 50,
+          needed: 100,
         },
         {
           token: () => tokenB,
-          CoW: 50,
-          reward: 50,
+          available: 100,
+          needed: 50,
         },
       ],
     });
@@ -615,14 +645,16 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 0.25,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          CoW: 30,
+          available: 30,
+          needed: 30,
         },
         {
           token: () => tokenB,
-          CoW: 120,
+          available: 120,
+          needed: 120,
         },
       ],
     });
@@ -637,7 +669,6 @@ contract('DCAHubSwapHandler', () => {
           amountTokenB: 0,
           ratioBToA: 1,
         },
-
         {
           tokenA: () => tokenA,
           tokenB: () => tokenC,
@@ -646,21 +677,21 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 1,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          CoW: 0,
-          reward: 100,
+          available: 100,
+          needed: 0,
         },
         {
           token: () => tokenB,
-          CoW: 0,
-          required: 50,
+          available: 0,
+          needed: 50,
         },
         {
           token: () => tokenC,
-          CoW: 0,
-          required: 50,
+          available: 0,
+          needed: 50,
         },
       ],
     });
@@ -675,7 +706,6 @@ contract('DCAHubSwapHandler', () => {
           amountTokenB: 20,
           ratioBToA: 2,
         },
-
         {
           tokenA: () => tokenA,
           tokenB: () => tokenC,
@@ -684,21 +714,21 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 4,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          CoW: 110,
-          required: 10,
+          available: 110,
+          needed: 120,
         },
         {
           token: () => tokenB,
-          CoW: 20,
-          required: 5,
+          available: 20,
+          needed: 25,
         },
         {
           token: () => tokenC,
-          CoW: 15,
-          reward: 5,
+          available: 20,
+          needed: 15,
         },
       ],
     });
@@ -713,7 +743,6 @@ contract('DCAHubSwapHandler', () => {
           amountTokenB: 20,
           ratioBToA: 2,
         },
-
         {
           tokenA: () => tokenA,
           tokenB: () => tokenC,
@@ -722,20 +751,21 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 4,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          CoW: 120,
+          available: 120,
+          needed: 120,
         },
         {
           token: () => tokenB,
-          CoW: 20,
-          required: 5,
+          available: 20,
+          needed: 25,
         },
         {
           token: () => tokenC,
-          CoW: 17.5,
-          reward: 2.5,
+          available: 20,
+          needed: 17.5,
         },
       ],
     });
@@ -751,7 +781,6 @@ contract('DCAHubSwapHandler', () => {
           amountTokenB: 50,
           ratioBToA: 1,
         },
-
         {
           tokenA: () => tokenA,
           tokenB: () => tokenC,
@@ -760,21 +789,21 @@ contract('DCAHubSwapHandler', () => {
           ratioBToA: 1,
         },
       ],
-      result: [
+      total: [
         {
           token: () => tokenA,
-          platformFee: 0.3,
-          required: 0.3,
+          available: 49.7,
+          needed: 50,
         },
         {
           token: () => tokenB,
-          CoW: 0,
-          reward: 50,
+          available: 50,
+          needed: 0,
         },
         {
           token: () => tokenC,
-          CoW: 0,
-          required: 49.7,
+          available: 0,
+          needed: 49.7,
         },
       ],
     });
