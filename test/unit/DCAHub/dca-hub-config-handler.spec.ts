@@ -97,6 +97,11 @@ contract('DCAHubConfigHandler', () => {
           expect(await isSwapIntervalAllowed(interval)).to.be.false;
         }
       });
+      then(`platform fee ratio starts at 50%`, async () => {
+        const platformFeeRatio = await deployedContract.platformFeeRatio();
+        const maxPlatformFeeRatio = await deployedContract.MAX_PLATFORM_FEE_RATIO();
+        expect(platformFeeRatio).to.equal(maxPlatformFeeRatio / 2);
+      });
     });
   });
 
@@ -230,6 +235,48 @@ contract('DCAHubConfigHandler', () => {
     behaviours.shouldBeExecutableOnlyByRole({
       contract: () => DCAHubConfigHandler,
       funcAndSignature: 'setLoanFee(uint32)',
+      params: [1],
+      addressWithRole: () => timeLockedOwner,
+      role: () => timeLockedRole,
+    });
+  });
+
+  describe('setPlatformFeeRatio', () => {
+    when('sets ratio is bigger than allowed', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubConfigHandler.connect(timeLockedOwner),
+          func: 'setPlatformFeeRatio',
+          args: [(await DCAHubConfigHandler.MAX_PLATFORM_FEE_RATIO()) + 1],
+          message: 'HighPlatformFeeRatio',
+        });
+      });
+    });
+    when('sets ratio equal to maximum allowed', () => {
+      then('sets fee and emits event', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAHubConfigHandler.connect(timeLockedOwner),
+          getterFunc: 'platformFeeRatio',
+          setterFunc: 'setPlatformFeeRatio',
+          variable: await DCAHubConfigHandler.MAX_PLATFORM_FEE_RATIO(),
+          eventEmitted: 'PlatformFeeRatioSet',
+        });
+      });
+    });
+    when('sets fee lower than maximum allowed', () => {
+      then('sets fee and emits event', async () => {
+        await behaviours.txShouldSetVariableAndEmitEvent({
+          contract: DCAHubConfigHandler.connect(timeLockedOwner),
+          getterFunc: 'platformFeeRatio',
+          setterFunc: 'setPlatformFeeRatio',
+          variable: (await DCAHubConfigHandler.MAX_PLATFORM_FEE_RATIO()) - 1,
+          eventEmitted: 'PlatformFeeRatioSet',
+        });
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => DCAHubConfigHandler,
+      funcAndSignature: 'setPlatformFeeRatio(uint16)',
       params: [1],
       addressWithRole: () => timeLockedOwner,
       role: () => timeLockedRole,

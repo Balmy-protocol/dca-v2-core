@@ -422,17 +422,30 @@ interface IDCAHubConfigHandler {
   /// @param _swapIntervals The swap intervals that are no longer allowed
   event SwapIntervalsForbidden(uint32[] _swapIntervals);
 
+  /// @notice Emitted when a new platform fee ratio is set
+  /// @param _platformFeeRatio The new platform fee ratio
+  event PlatformFeeRatioSet(uint16 _platformFeeRatio);
+
   /// @notice Thrown when trying to set a fee higher than the maximum allowed
   error HighFee();
 
   /// @notice Thrown when trying to set a fee that is not multiple of 100
   error InvalidFee();
 
+  /// @notice Thrown when trying to set a fee ratio that is higher that the maximum allowed
+  error HighPlatformFeeRatio();
+
   /// @notice Returns the precision used for fees. In other terms, how a 1% fee would look like
   /// @dev Cannot be modified
   /// @return The fee precision
   // solhint-disable-next-line func-name-mixedcase
   function FEE_PRECISION() external view returns (uint32);
+
+  /// @notice Returns the max fee ratio that can be set
+  /// @dev Cannot be modified
+  /// @return The maximum possible value
+  // solhint-disable-next-line func-name-mixedcase
+  function MAX_PLATFORM_FEE_RATIO() external view returns (uint16);
 
   /// @notice Returns the fee charged on swaps
   /// @return _swapFee The fee itself
@@ -445,6 +458,10 @@ interface IDCAHubConfigHandler {
   /// @notice Returns the time-weighted oracle contract
   /// @return _oracle The contract itself
   function oracle() external view returns (ITimeWeightedOracle _oracle);
+
+  /// @notice Returns how much will the platform take from the fees collected in swaps
+  /// @return The current ratio
+  function platformFeeRatio() external view returns (uint16);
 
   /// @notice Returns the max fee that can be set for either swap or loans
   /// @dev Cannot be modified
@@ -476,6 +493,11 @@ interface IDCAHubConfigHandler {
   /// @dev Will revert with ZeroAddress if the zero address is passed
   /// @param _oracle The new oracle contract
   function setOracle(ITimeWeightedOracle _oracle) external;
+
+  /// @notice Sets a new platform fee ratio
+  /// @dev Will revert with HighPlatformFeeRatio if given ratio is too high
+  /// @param _platformFeeRatio The new ratio
+  function setPlatformFeeRatio(uint16 _platformFeeRatio) external;
 
   /// @notice Adds new swap intervals to the allowed list
   /// @param _swapIntervals The new swap intervals

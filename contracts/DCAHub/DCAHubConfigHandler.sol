@@ -16,11 +16,13 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
   uint32 public MAX_FEE = 10 * FeeMath.FEE_PRECISION; // 10%
   // solhint-enable var-name-mixedcase
+  uint16 public constant MAX_PLATFORM_FEE_RATIO = 10000;
 
   ITimeWeightedOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
+  uint16 public platformFeeRatio = 5000; // 50%
 
   constructor(
     address _immediateGovernor,
@@ -53,6 +55,12 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     _validateFee(_loanFee);
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
+  }
+
+  function setPlatformFeeRatio(uint16 _platformFeeRatio) external onlyRole(TIME_LOCKED_ROLE) {
+    if (_platformFeeRatio > MAX_PLATFORM_FEE_RATIO) revert HighPlatformFeeRatio();
+    platformFeeRatio = _platformFeeRatio;
+    emit PlatformFeeRatioSet(_platformFeeRatio);
   }
 
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
