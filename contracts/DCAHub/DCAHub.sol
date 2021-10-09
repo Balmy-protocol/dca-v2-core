@@ -20,7 +20,7 @@ contract DCAHub is
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    ITimeWeightedOracle _oracle,
+    IPriceOracle _oracle,
     IDCAPermissionManager _permissionManager
   ) DCAHubPositionHandler(_permissionManager) DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle) {}
 

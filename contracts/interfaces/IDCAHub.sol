@@ -2,8 +2,8 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import '../interfaces/IDCAPermissionManager.sol';
-import '../interfaces/ITimeWeightedOracle.sol';
+import './IDCAPermissionManager.sol';
+import './oracles/IPriceOracle.sol';
 
 /// @title The interface for all state related queries
 /// @notice These methods allow users to read the hubs's current values
@@ -404,7 +404,7 @@ interface IDCAHubLoanHandler {
 interface IDCAHubConfigHandler {
   /// @notice Emitted when a new oracle is set
   /// @param _oracle The new oracle contract
-  event OracleSet(ITimeWeightedOracle _oracle);
+  event OracleSet(IPriceOracle _oracle);
 
   /// @notice Emitted when a new swap fee is set
   /// @param _feeSet The new swap fee
@@ -455,9 +455,9 @@ interface IDCAHubConfigHandler {
   /// @return _loanFee The fee itself
   function loanFee() external view returns (uint32 _loanFee);
 
-  /// @notice Returns the time-weighted oracle contract
+  /// @notice Returns the price oracle contract
   /// @return _oracle The contract itself
-  function oracle() external view returns (ITimeWeightedOracle _oracle);
+  function oracle() external view returns (IPriceOracle _oracle);
 
   /// @notice Returns how much will the platform take from the fees collected in swaps
   /// @return The current ratio
@@ -489,10 +489,10 @@ interface IDCAHubConfigHandler {
   /// @param _fee The new loan fee
   function setLoanFee(uint32 _fee) external;
 
-  /// @notice Sets a new time-weighted oracle
+  /// @notice Sets a new price oracle
   /// @dev Will revert with ZeroAddress if the zero address is passed
   /// @param _oracle The new oracle contract
-  function setOracle(ITimeWeightedOracle _oracle) external;
+  function setOracle(IPriceOracle _oracle) external;
 
   /// @notice Sets a new platform fee ratio
   /// @dev Will revert with HighPlatformFeeRatio if given ratio is too high

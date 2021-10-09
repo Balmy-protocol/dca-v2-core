@@ -28,7 +28,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    ITimeWeightedOracle _oracle
+    IPriceOracle _oracle
   ) DCAHubConfigHandlerMock(_immediateGovernor, _timeLockedGovernor, _oracle) DCAHubSwapHandler() {}
 
   function registerSwap(
@@ -94,7 +94,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    ITimeWeightedOracle _oracle
+    IPriceOracle _oracle
   ) external view returns (uint256, uint256) {
     return _calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _oracle);
   }
@@ -104,7 +104,7 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    ITimeWeightedOracle _oracle
+    IPriceOracle _oracle
   ) internal view override returns (uint256 _ratioAToB, uint256 _ratioBToA) {
     _ratioBToA = _ratios[_tokenB][_tokenA];
     if (_ratioBToA == 0) {

@@ -4,11 +4,11 @@ pragma solidity >=0.5.0 <0.8.0;
 import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import '@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol';
 import '@uniswap/v3-periphery/contracts/libraries/WeightedOracleLibrary.sol';
-import '../interfaces/ITimeWeightedOracle.sol';
+import '../interfaces/oracles/IUniswapV3Oracle.sol';
 import '../utils/Governable.sol';
 import '../libraries/UniswapWeightedOracleLibrary.sol';
 
-contract UniswapV3Oracle is IUniswapV3OracleAggregator, Governable {
+contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   uint16 public constant override MINIMUM_PERIOD = 1 minutes;
   uint16 public constant override MAXIMUM_PERIOD = 20 minutes;
   uint16 public constant override MINIMUM_LIQUIDITY_THRESHOLD = 1;

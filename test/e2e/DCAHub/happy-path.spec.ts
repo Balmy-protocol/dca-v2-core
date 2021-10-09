@@ -10,7 +10,7 @@ import {
   DCAHubLoanCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  ITimeWeightedOracle,
+  IPriceOracle,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
@@ -30,7 +30,7 @@ contract('DCAHub', () => {
     let joe: SignerWithAddress, larry: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
+    let priceOracle: FakeContract<IPriceOracle>;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
     let DCAHubLoanCalleeFactory: DCAHubLoanCalleeMock__factory, DCAHubLoanCallee: DCAHubLoanCalleeMock;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
@@ -66,10 +66,10 @@ contract('DCAHub', () => {
         decimals: 18,
       });
 
-      timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
+      priceOracle = await smock.fake('IPriceOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
 
-      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
+      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
       await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.FIFTEEN_MINUTES.seconds, SwapInterval.ONE_HOUR.seconds]);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
@@ -390,7 +390,7 @@ contract('DCAHub', () => {
           amountIn.mul(token1.asUnits(ratio.token1 / ratio.token0)).div(token0.magnitude)
         );
       }
-      timeWeightedOracle.quote.returns(({ _amountIn, _tokenIn, _tokenOut }: { _tokenIn: string; _tokenOut: string; _amountIn: BigNumber }) =>
+      priceOracle.quote.returns(({ _amountIn, _tokenIn, _tokenOut }: { _tokenIn: string; _tokenOut: string; _amountIn: BigNumber }) =>
         ratios.get(`${_tokenIn}${_tokenOut}`)!(_amountIn)
       );
     }

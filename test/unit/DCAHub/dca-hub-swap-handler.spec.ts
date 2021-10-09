@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { BigNumber, BigNumberish, Contract } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHubSwapHandlerMock, DCAHubSwapHandlerMock__factory, ITimeWeightedOracle } from '@typechained';
+import { DCAHubSwapHandlerMock, DCAHubSwapHandlerMock__factory, IPriceOracle } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, bn, behaviours } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -22,7 +22,7 @@ contract('DCAHubSwapHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
   let DCAHubSwapHandlerContract: DCAHubSwapHandlerMock__factory;
   let DCAHubSwapHandler: DCAHubSwapHandlerMock;
-  let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
+  let priceOracle: FakeContract<IPriceOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -42,8 +42,8 @@ contract('DCAHubSwapHandler', () => {
 
     [tokenA, tokenB, tokenC] = tokens.sort((a, b) => a.address.localeCompare(b.address));
 
-    timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
-    DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(owner.address, owner.address, timeWeightedOracle.address);
+    priceOracle = await smock.fake('IPriceOracle');
+    DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(owner.address, owner.address, priceOracle.address);
     snapshotId = await snapshot.take();
   });
 
@@ -404,7 +404,7 @@ contract('DCAHubSwapHandler', () => {
           tokenB.address,
           tokenA.magnitude,
           tokenB.magnitude,
-          timeWeightedOracle.address
+          priceOracle.address
         );
       });
       then('ratios are calculated correctly', () => {
@@ -871,7 +871,7 @@ contract('DCAHubSwapHandler', () => {
   });
 
   const setOracleData = ({ ratioBToA }: { ratioBToA: BigNumber }) => {
-    timeWeightedOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(ratioBToA).div(tokenB.magnitude));
+    priceOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(ratioBToA).div(tokenB.magnitude));
   };
 
   describe('flash swap', () => {

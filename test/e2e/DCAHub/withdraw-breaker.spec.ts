@@ -9,7 +9,7 @@ import {
   DCAHub__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  ITimeWeightedOracle,
+  IPriceOracle,
 } from '@typechained';
 import { constants, erc20, evm } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -25,7 +25,7 @@ contract('DCAHub', () => {
     let alice: SignerWithAddress, john: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
+    let priceOracle: FakeContract<IPriceOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
 
@@ -42,9 +42,9 @@ contract('DCAHub', () => {
       const deploy = () => erc20.deploy({ name: 'A name', symbol: 'SYMB' });
       const tokens = [await deploy(), await deploy()];
       [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
-      timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
+      priceOracle = await smock.fake('IPriceOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
-      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
+      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(2000), tokenB.asUnits(2000)]);
@@ -52,7 +52,7 @@ contract('DCAHub', () => {
       await setInitialBalance(alice, { tokenA: 0, tokenB: 200 });
       await setInitialBalance(john, { tokenA: 0, tokenB: 1000 });
       await setInitialBalance(DCAHubSwapCallee, { tokenA: 2000, tokenB: 2000 });
-      timeWeightedOracle.quote.returns(BigNumber.from('2246'));
+      priceOracle.quote.returns(BigNumber.from('2246'));
     });
 
     when('a withdraw is executed after position is finished', () => {

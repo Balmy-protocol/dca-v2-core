@@ -7,7 +7,7 @@ import {
   DCAHub__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  ITimeWeightedOracle,
+  IPriceOracle,
 } from '@typechained';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
@@ -26,7 +26,7 @@ contract('DCAHub', () => {
     let alice: SignerWithAddress, john: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
+    let priceOracle: FakeContract<IPriceOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
 
@@ -51,9 +51,9 @@ contract('DCAHub', () => {
         symbol: 'DAI',
         decimals: 18,
       });
-      timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
+      priceOracle = await smock.fake('IPriceOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
-      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, timeWeightedOracle.address, DCAPermissionsManager.address);
+      DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
       await DCAHub.connect(governor).grantRole(PLATFORM_WITHDRAW_ROLE, governor.address);
       DCAPermissionsManager.setHub(DCAHub.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
@@ -89,22 +89,22 @@ contract('DCAHub', () => {
         );
 
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        timeWeightedOracle.quote.returns(BigNumber.from('2246'));
+        priceOracle.quote.returns(BigNumber.from('2246'));
         await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        timeWeightedOracle.quote.returns(BigNumber.from('2209'));
+        priceOracle.quote.returns(BigNumber.from('2209'));
         await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        timeWeightedOracle.quote.returns(BigNumber.from('2190'));
+        priceOracle.quote.returns(BigNumber.from('2190'));
         await flashSwap({ callee: DCAHubSwapCallee });
 
         await DCAHub.connect(alice).withdrawSwapped(1, wallet.generateRandomAddress());
 
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        timeWeightedOracle.quote.returns(BigNumber.from('2175'));
+        priceOracle.quote.returns(BigNumber.from('2175'));
         await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        timeWeightedOracle.quote.returns(BigNumber.from('2216'));
+        priceOracle.quote.returns(BigNumber.from('2216'));
         await flashSwap({ callee: DCAHubSwapCallee });
 
         // We need to withdraw all platform balance, so that it isn't used if the precision is wrong

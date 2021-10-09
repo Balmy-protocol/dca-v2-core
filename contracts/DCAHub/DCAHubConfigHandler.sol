@@ -3,7 +3,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
-import '../interfaces/ITimeWeightedOracle.sol';
+import '../interfaces/oracles/IPriceOracle.sol';
 import '../libraries/Intervals.sol';
 import '../libraries/FeeMath.sol';
 import './DCAHubParameters.sol';
@@ -11,6 +11,7 @@ import './DCAHubParameters.sol';
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
   // Internal constants (should be constants, but apparently the byte code size increases when they are)
   // solhint-disable var-name-mixedcase
+  // TODO: See if we can make these constants again
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
   bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
@@ -18,7 +19,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   // solhint-enable var-name-mixedcase
   uint16 public constant MAX_PLATFORM_FEE_RATIO = 10000;
 
-  ITimeWeightedOracle public oracle;
+  IPriceOracle public oracle;
   uint32 public swapFee = 6000; // 0.6%
   uint32 public loanFee = 1000; // 0.1%
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
@@ -27,7 +28,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    ITimeWeightedOracle _oracle
+    IPriceOracle _oracle
   ) {
     if (_immediateGovernor == address(0) || _timeLockedGovernor == address(0) || address(_oracle) == address(0)) revert IDCAHub.ZeroAddress();
     _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
@@ -39,7 +40,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     oracle = _oracle;
   }
 
-  function setOracle(ITimeWeightedOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
+  function setOracle(IPriceOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
     _assertNonZeroAddress(address(_oracle));
     oracle = _oracle;
     emit OracleSet(_oracle);

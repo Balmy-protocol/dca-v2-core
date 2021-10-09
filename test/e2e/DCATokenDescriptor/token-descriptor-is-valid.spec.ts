@@ -15,7 +15,7 @@ import {
   DCAPermissionsManager__factory,
   DCATokenDescriptor,
   DCATokenDescriptor__factory,
-  ITimeWeightedOracle,
+  IPriceOracle,
 } from '@typechained';
 import isSvg from 'is-svg';
 import { expect } from 'chai';
@@ -31,7 +31,7 @@ contract('DCATokenDescriptor', () => {
   let DCATokenDescriptor: DCATokenDescriptor;
   let DCAPermissionsManagerFactory: DCAPermissionsManager__factory;
   let DCAPermissionsManager: DCAPermissionsManager;
-  let timeWeightedOracle: FakeContract<ITimeWeightedOracle>;
+  let priceOracle: FakeContract<IPriceOracle>;
   let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
   const swapInterval = moment.duration(1, 'day').as('seconds');
 
@@ -55,16 +55,11 @@ contract('DCATokenDescriptor', () => {
       name: 'tokenB',
       symbol: 'TKNB',
     });
-    timeWeightedOracle = await smock.fake('ITimeWeightedOracle');
-    timeWeightedOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(tokenA.asUnits(1)).div(tokenB.magnitude));
+    priceOracle = await smock.fake('IPriceOracle');
+    priceOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(tokenA.asUnits(1)).div(tokenB.magnitude));
     DCATokenDescriptor = await DCATokenDescriptorFactory.deploy();
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
-    DCAHub = await DCAHubContract.deploy(
-      governor.address,
-      constants.NOT_ZERO_ADDRESS,
-      timeWeightedOracle.address,
-      DCAPermissionsManager.address
-    );
+    DCAHub = await DCAHubContract.deploy(governor.address, constants.NOT_ZERO_ADDRESS, priceOracle.address, DCAPermissionsManager.address);
 
     await DCAPermissionsManager.setHub(DCAHub.address);
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval]);

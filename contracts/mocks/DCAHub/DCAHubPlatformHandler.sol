@@ -5,5 +5,5 @@ import '../../DCAHub/DCAHubPlatformHandler.sol';
 import './DCAHubConfigHandler.sol';
 
 contract DCAHubPlatformHandlerMock is DCAHubPlatformHandler, DCAHubConfigHandlerMock {
-  constructor(address _timelockedGovernor) DCAHubConfigHandlerMock(address(1), _timelockedGovernor, ITimeWeightedOracle(address(1))) {}
+  constructor(address _timelockedGovernor) DCAHubConfigHandlerMock(address(1), _timelockedGovernor, IPriceOracle(address(1))) {}
 }

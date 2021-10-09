@@ -9,6 +9,6 @@ contract DCAHubConfigHandlerMock is DCAHubConfigHandler, DCAHubParametersMock {
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    ITimeWeightedOracle _oracle
+    IPriceOracle _oracle
   ) DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle) {}
 }

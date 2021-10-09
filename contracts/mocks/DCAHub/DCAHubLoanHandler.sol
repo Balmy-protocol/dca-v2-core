@@ -8,6 +8,6 @@ contract DCAHubLoanHandlerMock is DCAHubLoanHandler, DCAHubConfigHandlerMock {
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    ITimeWeightedOracle _oracle
+    IPriceOracle _oracle
   ) DCAHubConfigHandlerMock(_immediateGovernor, _timeLockedGovernor, _oracle) {}
 }
