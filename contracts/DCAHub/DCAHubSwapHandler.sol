@@ -162,8 +162,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _swapInformation.pairs[i] = _pairInSwap;
     }
 
-    _swapInformation.tokens = new TokenInSwap[](_tokens.length);
+    // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
+    uint16 _platformFeeRatio = platformFeeRatio;
 
+    _swapInformation.tokens = new TokenInSwap[](_tokens.length);
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       if (i > 0 && _tokens[i] <= _tokens[i - 1]) {
         revert IDCAHub.InvalidTokens();
@@ -178,8 +180,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       if (_neededInSwap > 0 || _totalBeingSwapped > 0) {
         uint256 _totalFee = FeeMath.calculateSubstractedFee(_swapFee, _neededInSwap);
 
-        // TODO: Make platform vs swapper fee ratio configurable. Now it's hardcoded to 50% each
-        int256 _platformFee = int256(_totalFee / 2);
+        int256 _platformFee = int256((_totalFee * _platformFeeRatio) / MAX_PLATFORM_FEE_RATIO);
 
         // If diff is negative, we need tokens. If diff is positive, then we have more than is needed
         int256 _diff = int256(_totalBeingSwapped) - int256(_neededInSwap);

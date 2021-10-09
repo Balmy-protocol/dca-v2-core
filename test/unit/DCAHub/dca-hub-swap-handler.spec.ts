@@ -427,12 +427,11 @@ contract('DCAHubSwapHandler', () => {
     type Token = { token: () => TokenContract; platformFee: BigNumber; required: BigNumber; reward: BigNumber };
     type TotalAmounts = { token: () => TokenContract; available: number; needed: number };
 
-    // TODO: also test 0 and 1
-    const FEE_RATIOS = [0.5];
+    const FEE_RATIOS = [0, 0.5, 1];
     function getNextSwapInfoTest({ title, pairs, total }: { title: string; pairs: Pair[]; total: TotalAmounts[] }) {
       for (const protocolFeeRatio of FEE_RATIOS) {
         invidiualGetNextSwapInfoTest({
-          title: title + ` (${protocolFeeRatio}% protocol fee split)`,
+          title: title + ` (${protocolFeeRatio * 100}% protocol fee split)`,
           pairs,
           protocolFeeRatio,
           total,
@@ -458,6 +457,7 @@ contract('DCAHubSwapHandler', () => {
 
         given(async () => {
           expectedRatios = new Map();
+          await DCAHubSwapHandler.setPlatformFeeRatio(protocolFeeRatio * (await DCAHubSwapHandler.MAX_PLATFORM_FEE_RATIO()));
           for (const { tokenA, tokenB, amountTokenA, amountTokenB, ratioBToA } of pairs) {
             await DCAHubSwapHandler.setTotalAmountsToSwap(
               tokenA().address,
