@@ -451,7 +451,7 @@ contract('DCAHubSwapHandler', () => {
       pairs: Pair[];
       total: TotalAmounts[];
     }) {
-      when.only(title, () => {
+      when(title, () => {
         let expectedRatios: Map<string, { ratioAToB: BigNumber; ratioBToA: BigNumber }>;
         let expectedTokenResults: Token[];
         let swapInformation: SwapInformation;
