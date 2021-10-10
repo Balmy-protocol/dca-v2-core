@@ -1,45 +1,51 @@
 import { expect } from 'chai';
-import { Contract, ContractFactory } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
 import { behaviours, constants } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
-import {
-  UniswapV3FactoryMock,
-  UniswapV3FactoryMock__factory,
-  UniswapV3OracleMock,
-  UniswapV3OracleMock__factory,
-  UniswapV3PoolMock__factory,
-} from '@typechained';
+import { UniswapV3OracleMock, UniswapV3OracleMock__factory, IUniswapV3Pool, IUniswapV3Factory } from '@typechained';
 import { snapshot } from '@test-utils/evm';
+import { FakeContract, smock } from '@defi-wonderland/smock';
 
 describe('UniswapV3Oracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
-  const FEE = 1000;
   const INITIAL_FEE_TIERS = [500, 3000, 10000];
+  const FEE = INITIAL_FEE_TIERS[0];
+  const FEE_2 = INITIAL_FEE_TIERS[1];
   let owner: SignerWithAddress;
-  let UniswapV3OracleContract: UniswapV3OracleMock__factory, UniswapV3FactoryContract: UniswapV3FactoryMock__factory;
-  let UniswapV3PoolContract: UniswapV3PoolMock__factory;
-  let UniswapV3Oracle: UniswapV3OracleMock, UniswapV3Factory: UniswapV3FactoryMock;
+  let UniswapV3OracleContract: UniswapV3OracleMock__factory;
+  let UniswapV3Oracle: UniswapV3OracleMock;
   let snapshotId: string;
-  let UniswapV3Pool: Contract, UniswapV3Pool2: Contract;
+  let uniswapV3Pool: FakeContract<IUniswapV3Pool>, uniswapV3Pool2: FakeContract<IUniswapV3Pool>;
+  let uniswapV3Factory: FakeContract<IUniswapV3Factory>;
+  let supportedPools: Map<string, string>;
+  let supportedFeeTiers: Set<number>;
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    UniswapV3FactoryContract = await ethers.getContractFactory('contracts/mocks/UniswapV3Oracle/UniswapV3FactoryMock.sol:UniswapV3FactoryMock');
-    UniswapV3PoolContract = await ethers.getContractFactory('contracts/mocks/UniswapV3Oracle/UniswapV3PoolMock.sol:UniswapV3PoolMock');
     UniswapV3OracleContract = await ethers.getContractFactory('contracts/mocks/UniswapV3Oracle/UniswapV3Oracle.sol:UniswapV3OracleMock');
-    UniswapV3Factory = await UniswapV3FactoryContract.deploy();
-    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, UniswapV3Factory.address);
-    UniswapV3Pool = await UniswapV3PoolContract.deploy();
-    UniswapV3Pool2 = await UniswapV3PoolContract.deploy();
+    uniswapV3Factory = await smock.fake('IUniswapV3Factory');
+    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, uniswapV3Factory.address);
+    uniswapV3Pool = await smock.fake('IUniswapV3Pool');
+    uniswapV3Pool2 = await smock.fake('IUniswapV3Pool');
     snapshotId = await snapshot.take();
+    uniswapV3Factory.getPool.returns(({ tokenA, tokenB, fee }: { tokenA: string; tokenB: string; fee: number }) => {
+      const key = `${tokenA}-${tokenB}-${fee}`;
+      return supportedPools.get(key) ?? constants.ZERO_ADDRESS;
+    });
+    uniswapV3Factory.feeAmountTickSpacing.returns(({ fee }: { fee: number }) =>
+      INITIAL_FEE_TIERS.includes(fee) || supportedFeeTiers.has(fee) ? 1 : 0
+    );
   });
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
+    uniswapV3Pool.liquidity.returns(0);
+    uniswapV3Pool2.liquidity.returns(0);
+    supportedPools = new Map();
+    supportedFeeTiers = new Set();
   });
 
   describe('constructor', () => {
@@ -55,7 +61,7 @@ describe('UniswapV3Oracle', () => {
     when('all arguments are valid', () => {
       then('factory is set correctly', async () => {
         const factory = await UniswapV3Oracle.factory();
-        expect(factory).to.equal(UniswapV3Factory.address);
+        expect(factory).to.equal(uniswapV3Factory.address);
       });
       then('max period is 20 minutes', async () => {
         const maxPeriod = await UniswapV3Oracle.MAXIMUM_PERIOD();
@@ -88,30 +94,28 @@ describe('UniswapV3Oracle', () => {
       });
     });
     when('addresses are valid pairs', () => {
+      const NEW_FEE_TIER = 10;
       let tx: TransactionResponse;
 
       given(async () => {
-        tx = await supportFieTier(10);
+        supportedFeeTiers.add(NEW_FEE_TIER);
+        tx = await UniswapV3Oracle.addFeeTier(NEW_FEE_TIER);
       });
 
       then('fee tier is added', async () => {
-        expect(await UniswapV3Oracle.supportedFeeTiers()).to.eql([...INITIAL_FEE_TIERS, 10]);
+        expect(await UniswapV3Oracle.supportedFeeTiers()).to.eql([...INITIAL_FEE_TIERS, NEW_FEE_TIER]);
       });
 
       then('event is emmitted', async () => {
-        await expect(tx).to.emit(UniswapV3Oracle, 'AddedFeeTier').withArgs(10);
+        await expect(tx).to.emit(UniswapV3Oracle, 'AddedFeeTier').withArgs(NEW_FEE_TIER);
       });
     });
     when('fee tier is already added', () => {
-      let tx: TransactionResponse;
-      given(async () => {
-        tx = await supportFieTier(10);
-      });
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: UniswapV3Oracle,
           func: 'addFeeTier',
-          args: [10],
+          args: [FEE],
           message: 'FeeTierAlreadyPresent',
         });
       });
@@ -132,8 +136,8 @@ describe('UniswapV3Oracle', () => {
     });
 
     when('pool exists for pair on unsupported fie tier', () => {
-      given(async () => {
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+      given(() => {
+        addPoolToFactory(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
       });
       then('pair is not supported', async () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
@@ -141,34 +145,25 @@ describe('UniswapV3Oracle', () => {
     });
 
     when('pool exists for pair on supported fie tier', () => {
-      given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+      given(() => {
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
       });
       then('pair is marked as supported', async () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
     when('pool exists for pair on supported fie tier, but liquidity is not enough', () => {
-      given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
-        await UniswapV3Pool.setLiquidity(0);
+      given(() => {
+        addPoolToFactory(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
       });
       then('pair is not supported', async () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
       });
     });
     when(`pools exists for pair on supported fie tier, but one of them doesn't have enough liquidity`, () => {
-      const FEE_2 = 2000;
-
-      given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
-        await UniswapV3Pool.setLiquidity(0);
-
-        await supportFieTier(FEE_2);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE_2, UniswapV3Pool2.address);
+      given(() => {
+        addPoolToFactory(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE_2, uniswapV3Pool2);
       });
       then('pair is supported', async () => {
         expect(await UniswapV3Oracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.true;
@@ -225,8 +220,7 @@ describe('UniswapV3Oracle', () => {
   describe('reconfigureSupportForPair', () => {
     when(`pair's addreses are inverted`, () => {
       given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
         await UniswapV3Oracle.reconfigureSupportForPair(TOKEN_B, TOKEN_A);
       });
 
@@ -236,23 +230,19 @@ describe('UniswapV3Oracle', () => {
     });
 
     when('a new pool is deployed for already supported pair', () => {
-      const FEE_2 = 2000;
       let tx: TransactionResponse;
       given(async () => {
         // Support FEE
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
         await UniswapV3Oracle.internalAddSupportForPair(TOKEN_A, TOKEN_B);
-        await UniswapV3Pool.reset();
 
         // Support FEE_2
-        await supportFieTier(FEE_2);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE_2, UniswapV3Pool2.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE_2, uniswapV3Pool2);
         tx = await UniswapV3Oracle.reconfigureSupportForPair(TOKEN_A, TOKEN_B);
       });
 
       then(`it is added to list of pair's list of pools`, async () => {
-        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([UniswapV3Pool.address, UniswapV3Pool2.address]);
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([uniswapV3Pool.address, uniswapV3Pool2.address]);
       });
 
       then('event is emmitted', async () => {
@@ -260,7 +250,7 @@ describe('UniswapV3Oracle', () => {
       });
 
       then(`pool's cardinality is increased correctly`, async () => {
-        expect(await UniswapV3Pool2.cardinalitySent()).to.equal((5 * 60) / 15 + 10);
+        expect(uniswapV3Pool2.increaseObservationCardinalityNext).has.been.calledWith((5 * 60) / 15 + 10);
       });
     });
   });
@@ -268,8 +258,7 @@ describe('UniswapV3Oracle', () => {
   describe('addSupportForPairIfNeeded', () => {
     when(`pair's addreses are inverted`, () => {
       given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
         await UniswapV3Oracle.addSupportForPairIfNeeded(TOKEN_B, TOKEN_A);
       });
 
@@ -280,8 +269,7 @@ describe('UniswapV3Oracle', () => {
 
     when('pair does not have supported pools yet', () => {
       given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
         await UniswapV3Oracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
       });
       then('internal add support is called', async () => {
@@ -291,8 +279,7 @@ describe('UniswapV3Oracle', () => {
 
     when('pair already has supported pools', () => {
       given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
         await UniswapV3Oracle.internalAddSupportForPair(TOKEN_A, TOKEN_B);
         await UniswapV3Oracle.reset(TOKEN_A, TOKEN_B);
 
@@ -317,10 +304,6 @@ describe('UniswapV3Oracle', () => {
       });
     });
     when('there are no pools for the pair', () => {
-      given(async () => {
-        await supportFieTier(FEE);
-      });
-
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: UniswapV3Oracle,
@@ -332,9 +315,7 @@ describe('UniswapV3Oracle', () => {
     });
     when('only pool for the pair does not have liquidity', () => {
       given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
-        await UniswapV3Pool.setLiquidity(0);
+        addPoolToFactory(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
       });
       then('tx is reverted with reason', async () => {
         await behaviours.txShouldRevertWithMessage({
@@ -349,13 +330,12 @@ describe('UniswapV3Oracle', () => {
       let tx: TransactionResponse;
 
       given(async () => {
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
         tx = await UniswapV3Oracle.internalAddSupportForPair(TOKEN_A, TOKEN_B);
       });
 
       then(`it is added to list of pair's list of pools`, async () => {
-        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([UniswapV3Pool.address]);
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([uniswapV3Pool.address]);
       });
 
       then('event is emmitted', async () => {
@@ -363,39 +343,41 @@ describe('UniswapV3Oracle', () => {
       });
 
       then(`pool's cardinality is increased correctly`, async () => {
-        expect(await UniswapV3Pool.cardinalitySent()).to.equal((5 * 60) / 15 + 10);
+        expect(uniswapV3Pool.increaseObservationCardinalityNext).has.been.calledWith((5 * 60) / 15 + 10);
       });
     });
   });
   describe('poolsUsedForPair', () => {
-    const TOKEN_A = '0x0000000000000000000000000000000000000001';
-    const TOKEN_B = '0x0000000000000000000000000000000000000002';
-
     when('there are no pools registered', () => {
       then('an empty list is returned', async () => {
         expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.be.empty;
       });
     });
     when('there is a pool for the pair', () => {
-      const FEE = 1000;
-      let UniswapV3Pool: Contract;
-
       given(async () => {
-        UniswapV3Pool = await UniswapV3PoolContract.deploy();
-        await supportFieTier(FEE);
-        await UniswapV3Factory.setPool(TOKEN_A, TOKEN_B, FEE, UniswapV3Pool.address);
+        makePoolValidForSupport(TOKEN_A, TOKEN_B, FEE, uniswapV3Pool);
         await UniswapV3Oracle.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
       });
       then('it is marked as used', async () => {
-        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([UniswapV3Pool.address]);
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([uniswapV3Pool.address]);
       });
       then('it is marked as used even when token addresses are reverted', async () => {
-        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_B, TOKEN_A)).to.eql([UniswapV3Pool.address]);
+        expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_B, TOKEN_A)).to.eql([uniswapV3Pool.address]);
       });
     });
   });
-  async function supportFieTier(fee: number) {
-    await UniswapV3Factory.setTickSpacing(1);
-    return UniswapV3Oracle.addFeeTier(fee);
+
+  function makePoolValidForSupport(tokenA: string, tokenB: string, fee: number, pool: FakeContract<IUniswapV3Pool>) {
+    addPoolToFactory(tokenA, tokenB, fee, pool);
+    addLiquidityToPool(pool);
+  }
+
+  function addPoolToFactory(tokenA: string, tokenB: string, fee: number, pool: FakeContract<IUniswapV3Pool>) {
+    const key = `${tokenA}-${tokenB}-${fee}`;
+    supportedPools.set(key, pool.address);
+  }
+
+  function addLiquidityToPool(pool: FakeContract<IUniswapV3Pool>) {
+    pool.liquidity.returns(1);
   }
 });

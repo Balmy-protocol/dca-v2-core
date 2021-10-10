@@ -2,7 +2,7 @@
 
 pragma solidity >=0.5.0 <0.8.0;
 
-import '../../UniswapV3Oracle/UniswapV3Oracle.sol';
+import '../../oracles/UniswapV3Oracle.sol';
 
 contract UniswapV3OracleMock is UniswapV3Oracle {
   mapping(address => mapping(address => bool)) public addSupportForPairCalled;
