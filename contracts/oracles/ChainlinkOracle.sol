@@ -108,11 +108,13 @@ contract ChainlinkOracle {
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view virtual returns (PricingPlan) {
     bool _isTokenAUSD = _isUSD(_tokenA);
     bool _isTokenBUSD = _isUSD(_tokenB);
-    if (_tokenA == WETH && _isTokenBUSD) {
+    bool _isTokenAETH = _tokenA == WETH;
+    bool _isTokenBETH = _tokenB == WETH;
+    if (_isTokenAETH && _isTokenBUSD) {
       // Note: there are stablecoins/ETH pairs on Chainlink, but they are updated less often than the USD/ETH pair.
       // That's why we prefer to use the USD/ETH pair instead
       return PricingPlan.TOKEN_A_IS_ETH_TOKEN_B_IS_USD;
-    } else if (_isTokenAUSD && _tokenB == WETH) {
+    } else if (_isTokenAUSD && _isTokenBETH) {
       // Note: there are stablecoins/ETH pairs on Chainlink, but they are updated less often than the USD/ETH pair.
       // That's why we prefer to use the USD/ETH pair instead
       return PricingPlan.TOKEN_A_IS_USD_TOKEN_B_IS_ETH;
@@ -120,6 +122,10 @@ contract ChainlinkOracle {
       return PricingPlan.TOKEN_A_TO_USD;
     } else if (_isTokenAUSD) {
       return PricingPlan.TOKEN_B_TO_USD;
+    } else if (_isTokenBETH) {
+      return PricingPlan.TOKEN_A_TO_ETH;
+    } else if (_isTokenAETH) {
+      return PricingPlan.TOKEN_B_TO_ETH;
     }
     return PricingPlan.NONE;
   }
@@ -137,6 +143,10 @@ contract ChainlinkOracle {
       return (_callRegistry(_tokenA, Denominations.USD), USD_DECIMALS);
     } else if (_plan == PricingPlan.TOKEN_B_TO_USD) {
       return (_callRegistry(_tokenB, Denominations.USD), USD_DECIMALS);
+    } else if (_plan == PricingPlan.TOKEN_A_TO_ETH) {
+      return (_callRegistry(_tokenA, Denominations.ETH), ETH_DECIMALS);
+    } else if (_plan == PricingPlan.TOKEN_B_TO_ETH) {
+      return (_callRegistry(_tokenB, Denominations.ETH), ETH_DECIMALS);
     }
   }
 
@@ -155,6 +165,8 @@ contract ChainlinkOracle {
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
     return uint256(registry.latestAnswer(_base, _quote));
   }
+
+  // TODO: add mapping from WBTC to BTC
 
   function _isUSD(address _token) internal pure returns (bool) {
     return _token == DAI || _token == USDC || _token == USDT;
