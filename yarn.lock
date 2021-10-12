@@ -23,6 +23,11 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
+"@chainlink/contracts@^0.2.2":
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/@chainlink/contracts/-/contracts-0.2.2.tgz#8ea2079d8b22d25807fc63b98ccd3dc0bc2a33fe"
+  integrity sha512-wxXPbt7O3aZaUSG34ufFASC5amRSL6eeYCqsa+2gpqbB8Hk7B7FydEDCI5dqvAC444TlFskPHcVbizCZkRHPpw==
+
 "@codechecks/client@0.1.11":
   version "0.1.11"
   resolved "https://registry.yarnpkg.com/@codechecks/client/-/client-0.1.11.tgz#5ca0cb3b0d99fed1c397033c981efeedd8e2ea37"

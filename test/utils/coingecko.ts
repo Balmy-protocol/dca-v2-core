@@ -15,7 +15,7 @@ export const getCoingeckoDataPoints = async (coin: string, currency: string, fro
   return coingeckoDatapoints;
 };
 
-export const getLastPrice = async (coin: string, currency: string, from: number, to: number): Promise<number> => {
+export const getLastPrice = async (coin: string, currency: string): Promise<number> => {
   return await getSimple(coin, currency);
 };
 
@@ -28,7 +28,7 @@ export const getSimple = async (coin: string, currency: string): Promise<number>
 };
 
 export const convertPriceToBigNumberWithDecimals = (price: number, decimals: number): BigNumber => {
-  return utils.parseUnits(`${price.toFixed(6)}`, 6);
+  return utils.parseUnits(price.toFixed(decimals), decimals);
 };
 
 export const convertPriceToNumberWithDecimals = (price: number, decimals: number): number => {

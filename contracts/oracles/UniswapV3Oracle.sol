@@ -99,6 +99,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
       }
     }
     require(_pools.length > 0, 'PairNotSupported');
+    // TODO: rename this event so that it is clear that it is emmited by the uniswap v3 oracle
     emit AddedSupportForPair(_tokenA, _tokenB);
   }
 

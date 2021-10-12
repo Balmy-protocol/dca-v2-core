@@ -25,7 +25,7 @@ describe('UniswapV3Oracle', () => {
 
   before('Setup accounts and contracts', async () => {
     [owner] = await ethers.getSigners();
-    UniswapV3OracleContract = await ethers.getContractFactory('contracts/mocks/UniswapV3Oracle/UniswapV3Oracle.sol:UniswapV3OracleMock');
+    UniswapV3OracleContract = await ethers.getContractFactory('contracts/mocks/oracles/UniswapV3Oracle.sol:UniswapV3OracleMock');
     uniswapV3Factory = await smock.fake('IUniswapV3Factory');
     UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, uniswapV3Factory.address);
     uniswapV3Pool = await smock.fake('IUniswapV3Pool');

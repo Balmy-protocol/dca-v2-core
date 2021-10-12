@@ -4,13 +4,10 @@ import { UniswapV3Oracle } from '@typechained';
 import { getNodeUrl } from '@utils/network';
 import { evm } from '@test-utils';
 import { contract, given, then } from '@test-utils/bdd';
-import moment from 'moment';
 import { expect } from 'chai';
 import { getLastPrice, convertPriceToNumberWithDecimals } from '@test-utils/coingecko';
 
 let oracle: UniswapV3Oracle;
-let startingTime: number;
-let oraclePeriod: number = moment.duration('5', 'minutes').as('seconds');
 
 const PRICE_THRESHOLD = 40;
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
@@ -22,7 +19,6 @@ const UNI_WETH_USDC_POOL_HIGH = '0x7BeA39867e4169DBe237d55C8242a8f2fcDcc387';
 
 contract('UniswapV3Oracle', () => {
   before(async () => {
-    startingTime = moment().unix();
     await evm.reset({
       jsonRpcUrl: getNodeUrl('mainnet'),
     });
@@ -35,7 +31,7 @@ contract('UniswapV3Oracle', () => {
     let feedPrice: number;
     given(async () => {
       // Funny thing, coingecko updates this price feed every 5 minute (not a twap, but close enough).
-      feedPrice = await getLastPrice('ethereum', 'usd', startingTime - oraclePeriod, startingTime);
+      feedPrice = await getLastPrice('ethereum', 'usd');
     });
     then('all USDC/WETH pools are used', async () => {
       expect(await oracle.poolsUsedForPair(WETH, USDC)).to.eql([UNI_WETH_USDC_POOL_LOW, UNI_WETH_USDC_POOL_MEDIUM, UNI_WETH_USDC_POOL_HIGH]);
