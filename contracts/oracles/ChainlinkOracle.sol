@@ -41,14 +41,16 @@ contract ChainlinkOracle is Governable {
   address private constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address private constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
   address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+  address private constant RENBTC = 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D;
+  address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   int8 private constant USD_DECIMALS = 8;
   int8 private constant ETH_DECIMALS = 18;
   // solhint-enable private-vars-leading-underscore
 
   mapping(address => bool) internal _shouldBeConsideredUSD;
 
-  // solhint-disable-next-line var-name-mixedcase
   constructor(
+    // solhint-disable-next-line var-name-mixedcase
     address _WETH,
     FeedRegistryInterface _registry,
     address _governor
@@ -229,7 +231,7 @@ contract ChainlinkOracle is Governable {
   }
 
   function _exists(address _base, address _quote) internal view returns (bool) {
-    try registry.latestAnswer(_base, _quote) returns (int256) {
+    try registry.latestAnswer(_mapBTC(_base), _quote) returns (int256) {
       return true;
     } catch {
       return false;
@@ -249,10 +251,12 @@ contract ChainlinkOracle is Governable {
   }
 
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
-    return uint256(registry.latestAnswer(_base, _quote));
+    return uint256(registry.latestAnswer(_mapBTC(_base), _quote));
   }
 
-  // TODO: add mapping from WBTC to BTC
+  function _mapBTC(address _token) internal pure returns (address) {
+    return _token == RENBTC || _token == WBTC ? Denominations.BTC : _token;
+  }
 
   function _isUSD(address _token) internal view returns (bool) {
     return _token == DAI || _token == USDC || _token == USDT || _shouldBeConsideredUSD[_token];

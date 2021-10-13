@@ -23,6 +23,7 @@ const MANA = { address: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942', decimals: 
 const AXS = { address: '0xbb0e17ef65f82ab018d8edd776e8dd940327b28b', decimals: 18, symbol: 'AXS', id: 'axie-infinity' };
 const CREAM = { address: '0x2ba592F78dB6436527729929AAf6c908497cB200', decimals: 18, symbol: 'CREAM', id: 'cream-2' };
 const MATIC = { address: '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0', decimals: 18, symbol: 'MATIC', id: 'matic-network' };
+const WBTC = { address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals: 8, symbol: 'WBTC', id: 'wrapped-bitcoin' };
 
 const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   [
@@ -32,23 +33,27 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   ],
   [
     // TOKEN_USD_PAIR
-    { tokenIn: AAVE, tokenOut: USDT, price: { quote: 'IN', currency: 'usd' } }, // OUT is USD
-    { tokenIn: USDC, tokenOut: COMP, price: { quote: 'OUT', currency: 'usd' } }, // IN is USD
+    { tokenIn: AAVE, tokenOut: USDT, price: { quote: 'IN', currency: 'usd' } }, // IN (tokenA) => OUT (tokenB) is USD
+    { tokenIn: CRV, tokenOut: USDC, price: { quote: 'IN', currency: 'usd' } }, // IN (tokenB) => OUT (tokenA) is USD
+    { tokenIn: USDC, tokenOut: COMP, price: { quote: 'OUT', currency: 'usd' } }, // IN (tokenA) is USD => OUT (tokenB)
+    { tokenIn: USDT, tokenOut: WBTC, price: { quote: 'OUT', currency: 'usd' } }, // IN (tokenB) is USD => OUT (tokenA)
   ],
   [
     // TOKEN_ETH_PAIR
-    { tokenIn: BNT, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // OUT is ETH
-    { tokenIn: WETH, tokenOut: CRV, price: { quote: 'OUT', currency: 'eth' } }, // IN is ETH
+    { tokenIn: BNT, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // IN (tokenA) => OUT (tokenB) is ETH
+    { tokenIn: AXS, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // IN (tokenB) => OUT (tokenA) is ETH
+    { tokenIn: WETH, tokenOut: WBTC, price: { quote: 'OUT', currency: 'eth' } }, // IN (tokenB) is ETH => OUT (tokenA)
+    { tokenIn: WETH, tokenOut: CRV, price: { quote: 'OUT', currency: 'eth' } }, // IN (tokenA) is ETH => OUT (tokenB)
   ],
   [
     // TOKEN_TO_USD_TO_TOKEN_PAIR
-    { tokenIn: AAVE, tokenOut: COMP, price: { quote: 'BOTH', currency: 'usd' } }, // address(IN) < address(OUT)
-    { tokenIn: AMP, tokenOut: DIA, price: { quote: 'BOTH', currency: 'usd' } }, // address(IN) > address(OUT)
+    { tokenIn: WBTC, tokenOut: COMP, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => USD => OUT (tokenB)
+    { tokenIn: AMP, tokenOut: DIA, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD => OUT (tokenA)
   ],
   [
     // TOKEN_TO_ETH_TO_TOKEN_PAIR
-    { tokenIn: CREAM, tokenOut: AXS, price: { quote: 'BOTH', currency: 'eth' } }, // address(IN) < address(OUT)
-    { tokenIn: ALCX, tokenOut: MANA, price: { quote: 'BOTH', currency: 'eth' } }, // address(IN) > address(OUT)
+    { tokenIn: CREAM, tokenOut: AXS, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenA) => ETH => OUT (tokenB)
+    { tokenIn: ALCX, tokenOut: MANA, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenB) => ETH => OUT (tokenA)
   ],
   [
     // TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B

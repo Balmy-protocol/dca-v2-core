@@ -13,8 +13,8 @@ contract ChainlinkOracleMock is ChainlinkOracle {
   mapping(address => mapping(address => bool)) public addSupportForPairCalled;
   mapping(address => mapping(address => MockedPricingPlan)) private _pricingPlan;
 
-  // solhint-disable-next-line var-name-mixedcase
   constructor(
+    // solhint-disable-next-line var-name-mixedcase
     address _WETH,
     FeedRegistryInterface _registry,
     address _governor
