@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.5.0 <0.8.0;
 
-import '@chainlink/contracts/src/v0.7/interfaces/FeedRegistryInterface.sol';
 import '@chainlink/contracts/src/v0.7/Denominations.sol';
+import '../interfaces/oracles/IChainlinkOracle.sol';
 import '../libraries/SafeMath.sol';
 import '../utils/Governable.sol';
 
@@ -10,31 +10,13 @@ interface IERC20Decimals {
   function decimals() external view returns (uint8);
 }
 
-contract ChainlinkOracle is Governable {
-  // TODO: Move enum and event to interface
-  enum PricingPlan {
-    NONE,
-    // Direct
-    ETH_USD_PAIR,
-    TOKEN_USD_PAIR,
-    TOKEN_ETH_PAIR,
-    // Same token base
-    TOKEN_TO_USD_TO_TOKEN_PAIR,
-    TOKEN_TO_ETH_TO_TOKEN_PAIR,
-    // Different token bases
-    TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B,
-    TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B
-  }
-
+contract ChainlinkOracle is Governable, IChainlinkOracle {
   using SafeMath for uint256;
 
-  event AddedSupportForPairInChainlinkOracle(address tokenA, address tokenB);
-  event TokensConsideredUSD(address[] tokens);
-
-  mapping(address => mapping(address => PricingPlan)) public planForPair;
-  FeedRegistryInterface public immutable registry;
+  mapping(address => mapping(address => PricingPlan)) public override planForPair;
+  FeedRegistryInterface public immutable override registry;
   // solhint-disable-next-line var-name-mixedcase
-  address public immutable WETH;
+  address public immutable override WETH;
 
   // solhint-disable private-vars-leading-underscore
   // Addresses in Ethereum Mainnet
@@ -60,7 +42,7 @@ contract ChainlinkOracle is Governable {
     WETH = _WETH;
   }
 
-  function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
+  function canSupportPair(address _tokenA, address _tokenB) external view override returns (bool) {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     return _plan != PricingPlan.NONE;
@@ -70,10 +52,10 @@ contract ChainlinkOracle is Governable {
     address _tokenIn,
     uint128 _amountIn,
     address _tokenOut
-  ) external view returns (uint256 _amountOut) {
+  ) external view override returns (uint256 _amountOut) {
     (address _tokenA, address _tokenB) = _sortTokens(_tokenIn, _tokenOut);
     PricingPlan _plan = planForPair[_tokenA][_tokenB];
-    require(_plan != PricingPlan.NONE, 'Pair not supported');
+    require(_plan != PricingPlan.NONE, 'PairNotSupported');
 
     int8 _inDecimals = _getDecimals(_tokenIn);
     int8 _outDecimals = _getDecimals(_tokenOut);
@@ -87,11 +69,11 @@ contract ChainlinkOracle is Governable {
     }
   }
 
-  function reconfigureSupportForPair(address _tokenA, address _tokenB) external {
+  function reconfigureSupportForPair(address _tokenA, address _tokenB) external override {
     _addSupportForPair(_tokenA, _tokenB);
   }
 
-  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
+  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external override {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     if (planForPair[__tokenA][__tokenB] == PricingPlan.NONE) {
       _addSupportForPair(_tokenA, _tokenB);
@@ -101,12 +83,12 @@ contract ChainlinkOracle is Governable {
   function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
     (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
-    require(_plan != PricingPlan.NONE, 'Pair not supported');
+    require(_plan != PricingPlan.NONE, 'PairNotSupported');
     planForPair[__tokenA][__tokenB] = _plan;
     emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);
   }
 
-  function addUSDStablecoins(address[] calldata _addresses) external onlyGovernor {
+  function addUSDStablecoins(address[] calldata _addresses) external override onlyGovernor {
     for (uint256 i; i < _addresses.length; i++) {
       _shouldBeConsideredUSD[_addresses[i]] = true;
     }

@@ -15,6 +15,11 @@ interface IUniswapV3Oracle is IPriceOracle {
   /// @return period The new period
   event PeriodChanged(uint32 period);
 
+  /// @notice Emitted when the oracle add supports for a new pair
+  /// @param tokenA One of the pair's tokens
+  /// @param tokenB The other of the pair's tokens
+  event AddedSupportForPairInUniswapOracle(address tokenA, address tokenB);
+
   /// @notice Returns the Uniswap V3 Factory
   /// @return _factory The Uniswap V3 Factory
   function factory() external view returns (IUniswapV3Factory _factory);

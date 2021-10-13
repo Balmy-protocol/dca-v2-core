@@ -246,7 +246,7 @@ describe('UniswapV3Oracle', () => {
       });
 
       then('event is emmitted', async () => {
-        await expect(tx).to.emit(UniswapV3Oracle, 'AddedSupportForPair').withArgs(TOKEN_A, TOKEN_B);
+        await expect(tx).to.emit(UniswapV3Oracle, 'AddedSupportForPairInUniswapOracle').withArgs(TOKEN_A, TOKEN_B);
       });
 
       then(`pool's cardinality is increased correctly`, async () => {
@@ -339,7 +339,7 @@ describe('UniswapV3Oracle', () => {
       });
 
       then('event is emmitted', async () => {
-        await expect(tx).to.emit(UniswapV3Oracle, 'AddedSupportForPair').withArgs(TOKEN_A, TOKEN_B);
+        await expect(tx).to.emit(UniswapV3Oracle, 'AddedSupportForPairInUniswapOracle').withArgs(TOKEN_A, TOKEN_B);
       });
 
       then(`pool's cardinality is increased correctly`, async () => {

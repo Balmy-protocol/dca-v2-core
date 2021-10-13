@@ -143,7 +143,7 @@ describe('ChainlinkOracle', () => {
           contract: chainlinkOracle,
           func: 'internalAddSupportForPair',
           args: [TOKEN_A, TOKEN_B],
-          message: 'Pair not supported',
+          message: 'PairNotSupported',
         });
       });
     });

@@ -4,11 +4,6 @@ pragma solidity >=0.5.0;
 /// @title The interface for an oracle that provides price quotes
 /// @notice These methods allow users to add support for pairs, and then ask for quotes
 interface IPriceOracle {
-  /// @notice Emitted when the oracle add supports for a new pair
-  /// @param tokenA One of the pair's tokens
-  /// @param tokenB The other of the pair's tokens
-  event AddedSupportForPair(address tokenA, address tokenB);
-
   /// @notice Returns whether this oracle can support this pair of tokens
   /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
   /// @param _tokenA One of the pair's tokens
