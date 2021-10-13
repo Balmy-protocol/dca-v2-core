@@ -1,10 +1,11 @@
 import { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
-import { behaviours, constants } from '@test-utils';
+import { behaviours, constants, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { ChainlinkOracleMock__factory, ChainlinkOracleMock } from '@typechained';
 import { snapshot } from '@test-utils/evm';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 
 describe('ChainlinkOracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
@@ -14,13 +15,15 @@ describe('ChainlinkOracle', () => {
   const NO_PLAN = 0;
   const A_PLAN = 1;
 
+  let governor: SignerWithAddress;
   let chainlinkOracleFactory: ChainlinkOracleMock__factory;
   let chainlinkOracle: ChainlinkOracleMock;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
+    [, governor] = await ethers.getSigners();
     chainlinkOracleFactory = await ethers.getContractFactory('contracts/mocks/oracles/ChainlinkOracle.sol:ChainlinkOracleMock');
-    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, FEED_REGISTRY);
+    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, FEED_REGISTRY, governor.address);
     snapshotId = await snapshot.take();
   });
 
@@ -33,7 +36,7 @@ describe('ChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [constants.ZERO_ADDRESS, FEED_REGISTRY],
+          args: [constants.ZERO_ADDRESS, FEED_REGISTRY, governor.address],
           message: 'ZeroAddress',
         });
       });
@@ -42,7 +45,7 @@ describe('ChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [WETH, constants.ZERO_ADDRESS],
+          args: [WETH, constants.ZERO_ADDRESS, governor.address],
           message: 'ZeroAddress',
         });
       });
@@ -55,6 +58,16 @@ describe('ChainlinkOracle', () => {
       then('registry is set correctly', async () => {
         const registry = await chainlinkOracle.registry();
         expect(registry).to.eql(FEED_REGISTRY);
+      });
+      then('hardcoded stablecoins are considered USD', async () => {
+        const stablecoins = [
+          '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+          '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+          '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+        ];
+        for (const token of stablecoins) {
+          expect(await chainlinkOracle.isUSD(token)).to.be.true;
+        }
       });
     });
   });
@@ -146,8 +159,31 @@ describe('ChainlinkOracle', () => {
       });
 
       then('event is emmitted', async () => {
-        await expect(tx).to.emit(chainlinkOracle, 'AddedChainlinkSupportForPair').withArgs(TOKEN_A, TOKEN_B);
+        await expect(tx).to.emit(chainlinkOracle, 'AddedSupportForPairInChainlinkOracle').withArgs(TOKEN_A, TOKEN_B);
       });
+    });
+  });
+
+  describe('addUSDStablecoins', () => {
+    when('function is called by governor', () => {
+      const TOKEN_ADDRESS = wallet.generateRandomAddress();
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await chainlinkOracle.connect(governor).addUSDStablecoins([TOKEN_ADDRESS]);
+      });
+      then('address is considered USD', async () => {
+        expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.true;
+      });
+      then('event is emmitted', async () => {
+        await expect(tx).to.emit(chainlinkOracle, 'TokensConsideredUSD').withArgs([TOKEN_ADDRESS]);
+      });
+    });
+
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => chainlinkOracle,
+      funcAndSignature: 'addUSDStablecoins(address[])',
+      params: [[wallet.generateRandomAddress()]],
+      governor: () => governor,
     });
   });
 });

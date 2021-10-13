@@ -14,7 +14,11 @@ contract ChainlinkOracleMock is ChainlinkOracle {
   mapping(address => mapping(address => MockedPricingPlan)) private _pricingPlan;
 
   // solhint-disable-next-line var-name-mixedcase
-  constructor(address _WETH, FeedRegistryInterface _registry) ChainlinkOracle(_WETH, _registry) {}
+  constructor(
+    address _WETH,
+    FeedRegistryInterface _registry,
+    address _governor
+  ) ChainlinkOracle(_WETH, _registry, _governor) {}
 
   function internalAddSupportForPair(address _tokenA, address _tokenB) external {
     _addSupportForPair(_tokenA, _tokenB);
@@ -46,5 +50,9 @@ contract ChainlinkOracleMock is ChainlinkOracle {
     } else {
       return super._determinePricingPlan(__tokenA, __tokenB);
     }
+  }
+
+  function isUSD(address _token) external view returns (bool) {
+    return _isUSD(_token);
   }
 }

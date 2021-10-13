@@ -4,12 +4,13 @@ pragma solidity >=0.5.0 <0.8.0;
 import '@chainlink/contracts/src/v0.7/interfaces/FeedRegistryInterface.sol';
 import '@chainlink/contracts/src/v0.7/Denominations.sol';
 import '../libraries/SafeMath.sol';
+import '../utils/Governable.sol';
 
 interface IERC20Decimals {
   function decimals() external view returns (uint8);
 }
 
-contract ChainlinkOracle {
+contract ChainlinkOracle is Governable {
   // TODO: Move enum and event to interface
   enum PricingPlan {
     NONE,
@@ -28,14 +29,15 @@ contract ChainlinkOracle {
   using SafeMath for uint256;
 
   event AddedSupportForPairInChainlinkOracle(address tokenA, address tokenB);
+  event TokensConsideredUSD(address[] tokens);
 
-  FeedRegistryInterface public registry;
-
+  mapping(address => mapping(address => PricingPlan)) public planForPair;
+  FeedRegistryInterface public immutable registry;
   // solhint-disable-next-line var-name-mixedcase
   address public immutable WETH;
 
-  // Addresses in Ethereum Mainnet
   // solhint-disable private-vars-leading-underscore
+  // Addresses in Ethereum Mainnet
   address private constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address private constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
   address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
@@ -43,10 +45,14 @@ contract ChainlinkOracle {
   int8 private constant ETH_DECIMALS = 18;
   // solhint-enable private-vars-leading-underscore
 
-  mapping(address => mapping(address => PricingPlan)) public planForPair;
+  mapping(address => bool) internal _shouldBeConsideredUSD;
 
   // solhint-disable-next-line var-name-mixedcase
-  constructor(address _WETH, FeedRegistryInterface _registry) {
+  constructor(
+    address _WETH,
+    FeedRegistryInterface _registry,
+    address _governor
+  ) Governable(_governor) {
     require(_WETH != address(0) && address(_registry) != address(0), 'ZeroAddress');
     registry = _registry;
     WETH = _WETH;
@@ -98,6 +104,13 @@ contract ChainlinkOracle {
     emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);
   }
 
+  function addUSDStablecoins(address[] calldata _addresses) external onlyGovernor {
+    for (uint256 i; i < _addresses.length; i++) {
+      _shouldBeConsideredUSD[_addresses[i]] = true;
+    }
+    emit TokensConsideredUSD(_addresses);
+  }
+
   /** Handles prices when the pair is either ETH/USD, token/ETH or token/USD */
   function _getDirectPrice(
     address _tokenIn,
@@ -121,7 +134,7 @@ contract ChainlinkOracle {
     if (_needsInverting) {
       return _adjustDecimals(_price.mul(_amountIn), _outDecimals - _resultDecimals - _inDecimals);
     } else {
-      return _adjustDecimals((10**uint8(_resultDecimals + _outDecimals)).mul(_amountIn).div(_price), -_inDecimals);
+      return _adjustDecimals(_adjustDecimals(_amountIn, _resultDecimals + _outDecimals).div(_price), -_inDecimals);
     }
   }
 
@@ -241,9 +254,8 @@ contract ChainlinkOracle {
 
   // TODO: add mapping from WBTC to BTC
 
-  function _isUSD(address _token) internal pure returns (bool) {
-    return _token == DAI || _token == USDC || _token == USDT;
-    // TODO: Add a way so that the governor can add new usd stable coins
+  function _isUSD(address _token) internal view returns (bool) {
+    return _token == DAI || _token == USDC || _token == USDT || _shouldBeConsideredUSD[_token];
   }
 
   function _sortTokens(address _tokenA, address _tokenB) internal pure returns (address __tokenA, address __tokenB) {
