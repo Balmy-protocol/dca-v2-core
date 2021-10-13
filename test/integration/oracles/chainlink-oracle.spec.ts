@@ -3,73 +3,141 @@ import { deployments, ethers } from 'hardhat';
 import { ChainlinkOracle } from '@typechained';
 import { getNodeUrl } from '@utils/network';
 import { evm } from '@test-utils';
-import { contract, then } from '@test-utils/bdd';
+import { contract, given, then } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { getLastPrice, convertPriceToBigNumberWithDecimals } from '@test-utils/coingecko';
 
 let oracle: ChainlinkOracle;
 
-const WETH = { address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', decimals: 18, symbol: 'WETH' };
-const USDC = { address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6, symbol: 'USDC' };
-const USDT = { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, symbol: 'USDT' };
-const AAVE = { address: '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9', decimals: 18, symbol: 'AAVE' };
-const COMP = { address: '0xc00e94cb662c3520282e6f5717214004a7f26888', decimals: 18, symbol: 'COMP' };
-const BNT = { address: '0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c', decimals: 18, symbol: 'BNT' };
-const CRV = { address: '0xD533a949740bb3306d119CC777fa900bA034cd52', decimals: 18, symbol: 'CRV' };
+const WETH = { address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', decimals: 18, symbol: 'WETH', id: 'ethereum' };
+const USDC = { address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6, symbol: 'USDC', id: 'usd-coin' };
+const USDT = { address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, symbol: 'USDT', id: 'tether' };
+const AAVE = { address: '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9', decimals: 18, symbol: 'AAVE', id: 'aave' };
+const COMP = { address: '0xc00e94cb662c3520282e6f5717214004a7f26888', decimals: 18, symbol: 'COMP', id: 'compound-governance-token' };
+const BNT = { address: '0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c', decimals: 18, symbol: 'BNT', id: 'bancor' };
+const CRV = { address: '0xD533a949740bb3306d119CC777fa900bA034cd52', decimals: 18, symbol: 'CRV', id: 'curve-dao-token' };
+const AMP = { address: '0xff20817765cb7f73d4bde2e66e067e58d11095c2', decimals: 18, symbol: 'AMP', id: 'amp-token' };
+const DIA = { address: '0x84cA8bc7997272c7CfB4D0Cd3D55cd942B3c9419', decimals: 18, symbol: 'DIA', id: 'dia-data' };
+const ALCX = { address: '0xdbdb4d16eda451d0503b854cf79d55697f90c8df', decimals: 18, symbol: 'ALCX', id: 'alchemix' };
+const MANA = { address: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942', decimals: 18, symbol: 'MANA', id: 'decentraland' };
+const AXS = { address: '0xbb0e17ef65f82ab018d8edd776e8dd940327b28b', decimals: 18, symbol: 'AXS', id: 'axie-infinity' };
+const CREAM = { address: '0x2ba592F78dB6436527729929AAf6c908497cB200', decimals: 18, symbol: 'CREAM', id: 'cream-2' };
+const MATIC = { address: '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0', decimals: 18, symbol: 'MATIC', id: 'matic-network' };
 
-const PAIRS = [
-  { tokenA: WETH, tokenB: USDT, price: () => getLastPrice('ethereum', 'usd') }, // TOKEN_A_IS_ETH_TOKEN_B_IS_USD
-  { tokenA: USDC, tokenB: WETH, price: () => getLastPrice('usd-coin', 'eth') }, // TOKEN_A_IS_USD_TOKEN_B_IS_ETH
-  { tokenA: AAVE, tokenB: USDT, price: () => getLastPrice('aave', 'usd') }, // TOKEN_A_TO_USD
-  { tokenA: USDC, tokenB: COMP, price: () => getLastPrice('compound-governance-token', 'usd') }, // TOKEN_B_TO_USD
-  { tokenA: BNT, tokenB: WETH, price: () => getLastPrice('bancor', 'eth') }, // TOKEN_A_TO_ETH
-  { tokenA: WETH, tokenB: CRV, price: () => getLastPrice('curve-dao-token', 'eth') }, // TOKEN_B_TO_ETH
-  // TOKEN_A_TO_ETH_TO_USD,
-  // TOKEN_B_TO_ETH_TO_USD,
-  // TOKEN_A_TO_USD_TO_ETH,
-  // TOKEN_B_TO_USD_TO_ETH,
-  // TOKEN_A_TO_USD_TO_TOKEN_B,
-  // TOKEN_B_TO_USD_TO_TOKEN_A,
-  // TOKEN_A_TO_ETH_TO_TOKEN_B,
-  // TOKEN_B_TO_ETH_TO_TOKEN_A,
-  // TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B,
-  // TOKEN_B_TO_USD_TO_ETH_TO_TOKEN_A,
-  // TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B,
-  // TOKEN_B_TO_ETH_TO_USD_TO_TOKEN_A
+const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
+  [
+    // ETH_USD_PAIR
+    { tokenIn: WETH, tokenOut: USDT, price: { quote: 'IN', currency: 'usd' } }, // IN is ETH, OUT is USD
+    { tokenIn: USDC, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // IN is USD, OUT is ETH
+  ],
+  [
+    // TOKEN_USD_PAIR
+    { tokenIn: AAVE, tokenOut: USDT, price: { quote: 'IN', currency: 'usd' } }, // OUT is USD
+    { tokenIn: USDC, tokenOut: COMP, price: { quote: 'OUT', currency: 'usd' } }, // IN is USD
+  ],
+  [
+    // TOKEN_ETH_PAIR
+    { tokenIn: BNT, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // OUT is ETH
+    { tokenIn: WETH, tokenOut: CRV, price: { quote: 'OUT', currency: 'eth' } }, // IN is ETH
+  ],
+  [
+    // TOKEN_TO_USD_TO_TOKEN_PAIR
+    { tokenIn: AAVE, tokenOut: COMP, price: { quote: 'BOTH', currency: 'usd' } }, // address(IN) < address(OUT)
+    { tokenIn: AMP, tokenOut: DIA, price: { quote: 'BOTH', currency: 'usd' } }, // address(IN) > address(OUT)
+  ],
+  [
+    // TOKEN_TO_ETH_TO_TOKEN_PAIR
+    { tokenIn: CREAM, tokenOut: AXS, price: { quote: 'BOTH', currency: 'eth' } }, // address(IN) < address(OUT)
+    { tokenIn: ALCX, tokenOut: MANA, price: { quote: 'BOTH', currency: 'eth' } }, // address(IN) > address(OUT)
+  ],
+  [
+    // TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B
+    { tokenIn: DIA, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // IN (tokenA) => USD, OUT (tokenB) is ETH
+    { tokenIn: WETH, tokenOut: MATIC, price: { quote: 'OUT', currency: 'eth' } }, // IN (tokenB) is ETH, USD => OUT (tokenA)
+
+    { tokenIn: USDC, tokenOut: AXS, price: { quote: 'OUT', currency: 'usd' } }, // IN (tokenA) is USD, ETH => OUT (tokenB)
+    { tokenIn: ALCX, tokenOut: USDT, price: { quote: 'IN', currency: 'usd' } }, // IN (tokenB) => ETH, OUT is USD (tokenA)
+
+    { tokenIn: DIA, tokenOut: AXS, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => USD, ETH => OUT (tokenB)
+    { tokenIn: ALCX, tokenOut: MATIC, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => ETH, USD => OUT (tokenA)
+  ],
+  [
+    // TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B
+    { tokenIn: MANA, tokenOut: USDC, price: { quote: 'IN', currency: 'usd' } }, // IN (tokenA) => ETH, OUT (tokenB) is USD
+    { tokenIn: USDT, tokenOut: AXS, price: { quote: 'OUT', currency: 'usd' } }, // IN (tokenB) is USD, ETH => OUT (tokenA)
+
+    { tokenIn: WETH, tokenOut: AMP, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenA) is ETH, USD => OUT (tokenB)
+    { tokenIn: AMP, tokenOut: WETH, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenB) => USD, OUT is ETH (tokenA)
+
+    { tokenIn: AXS, tokenOut: AMP, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => ETH, USD => OUT (tokenB)
+    { tokenIn: DIA, tokenOut: MANA, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD, ETH => OUT (tokenA)
+  ],
 ];
 
-contract.only('ChainlinkOracle', () => {
+contract('ChainlinkOracle', () => {
   before(async () => {
     await evm.reset({
       jsonRpcUrl: getNodeUrl('mainnet'),
     });
     await deployments.fixture('ChainlinkOracle', { keepExistingDeployments: false });
     oracle = await ethers.getContract('ChainlinkOracle');
-    for (const { tokenA, tokenB } of PAIRS) {
-      await oracle.addSupportForPairIfNeeded(tokenA.address, tokenB.address);
-    }
   });
 
-  for (let i = 0; i < PAIRS.length; i++) {
-    const { tokenA, tokenB, price } = PAIRS[i];
-    describe(`quote (${tokenA.symbol}, ${tokenB.symbol})`, () => {
-      then(`returns correct quote`, async () => {
-        const quote = await oracle.quote(tokenA.address, utils.parseUnits('1', tokenA.decimals), tokenB.address);
+  for (let i = 0; i < PLANS.length; i++) {
+    for (const { tokenIn, tokenOut, price } of PLANS[i]) {
+      describe(`quote (${tokenIn.symbol}, ${tokenOut.symbol})`, () => {
+        given(async () => {
+          await oracle.addSupportForPairIfNeeded(tokenIn.address, tokenOut.address);
+        });
+        then(`returns correct quote`, async () => {
+          const quote = await oracle.quote(tokenIn.address, utils.parseUnits('1', tokenIn.decimals), tokenOut.address);
 
-        const coingeckoPrice = await price();
-        const onePercent = coingeckoPrice / 100;
-        const upperThreshold = convertPriceToBigNumberWithDecimals(coingeckoPrice + onePercent, tokenB.decimals);
-        const lowerThreshold = convertPriceToBigNumberWithDecimals(coingeckoPrice - onePercent, tokenB.decimals);
+          const coingeckoPrice = await getPriceBetweenTokens(tokenIn, tokenOut, price);
+          const onePercent = coingeckoPrice / 100;
+          const upperThreshold = convertPriceToBigNumberWithDecimals(coingeckoPrice + onePercent, tokenOut.decimals);
+          const lowerThreshold = convertPriceToBigNumberWithDecimals(coingeckoPrice - onePercent, tokenOut.decimals);
 
-        expect(
-          quote.lte(upperThreshold) && quote.gte(lowerThreshold),
-          `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]`
-        );
+          expect(
+            quote.lte(upperThreshold) && quote.gte(lowerThreshold),
+            `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]`
+          );
+        });
+        then(`pricing plan is the correct one`, async () => {
+          const plan1 = await oracle.planForPair(tokenIn.address, tokenOut.address);
+          const plan2 = await oracle.planForPair(tokenOut.address, tokenIn.address);
+          expect(plan1 + plan2).to.equal(i + 1);
+          expect(plan1 == 0 || plan2 == 0).to.be.true;
+        });
       });
-      then(`pricing plan is the correct one`, async () => {
-        const plan = await oracle.planForPair(tokenA.address, tokenB.address);
-        expect(plan).to.equal(i + 1);
-      });
-    });
+    }
   }
 });
+
+async function getPriceBetweenTokens(tokenA: Token, tokenB: Token, compare: PriceComparison) {
+  if (compare.quote === 'IN') {
+    return fetchPrice(tokenA.id, compare.currency);
+  } else if (compare.quote === 'OUT') {
+    return fetchPrice(tokenB.id, compare.currency);
+  } else {
+    const tokenAPrice = await fetchPrice(tokenA.id, compare.currency);
+    const tokenBPrice = await fetchPrice(tokenB.id, compare.currency);
+    return tokenAPrice / tokenBPrice;
+  }
+}
+
+let priceCache: Map<string, number> = new Map();
+async function fetchPrice(id: string, currency: string): Promise<number> {
+  const key = `${id}-${currency}`;
+  if (!priceCache.has(key)) {
+    const price = await getLastPrice(id, currency);
+    priceCache.set(key, price);
+  }
+  return priceCache.get(key)!;
+}
+
+type PriceComparison = {
+  quote: 'IN' | 'OUT' | 'BOTH';
+  currency: 'usd' | 'eth';
+};
+
+type Token = { address: string; decimals: number; symbol: string; id: string };
