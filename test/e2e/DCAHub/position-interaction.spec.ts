@@ -160,7 +160,6 @@ contract('DCAHub', () => {
         given(async () => {
           rate = initialRate ?? tokenA.asUnits(DEFAULT_RATE);
           positionId = await deposit(rate, TOTAL_AMOUNT_OF_SWAPS);
-          console.log('Position id', positionId.toString());
           if (context) {
             await context(positionId);
           }
