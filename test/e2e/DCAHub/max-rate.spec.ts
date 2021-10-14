@@ -15,7 +15,7 @@ import { contract, given, then, when } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
-import { buildSwapInput } from 'js-lib/swap-utils';
+import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import { snapshot } from '@test-utils/evm';
@@ -72,20 +72,35 @@ contract('DCAHub', () => {
       await snapshot.revert(snapshotId);
     });
 
-    when(`${AMOUNT_OF_POSITIONS} positions with the max rate are created`, () => {
+    when.only(`${AMOUNT_OF_POSITIONS} positions with the max rate are created and fully swapped`, () => {
       let positionIds: BigNumber[] = [];
       given(async () => {
-        for (let i = 0; i < AMOUNT_OF_POSITIONS; i++) {
-          positionIds.push(await deposit());
-        }
-      });
-      then('all positions can be fully swapped and then withdrawn', async () => {
+        positionIds = await createPositions();
         await flashSwap({ times: TOTAL_AMOUNT_OF_SWAPS });
+      });
+      then('then they can be withdrawn', async () => {
         await DCAHub.withdrawSwappedMany([{ token: tokenB.address, positionIds }], owner.address);
         const expectedBalance = calculateSwapped();
         expect(await tokenB.balanceOf(owner.address)).to.equal(expectedBalance);
       });
+      then('there is nothing left to swap', async () => {
+        await assertThereIsNothingElseToSwap();
+      });
     });
+
+    async function createPositions(): Promise<BigNumber[]> {
+      let positionIds: BigNumber[] = [];
+      for (let i = 0; i < AMOUNT_OF_POSITIONS; i++) {
+        positionIds.push(await deposit());
+      }
+      return positionIds;
+    }
+
+    async function assertThereIsNothingElseToSwap() {
+      const { tokens, pairIndexes } = buildGetNextSwapInfoInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+      const { pairs } = await DCAHub.getNextSwapInfo(tokens, pairIndexes);
+      expect(pairs[0].intervalsInSwap).to.equal('0x00');
+    }
 
     function calculateSwapped() {
       const swapped = MAX_RATE.mul(TOTAL_AMOUNT_OF_SWAPS).mul(AMOUNT_OF_POSITIONS).mul(tokenB.magnitude).div(tokenA.magnitude);
