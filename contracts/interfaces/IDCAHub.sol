@@ -190,6 +190,9 @@ interface IDCAHubPositionHandler {
   /// @notice Thrown when a user tries to withdraw a position whose `to` token doesn't match the specified one
   error PositionDoesNotMatchToken();
 
+  /// @notice Thrown when a user tries create or modify a position with an amount too big
+  error AmountTooBig();
+
   /// @notice Returns a user position
   /// @param _positionId The id of the position
   /// @return _position The position itself
@@ -200,6 +203,7 @@ interface IDCAHubPositionHandler {
   /// With ZeroAddress if _from, _to or _owner are zero
   /// With InvalidToken if _from == _to
   /// With ZeroAmount if _amount is zero
+  /// With AmountTooBig if _amount is too big
   /// With ZeroSwaps if _amountOfSwaps is zero
   /// With IntervalNotAllowed if _swapInterval is not allowed
   /// @param _from The address of the "from" token
@@ -245,6 +249,7 @@ interface IDCAHubPositionHandler {
   /// With InvalidPosition if _positionId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
   /// With ZeroAmount if _amount is zero
+  /// With AmountTooBig if _amount is too big
   /// @param _positionId The position's id
   /// @param _amount Amount of funds to add to the position
   /// @param _newSwaps The new amount of swaps

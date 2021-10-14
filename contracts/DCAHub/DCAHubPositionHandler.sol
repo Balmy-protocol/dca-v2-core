@@ -59,8 +59,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
+    uint120 _rate = _calculateRate(_amount, _amountOfSwaps);
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
-    uint120 _rate = uint120(_amount / _amountOfSwaps);
     uint256 _positionId = ++_idCounter;
     DCA memory _userPosition = _buildPosition(_from, _to, _amountOfSwaps, Intervals.intervalToMask(_swapInterval), _rate);
     if (allowedSwapIntervals & _userPosition.swapIntervalMask == 0) revert IntervalNotAllowed();
@@ -173,7 +173,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_total != 0 && _newAmountOfSwaps == 0) revert ZeroSwaps();
     if (_total == 0 && _newAmountOfSwaps > 0) _newAmountOfSwaps = 0;
 
-    uint120 _newRate = _newAmountOfSwaps == 0 ? 0 : uint120(_total / _newAmountOfSwaps);
+    uint120 _newRate = _newAmountOfSwaps == 0 ? 0 : _calculateRate(_total, _newAmountOfSwaps);
     (_userPositions[_positionId].rateLower, _userPositions[_positionId].rateHigher) = _splitRate(_newRate);
 
     uint32 _finalSwap = _performedSwaps + _newAmountOfSwaps;
@@ -230,12 +230,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _to,
     bytes1 _swapIntervalMask,
     uint32 _finalSwap,
-    uint128 _rate,
+    uint120 _rate,
     bool _add
   ) internal {
     // Note: this function might look weird and unnecessary, but after a few different tries, it was the best way to reduce contract size,
     // while also avoding the need for unchecked math
-    int128 _intRate = _add ? -int128(_rate) : int128(_rate);
+    int128 _intRate = _add ? -int128(uint128(_rate)) : int128(uint128(_rate));
     if (_from < _to) {
       if (_add) {
         _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
@@ -338,6 +338,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       from: _from,
       to: _to
     });
+  }
+
+  function _calculateRate(uint256 _amount, uint32 _amountOfSwaps) internal pure returns (uint120) {
+    uint256 _rate = _amount / _amountOfSwaps;
+    if (_rate > type(uint120).max) revert AmountTooBig();
+    return uint120(_rate);
   }
 
   function _mergeRate(DCA memory _userPosition) internal pure returns (uint120) {

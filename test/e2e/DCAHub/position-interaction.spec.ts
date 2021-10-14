@@ -177,11 +177,11 @@ contract('DCAHub', () => {
         then('position can be increased', async () => {
           await tokenA.mint(owner.address, 20);
           await tokenA.approve(DCAHub.address, 20);
-          await DCAHub.increasePosition(positionId, 20, TOTAL_AMOUNT_OF_SWAPS);
+          await DCAHub.increasePosition(positionId, 20, 5);
         });
         if (!allSwapsExecuted) {
           then('position can be reduced', async () => {
-            await DCAHub.reducePosition(positionId, 20, TOTAL_AMOUNT_OF_SWAPS, owner.address);
+            await DCAHub.reducePosition(positionId, 20, 5, owner.address);
           });
         }
         then('position can be terminated', async () => {

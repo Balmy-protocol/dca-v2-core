@@ -92,7 +92,7 @@ contract('DCAPositionHandler', () => {
       owner: string;
       from: string;
       to: string;
-      amount: number;
+      amount: number | BigNumber;
       swaps: number;
       interval: number;
       error: string;
@@ -218,7 +218,7 @@ contract('DCAPositionHandler', () => {
       });
     });
 
-    when('making a deposit with 0 swaps', () => {
+    when('making a deposit where from and to are the same token', () => {
       then('tx is reverted with message', async () => {
         await depositShouldRevert({
           from: tokenA.address,
@@ -228,6 +228,20 @@ contract('DCAPositionHandler', () => {
           swaps: 20,
           interval: SwapInterval.ONE_DAY.seconds,
           error: 'InvalidToken',
+        });
+      });
+    });
+
+    when('making a deposit with an amount too high', () => {
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: BigNumber.from(2).pow(120), // max(uint120) + 1
+          swaps: 1,
+          interval: SwapInterval.ONE_DAY.seconds,
+          error: 'AmountTooBig',
         });
       });
     });
@@ -812,6 +826,27 @@ contract('DCAPositionHandler', () => {
           func: 'increasePosition',
           args: [positionId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), 0],
           message: 'ZeroSwaps',
+        });
+      });
+    });
+
+    when('adding too much funds', () => {
+      then('tx is reverted with message', async () => {
+        const { positionId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        });
+
+        const breakingAmount = BigNumber.from(2).pow(120);
+        const alreadyDeposited = tokenA.asUnits(POSITION_RATE_5 * POSITION_SWAPS_TO_PERFORM_10);
+
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'increasePosition',
+          args: [positionId, breakingAmount.sub(alreadyDeposited), 1],
+          message: 'AmountTooBig',
         });
       });
     });
