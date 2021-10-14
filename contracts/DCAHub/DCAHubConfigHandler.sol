@@ -9,14 +9,13 @@ import '../libraries/FeeMath.sol';
 import './DCAHubParameters.sol';
 
 abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausable, IDCAHubConfigHandler {
-  // Internal constants (should be constants, but apparently the byte code size increases when they are)
-  // solhint-disable var-name-mixedcase
-  // TODO: See if we can make these constants again
+  // Internal constants (all should be constants, but apparently the byte code size increases when they are)
+  // solhint-disable-next-line var-name-mixedcase
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
-  bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
-  bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
+  bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
+  bytes32 public constant PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
+  // solhint-disable-next-line var-name-mixedcase
   uint32 public MAX_FEE = 10 * FeeMath.FEE_PRECISION; // 10%
-  // solhint-enable var-name-mixedcase
   uint16 public constant MAX_PLATFORM_FEE_RATIO = 10000;
 
   IPriceOracle public oracle;

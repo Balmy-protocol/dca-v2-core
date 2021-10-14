@@ -1,10 +1,10 @@
-# DCA V1
+# DCA V1.1
 
-[![Lint](https://github.com/Mean-Finance/dca-v1/actions/workflows/lint.yml/badge.svg)](https://github.com/Mean-Finance/dca-v1/actions/workflows/lint.yml)
-[![Tests (unit, integration, e2e)](https://github.com/Mean-Finance/dca-v1/actions/workflows/tests.yml/badge.svg)](https://github.com/Mean-Finance/dca-v1/actions/workflows/tests.yml)
+[![Lint](https://github.com/Mean-Finance/dca-v1.1-core/actions/workflows/lint.yml/badge.svg)](https://github.com/Mean-Finance/dca-v1.1-core/actions/workflows/lint.yml)
+[![Tests (unit, integration, e2e)](https://github.com/Mean-Finance/dca-v1.1-core/actions/workflows/tests.yml/badge.svg)](https://github.com/Mean-Finance/dca-v1.1-core/actions/workflows/tests.yml)
 [![npm version](https://img.shields.io/npm/v/@mean-finance/dca-v1/latest.svg)](https://www.npmjs.com/package/@mean-finance/dca-v1/v/latest)
 
-This repository contains all the smart contracts pertaining to DCA V1 Protocol.
+This repository contains all the smart contracts pertaining to DCA V1.1 Protocol.
 
 ## ⚠️ Audit
 
