@@ -230,12 +230,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _to,
     bytes1 _swapIntervalMask,
     uint32 _finalSwap,
-    uint120 _rate,
+    uint128 _rate,
     bool _add
   ) internal {
     // Note: this function might look weird and unnecessary, but after a few different tries, it was the best way to reduce contract size,
     // while also avoding the need for unchecked math
-    int120 _intRate = _add ? -int120(_rate) : int120(_rate);
+    int128 _intRate = _add ? -int128(_rate) : int128(_rate);
     if (_from < _to) {
       if (_add) {
         _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
