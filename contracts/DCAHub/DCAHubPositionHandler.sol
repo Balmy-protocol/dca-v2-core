@@ -298,7 +298,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
   /** Returns how many FROM remains unswapped  */
   function _calculateUnswapped(DCA memory _userPosition, uint32 _performedSwaps) internal pure returns (uint256 _unswapped) {
-    _unswapped = _substractIfPossible(_userPosition.finalSwap, _performedSwaps) * _mergeRate(_userPosition);
+    _unswapped = uint256(_substractIfPossible(_userPosition.finalSwap, _performedSwaps)) * _mergeRate(_userPosition);
   }
 
   function _executeWithdraw(uint256 _positionId) internal returns (uint256 _swapped, address _to) {

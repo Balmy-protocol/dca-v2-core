@@ -342,6 +342,26 @@ contract('DCAPositionHandler', () => {
         expect(priceOracle.addSupportForPairIfNeeded).to.not.have.been.called;
       });
     });
+    when('making a deposit with a really big rate', async () => {
+      const RATE = BigNumber.from(2).pow(120).sub(1); // max(uint120)
+      let positionId: BigNumber;
+      given(async () => {
+        await tokenA.mint(owner.address, RATE.mul(2));
+        await tokenA.approve(DCAPositionHandler.address, RATE.mul(2));
+        ({ positionId } = await deposit({ owner: wallet.generateRandomAddress(), token: tokenA, rate: RATE, swaps: 2 }));
+      });
+      then('it is stored correctly', async () => {
+        const {
+          rate,
+          remaining,
+        }: {
+          rate: BigNumber;
+          remaining: BigNumber;
+        } = await DCAPositionHandler.userPosition(positionId);
+        expect(rate).to.equal(RATE);
+        expect(remaining).to.equal(RATE.mul(2));
+      });
+    });
   });
 
   describe('withdrawSwapped', () => {
@@ -1251,7 +1271,7 @@ contract('DCAPositionHandler', () => {
   }: {
     owner: string;
     token: TokenContract;
-    rate: number;
+    rate: number | BigNumber;
     swaps: number;
     permissions?: { operator: string; permissions: Permission[] }[];
   }) {
@@ -1259,7 +1279,7 @@ contract('DCAPositionHandler', () => {
     const response: TransactionResponse = await DCAPositionHandler.deposit(
       token.address,
       to.address,
-      token.asUnits(rate).mul(swaps),
+      (BigNumber.isBigNumber(rate) ? rate : token.asUnits(rate)).mul(swaps),
       swaps,
       SwapInterval.ONE_DAY.seconds,
       owner,
@@ -1303,7 +1323,7 @@ contract('DCAPositionHandler', () => {
       swapsLeft: positionSwapsLeft,
       remaining: positionRemaining,
       rate: positionRate,
-    }: [string, string, number, number, BigNumber, number, BigNumber, BigNumber] & {
+    }: {
       from: string;
       to: string;
       swapInterval: number;
