@@ -72,7 +72,7 @@ contract('DCAHub', () => {
       await snapshot.revert(snapshotId);
     });
 
-    when.only(`${AMOUNT_OF_POSITIONS} positions with the max rate are created and fully swapped`, () => {
+    when(`${AMOUNT_OF_POSITIONS} positions with the max rate are created and fully swapped`, () => {
       let positionIds: BigNumber[] = [];
       given(async () => {
         positionIds = await createPositions();
