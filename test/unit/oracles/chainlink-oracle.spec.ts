@@ -69,6 +69,14 @@ describe('ChainlinkOracle', () => {
           expect(await chainlinkOracle.isUSD(token)).to.be.true;
         }
       });
+      then('WBTC maps to BTC', async () => {
+        const mapping = await chainlinkOracle.mappedToken('0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599');
+        expect(mapping).to.equal('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB');
+      });
+      then('RENBTC maps to BTC', async () => {
+        const mapping = await chainlinkOracle.mappedToken('0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D');
+        expect(mapping).to.equal('0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB');
+      });
     });
   });
 
@@ -183,6 +191,38 @@ describe('ChainlinkOracle', () => {
       contract: () => chainlinkOracle,
       funcAndSignature: 'addUSDStablecoins(address[])',
       params: [[wallet.generateRandomAddress()]],
+      governor: () => governor,
+    });
+  });
+
+  describe('addMappings', () => {
+    when('input sizes do not match', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: chainlinkOracle.connect(governor),
+          func: 'addMappings',
+          args: [[TOKEN_A], [TOKEN_A, TOKEN_B]],
+          message: 'InvalidInput',
+        });
+      });
+    });
+    when('function is called by governor', () => {
+      const TOKEN_ADDRESS = wallet.generateRandomAddress();
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await chainlinkOracle.connect(governor).addMappings([TOKEN_A], [TOKEN_ADDRESS]);
+      });
+      then('mapping is registered', async () => {
+        expect(await chainlinkOracle.mappedToken(TOKEN_A)).to.equal(TOKEN_ADDRESS);
+      });
+      then('event is emmitted', async () => {
+        await expect(tx).to.emit(chainlinkOracle, 'MappingsAdded').withArgs([TOKEN_A], [TOKEN_ADDRESS]);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => chainlinkOracle,
+      funcAndSignature: 'addMappings(address[],address[])',
+      params: [[TOKEN_A], [wallet.generateRandomAddress()]],
       governor: () => governor,
     });
   });
