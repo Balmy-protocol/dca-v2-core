@@ -893,6 +893,7 @@ contract('DCAHubSwapHandler', () => {
         token: () => TokenContract;
         reward?: number;
         toProvide?: number;
+        extraToReturn?: number;
         platformFee?: number;
         borrow?: number;
       }[];
@@ -937,7 +938,7 @@ contract('DCAHubSwapHandler', () => {
             [
               DCAHubSwapCallee.address,
               new Map([
-                [tokenA, tokenA.asUnits(3000)],
+                [tokenA, tokenA.asUnits(3100)],
                 [tokenB, tokenB.asUnits(200)],
                 [tokenC, tokenC.asUnits(300)],
               ]),
@@ -970,6 +971,12 @@ contract('DCAHubSwapHandler', () => {
             }
           }
 
+          const addresses = tokens.map(({ token }) => token().address);
+          const amounts = tokens.map(({ token, toProvide, extraToReturn, borrow }) =>
+            token().asUnits((toProvide ?? 0) + (borrow ?? 0) + (extraToReturn ?? 0))
+          );
+          await DCAHubSwapCallee.returnSpecificAmounts(addresses, amounts);
+
           const calleeBalances = initialBalances.get(DCAHubSwapCallee.address)!;
           await DCAHubSwapCallee.setInitialBalances(
             Array.from(calleeBalances.keys()).map((token) => token.address),
@@ -982,13 +989,13 @@ contract('DCAHubSwapHandler', () => {
         });
 
         then(`calle's balance is modified correctly`, async () => {
-          for (const { token, reward, toProvide } of tokens) {
+          for (const { token, reward, toProvide, extraToReturn } of tokens) {
             const initialBalance = initialBalances.get(DCAHubSwapCallee.address)!.get(token())!;
             const currentBalance = await token().balanceOf(DCAHubSwapCallee.address);
             if (reward) {
               expect(currentBalance).to.equal(initialBalance.add(token().asUnits(reward)));
             } else if (toProvide) {
-              expect(currentBalance).to.equal(initialBalance.sub(token().asUnits(toProvide)));
+              expect(currentBalance).to.equal(initialBalance.sub(token().asUnits(toProvide + (extraToReturn ?? 0))));
             } else {
               expect(currentBalance).to.equal(initialBalance);
             }
@@ -996,13 +1003,13 @@ contract('DCAHubSwapHandler', () => {
         });
 
         then(`hub's balance is modified correctly`, async () => {
-          for (const { token, reward, toProvide } of tokens) {
+          for (const { token, reward, toProvide, extraToReturn } of tokens) {
             const initialBalance = initialBalances.get(DCAHubSwapHandler.address)!.get(token())!;
             const currentBalance = await token().balanceOf(DCAHubSwapHandler.address);
             if (reward) {
               expect(currentBalance).to.equal(initialBalance.sub(token().asUnits(reward)));
             } else if (toProvide) {
-              expect(currentBalance).to.equal(initialBalance.add(token().asUnits(toProvide)));
+              expect(currentBalance).to.equal(initialBalance.add(token().asUnits(toProvide + (extraToReturn ?? 0))));
             } else {
               expect(currentBalance).to.equal(initialBalance);
             }
@@ -1010,11 +1017,11 @@ contract('DCAHubSwapHandler', () => {
         });
 
         then('correct amount is assigned as protocol fee', async () => {
-          for (const { token, platformFee } of tokens) {
+          for (const { token, platformFee, extraToReturn } of tokens) {
             const initialBalance = initialBalances.get('platform')!.get(token())!;
             const currentBalance = await DCAHubSwapHandler.platformBalance(token().address);
             if (platformFee) {
-              expect(currentBalance).to.equal(initialBalance.add(token().asUnits(platformFee)));
+              expect(currentBalance).to.equal(initialBalance.add(token().asUnits(platformFee + (extraToReturn ?? 0))));
             } else {
               expect(currentBalance).to.equal(initialBalance);
             }
@@ -1215,6 +1222,45 @@ contract('DCAHubSwapHandler', () => {
         {
           token: () => tokenA,
           toProvide: 3000,
+          platformFee: 100,
+        },
+        {
+          token: () => tokenB,
+          reward: 10,
+          platformFee: 1,
+          borrow: 50,
+        },
+        {
+          token: () => tokenC,
+          reward: 50,
+          borrow: 50,
+        },
+      ],
+      pairs: [
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenB,
+          ratioAToB: 100000,
+          ratioBToA: 20000,
+          intervalsInSwap: [SwapInterval.ONE_DAY],
+        },
+        {
+          tokenA: () => tokenA,
+          tokenB: () => tokenC,
+          ratioAToB: 5000,
+          ratioBToA: 100,
+          intervalsInSwap: [SwapInterval.ONE_DAY, SwapInterval.ONE_WEEK],
+        },
+      ],
+    });
+
+    flashSwapTest({
+      title: 'some extra tokens are returned',
+      tokens: [
+        {
+          token: () => tokenA,
+          toProvide: 3000,
+          extraToReturn: 100,
           platformFee: 100,
         },
         {
