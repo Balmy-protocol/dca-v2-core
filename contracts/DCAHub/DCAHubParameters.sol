@@ -2,6 +2,7 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '../interfaces/IDCAHub.sol';
+import '../libraries/TokenSorting.sol';
 
 abstract contract DCAHubParameters is IDCAHubParameters {
   // Tracking
@@ -17,7 +18,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     bytes1 _swapIntervalMask,
     uint32 _swapNumber
   ) external view returns (SwapDelta memory) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return _swapAmountDelta[__tokenA][__tokenB][_swapIntervalMask][_swapNumber];
   }
 
@@ -27,7 +28,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     bytes1 _swapIntervalMask,
     uint32 _swapNumber
   ) external view returns (AccumRatio memory) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return _accumRatio[__tokenA][__tokenB][_swapIntervalMask][_swapNumber];
   }
 
@@ -36,12 +37,8 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     address _tokenB,
     bytes1 _swapIntervalMask
   ) external view returns (SwapData memory) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     return _swapData[__tokenA][__tokenB][_swapIntervalMask];
-  }
-
-  function _sortTokens(address _tokenA, address _tokenB) internal pure returns (address, address) {
-    return _tokenA < _tokenB ? (_tokenA, _tokenB) : (_tokenB, _tokenA);
   }
 
   function _assertNonZeroAddress(address _address) internal pure {

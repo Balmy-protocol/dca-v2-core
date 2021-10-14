@@ -7,6 +7,7 @@ import '@uniswap/v3-periphery/contracts/libraries/WeightedOracleLibrary.sol';
 import '../interfaces/oracles/IUniswapV3Oracle.sol';
 import '../utils/Governable.sol';
 import '../libraries/UniswapWeightedOracleLibrary.sol';
+import '../libraries/TokenSorting.sol';
 
 contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   uint16 public constant override MINIMUM_PERIOD = 1 minutes;
@@ -39,7 +40,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     uint128 _amountIn,
     address _tokenOut
   ) external view override returns (uint256 _amountOut) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenIn, _tokenOut);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenIn, _tokenOut);
     address[] memory _pools = _poolsForPair[__tokenA][__tokenB];
     WeightedOracleLibrary.PeriodObservation[] memory _observations = UniswapWeightedOracleLibrary.consultMany(_pools, period);
     int24 _arithmeticMeanWeightedTick = WeightedOracleLibrary.getArithmeticMeanTickWeightedByLiquidity(_observations);
@@ -47,20 +48,20 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   }
 
   function reconfigureSupportForPair(address _tokenA, address _tokenB) external override {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     delete _poolsForPair[__tokenA][__tokenB];
     _addSupportForPair(__tokenA, __tokenB);
   }
 
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external override {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     if (_poolsForPair[__tokenA][__tokenB].length == 0) {
       _addSupportForPair(__tokenA, __tokenB);
     }
   }
 
   function poolsUsedForPair(address _tokenA, address _tokenB) external view override returns (address[] memory _usedPools) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     _usedPools = _poolsForPair[__tokenA][__tokenB];
   }
 
@@ -100,9 +101,5 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     }
     require(_pools.length > 0, 'PairNotSupported');
     emit AddedSupportForPairInUniswapOracle(_tokenA, _tokenB);
-  }
-
-  function _sortTokens(address _tokenA, address _tokenB) internal pure returns (address __tokenA, address __tokenB) {
-    (__tokenA, __tokenB) = _tokenA < _tokenB ? (_tokenA, _tokenB) : (_tokenB, _tokenA);
   }
 }

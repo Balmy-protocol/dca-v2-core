@@ -258,7 +258,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _to,
     bytes1 _mask
   ) internal {
-    (address _tokenA, address _tokenB) = _sortTokens(_from, _to);
+    (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_from, _to);
     bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
     if (_activeIntervals & _mask == 0) {
       if (_activeIntervals == 0) {
@@ -316,7 +316,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     address _to,
     bytes1 _swapIntervalMask
   ) internal view returns (uint32) {
-    (address _tokenA, address _tokenB) = _sortTokens(_from, _to);
+    (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_from, _to);
     return _swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps;
   }
 

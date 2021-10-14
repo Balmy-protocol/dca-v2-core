@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity >=0.5.0 <0.8.0;
+pragma solidity >=0.8.7 <0.9.0;
 
 import '../../oracles/ChainlinkOracle.sol';
 
@@ -38,12 +38,12 @@ contract ChainlinkOracleMock is ChainlinkOracle {
     address _tokenB,
     PricingPlan _plan
   ) external {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     _pricingPlan[__tokenA][__tokenB] = MockedPricingPlan({plan: _plan, isSet: true});
   }
 
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view override returns (PricingPlan) {
-    (address __tokenA, address __tokenB) = _sortTokens(_tokenA, _tokenB);
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     MockedPricingPlan memory _plan = _pricingPlan[__tokenA][__tokenB];
     if (_plan.isSet) {
       return _plan.plan;
