@@ -106,7 +106,7 @@ describe('UniswapV3Oracle', () => {
         expect(await UniswapV3Oracle.supportedFeeTiers()).to.eql([...INITIAL_FEE_TIERS, NEW_FEE_TIER]);
       });
 
-      then('event is emmitted', async () => {
+      then('event is emitted', async () => {
         await expect(tx).to.emit(UniswapV3Oracle, 'AddedFeeTier').withArgs(NEW_FEE_TIER);
       });
     });
@@ -205,7 +205,7 @@ describe('UniswapV3Oracle', () => {
         expect(await UniswapV3Oracle.period()).to.eql(PERIOD);
       });
 
-      then('event is emmitted', async () => {
+      then('event is emitted', async () => {
         await expect(tx).to.emit(UniswapV3Oracle, 'PeriodChanged').withArgs(PERIOD);
       });
     });
@@ -245,7 +245,7 @@ describe('UniswapV3Oracle', () => {
         expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([uniswapV3Pool.address, uniswapV3Pool2.address]);
       });
 
-      then('event is emmitted', async () => {
+      then('event is emitted', async () => {
         await expect(tx).to.emit(UniswapV3Oracle, 'AddedSupportForPairInUniswapOracle').withArgs(TOKEN_A, TOKEN_B);
       });
 
@@ -338,7 +338,7 @@ describe('UniswapV3Oracle', () => {
         expect(await UniswapV3Oracle.poolsUsedForPair(TOKEN_A, TOKEN_B)).to.eql([uniswapV3Pool.address]);
       });
 
-      then('event is emmitted', async () => {
+      then('event is emitted', async () => {
         await expect(tx).to.emit(UniswapV3Oracle, 'AddedSupportForPairInUniswapOracle').withArgs(TOKEN_A, TOKEN_B);
       });
 

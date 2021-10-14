@@ -158,7 +158,7 @@ describe('ChainlinkOracle', () => {
         expect(await chainlinkOracle.planForPair(TOKEN_A, TOKEN_B)).to.eql(SOME_OTHER_PLAN);
       });
 
-      then('event is emmitted', async () => {
+      then('event is emitted', async () => {
         await expect(tx).to.emit(chainlinkOracle, 'AddedSupportForPairInChainlinkOracle').withArgs(TOKEN_A, TOKEN_B);
       });
     });
@@ -174,7 +174,7 @@ describe('ChainlinkOracle', () => {
       then('address is considered USD', async () => {
         expect(await chainlinkOracle.isUSD(TOKEN_ADDRESS)).to.be.true;
       });
-      then('event is emmitted', async () => {
+      then('event is emitted', async () => {
         await expect(tx).to.emit(chainlinkOracle, 'TokensConsideredUSD').withArgs([TOKEN_ADDRESS]);
       });
     });
