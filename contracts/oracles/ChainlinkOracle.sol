@@ -25,6 +25,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   // solhint-enable private-vars-leading-underscore
 
   mapping(address => bool) internal _shouldBeConsideredUSD;
+  mapping(address => address) internal _tokenMappings;
 
   constructor(
     // solhint-disable-next-line var-name-mixedcase
@@ -90,6 +91,23 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     emit TokensConsideredUSD(_addresses);
   }
 
+  function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {
+    require(_addresses.length == _mappings.length, 'InvalidInput');
+    for (uint256 i; i < _addresses.length; i++) {
+      _tokenMappings[_addresses[i]] = _mappings[i];
+    }
+    emit MappingsAdded(_addresses, _mappings);
+  }
+
+  function mappedToken(address _token) public view returns (address) {
+    if (_token == RENBTC || _token == WBTC) {
+      return Denominations.BTC;
+    } else {
+      address _mapping = _tokenMappings[_token];
+      return _mapping != address(0) ? _mapping : _token;
+    }
+  }
+
   /** Handles prices when the pair is either ETH/USD, token/ETH or token/USD */
   function _getDirectPrice(
     address _tokenIn,
@@ -104,7 +122,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     bool _needsInverting = _isUSD(_tokenIn) || (_plan == PricingPlan.TOKEN_ETH_PAIR && _tokenIn == WETH);
 
     if (_plan == PricingPlan.ETH_USD_PAIR) {
-      _price = _callRegistry(Denominations.ETH, Denominations.USD);
+      _price = _getETHUSD();
     } else if (_plan == PricingPlan.TOKEN_USD_PAIR) {
       _price = _getPriceAgainstUSD(_isUSD(_tokenOut) ? _tokenIn : _tokenOut);
     } else if (_plan == PricingPlan.TOKEN_ETH_PAIR) {
@@ -127,8 +145,8 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     PricingPlan _plan
   ) internal view returns (uint256) {
     address _base = _plan == PricingPlan.TOKEN_TO_USD_TO_TOKEN_PAIR ? Denominations.USD : Denominations.ETH;
-    uint256 _tokenInToBase = _callRegistry(_tokenIn, _base);
-    uint256 _tokenOutToBase = _callRegistry(_tokenOut, _base);
+    uint256 _tokenInToBase = _callRegistry(mappedToken(_tokenIn), _base);
+    uint256 _tokenOutToBase = _callRegistry(mappedToken(_tokenOut), _base);
     return _adjustDecimals((_amountIn * _tokenInToBase) / _tokenOutToBase, _outDecimals - _inDecimals);
   }
 
@@ -143,7 +161,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   ) internal view returns (uint256) {
     bool _isTokenInUSD = (_plan == PricingPlan.TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B && _tokenIn < _tokenOut) ||
       (_plan == PricingPlan.TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B && _tokenIn > _tokenOut);
-    uint256 _ethToUSDPrice = _callRegistry(Denominations.ETH, Denominations.USD);
+    uint256 _ethToUSDPrice = _getETHUSD();
     if (_isTokenInUSD) {
       uint256 _tokenInToUSD = _getPriceAgainstUSD(_tokenIn);
       uint256 _tokenOutToETH = _getPriceAgainstETH(_tokenOut);
@@ -157,11 +175,11 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _getPriceAgainstUSD(address _token) internal view returns (uint256) {
-    return _isUSD(_token) ? 1e8 : _callRegistry(_token, Denominations.USD);
+    return _isUSD(_token) ? 1e8 : _callRegistry(mappedToken(_token), Denominations.USD);
   }
 
   function _getPriceAgainstETH(address _token) internal view returns (uint256) {
-    return _token == WETH ? 1e18 : _callRegistry(_token, Denominations.ETH);
+    return _token == WETH ? 1e18 : _callRegistry(mappedToken(_token), Denominations.ETH);
   }
 
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view virtual returns (PricingPlan) {
@@ -208,7 +226,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _exists(address _base, address _quote) internal view returns (bool) {
-    try registry.latestAnswer(_mapBTC(_base), _quote) returns (int256) {
+    try registry.latestAnswer(mappedToken(_base), _quote) returns (int256) {
       return true;
     } catch {
       return false;
@@ -228,11 +246,11 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
-    return uint256(registry.latestAnswer(_mapBTC(_base), _quote));
+    return uint256(registry.latestAnswer(_base, _quote));
   }
 
-  function _mapBTC(address _token) internal pure returns (address) {
-    return _token == RENBTC || _token == WBTC ? Denominations.BTC : _token;
+  function _getETHUSD() internal view returns (uint256) {
+    return _callRegistry(Denominations.ETH, Denominations.USD);
   }
 
   function _isUSD(address _token) internal view returns (bool) {

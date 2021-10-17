@@ -36,6 +36,11 @@ interface IChainlinkOracle is IPriceOracle {
   /// @param tokens The new tokens
   event TokensConsideredUSD(address[] tokens);
 
+  /// @notice Emitted when new mappings are added
+  /// @param tokens The tokens
+  /// @param mappings Their new mappings
+  event MappingsAdded(address[] tokens, address[] mappings);
+
   /// @notice Returns the Chainlink feed registry
   /// @return The Chainlink registry
   function registry() external view returns (FeedRegistryInterface);
@@ -50,7 +55,16 @@ interface IChainlinkOracle is IPriceOracle {
   /// @return The pricing plan that will be used
   function planForPair(address _tokenA, address _tokenB) external view returns (PricingPlan);
 
+  /// @notice Returns the mapping of the given token, if it exists. If it doesn't, then the original token is returned
+  /// @return If it exists, the mapping is returned. Otherwise, the original token is returned
+  function mappedToken(address _token) external view returns (address);
+
   /// @notice Adds new tokens that should be considered USD stablecoins
-  /// @param _addresses The addressed of the tokens
+  /// @param _addresses The addresses of the tokens
   function addUSDStablecoins(address[] calldata _addresses) external;
+
+  /// @notice Adds new token mappings
+  /// @param _addresses The addresses of the tokens
+  /// @param _mappings The addresses of their mappings
+  function addMappings(address[] calldata _addresses, address[] calldata _mappings) external;
 }
