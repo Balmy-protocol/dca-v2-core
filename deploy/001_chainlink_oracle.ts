@@ -14,6 +14,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   switch (hre.network.name) {
     case 'mainnet':
+    case 'hardhat':
       registry = FEED_REGISTRY_MAINNET_ADDRESS;
       weth = WETH_MAINNET_ADDRESS;
       break;
