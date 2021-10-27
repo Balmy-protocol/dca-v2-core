@@ -1,0 +1,607 @@
+{
+  "address": "0x2DFb2C5C013826a0728440D8036305b254Ad9cCE",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_WETH",
+          "type": "address"
+        },
+        {
+          "internalType": "contract FeedRegistryInterface",
+          "name": "_registry",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_governor",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "tokenA",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "tokenB",
+          "type": "address"
+        }
+      ],
+      "name": "AddedSupportForPairInChainlinkOracle",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "tokens",
+          "type": "address[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "mappings",
+          "type": "address[]"
+        }
+      ],
+      "name": "MappingsAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "PendingGovernorAccepted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "pendingGovernor",
+          "type": "address"
+        }
+      ],
+      "name": "PendingGovernorSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "tokens",
+          "type": "address[]"
+        }
+      ],
+      "name": "TokensConsideredUSD",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "WETH",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "acceptPendingGovernor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_addresses",
+          "type": "address[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "_mappings",
+          "type": "address[]"
+        }
+      ],
+      "name": "addMappings",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_tokenA",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_tokenB",
+          "type": "address"
+        }
+      ],
+      "name": "addSupportForPairIfNeeded",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_addresses",
+          "type": "address[]"
+        }
+      ],
+      "name": "addUSDStablecoins",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_tokenA",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_tokenB",
+          "type": "address"
+        }
+      ],
+      "name": "canSupportPair",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governor",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_account",
+          "type": "address"
+        }
+      ],
+      "name": "isGovernor",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_isGovernor",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_account",
+          "type": "address"
+        }
+      ],
+      "name": "isPendingGovernor",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "_isPendingGovernor",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_token",
+          "type": "address"
+        }
+      ],
+      "name": "mappedToken",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pendingGovernor",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "planForPair",
+      "outputs": [
+        {
+          "internalType": "enum IChainlinkOracle.PricingPlan",
+          "name": "",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_tokenIn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint128",
+          "name": "_amountIn",
+          "type": "uint128"
+        },
+        {
+          "internalType": "address",
+          "name": "_tokenOut",
+          "type": "address"
+        }
+      ],
+      "name": "quote",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amountOut",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_tokenA",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_tokenB",
+          "type": "address"
+        }
+      ],
+      "name": "reconfigureSupportForPair",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "registry",
+      "outputs": [
+        {
+          "internalType": "contract FeedRegistryInterface",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "__pendingGovernor",
+          "type": "address"
+        }
+      ],
+      "name": "setPendingGovernor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x439d118a4436d1ab166860c177f96f71750c026b6edc3488551957b4fd027d3f",
+  "receipt": {
+    "to": null,
+    "from": "0xa71405F7D11734F03F2616b93EAEd22604C978Bf",
+    "contractAddress": "0x2DFb2C5C013826a0728440D8036305b254Ad9cCE",
+    "transactionIndex": 2,
+    "gasUsed": "1460355",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xe6572db5d5d0114f8ba1d2134e560a0bed6df2c80dcf51b24579d312455f8b74",
+    "transactionHash": "0x439d118a4436d1ab166860c177f96f71750c026b6edc3488551957b4fd027d3f",
+    "logs": [],
+    "blockNumber": 27969815,
+    "cumulativeGasUsed": "4479240",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xd0a1e359811322d97991e03f863a0c30c2cf029c",
+    "0xAa7F6f7f507457a1EE157fE97F6c7DB2BEec5cD0",
+    "0xeeAE844d04ee45c37636D8Db8C9482200177DC93"
+  ],
+  "solcInputHash": "d9e3e0d972cd005803d4bc4d5690665e",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.8+commit.dddeac2f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_WETH\",\"type\":\"address\"},{\"internalType\":\"contract FeedRegistryInterface\",\"name\":\"_registry\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_governor\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"tokenA\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"tokenB\",\"type\":\"address\"}],\"name\":\"AddedSupportForPairInChainlinkOracle\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"tokens\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"mappings\",\"type\":\"address[]\"}],\"name\":\"MappingsAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[],\"name\":\"PendingGovernorAccepted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pendingGovernor\",\"type\":\"address\"}],\"name\":\"PendingGovernorSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"tokens\",\"type\":\"address[]\"}],\"name\":\"TokensConsideredUSD\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"WETH\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"acceptPendingGovernor\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_addresses\",\"type\":\"address[]\"},{\"internalType\":\"address[]\",\"name\":\"_mappings\",\"type\":\"address[]\"}],\"name\":\"addMappings\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_tokenA\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_tokenB\",\"type\":\"address\"}],\"name\":\"addSupportForPairIfNeeded\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address[]\",\"name\":\"_addresses\",\"type\":\"address[]\"}],\"name\":\"addUSDStablecoins\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_tokenA\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_tokenB\",\"type\":\"address\"}],\"name\":\"canSupportPair\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"governor\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"name\":\"isGovernor\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_isGovernor\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_account\",\"type\":\"address\"}],\"name\":\"isPendingGovernor\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"_isPendingGovernor\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_token\",\"type\":\"address\"}],\"name\":\"mappedToken\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"pendingGovernor\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"planForPair\",\"outputs\":[{\"internalType\":\"enum IChainlinkOracle.PricingPlan\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_tokenIn\",\"type\":\"address\"},{\"internalType\":\"uint128\",\"name\":\"_amountIn\",\"type\":\"uint128\"},{\"internalType\":\"address\",\"name\":\"_tokenOut\",\"type\":\"address\"}],\"name\":\"quote\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"_amountOut\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_tokenA\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_tokenB\",\"type\":\"address\"}],\"name\":\"reconfigureSupportForPair\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"registry\",\"outputs\":[{\"internalType\":\"contract FeedRegistryInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"__pendingGovernor\",\"type\":\"address\"}],\"name\":\"setPendingGovernor\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"addMappings(address[],address[])\":{\"params\":{\"_addresses\":\"The addresses of the tokens\",\"_mappings\":\"The addresses of their mappings\"}},\"addSupportForPairIfNeeded(address,address)\":{\"details\":\"Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order\",\"params\":{\"_tokenA\":\"One of the pair's tokens\",\"_tokenB\":\"The other of the pair's tokens\"}},\"addUSDStablecoins(address[])\":{\"params\":{\"_addresses\":\"The addresses of the tokens\"}},\"canSupportPair(address,address)\":{\"details\":\"_tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order\",\"params\":{\"_tokenA\":\"One of the pair's tokens\",\"_tokenB\":\"The other of the pair's tokens\"},\"returns\":{\"_0\":\"Whether the given pair of tokens can be supported by the oracle\"}},\"mappedToken(address)\":{\"returns\":{\"_0\":\"If it exists, the mapping is returned. Otherwise, the original token is returned\"}},\"quote(address,uint128,address)\":{\"params\":{\"_amountIn\":\"The amount that will be provided\",\"_tokenIn\":\"The token that will be provided\",\"_tokenOut\":\"The token we would like to quote\"},\"returns\":{\"_amountOut\":\"How much _tokenOut will be returned in exchange for _amountIn amount of _tokenIn\"}},\"reconfigureSupportForPair(address,address)\":{\"details\":\"Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order\",\"params\":{\"_tokenA\":\"One of the pair's tokens\",\"_tokenB\":\"The other of the pair's tokens\"}}},\"stateVariables\":{\"WETH\":{\"return\":\"The address of the token\",\"returns\":{\"_0\":\"The address of the token\"}},\"planForPair\":{\"details\":\"It is expected that _tokenA < _tokenB\",\"return\":\"The pricing plan that will be used\",\"returns\":{\"_0\":\"The pricing plan that will be used\"}},\"registry\":{\"return\":\"The Chainlink registry\",\"returns\":{\"_0\":\"The Chainlink registry\"}}},\"version\":1},\"userdoc\":{\"events\":{\"AddedSupportForPairInChainlinkOracle(address,address)\":{\"notice\":\"Emitted when the oracle add supports for a new pair\"},\"MappingsAdded(address[],address[])\":{\"notice\":\"Emitted when new mappings are added\"},\"TokensConsideredUSD(address[])\":{\"notice\":\"Emitted when new tokens are considered USD\"}},\"kind\":\"user\",\"methods\":{\"WETH()\":{\"notice\":\"Returns the address of the WETH ERC-20 token\"},\"addMappings(address[],address[])\":{\"notice\":\"Adds new token mappings\"},\"addSupportForPairIfNeeded(address,address)\":{\"notice\":\"Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported, then nothing will happen. This function will let the oracle take some actions to configure the pair, in preparation for future quotes.\"},\"addUSDStablecoins(address[])\":{\"notice\":\"Adds new tokens that should be considered USD stablecoins\"},\"canSupportPair(address,address)\":{\"notice\":\"Returns whether this oracle can support this pair of tokens\"},\"mappedToken(address)\":{\"notice\":\"Returns the mapping of the given token, if it exists. If it doesn't, then the original token is returned\"},\"planForPair(address,address)\":{\"notice\":\"Returns the pricing plan that will be used when quoting the given pair\"},\"quote(address,uint128,address)\":{\"notice\":\"Returns a quote, based on the given tokens and amount\"},\"reconfigureSupportForPair(address,address)\":{\"notice\":\"Reconfigures support for a given pair. This function will let the oracle take some actions to configure the pair, in preparation for future quotes. Can be called many times in order to let the oracle re-configure for a new context.\"},\"registry()\":{\"notice\":\"Returns the Chainlink feed registry\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/oracles/ChainlinkOracle.sol\":\"ChainlinkOracle\"},\"evmVersion\":\"london\",\"libraries\":{\":__CACHE_BREAKER__\":\"0x00000000d41867734bbee4c6863d9255b2b06ac1\"},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"@chainlink/contracts/src/v0.8/Denominations.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\nlibrary Denominations {\\n  address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;\\n  address public constant BTC = 0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB;\\n\\n  // Fiat currencies follow https://en.wikipedia.org/wiki/ISO_4217\\n  address public constant USD = address(840);\\n  address public constant GBP = address(826);\\n  address public constant EUR = address(978);\\n  address public constant JPY = address(392);\\n  address public constant KRW = address(410);\\n  address public constant CNY = address(156);\\n  address public constant AUD = address(36);\\n  address public constant CAD = address(124);\\n  address public constant CHF = address(756);\\n  address public constant ARS = address(32);\\n  address public constant PHP = address(608);\\n  address public constant NZD = address(554);\\n  address public constant SGD = address(702);\\n  address public constant NGN = address(566);\\n  address public constant ZAR = address(710);\\n  address public constant RUB = address(643);\\n  address public constant INR = address(356);\\n  address public constant BRL = address(986);\\n}\\n\",\"keccak256\":\"0xee406990d671c95993762c3ee15c77987ee35c3682357c419ff73747a728fc4d\",\"license\":\"MIT\"},\"@chainlink/contracts/src/v0.8/interfaces/AggregatorInterface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\ninterface AggregatorInterface {\\n  function latestAnswer()\\n    external\\n    view\\n    returns (\\n      int256\\n    );\\n  \\n  function latestTimestamp()\\n    external\\n    view\\n    returns (\\n      uint256\\n    );\\n\\n  function latestRound()\\n    external\\n    view\\n    returns (\\n      uint256\\n    );\\n\\n  function getAnswer(\\n    uint256 roundId\\n  )\\n    external\\n    view\\n    returns (\\n      int256\\n    );\\n\\n  function getTimestamp(\\n    uint256 roundId\\n  )\\n    external\\n    view\\n    returns (\\n      uint256\\n    );\\n\\n  event AnswerUpdated(\\n    int256 indexed current,\\n    uint256 indexed roundId,\\n    uint256 updatedAt\\n  );\\n\\n  event NewRound(\\n    uint256 indexed roundId,\\n    address indexed startedBy,\\n    uint256 startedAt\\n  );\\n}\\n\",\"keccak256\":\"0x1a5dc81544a6479f64437a8aca22c869769dd54ee3522c7ef5ebae0d329a28f0\",\"license\":\"MIT\"},\"@chainlink/contracts/src/v0.8/interfaces/AggregatorV2V3Interface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\nimport \\\"./AggregatorInterface.sol\\\";\\nimport \\\"./AggregatorV3Interface.sol\\\";\\n\\ninterface AggregatorV2V3Interface is AggregatorInterface, AggregatorV3Interface\\n{\\n}\\n\",\"keccak256\":\"0xe8f8d98b515366730824d24269c7267eee7f0288cf737db8659acbb0c751eb53\",\"license\":\"MIT\"},\"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\ninterface AggregatorV3Interface {\\n\\n  function decimals()\\n    external\\n    view\\n    returns (\\n      uint8\\n    );\\n\\n  function description()\\n    external\\n    view\\n    returns (\\n      string memory\\n    );\\n\\n  function version()\\n    external\\n    view\\n    returns (\\n      uint256\\n    );\\n\\n  // getRoundData and latestRoundData should both raise \\\"No data present\\\"\\n  // if they do not have data to report, instead of returning unset values\\n  // which could be misinterpreted as actual reported values.\\n  function getRoundData(\\n    uint80 _roundId\\n  )\\n    external\\n    view\\n    returns (\\n      uint80 roundId,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n  function latestRoundData()\\n    external\\n    view\\n    returns (\\n      uint80 roundId,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n}\\n\",\"keccak256\":\"0xe6f5ac8c47f3b9b6135051efb9216f9ba5b312a6ecc20209b4f66a780443c328\",\"license\":\"MIT\"},\"@chainlink/contracts/src/v0.8/interfaces/FeedRegistryInterface.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\npragma abicoder v2;\\n\\nimport \\\"./AggregatorV2V3Interface.sol\\\";\\n\\ninterface FeedRegistryInterface {\\n  struct Phase {\\n    uint16 phaseId;\\n    uint80 startingAggregatorRoundId;\\n    uint80 endingAggregatorRoundId;\\n  }\\n\\n  event FeedProposed(\\n    address indexed asset,\\n    address indexed denomination,\\n    address indexed proposedAggregator,\\n    address currentAggregator,\\n    address sender\\n  );\\n  event FeedConfirmed(\\n    address indexed asset,\\n    address indexed denomination,\\n    address indexed latestAggregator,\\n    address previousAggregator,\\n    uint16 nextPhaseId,\\n    address sender\\n  );\\n\\n  // V3 AggregatorV3Interface\\n\\n  function decimals(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      uint8\\n    );\\n\\n  function description(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      string memory\\n    );\\n\\n  function version(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      uint256\\n    );\\n\\n  function latestRoundData(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      uint80 roundId,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n  function getRoundData(\\n    address base,\\n    address quote,\\n    uint80 _roundId\\n  )\\n    external\\n    view\\n    returns (\\n      uint80 roundId,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n  // V2 AggregatorInterface\\n\\n  function latestAnswer(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      int256 answer\\n    );\\n\\n  function latestTimestamp(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      uint256 timestamp\\n    );\\n\\n  function latestRound(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      uint256 roundId\\n    );\\n\\n  function getAnswer(\\n    address base,\\n    address quote,\\n    uint256 roundId\\n  )\\n    external\\n    view\\n    returns (\\n      int256 answer\\n    );\\n\\n  function getTimestamp(\\n    address base,\\n    address quote,\\n    uint256 roundId\\n  )\\n    external\\n    view\\n    returns (\\n      uint256 timestamp\\n    );\\n\\n  // Registry getters\\n\\n  function getFeed(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      AggregatorV2V3Interface aggregator\\n    );\\n\\n  function getPhaseFeed(\\n    address base,\\n    address quote,\\n    uint16 phaseId\\n  )\\n    external\\n    view\\n    returns (\\n      AggregatorV2V3Interface aggregator\\n    );\\n\\n  function isFeedEnabled(\\n    address aggregator\\n  )\\n    external\\n    view\\n    returns (\\n      bool\\n    );\\n\\n  function getPhase(\\n    address base,\\n    address quote,\\n    uint16 phaseId\\n  )\\n    external\\n    view\\n    returns (\\n      Phase memory phase\\n    );\\n\\n  // Round helpers\\n\\n  function getRoundFeed(\\n    address base,\\n    address quote,\\n    uint80 roundId\\n  )\\n    external\\n    view\\n    returns (\\n      AggregatorV2V3Interface aggregator\\n    );\\n\\n  function getPhaseRange(\\n    address base,\\n    address quote,\\n    uint16 phaseId\\n  )\\n    external\\n    view\\n    returns (\\n      uint80 startingRoundId,\\n      uint80 endingRoundId\\n    );\\n\\n  function getPreviousRoundId(\\n    address base,\\n    address quote,\\n    uint80 roundId\\n  ) external\\n    view\\n    returns (\\n      uint80 previousRoundId\\n    );\\n\\n  function getNextRoundId(\\n    address base,\\n    address quote,\\n    uint80 roundId\\n  ) external\\n    view\\n    returns (\\n      uint80 nextRoundId\\n    );\\n\\n  // Feed management\\n\\n  function proposeFeed(\\n    address base,\\n    address quote,\\n    address aggregator\\n  ) external;\\n\\n  function confirmFeed(\\n    address base,\\n    address quote,\\n    address aggregator\\n  ) external;\\n\\n  // Proposed aggregator\\n\\n  function getProposedFeed(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      AggregatorV2V3Interface proposedAggregator\\n    );\\n\\n  function proposedGetRoundData(\\n    address base,\\n    address quote,\\n    uint80 roundId\\n  )\\n    external\\n    view\\n    returns (\\n      uint80 id,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n  function proposedLatestRoundData(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      uint80 id,\\n      int256 answer,\\n      uint256 startedAt,\\n      uint256 updatedAt,\\n      uint80 answeredInRound\\n    );\\n\\n  // Phases\\n  function getCurrentPhaseId(\\n    address base,\\n    address quote\\n  )\\n    external\\n    view\\n    returns (\\n      uint16 currentPhaseId\\n    );\\n}\\n\",\"keccak256\":\"0x016d081db2915d0455d148fe805f409200d214bb3c7dfad6e4de139e65d7f893\",\"license\":\"MIT\"},\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Interface of the ERC20 standard as defined in the EIP.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Returns the amount of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the amount of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves `amount` tokens from the caller's account to `recipient`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address recipient, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Moves `amount` tokens from `sender` to `recipient` using the\\n     * allowance mechanism. `amount` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(\\n        address sender,\\n        address recipient,\\n        uint256 amount\\n    ) external returns (bool);\\n\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n}\\n\",\"keccak256\":\"0x027b891937d20ccf213fdb9c31531574256de774bda99d3a70ecef6e1913ed2a\",\"license\":\"MIT\"},\"@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../IERC20.sol\\\";\\n\\n/**\\n * @dev Interface for the optional metadata functions from the ERC20 standard.\\n *\\n * _Available since v4.1._\\n */\\ninterface IERC20Metadata is IERC20 {\\n    /**\\n     * @dev Returns the name of the token.\\n     */\\n    function name() external view returns (string memory);\\n\\n    /**\\n     * @dev Returns the symbol of the token.\\n     */\\n    function symbol() external view returns (string memory);\\n\\n    /**\\n     * @dev Returns the decimals places of the token.\\n     */\\n    function decimals() external view returns (uint8);\\n}\\n\",\"keccak256\":\"0x83fe24f5c04a56091e50f4a345ff504c8bff658a76d4c43b16878c8f940c53b2\",\"license\":\"MIT\"},\"contracts/interfaces/oracles/IChainlinkOracle.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.5.0;\\n\\nimport '@chainlink/contracts/src/v0.8/interfaces/FeedRegistryInterface.sol';\\nimport './IPriceOracle.sol';\\n\\n/// @title An implementation of IPriceOracle that uses Chainlink feeds\\n/// @notice This oracle will attempt to use all available feeds to determine prices between pairs\\ninterface IChainlinkOracle is IPriceOracle {\\n  /// @notice The plan that will be used to calculate quotes for a given pair\\n  enum PricingPlan {\\n    // There is no plan calculated\\n    NONE,\\n    // Will use the ETH/USD feed\\n    ETH_USD_PAIR,\\n    // Will use a token/USD feed\\n    TOKEN_USD_PAIR,\\n    // Will use a token/ETH feed\\n    TOKEN_ETH_PAIR,\\n    // Will use tokenIn/USD and tokenOut/USD feeds\\n    TOKEN_TO_USD_TO_TOKEN_PAIR,\\n    // Will use tokenIn/ETH and tokenOut/ETH feeds\\n    TOKEN_TO_ETH_TO_TOKEN_PAIR,\\n    // Will use tokenA/USD, tokenB/ETH and ETH/USD feeds\\n    TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B,\\n    // Will use tokenA/ETH, tokenB/USD and ETH/USD feeds\\n    TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B\\n  }\\n\\n  /// @notice Emitted when the oracle add supports for a new pair\\n  /// @param tokenA One of the pair's tokens\\n  /// @param tokenB The other of the pair's tokens\\n  event AddedSupportForPairInChainlinkOracle(address tokenA, address tokenB);\\n\\n  /// @notice Emitted when new tokens are considered USD\\n  /// @param tokens The new tokens\\n  event TokensConsideredUSD(address[] tokens);\\n\\n  /// @notice Emitted when new mappings are added\\n  /// @param tokens The tokens\\n  /// @param mappings Their new mappings\\n  event MappingsAdded(address[] tokens, address[] mappings);\\n\\n  /// @notice Returns the Chainlink feed registry\\n  /// @return The Chainlink registry\\n  function registry() external view returns (FeedRegistryInterface);\\n\\n  /// @notice Returns the address of the WETH ERC-20 token\\n  /// @return The address of the token\\n  // solhint-disable-next-line func-name-mixedcase\\n  function WETH() external view returns (address);\\n\\n  /// @notice Returns the pricing plan that will be used when quoting the given pair\\n  /// @dev It is expected that _tokenA < _tokenB\\n  /// @return The pricing plan that will be used\\n  function planForPair(address _tokenA, address _tokenB) external view returns (PricingPlan);\\n\\n  /// @notice Returns the mapping of the given token, if it exists. If it doesn't, then the original token is returned\\n  /// @return If it exists, the mapping is returned. Otherwise, the original token is returned\\n  function mappedToken(address _token) external view returns (address);\\n\\n  /// @notice Adds new tokens that should be considered USD stablecoins\\n  /// @param _addresses The addresses of the tokens\\n  function addUSDStablecoins(address[] calldata _addresses) external;\\n\\n  /// @notice Adds new token mappings\\n  /// @param _addresses The addresses of the tokens\\n  /// @param _mappings The addresses of their mappings\\n  function addMappings(address[] calldata _addresses, address[] calldata _mappings) external;\\n}\\n\",\"keccak256\":\"0xbff4d0d0a43dc6df002618e1f0ec2174c43c5aad1c64905488515fd3956e9457\",\"license\":\"GPL-2.0-or-later\"},\"contracts/interfaces/oracles/IPriceOracle.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >=0.5.0;\\n\\n/// @title The interface for an oracle that provides price quotes\\n/// @notice These methods allow users to add support for pairs, and then ask for quotes\\ninterface IPriceOracle {\\n  /// @notice Returns whether this oracle can support this pair of tokens\\n  /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order\\n  /// @param _tokenA One of the pair's tokens\\n  /// @param _tokenB The other of the pair's tokens\\n  /// @return Whether the given pair of tokens can be supported by the oracle\\n  function canSupportPair(address _tokenA, address _tokenB) external view returns (bool);\\n\\n  /// @notice Returns a quote, based on the given tokens and amount\\n  /// @param _tokenIn The token that will be provided\\n  /// @param _amountIn The amount that will be provided\\n  /// @param _tokenOut The token we would like to quote\\n  /// @return _amountOut How much _tokenOut will be returned in exchange for _amountIn amount of _tokenIn\\n  function quote(\\n    address _tokenIn,\\n    uint128 _amountIn,\\n    address _tokenOut\\n  ) external view returns (uint256 _amountOut);\\n\\n  /// @notice Reconfigures support for a given pair. This function will let the oracle take some actions to configure the pair, in\\n  /// preparation for future quotes. Can be called many times in order to let the oracle re-configure for a new context.\\n  /// @dev Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order\\n  /// @param _tokenA One of the pair's tokens\\n  /// @param _tokenB The other of the pair's tokens\\n  function reconfigureSupportForPair(address _tokenA, address _tokenB) external;\\n\\n  /// @notice Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported,\\n  /// then nothing will happen. This function will let the oracle take some actions to configure the pair, in preparation for future quotes.\\n  /// @dev Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order\\n  /// @param _tokenA One of the pair's tokens\\n  /// @param _tokenB The other of the pair's tokens\\n  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external;\\n}\\n\",\"keccak256\":\"0xf1ebb97588db58c0e2112550f81a25b19ee185be3fd3a2375b5394674bd22606\",\"license\":\"GPL-2.0-or-later\"},\"contracts/libraries/TokenSorting.sol\":{\"content\":\"// SPDX-License-Identifier: GPL-2.0-or-later\\npragma solidity >0.6;\\n\\n/// @title TokenSorting library\\n/// @notice Provides functions to sort tokens easily\\nlibrary TokenSorting {\\n  /// @notice Takes two tokens, and returns them sorted\\n  /// @param _tokenA One of the tokens\\n  /// @param _tokenB The other token\\n  /// @return __tokenA The first of the tokens\\n  /// @return __tokenB The second of the tokens\\n  function sortTokens(address _tokenA, address _tokenB) internal pure returns (address __tokenA, address __tokenB) {\\n    (__tokenA, __tokenB) = _tokenA < _tokenB ? (_tokenA, _tokenB) : (_tokenB, _tokenA);\\n  }\\n}\\n\",\"keccak256\":\"0xe087aec6da5b5ccf145a432a5155e338cd847910599562909d04b0116a233473\",\"license\":\"GPL-2.0-or-later\"},\"contracts/oracles/ChainlinkOracle.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\npragma solidity >=0.8.7 <0.9.0;\\n\\nimport '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';\\nimport '@chainlink/contracts/src/v0.8/Denominations.sol';\\nimport '../interfaces/oracles/IChainlinkOracle.sol';\\nimport '../libraries/TokenSorting.sol';\\nimport '../utils/Governable.sol';\\n\\ncontract ChainlinkOracle is Governable, IChainlinkOracle {\\n  mapping(address => mapping(address => PricingPlan)) public planForPair;\\n  FeedRegistryInterface public immutable registry;\\n  // solhint-disable-next-line var-name-mixedcase\\n  address public immutable WETH;\\n\\n  // solhint-disable private-vars-leading-underscore\\n  // Addresses in Ethereum Mainnet\\n  address private constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;\\n  address private constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;\\n  address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;\\n  address private constant RENBTC = 0xEB4C2781e4ebA804CE9a9803C67d0893436bB27D;\\n  address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;\\n  int8 private constant USD_DECIMALS = 8;\\n  int8 private constant ETH_DECIMALS = 18;\\n  // solhint-enable private-vars-leading-underscore\\n\\n  mapping(address => bool) internal _shouldBeConsideredUSD;\\n  mapping(address => address) internal _tokenMappings;\\n\\n  constructor(\\n    // solhint-disable-next-line var-name-mixedcase\\n    address _WETH,\\n    FeedRegistryInterface _registry,\\n    address _governor\\n  ) Governable(_governor) {\\n    require(_WETH != address(0) && address(_registry) != address(0), 'ZeroAddress');\\n    registry = _registry;\\n    WETH = _WETH;\\n  }\\n\\n  function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {\\n    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);\\n    PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);\\n    return _plan != PricingPlan.NONE;\\n  }\\n\\n  function quote(\\n    address _tokenIn,\\n    uint128 _amountIn,\\n    address _tokenOut\\n  ) external view returns (uint256 _amountOut) {\\n    (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_tokenIn, _tokenOut);\\n    PricingPlan _plan = planForPair[_tokenA][_tokenB];\\n    require(_plan != PricingPlan.NONE, 'PairNotSupported');\\n\\n    int8 _inDecimals = _getDecimals(_tokenIn);\\n    int8 _outDecimals = _getDecimals(_tokenOut);\\n\\n    if (_plan <= PricingPlan.TOKEN_ETH_PAIR) {\\n      return _getDirectPrice(_tokenIn, _tokenOut, _inDecimals, _outDecimals, _amountIn, _plan);\\n    } else if (_plan <= PricingPlan.TOKEN_TO_ETH_TO_TOKEN_PAIR) {\\n      return _getPriceSameBase(_tokenIn, _tokenOut, _inDecimals, _outDecimals, _amountIn, _plan);\\n    } else {\\n      return _getPriceDifferentBases(_tokenIn, _tokenOut, _inDecimals, _outDecimals, _amountIn, _plan);\\n    }\\n  }\\n\\n  function reconfigureSupportForPair(address _tokenA, address _tokenB) external {\\n    _addSupportForPair(_tokenA, _tokenB);\\n  }\\n\\n  function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {\\n    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);\\n    if (planForPair[__tokenA][__tokenB] == PricingPlan.NONE) {\\n      _addSupportForPair(_tokenA, _tokenB);\\n    }\\n  }\\n\\n  function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {\\n    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);\\n    PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);\\n    require(_plan != PricingPlan.NONE, 'PairNotSupported');\\n    planForPair[__tokenA][__tokenB] = _plan;\\n    emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);\\n  }\\n\\n  function addUSDStablecoins(address[] calldata _addresses) external onlyGovernor {\\n    for (uint256 i; i < _addresses.length; i++) {\\n      _shouldBeConsideredUSD[_addresses[i]] = true;\\n    }\\n    emit TokensConsideredUSD(_addresses);\\n  }\\n\\n  function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {\\n    require(_addresses.length == _mappings.length, 'InvalidInput');\\n    for (uint256 i; i < _addresses.length; i++) {\\n      _tokenMappings[_addresses[i]] = _mappings[i];\\n    }\\n    emit MappingsAdded(_addresses, _mappings);\\n  }\\n\\n  function mappedToken(address _token) public view returns (address) {\\n    if (_token == RENBTC || _token == WBTC) {\\n      return Denominations.BTC;\\n    } else {\\n      address _mapping = _tokenMappings[_token];\\n      return _mapping != address(0) ? _mapping : _token;\\n    }\\n  }\\n\\n  /** Handles prices when the pair is either ETH/USD, token/ETH or token/USD */\\n  function _getDirectPrice(\\n    address _tokenIn,\\n    address _tokenOut,\\n    int8 _inDecimals,\\n    int8 _outDecimals,\\n    uint256 _amountIn,\\n    PricingPlan _plan\\n  ) internal view returns (uint256) {\\n    uint256 _price;\\n    int8 _resultDecimals = _plan == PricingPlan.TOKEN_ETH_PAIR ? ETH_DECIMALS : USD_DECIMALS;\\n    bool _needsInverting = _isUSD(_tokenIn) || (_plan == PricingPlan.TOKEN_ETH_PAIR && _tokenIn == WETH);\\n\\n    if (_plan == PricingPlan.ETH_USD_PAIR) {\\n      _price = _getETHUSD();\\n    } else if (_plan == PricingPlan.TOKEN_USD_PAIR) {\\n      _price = _getPriceAgainstUSD(_isUSD(_tokenOut) ? _tokenIn : _tokenOut);\\n    } else if (_plan == PricingPlan.TOKEN_ETH_PAIR) {\\n      _price = _getPriceAgainstETH(_tokenOut == WETH ? _tokenIn : _tokenOut);\\n    }\\n    if (_needsInverting) {\\n      return _adjustDecimals(_price * _amountIn, _outDecimals - _resultDecimals - _inDecimals);\\n    } else {\\n      return _adjustDecimals(_adjustDecimals(_amountIn, _resultDecimals + _outDecimals) / _price, -_inDecimals);\\n    }\\n  }\\n\\n  /** Handles prices when both tokens share the same base (either ETH or USD) */\\n  function _getPriceSameBase(\\n    address _tokenIn,\\n    address _tokenOut,\\n    int8 _inDecimals,\\n    int8 _outDecimals,\\n    uint256 _amountIn,\\n    PricingPlan _plan\\n  ) internal view returns (uint256) {\\n    address _base = _plan == PricingPlan.TOKEN_TO_USD_TO_TOKEN_PAIR ? Denominations.USD : Denominations.ETH;\\n    uint256 _tokenInToBase = _callRegistry(mappedToken(_tokenIn), _base);\\n    uint256 _tokenOutToBase = _callRegistry(mappedToken(_tokenOut), _base);\\n    return _adjustDecimals((_amountIn * _tokenInToBase) / _tokenOutToBase, _outDecimals - _inDecimals);\\n  }\\n\\n  /** Handles prices when one of the tokens uses ETH as the base, and the other USD */\\n  function _getPriceDifferentBases(\\n    address _tokenIn,\\n    address _tokenOut,\\n    int8 _inDecimals,\\n    int8 _outDecimals,\\n    uint256 _amountIn,\\n    PricingPlan _plan\\n  ) internal view returns (uint256) {\\n    bool _isTokenInUSD = (_plan == PricingPlan.TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B && _tokenIn < _tokenOut) ||\\n      (_plan == PricingPlan.TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B && _tokenIn > _tokenOut);\\n    uint256 _ethToUSDPrice = _getETHUSD();\\n    if (_isTokenInUSD) {\\n      uint256 _tokenInToUSD = _getPriceAgainstUSD(_tokenIn);\\n      uint256 _tokenOutToETH = _getPriceAgainstETH(_tokenOut);\\n      uint256 _adjustedInUSDValue = _adjustDecimals(_amountIn * _tokenInToUSD, _outDecimals - _inDecimals + ETH_DECIMALS);\\n      return _adjustedInUSDValue / _ethToUSDPrice / _tokenOutToETH;\\n    } else {\\n      uint256 _tokenInToETH = _getPriceAgainstETH(_tokenIn);\\n      uint256 _tokenOutToUSD = _getPriceAgainstUSD(_tokenOut);\\n      return _adjustDecimals((_amountIn * _tokenInToETH * _ethToUSDPrice) / _tokenOutToUSD, _outDecimals - _inDecimals - ETH_DECIMALS);\\n    }\\n  }\\n\\n  function _getPriceAgainstUSD(address _token) internal view returns (uint256) {\\n    return _isUSD(_token) ? 1e8 : _callRegistry(mappedToken(_token), Denominations.USD);\\n  }\\n\\n  function _getPriceAgainstETH(address _token) internal view returns (uint256) {\\n    return _token == WETH ? 1e18 : _callRegistry(mappedToken(_token), Denominations.ETH);\\n  }\\n\\n  function _determinePricingPlan(address _tokenA, address _tokenB) internal view virtual returns (PricingPlan) {\\n    bool _isTokenAUSD = _isUSD(_tokenA);\\n    bool _isTokenBUSD = _isUSD(_tokenB);\\n    bool _isTokenAETH = _tokenA == WETH;\\n    bool _isTokenBETH = _tokenB == WETH;\\n    if ((_isTokenAETH && _isTokenBUSD) || (_isTokenAUSD && _isTokenBETH)) {\\n      // Note: there are stablecoins/ETH pairs on Chainlink, but they are updated less often than the USD/ETH pair.\\n      // That's why we prefer to use the USD/ETH pair instead\\n      return PricingPlan.ETH_USD_PAIR;\\n    } else if (_isTokenBUSD) {\\n      return _tryWithBases(_tokenA, PricingPlan.TOKEN_USD_PAIR, PricingPlan.TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B);\\n    } else if (_isTokenAUSD) {\\n      return _tryWithBases(_tokenB, PricingPlan.TOKEN_USD_PAIR, PricingPlan.TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B);\\n    } else if (_isTokenBETH) {\\n      return _tryWithBases(_tokenA, PricingPlan.TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B, PricingPlan.TOKEN_ETH_PAIR);\\n    } else if (_isTokenAETH) {\\n      return _tryWithBases(_tokenB, PricingPlan.TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B, PricingPlan.TOKEN_ETH_PAIR);\\n    } else if (_exists(_tokenA, Denominations.USD)) {\\n      return _tryWithBases(_tokenB, PricingPlan.TOKEN_TO_USD_TO_TOKEN_PAIR, PricingPlan.TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B);\\n    } else if (_exists(_tokenA, Denominations.ETH)) {\\n      return _tryWithBases(_tokenB, PricingPlan.TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B, PricingPlan.TOKEN_TO_ETH_TO_TOKEN_PAIR);\\n    }\\n    return PricingPlan.NONE;\\n  }\\n\\n  function _tryWithBases(\\n    address _token,\\n    PricingPlan _ifUSD,\\n    PricingPlan _ifETH\\n  ) internal view returns (PricingPlan) {\\n    // Note: we are prioritizing plans that have fewer external calls\\n    (address _firstBase, PricingPlan _firstResult, address _secondBaseBase, PricingPlan _secondResult) = _ifUSD < _ifETH\\n      ? (Denominations.USD, _ifUSD, Denominations.ETH, _ifETH)\\n      : (Denominations.ETH, _ifETH, Denominations.USD, _ifUSD);\\n    if (_exists(_token, _firstBase)) {\\n      return _firstResult;\\n    } else if (_exists(_token, _secondBaseBase)) {\\n      return _secondResult;\\n    } else {\\n      return PricingPlan.NONE;\\n    }\\n  }\\n\\n  function _exists(address _base, address _quote) internal view returns (bool) {\\n    try registry.latestAnswer(mappedToken(_base), _quote) returns (int256) {\\n      return true;\\n    } catch {\\n      return false;\\n    }\\n  }\\n\\n  function _adjustDecimals(uint256 _amount, int256 _factor) internal pure returns (uint256) {\\n    if (_factor < 0) {\\n      return _amount / (10**uint256(-_factor));\\n    } else {\\n      return _amount * (10**uint256(_factor));\\n    }\\n  }\\n\\n  function _getDecimals(address _token) internal view returns (int8) {\\n    return int8(IERC20Metadata(_token).decimals());\\n  }\\n\\n  function _callRegistry(address _base, address _quote) internal view returns (uint256) {\\n    return uint256(registry.latestAnswer(_base, _quote));\\n  }\\n\\n  function _getETHUSD() internal view returns (uint256) {\\n    return _callRegistry(Denominations.ETH, Denominations.USD);\\n  }\\n\\n  function _isUSD(address _token) internal view returns (bool) {\\n    return _token == DAI || _token == USDC || _token == USDT || _shouldBeConsideredUSD[_token];\\n  }\\n}\\n\",\"keccak256\":\"0xe360c43847346e53b37c925e442ce68fa14e590e7fb864310a5a86c07c9bd074\",\"license\":\"BUSL-1.1\"},\"contracts/utils/Governable.sol\":{\"content\":\"// SPDX-License-Identifier: BUSL-1.1\\n\\npragma solidity >=0.7.0;\\n\\ninterface IGovernable {\\n  event PendingGovernorSet(address pendingGovernor);\\n  event PendingGovernorAccepted();\\n\\n  function setPendingGovernor(address _pendingGovernor) external;\\n\\n  function acceptPendingGovernor() external;\\n\\n  function governor() external view returns (address);\\n\\n  function pendingGovernor() external view returns (address);\\n\\n  function isGovernor(address _account) external view returns (bool _isGovernor);\\n\\n  function isPendingGovernor(address _account) external view returns (bool _isPendingGovernor);\\n}\\n\\nabstract contract Governable is IGovernable {\\n  address private _governor;\\n  address private _pendingGovernor;\\n\\n  constructor(address __governor) {\\n    require(__governor != address(0), 'Governable: zero address');\\n    _governor = __governor;\\n  }\\n\\n  function governor() external view override returns (address) {\\n    return _governor;\\n  }\\n\\n  function pendingGovernor() external view override returns (address) {\\n    return _pendingGovernor;\\n  }\\n\\n  function setPendingGovernor(address __pendingGovernor) external virtual override onlyGovernor {\\n    _setPendingGovernor(__pendingGovernor);\\n  }\\n\\n  function _setPendingGovernor(address __pendingGovernor) internal {\\n    require(__pendingGovernor != address(0), 'Governable: zero address');\\n    _pendingGovernor = __pendingGovernor;\\n    emit PendingGovernorSet(__pendingGovernor);\\n  }\\n\\n  function acceptPendingGovernor() external virtual override onlyPendingGovernor {\\n    _acceptPendingGovernor();\\n  }\\n\\n  function _acceptPendingGovernor() internal {\\n    require(_pendingGovernor != address(0), 'Governable: no pending governor');\\n    _governor = _pendingGovernor;\\n    _pendingGovernor = address(0);\\n    emit PendingGovernorAccepted();\\n  }\\n\\n  function isGovernor(address _account) public view override returns (bool _isGovernor) {\\n    return _account == _governor;\\n  }\\n\\n  function isPendingGovernor(address _account) public view override returns (bool _isPendingGovernor) {\\n    return _account == _pendingGovernor;\\n  }\\n\\n  modifier onlyGovernor() {\\n    require(isGovernor(msg.sender), 'Governable: only governor');\\n    _;\\n  }\\n\\n  modifier onlyPendingGovernor() {\\n    require(isPendingGovernor(msg.sender), 'Governable: only pending governor');\\n    _;\\n  }\\n}\\n\",\"keccak256\":\"0x3e174ea3fad0b05bfa210572348adbb36d10da19fb95765a42bbfc274c6eb9da\",\"license\":\"BUSL-1.1\"}},\"version\":1}",
+  "bytecode": "0x60c06040523480156200001157600080fd5b5060405162001ada38038062001ada83398101604081905262000034916200013c565b806001600160a01b038116620000915760405162461bcd60e51b815260206004820152601860248201527f476f7665726e61626c653a207a65726f2061646472657373000000000000000060448201526064015b60405180910390fd5b600080546001600160a01b0319166001600160a01b03928316179055831615801590620000c657506001600160a01b03821615155b620001025760405162461bcd60e51b815260206004820152600b60248201526a5a65726f4164647265737360a81b604482015260640162000088565b506001600160601b0319606091821b811660805291901b1660a05262000190565b6001600160a01b03811681146200013957600080fd5b50565b6000806000606084860312156200015257600080fd5b83516200015f8162000123565b6020850151909350620001728162000123565b6040850151909250620001858162000123565b809150509250925092565b60805160601c60a05160601c6118f4620001e66000396000818161020801528181610a2701528181610bf801528181610cac01526112430152600081816101ad01528181611122015261131d01526118f46000f3fe608060405234801561001057600080fd5b50600436106101005760003560e01c80637f55db3a11610097578063e3056a3411610066578063e3056a341461024c578063e43581b81461025d578063e82138cd1461027f578063f235757f146102ba57600080fd5b80637f55db3a146101cf578063a513355f146101e2578063ad5c464814610203578063df08aed51461022a57600080fd5b80636edc6632116100d35780636edc66321461015f57806372c12c8714610172578063734273fd146101855780637b103999146101a857600080fd5b80630c340a241461010557806313f6986d1461012f5780631d4ef30a146101395780634df3cad61461014c575b600080fd5b6000546001600160a01b03165b6040516001600160a01b0390911681526020015b60405180910390f35b6101376102cd565b005b6101376101473660046113e5565b610340565b61011261015a366004611468565b61048c565b61013761016d366004611483565b610529565b6101376101803660046114c5565b610603565b6101986101933660046114c5565b610611565b6040519015158152602001610126565b6101127f000000000000000000000000000000000000000000000000000000000000000081565b6101376101dd3660046114c5565b610654565b6101f56101f03660046114f8565b6106b8565b604051908152602001610126565b6101127f000000000000000000000000000000000000000000000000000000000000000081565b610198610238366004611468565b6001546001600160a01b0391821691161490565b6001546001600160a01b0316610112565b61019861026b366004611468565b6000546001600160a01b0391821691161490565b6102ad61028d3660046114c5565b600260209081526000928352604080842090915290825290205460ff1681565b604051610126919061155f565b6101376102c8366004611468565b6107eb565b6001546001600160a01b031633146103365760405162461bcd60e51b815260206004820152602160248201527f476f7665726e61626c653a206f6e6c792070656e64696e6720676f7665726e6f6044820152603960f91b60648201526084015b60405180910390fd5b61033e610821565b565b6000546001600160a01b0316331461036a5760405162461bcd60e51b815260040161032d90611587565b8281146103a85760405162461bcd60e51b815260206004820152600c60248201526b125b9d985b1a59125b9c1d5d60a21b604482015260640161032d565b60005b83811015610448578282828181106103c5576103c56115be565b90506020020160208101906103da9190611468565b600460008787858181106103f0576103f06115be565b90506020020160208101906104059190611468565b6001600160a01b039081168252602082019290925260400160002080546001600160a01b0319169290911691909117905580610440816115ea565b9150506103ab565b507f25967af46669513d9b32b10bce9dc8b094f9638e01d68bd4253fb634873b3d178484848460405161047e949392919061164c565b60405180910390a150505050565b60006001600160a01b03821673eb4c2781e4eba804ce9a9803c67d0893436bb27d14806104d557506001600160a01b038216732260fac5e5542a773aa44fbcfedf7c193bc2c599145b156104f5575073bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb919050565b6001600160a01b03808316600090815260046020526040902054168061051b578261051d565b805b9392505050565b919050565b6000546001600160a01b031633146105535760405162461bcd60e51b815260040161032d90611587565b60005b818110156105c557600160036000858585818110610576576105766115be565b905060200201602081019061058b9190611468565b6001600160a01b031681526020810191909152604001600020805460ff1916911515919091179055806105bd816115ea565b915050610556565b507f0e1316bdb62d8b87b8c288a81e4bc638fbf187056521cd5f525a3c70dd812abf82826040516105f792919061167e565b60405180910390a15050565b61060d82826108c9565b5050565b600080600061062085856109ce565b91509150600061063083836109ff565b9050600081600781111561064657610646611549565b141593505050505b92915050565b60008061066184846109ce565b909250905060006001600160a01b0380841660009081526002602090815260408083209386168352929052205460ff1660078111156106a2576106a2611549565b14156106b2576106b284846108c9565b50505050565b60008060006106c786856109ce565b6001600160a01b03808316600090815260026020908152604080832093851683529290529081205492945090925060ff9091169081600781111561070d5761070d611549565b141561074e5760405162461bcd60e51b815260206004820152601060248201526f14185a5c939bdd14dd5c1c1bdc9d195960821b604482015260640161032d565b600061075988610b2d565b9050600061076687610b2d565b9050600383600781111561077c5761077c611549565b116107a457610798898884848c6001600160801b031688610ba0565b9550505050505061051d565b60058360078111156107b8576107b8611549565b116107d457610798898884848c6001600160801b031688610d5b565b610798898884848c6001600160801b031688610df3565b6000546001600160a01b031633146108155760405162461bcd60e51b815260040161032d90611587565b61081e81610f2a565b50565b6001546001600160a01b03166108795760405162461bcd60e51b815260206004820152601f60248201527f476f7665726e61626c653a206e6f2070656e64696e6720676f7665726e6f7200604482015260640161032d565b60018054600080546001600160a01b03199081166001600160a01b0384161782559091169091556040517fdc57ca23c46d823853915ed5a090ca0ee9db5eb6a46f5c58e1c9158de861fd769190a1565b6000806108d684846109ce565b9150915060006108e683836109ff565b905060008160078111156108fc576108fc611549565b141561093d5760405162461bcd60e51b815260206004820152601060248201526f14185a5c939bdd14dd5c1c1bdc9d195960821b604482015260640161032d565b6001600160a01b038084166000908152600260209081526040808320938616835292905220805482919060ff1916600183600781111561097f5761097f611549565b0217905550604080516001600160a01b038086168252841660208201527fa0f87b02ca47ea06fb7d8fd30abf826222301c4e0cc359211c4254d49b4736ad910160405180910390a15050505050565b600080826001600160a01b0316846001600160a01b0316106109f15782846109f4565b83835b909590945092505050565b600080610a0b84610fd4565b90506000610a1884610fd4565b90506001600160a01b038581167f0000000000000000000000000000000000000000000000000000000000000000821690811491861614818015610a595750825b80610a695750838015610a695750805b15610a7b57600194505050505061064e565b8215610a9957610a8e8760026007611069565b94505050505061064e565b8315610aac57610a8e8660026006611069565b8015610abf57610a8e8760066003611069565b8115610ad257610a8e8660076003611069565b610ade8761034861111e565b15610af057610a8e8660046006611069565b610b0e8773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee61111e565b15610b2057610a8e8660076005611069565b5060009695505050505050565b6000816001600160a01b031663313ce5676040518163ffffffff1660e01b815260040160206040518083038186803b158015610b6857600080fd5b505afa158015610b7c573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061064e919061169a565b600080806003846007811115610bb857610bb8611549565b14610bc4576008610bc7565b60125b90506000610bd48a610fd4565b80610c2c57506003856007811115610bee57610bee611549565b148015610c2c57507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168a6001600160a01b0316145b90506001856007811115610c4257610c42611549565b1415610c5757610c506111e5565b9250610cf2565b6002856007811115610c6b57610c6b611549565b1415610c8d57610c50610c7d8a610fd4565b610c87578961120c565b8a61120c565b6003856007811115610ca157610ca1611549565b1415610cf257610cef7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168a6001600160a01b031614610ce9578961123f565b8a61123f565b92505b8015610d2c57610d22610d0587856116bd565b89610d10858b6116dc565b610d1a91906116dc565b60000b6112af565b9350505050610d51565b610d2283610d3e88610d1a8b8761171d565b610d489190611760565b610d1a8a611782565b9695505050505050565b6000806004836007811115610d7257610d72611549565b14610d915773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee610d95565b6103485b90506000610dab610da58a61048c565b836112f3565b90506000610dc1610dbb8a61048c565b846112f3565b9050610de581610dd184896116bd565b610ddb9190611760565b610d1a8a8a6116dc565b9a9950505050505050505050565b6000806006836007811115610e0a57610e0a611549565b148015610e285750866001600160a01b0316886001600160a01b0316105b80610e6057506007836007811115610e4257610e42611549565b148015610e605750866001600160a01b0316886001600160a01b0316115b90506000610e6c6111e5565b90508115610ed6576000610e7f8a61120c565b90506000610e8c8a61123f565b90506000610eb3610e9d848a6116bd565b6012610ea98d8d6116dc565b610d1a919061171d565b905081610ec08583611760565b610eca9190611760565b95505050505050610d51565b6000610ee18a61123f565b90506000610eee8a61120c565b9050610f1f8184610eff858b6116bd565b610f0991906116bd565b610f139190611760565b6012610d108c8c6116dc565b945050505050610d51565b6001600160a01b038116610f805760405162461bcd60e51b815260206004820152601860248201527f476f7665726e61626c653a207a65726f20616464726573730000000000000000604482015260640161032d565b600180546001600160a01b0319166001600160a01b0383169081179091556040519081527f56bddfa0cee9697cebddf9acd7f23dc6583663b05e007b877056d05017994def9060200160405180910390a150565b60006001600160a01b038216736b175474e89094c44da98b954eedeac495271d0f148061101d57506001600160a01b03821673a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48145b8061104457506001600160a01b03821673dac17f958d2ee523a2206206994597c13d831ec7145b8061064e5750506001600160a01b031660009081526003602052604090205460ff1690565b600080600080600085600781111561108357611083611549565b87600781111561109557611095611549565b106110b95773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee86610348896110d4565b6103488773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee885b93509350935093506110e6888561111e565b156110f7578294505050505061051d565b611101888361111e565b1561111157935061051d92505050565b600094505050505061051d565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663d4c282a36111588561048c565b6040516001600160e01b031960e084901b1681526001600160a01b039182166004820152908516602482015260440160206040518083038186803b15801561119f57600080fd5b505afa9250505080156111cf575060408051601f3d908101601f191682019092526111cc918101906117a2565b60015b6111db5750600061064e565b600191505061064e565b600061120773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6103486112f3565b905090565b600061121782610fd4565b6112345761122f6112278361048c565b6103486112f3565b61064e565b6305f5e10092915050565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316826001600160a01b0316146112a05761122f6112868361048c565b73eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6112f3565b670de0b6b3a764000092915050565b6000808212156112de576112c2826117bb565b6112cd90600a6118b2565b6112d79084611760565b905061064e565b6112e982600a6118b2565b6112d790846116bd565b60405163d4c282a360e01b81526001600160a01b03838116600483015282811660248301526000917f00000000000000000000000000000000000000000000000000000000000000009091169063d4c282a39060440160206040518083038186803b15801561136157600080fd5b505afa158015611375573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061051d91906117a2565b60008083601f8401126113ab57600080fd5b50813567ffffffffffffffff8111156113c357600080fd5b6020830191508360208260051b85010111156113de57600080fd5b9250929050565b600080600080604085870312156113fb57600080fd5b843567ffffffffffffffff8082111561141357600080fd5b61141f88838901611399565b9096509450602087013591508082111561143857600080fd5b5061144587828801611399565b95989497509550505050565b80356001600160a01b038116811461052457600080fd5b60006020828403121561147a57600080fd5b61051d82611451565b6000806020838503121561149657600080fd5b823567ffffffffffffffff8111156114ad57600080fd5b6114b985828601611399565b90969095509350505050565b600080604083850312156114d857600080fd5b6114e183611451565b91506114ef60208401611451565b90509250929050565b60008060006060848603121561150d57600080fd5b61151684611451565b925060208401356001600160801b038116811461153257600080fd5b915061154060408501611451565b90509250925092565b634e487b7160e01b600052602160045260246000fd5b602081016008831061158157634e487b7160e01b600052602160045260246000fd5b91905290565b60208082526019908201527f476f7665726e61626c653a206f6e6c7920676f7665726e6f7200000000000000604082015260600190565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052601160045260246000fd5b60006000198214156115fe576115fe6115d4565b5060010190565b8183526000602080850194508260005b85811015611641576001600160a01b0361162e83611451565b1687529582019590820190600101611615565b509495945050505050565b604081526000611660604083018688611605565b8281036020840152611673818587611605565b979650505050505050565b602081526000611692602083018486611605565b949350505050565b6000602082840312156116ac57600080fd5b815160ff8116811461051d57600080fd5b60008160001904831182151516156116d7576116d76115d4565b500290565b600081810b83820b8281128015607f198301841216156116fe576116fe6115d4565b81607f018313811615611713576117136115d4565b5090039392505050565b60008160000b8360000b6000821282607f03821381151615611741576117416115d4565b82607f19038212811615611757576117576115d4565b50019392505050565b60008261177d57634e487b7160e01b600052601260045260246000fd5b500490565b600081810b607f19811415611799576117996115d4565b60000392915050565b6000602082840312156117b457600080fd5b5051919050565b6000600160ff1b8214156117d1576117d16115d4565b5060000390565b600181815b808511156118135781600019048211156117f9576117f96115d4565b8085161561180657918102915b93841c93908002906117dd565b509250929050565b60008261182a5750600161064e565b816118375750600061064e565b81600181146111db576002811461184d57611869565b60ff84111561185e5761185e6115d4565b50506001821b61064e565b5060208310610133831016604e8410600b841016171561188c575081810a61064e565b61189683836117d8565b80600019048211156118aa576118aa6115d4565b029392505050565b600061051d838361181b56fea2646970667358221220612120c4f8db3f7e49ceef53be5e8f0636a011d6c7d769ec001c4c4b9b58007864736f6c63430008080033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101005760003560e01c80637f55db3a11610097578063e3056a3411610066578063e3056a341461024c578063e43581b81461025d578063e82138cd1461027f578063f235757f146102ba57600080fd5b80637f55db3a146101cf578063a513355f146101e2578063ad5c464814610203578063df08aed51461022a57600080fd5b80636edc6632116100d35780636edc66321461015f57806372c12c8714610172578063734273fd146101855780637b103999146101a857600080fd5b80630c340a241461010557806313f6986d1461012f5780631d4ef30a146101395780634df3cad61461014c575b600080fd5b6000546001600160a01b03165b6040516001600160a01b0390911681526020015b60405180910390f35b6101376102cd565b005b6101376101473660046113e5565b610340565b61011261015a366004611468565b61048c565b61013761016d366004611483565b610529565b6101376101803660046114c5565b610603565b6101986101933660046114c5565b610611565b6040519015158152602001610126565b6101127f000000000000000000000000000000000000000000000000000000000000000081565b6101376101dd3660046114c5565b610654565b6101f56101f03660046114f8565b6106b8565b604051908152602001610126565b6101127f000000000000000000000000000000000000000000000000000000000000000081565b610198610238366004611468565b6001546001600160a01b0391821691161490565b6001546001600160a01b0316610112565b61019861026b366004611468565b6000546001600160a01b0391821691161490565b6102ad61028d3660046114c5565b600260209081526000928352604080842090915290825290205460ff1681565b604051610126919061155f565b6101376102c8366004611468565b6107eb565b6001546001600160a01b031633146103365760405162461bcd60e51b815260206004820152602160248201527f476f7665726e61626c653a206f6e6c792070656e64696e6720676f7665726e6f6044820152603960f91b60648201526084015b60405180910390fd5b61033e610821565b565b6000546001600160a01b0316331461036a5760405162461bcd60e51b815260040161032d90611587565b8281146103a85760405162461bcd60e51b815260206004820152600c60248201526b125b9d985b1a59125b9c1d5d60a21b604482015260640161032d565b60005b83811015610448578282828181106103c5576103c56115be565b90506020020160208101906103da9190611468565b600460008787858181106103f0576103f06115be565b90506020020160208101906104059190611468565b6001600160a01b039081168252602082019290925260400160002080546001600160a01b0319169290911691909117905580610440816115ea565b9150506103ab565b507f25967af46669513d9b32b10bce9dc8b094f9638e01d68bd4253fb634873b3d178484848460405161047e949392919061164c565b60405180910390a150505050565b60006001600160a01b03821673eb4c2781e4eba804ce9a9803c67d0893436bb27d14806104d557506001600160a01b038216732260fac5e5542a773aa44fbcfedf7c193bc2c599145b156104f5575073bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb919050565b6001600160a01b03808316600090815260046020526040902054168061051b578261051d565b805b9392505050565b919050565b6000546001600160a01b031633146105535760405162461bcd60e51b815260040161032d90611587565b60005b818110156105c557600160036000858585818110610576576105766115be565b905060200201602081019061058b9190611468565b6001600160a01b031681526020810191909152604001600020805460ff1916911515919091179055806105bd816115ea565b915050610556565b507f0e1316bdb62d8b87b8c288a81e4bc638fbf187056521cd5f525a3c70dd812abf82826040516105f792919061167e565b60405180910390a15050565b61060d82826108c9565b5050565b600080600061062085856109ce565b91509150600061063083836109ff565b9050600081600781111561064657610646611549565b141593505050505b92915050565b60008061066184846109ce565b909250905060006001600160a01b0380841660009081526002602090815260408083209386168352929052205460ff1660078111156106a2576106a2611549565b14156106b2576106b284846108c9565b50505050565b60008060006106c786856109ce565b6001600160a01b03808316600090815260026020908152604080832093851683529290529081205492945090925060ff9091169081600781111561070d5761070d611549565b141561074e5760405162461bcd60e51b815260206004820152601060248201526f14185a5c939bdd14dd5c1c1bdc9d195960821b604482015260640161032d565b600061075988610b2d565b9050600061076687610b2d565b9050600383600781111561077c5761077c611549565b116107a457610798898884848c6001600160801b031688610ba0565b9550505050505061051d565b60058360078111156107b8576107b8611549565b116107d457610798898884848c6001600160801b031688610d5b565b610798898884848c6001600160801b031688610df3565b6000546001600160a01b031633146108155760405162461bcd60e51b815260040161032d90611587565b61081e81610f2a565b50565b6001546001600160a01b03166108795760405162461bcd60e51b815260206004820152601f60248201527f476f7665726e61626c653a206e6f2070656e64696e6720676f7665726e6f7200604482015260640161032d565b60018054600080546001600160a01b03199081166001600160a01b0384161782559091169091556040517fdc57ca23c46d823853915ed5a090ca0ee9db5eb6a46f5c58e1c9158de861fd769190a1565b6000806108d684846109ce565b9150915060006108e683836109ff565b905060008160078111156108fc576108fc611549565b141561093d5760405162461bcd60e51b815260206004820152601060248201526f14185a5c939bdd14dd5c1c1bdc9d195960821b604482015260640161032d565b6001600160a01b038084166000908152600260209081526040808320938616835292905220805482919060ff1916600183600781111561097f5761097f611549565b0217905550604080516001600160a01b038086168252841660208201527fa0f87b02ca47ea06fb7d8fd30abf826222301c4e0cc359211c4254d49b4736ad910160405180910390a15050505050565b600080826001600160a01b0316846001600160a01b0316106109f15782846109f4565b83835b909590945092505050565b600080610a0b84610fd4565b90506000610a1884610fd4565b90506001600160a01b038581167f0000000000000000000000000000000000000000000000000000000000000000821690811491861614818015610a595750825b80610a695750838015610a695750805b15610a7b57600194505050505061064e565b8215610a9957610a8e8760026007611069565b94505050505061064e565b8315610aac57610a8e8660026006611069565b8015610abf57610a8e8760066003611069565b8115610ad257610a8e8660076003611069565b610ade8761034861111e565b15610af057610a8e8660046006611069565b610b0e8773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee61111e565b15610b2057610a8e8660076005611069565b5060009695505050505050565b6000816001600160a01b031663313ce5676040518163ffffffff1660e01b815260040160206040518083038186803b158015610b6857600080fd5b505afa158015610b7c573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061064e919061169a565b600080806003846007811115610bb857610bb8611549565b14610bc4576008610bc7565b60125b90506000610bd48a610fd4565b80610c2c57506003856007811115610bee57610bee611549565b148015610c2c57507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168a6001600160a01b0316145b90506001856007811115610c4257610c42611549565b1415610c5757610c506111e5565b9250610cf2565b6002856007811115610c6b57610c6b611549565b1415610c8d57610c50610c7d8a610fd4565b610c87578961120c565b8a61120c565b6003856007811115610ca157610ca1611549565b1415610cf257610cef7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168a6001600160a01b031614610ce9578961123f565b8a61123f565b92505b8015610d2c57610d22610d0587856116bd565b89610d10858b6116dc565b610d1a91906116dc565b60000b6112af565b9350505050610d51565b610d2283610d3e88610d1a8b8761171d565b610d489190611760565b610d1a8a611782565b9695505050505050565b6000806004836007811115610d7257610d72611549565b14610d915773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee610d95565b6103485b90506000610dab610da58a61048c565b836112f3565b90506000610dc1610dbb8a61048c565b846112f3565b9050610de581610dd184896116bd565b610ddb9190611760565b610d1a8a8a6116dc565b9a9950505050505050505050565b6000806006836007811115610e0a57610e0a611549565b148015610e285750866001600160a01b0316886001600160a01b0316105b80610e6057506007836007811115610e4257610e42611549565b148015610e605750866001600160a01b0316886001600160a01b0316115b90506000610e6c6111e5565b90508115610ed6576000610e7f8a61120c565b90506000610e8c8a61123f565b90506000610eb3610e9d848a6116bd565b6012610ea98d8d6116dc565b610d1a919061171d565b905081610ec08583611760565b610eca9190611760565b95505050505050610d51565b6000610ee18a61123f565b90506000610eee8a61120c565b9050610f1f8184610eff858b6116bd565b610f0991906116bd565b610f139190611760565b6012610d108c8c6116dc565b945050505050610d51565b6001600160a01b038116610f805760405162461bcd60e51b815260206004820152601860248201527f476f7665726e61626c653a207a65726f20616464726573730000000000000000604482015260640161032d565b600180546001600160a01b0319166001600160a01b0383169081179091556040519081527f56bddfa0cee9697cebddf9acd7f23dc6583663b05e007b877056d05017994def9060200160405180910390a150565b60006001600160a01b038216736b175474e89094c44da98b954eedeac495271d0f148061101d57506001600160a01b03821673a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48145b8061104457506001600160a01b03821673dac17f958d2ee523a2206206994597c13d831ec7145b8061064e5750506001600160a01b031660009081526003602052604090205460ff1690565b600080600080600085600781111561108357611083611549565b87600781111561109557611095611549565b106110b95773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee86610348896110d4565b6103488773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee885b93509350935093506110e6888561111e565b156110f7578294505050505061051d565b611101888361111e565b1561111157935061051d92505050565b600094505050505061051d565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663d4c282a36111588561048c565b6040516001600160e01b031960e084901b1681526001600160a01b039182166004820152908516602482015260440160206040518083038186803b15801561119f57600080fd5b505afa9250505080156111cf575060408051601f3d908101601f191682019092526111cc918101906117a2565b60015b6111db5750600061064e565b600191505061064e565b600061120773eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6103486112f3565b905090565b600061121782610fd4565b6112345761122f6112278361048c565b6103486112f3565b61064e565b6305f5e10092915050565b60007f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316826001600160a01b0316146112a05761122f6112868361048c565b73eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee6112f3565b670de0b6b3a764000092915050565b6000808212156112de576112c2826117bb565b6112cd90600a6118b2565b6112d79084611760565b905061064e565b6112e982600a6118b2565b6112d790846116bd565b60405163d4c282a360e01b81526001600160a01b03838116600483015282811660248301526000917f00000000000000000000000000000000000000000000000000000000000000009091169063d4c282a39060440160206040518083038186803b15801561136157600080fd5b505afa158015611375573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061051d91906117a2565b60008083601f8401126113ab57600080fd5b50813567ffffffffffffffff8111156113c357600080fd5b6020830191508360208260051b85010111156113de57600080fd5b9250929050565b600080600080604085870312156113fb57600080fd5b843567ffffffffffffffff8082111561141357600080fd5b61141f88838901611399565b9096509450602087013591508082111561143857600080fd5b5061144587828801611399565b95989497509550505050565b80356001600160a01b038116811461052457600080fd5b60006020828403121561147a57600080fd5b61051d82611451565b6000806020838503121561149657600080fd5b823567ffffffffffffffff8111156114ad57600080fd5b6114b985828601611399565b90969095509350505050565b600080604083850312156114d857600080fd5b6114e183611451565b91506114ef60208401611451565b90509250929050565b60008060006060848603121561150d57600080fd5b61151684611451565b925060208401356001600160801b038116811461153257600080fd5b915061154060408501611451565b90509250925092565b634e487b7160e01b600052602160045260246000fd5b602081016008831061158157634e487b7160e01b600052602160045260246000fd5b91905290565b60208082526019908201527f476f7665726e61626c653a206f6e6c7920676f7665726e6f7200000000000000604082015260600190565b634e487b7160e01b600052603260045260246000fd5b634e487b7160e01b600052601160045260246000fd5b60006000198214156115fe576115fe6115d4565b5060010190565b8183526000602080850194508260005b85811015611641576001600160a01b0361162e83611451565b1687529582019590820190600101611615565b509495945050505050565b604081526000611660604083018688611605565b8281036020840152611673818587611605565b979650505050505050565b602081526000611692602083018486611605565b949350505050565b6000602082840312156116ac57600080fd5b815160ff8116811461051d57600080fd5b60008160001904831182151516156116d7576116d76115d4565b500290565b600081810b83820b8281128015607f198301841216156116fe576116fe6115d4565b81607f018313811615611713576117136115d4565b5090039392505050565b60008160000b8360000b6000821282607f03821381151615611741576117416115d4565b82607f19038212811615611757576117576115d4565b50019392505050565b60008261177d57634e487b7160e01b600052601260045260246000fd5b500490565b600081810b607f19811415611799576117996115d4565b60000392915050565b6000602082840312156117b457600080fd5b5051919050565b6000600160ff1b8214156117d1576117d16115d4565b5060000390565b600181815b808511156118135781600019048211156117f9576117f96115d4565b8085161561180657918102915b93841c93908002906117dd565b509250929050565b60008261182a5750600161064e565b816118375750600061064e565b81600181146111db576002811461184d57611869565b60ff84111561185e5761185e6115d4565b50506001821b61064e565b5060208310610133831016604e8410600b841016171561188c575081810a61064e565b61189683836117d8565b80600019048211156118aa576118aa6115d4565b029392505050565b600061051d838361181b56fea2646970667358221220612120c4f8db3f7e49ceef53be5e8f0636a011d6c7d769ec001c4c4b9b58007864736f6c63430008080033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "addMappings(address[],address[])": {
+        "params": {
+          "_addresses": "The addresses of the tokens",
+          "_mappings": "The addresses of their mappings"
+        }
+      },
+      "addSupportForPairIfNeeded(address,address)": {
+        "details": "Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order",
+        "params": {
+          "_tokenA": "One of the pair's tokens",
+          "_tokenB": "The other of the pair's tokens"
+        }
+      },
+      "addUSDStablecoins(address[])": {
+        "params": {
+          "_addresses": "The addresses of the tokens"
+        }
+      },
+      "canSupportPair(address,address)": {
+        "details": "_tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order",
+        "params": {
+          "_tokenA": "One of the pair's tokens",
+          "_tokenB": "The other of the pair's tokens"
+        },
+        "returns": {
+          "_0": "Whether the given pair of tokens can be supported by the oracle"
+        }
+      },
+      "mappedToken(address)": {
+        "returns": {
+          "_0": "If it exists, the mapping is returned. Otherwise, the original token is returned"
+        }
+      },
+      "quote(address,uint128,address)": {
+        "params": {
+          "_amountIn": "The amount that will be provided",
+          "_tokenIn": "The token that will be provided",
+          "_tokenOut": "The token we would like to quote"
+        },
+        "returns": {
+          "_amountOut": "How much _tokenOut will be returned in exchange for _amountIn amount of _tokenIn"
+        }
+      },
+      "reconfigureSupportForPair(address,address)": {
+        "details": "Will revert if pair cannot be supported. _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order",
+        "params": {
+          "_tokenA": "One of the pair's tokens",
+          "_tokenB": "The other of the pair's tokens"
+        }
+      }
+    },
+    "stateVariables": {
+      "WETH": {
+        "return": "The address of the token",
+        "returns": {
+          "_0": "The address of the token"
+        }
+      },
+      "planForPair": {
+        "details": "It is expected that _tokenA < _tokenB",
+        "return": "The pricing plan that will be used",
+        "returns": {
+          "_0": "The pricing plan that will be used"
+        }
+      },
+      "registry": {
+        "return": "The Chainlink registry",
+        "returns": {
+          "_0": "The Chainlink registry"
+        }
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "events": {
+      "AddedSupportForPairInChainlinkOracle(address,address)": {
+        "notice": "Emitted when the oracle add supports for a new pair"
+      },
+      "MappingsAdded(address[],address[])": {
+        "notice": "Emitted when new mappings are added"
+      },
+      "TokensConsideredUSD(address[])": {
+        "notice": "Emitted when new tokens are considered USD"
+      }
+    },
+    "kind": "user",
+    "methods": {
+      "WETH()": {
+        "notice": "Returns the address of the WETH ERC-20 token"
+      },
+      "addMappings(address[],address[])": {
+        "notice": "Adds new token mappings"
+      },
+      "addSupportForPairIfNeeded(address,address)": {
+        "notice": "Adds support for a given pair if the oracle didn't support it already. If called for a pair that is already supported, then nothing will happen. This function will let the oracle take some actions to configure the pair, in preparation for future quotes."
+      },
+      "addUSDStablecoins(address[])": {
+        "notice": "Adds new tokens that should be considered USD stablecoins"
+      },
+      "canSupportPair(address,address)": {
+        "notice": "Returns whether this oracle can support this pair of tokens"
+      },
+      "mappedToken(address)": {
+        "notice": "Returns the mapping of the given token, if it exists. If it doesn't, then the original token is returned"
+      },
+      "planForPair(address,address)": {
+        "notice": "Returns the pricing plan that will be used when quoting the given pair"
+      },
+      "quote(address,uint128,address)": {
+        "notice": "Returns a quote, based on the given tokens and amount"
+      },
+      "reconfigureSupportForPair(address,address)": {
+        "notice": "Reconfigures support for a given pair. This function will let the oracle take some actions to configure the pair, in preparation for future quotes. Can be called many times in order to let the oracle re-configure for a new context."
+      },
+      "registry()": {
+        "notice": "Returns the Chainlink feed registry"
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 15743,
+        "contract": "contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle",
+        "label": "_governor",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 15745,
+        "contract": "contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle",
+        "label": "_pendingGovernor",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      },
+      {
+        "astId": 14330,
+        "contract": "contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle",
+        "label": "planForPair",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_address,t_mapping(t_address,t_enum(PricingPlan)10343))"
+      },
+      {
+        "astId": 14360,
+        "contract": "contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle",
+        "label": "_shouldBeConsideredUSD",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 14364,
+        "contract": "contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle",
+        "label": "_tokenMappings",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_address,t_address)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_enum(PricingPlan)10343": {
+        "encoding": "inplace",
+        "label": "enum IChainlinkOracle.PricingPlan",
+        "numberOfBytes": "1"
+      },
+      "t_mapping(t_address,t_address)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => address)",
+        "numberOfBytes": "32",
+        "value": "t_address"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_address,t_enum(PricingPlan)10343)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => enum IChainlinkOracle.PricingPlan)",
+        "numberOfBytes": "32",
+        "value": "t_enum(PricingPlan)10343"
+      },
+      "t_mapping(t_address,t_mapping(t_address,t_enum(PricingPlan)10343))": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => mapping(address => enum IChainlinkOracle.PricingPlan))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_address,t_enum(PricingPlan)10343)"
+      }
+    }
+  }
+}

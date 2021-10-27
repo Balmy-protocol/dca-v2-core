@@ -4,15 +4,14 @@ import { DeployFunction } from 'hardhat-deploy/types';
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
 
-  const globalParameters = await hre.deployments.get('GlobalParameters');
-
-  await hre.deployments.deploy('Factory', {
-    contract: 'contracts/DCAFactory/DCAFactory.sol:DCAFactory',
+  await hre.deployments.deploy('TokenDescriptor', {
+    contract: 'contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor',
     from: deployer,
-    args: [globalParameters.address],
+    args: [],
     log: true,
   });
 };
-deployFunction.tags = ['Factory'];
-deployFunction.dependencies = ['GlobalParameters'];
+
+deployFunction.tags = ['TokenDescriptor'];
+deployFunction.dependencies = ['OracleAggregator'];
 export default deployFunction;
