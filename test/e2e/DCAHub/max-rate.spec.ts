@@ -131,7 +131,7 @@ contract('DCAHub', () => {
     async function flashSwap({ times }: { times: number }) {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
       for (let i = 0; i < times; i++) {
-        await DCAHub.swap(tokens, pairIndexes, borrow, DCAHubSwapCallee.address, ethers.utils.randomBytes(5));
+        await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, borrow, DCAHubSwapCallee.address, ethers.utils.randomBytes(5));
         await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
       }
     }

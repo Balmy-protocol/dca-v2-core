@@ -200,11 +200,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
+    address _rewardRecipient,
     uint256[] calldata _borrow,
     address _to,
     bytes calldata _data
-  ) public nonReentrant whenNotPaused {
-    SwapInfo memory _swapInformation;
+  ) public nonReentrant whenNotPaused returns (SwapInfo memory _swapInformation) {
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
 
@@ -250,7 +250,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       // Optimistically transfer tokens
       uint256 _amountToSend = _tokenInSwap.reward + _borrow[i];
       if (_amountToSend > 0) {
-        IERC20Metadata(_tokenInSwap.token).safeTransfer(_to, _amountToSend);
+        IERC20Metadata(_tokenInSwap.token).safeTransfer(_rewardRecipient, _amountToSend);
       }
     }
 

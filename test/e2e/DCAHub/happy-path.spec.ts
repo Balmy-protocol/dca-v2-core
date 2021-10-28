@@ -421,7 +421,7 @@ contract('DCAHub', () => {
         ],
         []
       );
-      await DCAHub.swap(tokens, pairIndexes, borrow, callee.address, ethers.utils.randomBytes(5));
+      await DCAHub.swap(tokens, pairIndexes, callee.address, borrow, callee.address, ethers.utils.randomBytes(5));
     }
 
     async function loan({

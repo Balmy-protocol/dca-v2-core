@@ -985,7 +985,7 @@ contract('DCAHubSwapHandler', () => {
           await DCAHubSwapHandler.setBlockTimestamp(BLOCK_TIMESTAMP);
           await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs });
 
-          tx = await DCAHubSwapHandler.connect(swapper).swap([], [], borrow, DCAHubSwapCallee.address, BYTES);
+          tx = await DCAHubSwapHandler.connect(swapper).swap([], [], DCAHubSwapCallee.address, borrow, DCAHubSwapCallee.address, BYTES);
         });
 
         then(`calle's balance is modified correctly`, async () => {
@@ -1179,8 +1179,8 @@ contract('DCAHubSwapHandler', () => {
         then('should revert with message', async () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAHubSwapHandler,
-            func: 'swap(address[],(uint8,uint8)[],uint256[],address,bytes)',
-            args: [tokensInput, pairIndexesInput, borrowInput, DCAHubSwapCallee.address, BYTES],
+            func: 'swap(address[],(uint8,uint8)[],address,uint256[],address,bytes)',
+            args: [tokensInput, pairIndexesInput, DCAHubSwapCallee.address, borrowInput, DCAHubSwapCallee.address, BYTES],
             message: error,
           });
         });

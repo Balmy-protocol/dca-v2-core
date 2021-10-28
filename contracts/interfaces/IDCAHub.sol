@@ -368,16 +368,19 @@ interface IDCAHubSwapHandler {
   /// LiquidityNotReturned if the required tokens were not back during the callback
   /// @param _tokens The tokens involved in the next swap
   /// @param _pairsToSwap The pairs that you want to swap. Each element of the list points to the index of the token in the _tokens array
+  /// @param _rewardRecipient The address to send the reward to
   /// @param _borrow How much to borrow of each of the tokens in _tokens. The amount must match the position of the token in the _tokens array
-  /// @param _to Address to send the reward + the borrowed tokens
+  /// @param _to Address to call for callback (and send the borrowed tokens to)
   /// @param _data Bytes to send to the caller during the callback
+  /// @return Information about the executed swap
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
+    address _rewardRecipient,
     uint256[] calldata _borrow,
     address _to,
     bytes calldata _data
-  ) external;
+  ) external returns (SwapInfo memory);
 }
 
 /// @title The interface for all loan related matters
