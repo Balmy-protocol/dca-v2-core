@@ -241,16 +241,26 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       TokenInSwap memory _tokenInSwap = _swapInformation.tokens[i];
+      uint256 _amountToBorrow = _borrow[i];
 
       // Remember balances before callback
-      if (_tokenInSwap.toProvide > 0 || _borrow[i] > 0) {
+      if (_tokenInSwap.toProvide > 0 || _amountToBorrow > 0) {
         _beforeBalances[i] = IERC20Metadata(_tokenInSwap.token).balanceOf(address(this));
       }
 
       // Optimistically transfer tokens
-      uint256 _amountToSend = _tokenInSwap.reward + _borrow[i];
-      if (_amountToSend > 0) {
-        IERC20Metadata(_tokenInSwap.token).safeTransfer(_rewardRecipient, _amountToSend);
+      if (_rewardRecipient == _to) {
+        uint256 _amountToSend = _tokenInSwap.reward + _amountToBorrow;
+        if (_amountToSend > 0) {
+          IERC20Metadata(_tokenInSwap.token).safeTransfer(_to, _amountToSend);
+        }
+      } else {
+        if (_tokenInSwap.reward > 0) {
+          IERC20Metadata(_tokenInSwap.token).safeTransfer(_rewardRecipient, _tokenInSwap.reward);
+        }
+        if (_amountToBorrow > 0) {
+          IERC20Metadata(_tokenInSwap.token).safeTransfer(_to, _amountToBorrow);
+        }
       }
     }
 
