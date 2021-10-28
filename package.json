@@ -1,7 +1,7 @@
 {
-  "name": "@mean-finance/dca-v1.1-core",
-  "version": "1.1.0",
-  "description": "💱 Core smart contracts of DCA V1.1 by mean.finance",
+  "name": "@mean-finance/dca-v2-core",
+  "version": "1.0.0",
+  "description": "💱 Core smart contracts of DCA v2 by mean.finance",
   "keywords": [
     "ethereum",
     "smart",
@@ -11,11 +11,11 @@
   ],
   "homepage": "https://mean.finance",
   "bugs": {
-    "url": "https://github.com/Mean-Finance/dca-v1.1-core/issues"
+    "url": "https://github.com/Mean-Finance/dca-v2-core/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mean-Finance/dca-v1.1-core.git"
+    "url": "git+https://github.com/Mean-Finance/dca-v2-core.git"
   },
   "license": "BUSL-1.1",
   "files": [
