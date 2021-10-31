@@ -201,8 +201,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
     address _rewardRecipient,
+    address _callbackHandler,
     uint256[] calldata _borrow,
-    address _to,
     bytes calldata _data
   ) public nonReentrant whenNotPaused returns (SwapInfo memory _swapInformation) {
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
@@ -249,23 +249,23 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       }
 
       // Optimistically transfer tokens
-      if (_rewardRecipient == _to) {
+      if (_rewardRecipient == _callbackHandler) {
         uint256 _amountToSend = _tokenInSwap.reward + _amountToBorrow;
         if (_amountToSend > 0) {
-          IERC20Metadata(_tokenInSwap.token).safeTransfer(_to, _amountToSend);
+          IERC20Metadata(_tokenInSwap.token).safeTransfer(_callbackHandler, _amountToSend);
         }
       } else {
         if (_tokenInSwap.reward > 0) {
           IERC20Metadata(_tokenInSwap.token).safeTransfer(_rewardRecipient, _tokenInSwap.reward);
         }
         if (_amountToBorrow > 0) {
-          IERC20Metadata(_tokenInSwap.token).safeTransfer(_to, _amountToBorrow);
+          IERC20Metadata(_tokenInSwap.token).safeTransfer(_callbackHandler, _amountToBorrow);
         }
       }
     }
 
     // Make call
-    IDCAHubSwapCallee(_to).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _data);
+    IDCAHubSwapCallee(_callbackHandler).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _data);
 
     // Checks and balance updates
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
@@ -293,6 +293,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
 
     // Emit event
-    emit Swapped(msg.sender, _to, _swapInformation, _borrow, _swapFee);
+    emit Swapped(msg.sender, _rewardRecipient, _callbackHandler, _swapInformation, _borrow, _swapFee);
   }
 }

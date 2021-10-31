@@ -985,7 +985,7 @@ contract('DCAHubSwapHandler', () => {
           await DCAHubSwapHandler.setBlockTimestamp(BLOCK_TIMESTAMP);
           await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs });
 
-          tx = await DCAHubSwapHandler.connect(swapper).swap([], [], DCAHubSwapCallee.address, borrow, DCAHubSwapCallee.address, BYTES);
+          tx = await DCAHubSwapHandler.connect(swapper).swap([], [], DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, BYTES);
         });
 
         then(`calle's balance is modified correctly`, async () => {
@@ -1059,12 +1059,14 @@ contract('DCAHubSwapHandler', () => {
 
         then('event is emitted correctly', async () => {
           const sender = await readArgFromEventOrFail(tx, 'Swapped', 'sender');
-          const to = await readArgFromEventOrFail(tx, 'Swapped', 'to');
+          const rewardRecipient = await readArgFromEventOrFail(tx, 'Swapped', 'rewardRecipient');
+          const callbackHandler = await readArgFromEventOrFail(tx, 'Swapped', 'callbackHandler');
           const swapInformation: SwapInformation = await readArgFromEventOrFail(tx, 'Swapped', 'swapInformation');
           const borrowed: BigNumber[] = await readArgFromEventOrFail(tx, 'Swapped', 'borrowed');
           const fee = await readArgFromEventOrFail(tx, 'Swapped', 'fee');
           expect(sender).to.equal(swapper.address);
-          expect(to).to.equal(DCAHubSwapCallee.address);
+          expect(rewardRecipient).to.equal(DCAHubSwapCallee.address);
+          expect(callbackHandler).to.equal(DCAHubSwapCallee.address);
           expect(fee).to.equal(6000);
           expect(borrowed).to.eql(borrow);
           expect(swapInformation.pairs.length).to.equal(result.pairs.length);
@@ -1179,8 +1181,8 @@ contract('DCAHubSwapHandler', () => {
         then('should revert with message', async () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAHubSwapHandler,
-            func: 'swap(address[],(uint8,uint8)[],address,uint256[],address,bytes)',
-            args: [tokensInput, pairIndexesInput, DCAHubSwapCallee.address, borrowInput, DCAHubSwapCallee.address, BYTES],
+            func: 'swap(address[],(uint8,uint8)[],address,address,uint256[],bytes)',
+            args: [tokensInput, pairIndexesInput, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrowInput, BYTES],
             message: error,
           });
         });

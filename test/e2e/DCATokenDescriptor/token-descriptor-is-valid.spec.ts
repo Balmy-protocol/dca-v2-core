@@ -107,7 +107,7 @@ contract('DCATokenDescriptor', () => {
 
   async function swap() {
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-    await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, borrow, DCAHubSwapCallee.address, ethers.utils.randomBytes(5));
+    await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5));
   }
 
   function isValidSvgImage(base64: string) {

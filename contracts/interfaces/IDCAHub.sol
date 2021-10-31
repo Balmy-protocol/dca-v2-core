@@ -338,11 +338,19 @@ interface IDCAHubSwapHandler {
 
   /// @notice Emitted when a swap is executed
   /// @param sender The address of the user that initiated the swap
-  /// @param to The address that received the reward + loan
+  /// @param rewardRecipient The address that received the reward
+  /// @param callbackHandler The address that executed the callback
   /// @param swapInformation All information related to the swap
   /// @param borrowed How much was borrowed
   /// @param fee The swap fee at the moment of the swap
-  event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
+  event Swapped(
+    address indexed sender,
+    address indexed rewardRecipient,
+    address indexed callbackHandler,
+    SwapInfo swapInformation,
+    uint256[] borrowed,
+    uint32 fee
+  );
 
   /// @notice Thrown when pairs indexes are not sorted correctly
   error InvalidPairs();
@@ -369,16 +377,16 @@ interface IDCAHubSwapHandler {
   /// @param _tokens The tokens involved in the next swap
   /// @param _pairsToSwap The pairs that you want to swap. Each element of the list points to the index of the token in the _tokens array
   /// @param _rewardRecipient The address to send the reward to
+  /// @param _callbackHandler Address to call for callback (and send the borrowed tokens to)
   /// @param _borrow How much to borrow of each of the tokens in _tokens. The amount must match the position of the token in the _tokens array
-  /// @param _to Address to call for callback (and send the borrowed tokens to)
   /// @param _data Bytes to send to the caller during the callback
   /// @return Information about the executed swap
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
     address _rewardRecipient,
+    address _callbackHandler,
     uint256[] calldata _borrow,
-    address _to,
     bytes calldata _data
   ) external returns (SwapInfo memory);
 }
