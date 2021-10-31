@@ -98,7 +98,7 @@ contract('DCAHub', () => {
       });
 
       testReentrantForFunction({
-        funcAndSignature: 'swap(address[],(uint8,uint8)[],address,address, uint256[],bytes)',
+        funcAndSignature: 'swap(address[],(uint8,uint8)[],address,address,uint256[],bytes)',
         args: () => [
           [tokenA.address, tokenB.address],
           [{ indexTokenA: 0, indexTokenB: 1 }],
