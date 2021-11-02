@@ -241,7 +241,8 @@ interface IDCAHubPositionHandler {
   /// With PositionDoesNotMatchToken if any of the positions do not match the token in their position set
   /// @param _positions A list positions, grouped by `to` token
   /// @param _recipient The address to withdraw swapped tokens to
-  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external;
+  /// @return _withdrawn How much was withdrawn for each token
+  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external returns (uint256[] memory _withdrawn);
 
   /// @notice Takes the unswapped balance, adds the new deposited funds and modifies the position so that
   /// it is executed in _newSwaps swaps
@@ -284,11 +285,13 @@ interface IDCAHubPositionHandler {
   /// @param _positionId The position's id
   /// @param _recipientUnswapped The address to withdraw unswapped tokens to
   /// @param _recipientSwapped The address to withdraw swapped tokens to
+  /// @return _unswapped The unswapped balance sent to `_recipientUnswapped`
+  /// @return _swapped The swapped balance sent to `_recipientSwapped`
   function terminate(
     uint256 _positionId,
     address _recipientUnswapped,
     address _recipientSwapped
-  ) external;
+  ) external returns (uint256 _unswapped, uint256 _swapped);
 }
 
 /// @title The interface for all swap related matters

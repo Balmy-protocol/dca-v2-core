@@ -91,9 +91,9 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     return _swapped;
   }
 
-  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external nonReentrant {
+  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external nonReentrant returns (uint256[] memory _swapped) {
     _assertNonZeroAddress(_recipient);
-    uint256[] memory _swapped = new uint256[](_positions.length);
+    _swapped = new uint256[](_positions.length);
     for (uint256 i; i < _positions.length; i++) {
       address _token = _positions[i].token;
       for (uint256 j; j < _positions[i].positionIds.length; j++) {
@@ -110,15 +110,15 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _positionId,
     address _recipientUnswapped,
     address _recipientSwapped
-  ) external nonReentrant {
+  ) external nonReentrant returns (uint256 _unswapped, uint256 _swapped) {
     if (_recipientUnswapped == address(0) || _recipientSwapped == address(0)) revert IDCAHub.ZeroAddress();
 
     DCA memory _userPosition = _userPositions[_positionId];
     _assertPositionExistsAndCallerHasPermission(_positionId, _userPosition, IDCAPermissionManager.Permission.TERMINATE);
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask);
 
-    uint256 _swapped = _calculateSwapped(_positionId, _userPosition, _performedSwaps);
-    uint256 _unswapped = _calculateUnswapped(_userPosition, _performedSwaps);
+    _swapped = _calculateSwapped(_positionId, _userPosition, _performedSwaps);
+    _unswapped = _calculateUnswapped(_userPosition, _performedSwaps);
 
     _removeFromDelta(_userPosition, _performedSwaps);
     delete _userPositions[_positionId];
