@@ -75,6 +75,18 @@ interface IDCAHubParameters {
     address _tokenB,
     bytes1 _swapIntervalMask
   ) external view returns (SwapData memory);
+
+  /// @notice Returns the byte representation of the set of actice swap intervals for the given pair
+  /// @dev `_tokenA` must be smaller than `_tokenB` (_tokenA < _tokenB)
+  /// @param _tokenA The smaller of the pair's token
+  /// @param _tokenB The other of the pair's token
+  /// @return The byte representation of the set of actice swap intervals
+  function activeSwapIntervals(address _tokenA, address _tokenB) external view returns (bytes1);
+
+  /// @notice Returns how much of the hub's token balance belongs to the platform
+  /// @param _token The token to check
+  /// @return The amount that belongs to the platform
+  function platformBalance(address _token) external view returns (uint256);
 }
 
 /// @title The interface for all position related matters
