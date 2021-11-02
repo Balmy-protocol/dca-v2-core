@@ -193,6 +193,10 @@ interface IDCAHubPositionHandler {
   /// @notice Thrown when a user tries create or modify a position with an amount too big
   error AmountTooBig();
 
+  /// @notice Returns the permission manager contract
+  /// @return The contract itself
+  function permissionManager() external view returns (IDCAPermissionManager);
+
   /// @notice Returns a user position
   /// @param _positionId The id of the position
   /// @return _position The position itself
