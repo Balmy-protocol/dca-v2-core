@@ -60,7 +60,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     uint120 _rate = _calculateRate(_amount, _amountOfSwaps);
-    IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     uint256 _positionId = ++_idCounter;
     DCA memory _userPosition = _buildPosition(_from, _to, _amountOfSwaps, Intervals.intervalToMask(_swapInterval), _rate);
     if (allowedSwapIntervals & _userPosition.swapIntervalMask == 0) revert IntervalNotAllowed();
@@ -68,6 +67,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _updateActiveIntervalsAndOracle(_from, _to, _userPosition.swapIntervalMask);
     _addToDelta(_from, _to, _userPosition.swapIntervalMask, _userPosition.finalSwap, _rate);
     _userPositions[_positionId] = _userPosition;
+    IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     emit Deposited(
       msg.sender,
       _owner,
