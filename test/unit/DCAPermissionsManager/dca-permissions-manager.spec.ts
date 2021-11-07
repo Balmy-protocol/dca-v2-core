@@ -13,7 +13,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { _TypedDataEncoder } from '@ethersproject/hash';
 import { fromRpcSig } from 'ethereumjs-util';
 
-contract.only('DCAPermissionsManager', () => {
+contract('DCAPermissionsManager', () => {
   const NFT_NAME = 'Mean Finance DCA';
   const NFT_DESCRIPTOR = wallet.generateRandomAddress();
   let hub: SignerWithAddress, governor: SignerWithAddress;
