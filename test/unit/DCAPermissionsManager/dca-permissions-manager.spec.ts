@@ -13,7 +13,7 @@ import { BigNumber } from '@ethersproject/bignumber';
 import { _TypedDataEncoder } from '@ethersproject/hash';
 import { fromRpcSig } from 'ethereumjs-util';
 
-contract('DCAPermissionsManager', () => {
+contract.only('DCAPermissionsManager', () => {
   const NFT_NAME = 'Mean Finance DCA';
   const NFT_DESCRIPTOR = wallet.generateRandomAddress();
   let hub: SignerWithAddress, governor: SignerWithAddress;
@@ -381,6 +381,12 @@ contract('DCAPermissionsManager', () => {
     });
 
     permitFailsTest({
+      when: 'chainId is different',
+      exec: () => signAndPermit({ signer: owner, chainId: BigNumber.from(20) }),
+      txFailsWith: 'InvalidSignature',
+    });
+
+    permitFailsTest({
       when: 'signer signed something differently',
       exec: async () => {
         const data = withDefaults({ signer: owner, deadline: constants.MAX_UINT_256 });
@@ -436,6 +442,7 @@ contract('DCAPermissionsManager', () => {
         nonce: BigNumber.from(0),
         deadline: constants.MAX_UINT_256,
         spender: SPENDER,
+        chainId,
         ...options,
       };
     }
@@ -457,7 +464,7 @@ contract('DCAPermissionsManager', () => {
       return {
         primaryType: 'Permit',
         types: { Permit },
-        domain: { name: NFT_NAME, version: '1', chainId, verifyingContract: DCAPermissionsManager.address },
+        domain: { name: NFT_NAME, version: '1', chainId: options.chainId, verifyingContract: DCAPermissionsManager.address },
         value: { tokenId: TOKEN_ID, ...options },
       };
     }
@@ -467,6 +474,7 @@ contract('DCAPermissionsManager', () => {
       spender: string;
       nonce: BigNumber;
       deadline: BigNumber;
+      chainId: BigNumber;
     };
   });
 
@@ -516,6 +524,12 @@ contract('DCAPermissionsManager', () => {
       when: 'permit is expired',
       exec: () => signAndPermit({ signer: owner, deadline: BigNumber.from(0) }),
       txFailsWith: 'ExpiredDeadline',
+    });
+
+    permitFailsTest({
+      when: 'chainId is different',
+      exec: () => signAndPermit({ signer: owner, chainId: BigNumber.from(20) }),
+      txFailsWith: 'InvalidSignature',
     });
 
     permitFailsTest({
@@ -574,6 +588,7 @@ contract('DCAPermissionsManager', () => {
         nonce: BigNumber.from(0),
         deadline: constants.MAX_UINT_256,
         permissions: [],
+        chainId,
         ...options,
       };
     }
@@ -600,7 +615,7 @@ contract('DCAPermissionsManager', () => {
       return {
         primaryType: 'PermissionPermit',
         types: { PermissionSet, PermissionPermit },
-        domain: { name: NFT_NAME, version: '1', chainId, verifyingContract: DCAPermissionsManager.address },
+        domain: { name: NFT_NAME, version: '1', chainId: options.chainId, verifyingContract: DCAPermissionsManager.address },
         value: { tokenId: TOKEN_ID, ...options },
       };
     }
@@ -610,6 +625,7 @@ contract('DCAPermissionsManager', () => {
       permissions: { operator: string; permissions: Permission[] }[];
       nonce: BigNumber;
       deadline: BigNumber;
+      chainId: BigNumber;
     };
   });
 
