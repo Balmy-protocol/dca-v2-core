@@ -22,6 +22,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   int8 private constant USD_DECIMALS = 8;
   int8 private constant ETH_DECIMALS = 18;
+  uint32 private constant MAX_DELAY = 24 hours;
   // solhint-enable private-vars-leading-underscore
 
   mapping(address => bool) internal _shouldBeConsideredUSD;
@@ -226,7 +227,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _exists(address _base, address _quote) internal view returns (bool) {
-    try registry.latestAnswer(mappedToken(_base), _quote) returns (int256) {
+    try registry.latestRoundData(mappedToken(_base), _quote) returns (uint80, int256, uint256, uint256, uint80) {
       return true;
     } catch {
       return false;
@@ -246,7 +247,10 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
-    return uint256(registry.latestAnswer(_base, _quote));
+    (, int256 _price, , uint256 _updatedAt, ) = registry.latestRoundData(_base, _quote);
+    if (_price <= 0) revert InvalidPrice();
+    if (_updatedAt < block.timestamp - MAX_DELAY) revert LastUpdateIsTooOld();
+    return uint256(_price);
   }
 
   function _getETHUSD() internal view returns (uint256) {
