@@ -146,7 +146,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     emit NFTDescriptorSet(_descriptor);
   }
 
-  /// @inheritdoc IERC721
+  /// @inheritdoc ERC721
   function tokenURI(uint256 _tokenId) public view override returns (string memory) {
     return nftDescriptor.tokenURI(hub, _tokenId);
   }

@@ -20,7 +20,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
   using SafeERC20 for IERC20Metadata;
 
-  /// @inheritdoc IDCAHubPositionHandler
   IDCAPermissionManager public permissionManager;
   mapping(uint256 => DCA) internal _userPositions;
   mapping(uint256 => uint256) internal _swappedBeforeModified;
