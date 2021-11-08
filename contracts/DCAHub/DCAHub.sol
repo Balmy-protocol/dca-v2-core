@@ -24,6 +24,7 @@ contract DCAHub is
     IDCAPermissionManager _permissionManager
   ) DCAHubPositionHandler(_permissionManager) DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle) {}
 
+  /// @inheritdoc IDCAHubConfigHandler
   function paused() public view override(IDCAHubConfigHandler, DCAHubConfigHandler) returns (bool) {
     return super.paused();
   }

@@ -5,13 +5,15 @@ import '../interfaces/IDCAHub.sol';
 import '../libraries/TokenSorting.sol';
 
 abstract contract DCAHubParameters is IDCAHubParameters {
-  // Tracking
+  /// @inheritdoc IDCAHubParameters
   mapping(address => mapping(address => bytes1)) public activeSwapIntervals; // token A => token B => active swap intervals
+  /// @inheritdoc IDCAHubParameters
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) internal _swapAmountDelta; // token A => token B => swap interval => swap number => delta
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => AccumRatio)))) internal _accumRatio; // token A => token B => swap interval => swap number => accum
   mapping(address => mapping(address => mapping(bytes1 => SwapData))) internal _swapData; // token A => token B => swap interval => swap data
 
+  /// @inheritdoc IDCAHubParameters
   function swapAmountDelta(
     address _tokenA,
     address _tokenB,
@@ -22,6 +24,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     return _swapAmountDelta[__tokenA][__tokenB][_swapIntervalMask][_swapNumber];
   }
 
+  /// @inheritdoc IDCAHubParameters
   function accumRatio(
     address _tokenA,
     address _tokenB,
@@ -32,6 +35,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     return _accumRatio[__tokenA][__tokenB][_swapIntervalMask][_swapNumber];
   }
 
+  /// @inheritdoc IDCAHubParameters
   function swapData(
     address _tokenA,
     address _tokenB,

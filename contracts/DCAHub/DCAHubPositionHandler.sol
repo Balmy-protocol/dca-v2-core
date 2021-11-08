@@ -20,6 +20,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
   using SafeERC20 for IERC20Metadata;
 
+  /// @inheritdoc IDCAHubPositionHandler
   IDCAPermissionManager public permissionManager;
   mapping(uint256 => DCA) internal _userPositions;
   mapping(uint256 => uint256) internal _swappedBeforeModified;
@@ -30,6 +31,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     permissionManager = _permissionManager;
   }
 
+  /// @inheritdoc IDCAHubPositionHandler
   function userPosition(uint256 _positionId) external view returns (UserPosition memory _userPosition) {
     DCA memory _position = _userPositions[_positionId];
     uint32 _performedSwaps = _getPerformedSwaps(_position.from, _position.to, _position.swapIntervalMask);
@@ -46,6 +48,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     }
   }
 
+  /// @inheritdoc IDCAHubPositionHandler
   function deposit(
     address _from,
     address _to,
@@ -82,6 +85,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     return _positionId;
   }
 
+  /// @inheritdoc IDCAHubPositionHandler
   function withdrawSwapped(uint256 _positionId, address _recipient) external nonReentrant returns (uint256) {
     _assertNonZeroAddress(_recipient);
 
@@ -91,6 +95,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     return _swapped;
   }
 
+  /// @inheritdoc IDCAHubPositionHandler
   function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external nonReentrant {
     _assertNonZeroAddress(_recipient);
     uint256[] memory _swapped = new uint256[](_positions.length);
@@ -106,6 +111,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit WithdrewMany(msg.sender, _recipient, _positions, _swapped);
   }
 
+  /// @inheritdoc IDCAHubPositionHandler
   function terminate(
     uint256 _positionId,
     address _recipientUnswapped,
@@ -135,6 +141,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit Terminated(msg.sender, _recipientUnswapped, _recipientSwapped, _positionId, _unswapped, _swapped);
   }
 
+  /// @inheritdoc IDCAHubPositionHandler
   function increasePosition(
     uint256 _positionId,
     uint256 _amount,
@@ -143,6 +150,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _modify(_positionId, _amount, _newAmountOfSwaps, address(0));
   }
 
+  /// @inheritdoc IDCAHubPositionHandler
   function reducePosition(
     uint256 _positionId,
     uint256 _amount,
