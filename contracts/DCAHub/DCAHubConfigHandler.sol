@@ -90,7 +90,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   }
 
   // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() public pure returns (uint32) {
+  function FEE_PRECISION() external pure returns (uint32) {
     return FeeMath.FEE_PRECISION;
   }
 

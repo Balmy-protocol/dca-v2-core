@@ -203,7 +203,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256[] calldata _borrow,
     address _to,
     bytes calldata _data
-  ) public nonReentrant whenNotPaused {
+  ) external nonReentrant whenNotPaused {
     SwapInfo memory _swapInformation;
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
