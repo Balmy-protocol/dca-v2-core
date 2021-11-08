@@ -8,8 +8,11 @@ import '../libraries/TokenSorting.sol';
 import '../utils/Governable.sol';
 
 contract ChainlinkOracle is Governable, IChainlinkOracle {
+  /// @inheritdoc IChainlinkOracle
   mapping(address => mapping(address => PricingPlan)) public planForPair;
+  /// @inheritdoc IChainlinkOracle
   FeedRegistryInterface public immutable registry;
+  /// @inheritdoc IChainlinkOracle
   // solhint-disable-next-line var-name-mixedcase
   address public immutable WETH;
 
@@ -39,12 +42,14 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     WETH = _WETH;
   }
 
+  /// @inheritdoc IPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     return _plan != PricingPlan.NONE;
   }
 
+  /// @inheritdoc IPriceOracle
   function quote(
     address _tokenIn,
     uint128 _amountIn,
@@ -66,10 +71,12 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     }
   }
 
+  /// @inheritdoc IPriceOracle
   function reconfigureSupportForPair(address _tokenA, address _tokenB) external {
     _addSupportForPair(_tokenA, _tokenB);
   }
 
+  /// @inheritdoc IPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     if (planForPair[__tokenA][__tokenB] == PricingPlan.NONE) {
@@ -85,6 +92,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);
   }
 
+  /// @inheritdoc IChainlinkOracle
   function addUSDStablecoins(address[] calldata _addresses) external onlyGovernor {
     for (uint256 i; i < _addresses.length; i++) {
       _shouldBeConsideredUSD[_addresses[i]] = true;
@@ -92,6 +100,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     emit TokensConsideredUSD(_addresses);
   }
 
+  /// @inheritdoc IChainlinkOracle
   function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {
     require(_addresses.length == _mappings.length, 'InvalidInput');
     for (uint256 i; i < _addresses.length; i++) {
@@ -100,6 +109,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     emit MappingsAdded(_addresses, _mappings);
   }
 
+  /// @inheritdoc IChainlinkOracle
   function mappedToken(address _token) public view returns (address) {
     if (_token == RENBTC || _token == WBTC) {
       return Denominations.BTC;
