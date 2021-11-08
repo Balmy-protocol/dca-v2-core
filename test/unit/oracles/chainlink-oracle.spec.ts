@@ -3,19 +3,21 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
 import { behaviours, constants, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
-import { ChainlinkOracleMock__factory, ChainlinkOracleMock } from '@typechained';
+import { ChainlinkOracleMock__factory, ChainlinkOracleMock, FeedRegistryInterface } from '@typechained';
 import { snapshot } from '@test-utils/evm';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { FakeContract, smock } from '@defi-wonderland/smock';
+import moment from 'moment';
 
 describe('ChainlinkOracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const WETH = '0x0000000000000000000000000000000000000003';
-  const FEED_REGISTRY = '0x0000000000000000000000000000000000000004';
   const NO_PLAN = 0;
   const A_PLAN = 1;
 
   let governor: SignerWithAddress;
+  let feedRegistry: FakeContract<FeedRegistryInterface>;
   let chainlinkOracleFactory: ChainlinkOracleMock__factory;
   let chainlinkOracle: ChainlinkOracleMock;
   let snapshotId: string;
@@ -23,12 +25,14 @@ describe('ChainlinkOracle', () => {
   before('Setup accounts and contracts', async () => {
     [, governor] = await ethers.getSigners();
     chainlinkOracleFactory = await ethers.getContractFactory('contracts/mocks/oracles/ChainlinkOracle.sol:ChainlinkOracleMock');
-    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, FEED_REGISTRY, governor.address);
+    feedRegistry = await smock.fake('FeedRegistryInterface');
+    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, governor.address);
     snapshotId = await snapshot.take();
   });
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
+    feedRegistry.latestRoundData.reset();
   });
 
   describe('constructor', () => {
@@ -36,7 +40,7 @@ describe('ChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [constants.ZERO_ADDRESS, FEED_REGISTRY, governor.address],
+          args: [constants.ZERO_ADDRESS, feedRegistry.address, governor.address],
           message: 'ZeroAddress',
         });
       });
@@ -57,7 +61,7 @@ describe('ChainlinkOracle', () => {
       });
       then('registry is set correctly', async () => {
         const registry = await chainlinkOracle.registry();
-        expect(registry).to.eql(FEED_REGISTRY);
+        expect(registry).to.eql(feedRegistry.address);
       });
       then('hardcoded stablecoins are considered USD', async () => {
         const stablecoins = [
@@ -225,5 +229,38 @@ describe('ChainlinkOracle', () => {
       params: [[TOKEN_A], [wallet.generateRandomAddress()]],
       governor: () => governor,
     });
+  });
+  describe('intercalCallRegistry', () => {
+    when('price is negative', () => {
+      given(() => makeRegistryReturn({ price: -1 }));
+      thenRegistryCallRevertsWithReason('InvalidPrice');
+    });
+    when('price is zero', () => {
+      given(() => makeRegistryReturn({ price: 0 }));
+      thenRegistryCallRevertsWithReason('InvalidPrice');
+    });
+    when('last update was > 24hs ago', () => {
+      const LAST_UPDATE_AGO = moment.duration('24', 'hours').as('seconds') + moment.duration('15', 'minutes').as('seconds');
+      given(() => makeRegistryReturn({ lastUpdate: moment().unix() - LAST_UPDATE_AGO }));
+      thenRegistryCallRevertsWithReason('LastUpdateIsTooOld');
+    });
+    when('call to the registry reverts', () => {
+      const NO_REASON = '';
+      given(() => feedRegistry.latestRoundData.reverts(NO_REASON));
+      thenRegistryCallRevertsWithReason(NO_REASON);
+    });
+    function makeRegistryReturn({ price, lastUpdate }: { price?: number; lastUpdate?: number }) {
+      feedRegistry.latestRoundData.returns([0, price ?? 1, 0, lastUpdate ?? moment().unix(), 0]);
+    }
+    async function thenRegistryCallRevertsWithReason(reason: string) {
+      then('_callRegistry reverts with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: chainlinkOracle,
+          func: 'intercalCallRegistry',
+          args: [TOKEN_A, TOKEN_B],
+          message: reason,
+        });
+      });
+    }
   });
 });
