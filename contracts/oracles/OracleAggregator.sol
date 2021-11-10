@@ -7,8 +7,11 @@ import '../utils/Governable.sol';
 
 contract OracleAggregator is Governable, IOracleAggregator {
   // Note: by default oracle 1 will take precendence over oracle 2
+  /// @inheritdoc IOracleAggregator
   IPriceOracle public immutable oracle1;
+  /// @inheritdoc IOracleAggregator
   IPriceOracle public immutable oracle2;
+  /// @inheritdoc IOracleAggregator
   mapping(address => mapping(address => OracleInUse)) public oracleInUse;
 
   constructor(
@@ -21,10 +24,12 @@ contract OracleAggregator is Governable, IOracleAggregator {
     oracle2 = _oracle2;
   }
 
+  /// @inheritdoc IPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     return oracle1.canSupportPair(_tokenA, _tokenB) || oracle2.canSupportPair(_tokenA, _tokenB);
   }
 
+  /// @inheritdoc IPriceOracle
   function quote(
     address _tokenIn,
     uint128 _amountIn,
@@ -40,11 +45,13 @@ contract OracleAggregator is Governable, IOracleAggregator {
     }
   }
 
+  /// @inheritdoc IPriceOracle
   function reconfigureSupportForPair(address _tokenA, address _tokenB) external {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     _addSupportForPair(__tokenA, __tokenB);
   }
 
+  /// @inheritdoc IPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     if (oracleInUse[__tokenA][__tokenB] == OracleInUse.NONE) {
@@ -52,6 +59,7 @@ contract OracleAggregator is Governable, IOracleAggregator {
     }
   }
 
+  /// @inheritdoc IOracleAggregator
   function overrideDefault(address _tokenA, address _tokenB) external onlyGovernor {
     oracle2.reconfigureSupportForPair(_tokenA, _tokenB);
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);

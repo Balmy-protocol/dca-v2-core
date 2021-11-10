@@ -14,14 +14,21 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public constant TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
   bytes32 public constant PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
+  /// @inheritdoc IDCAHubConfigHandler
   // solhint-disable-next-line var-name-mixedcase
   uint32 public MAX_FEE = 10 * FeeMath.FEE_PRECISION; // 10%
+  /// @inheritdoc IDCAHubConfigHandler
   uint16 public constant MAX_PLATFORM_FEE_RATIO = 10000;
 
+  /// @inheritdoc IDCAHubConfigHandler
   IPriceOracle public oracle;
+  /// @inheritdoc IDCAHubConfigHandler
   uint32 public swapFee = 6000; // 0.6%
+  /// @inheritdoc IDCAHubConfigHandler
   uint32 public loanFee = 1000; // 0.1%
+  /// @inheritdoc IDCAHubConfigHandler
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
+  /// @inheritdoc IDCAHubConfigHandler
   uint16 public platformFeeRatio = 5000; // 50%
 
   constructor(
@@ -39,30 +46,35 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     oracle = _oracle;
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function setOracle(IPriceOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
     _assertNonZeroAddress(address(_oracle));
     oracle = _oracle;
     emit OracleSet(_oracle);
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function setSwapFee(uint32 _swapFee) external onlyRole(TIME_LOCKED_ROLE) {
     _validateFee(_swapFee);
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function setLoanFee(uint32 _loanFee) external onlyRole(TIME_LOCKED_ROLE) {
     _validateFee(_loanFee);
     loanFee = _loanFee;
     emit LoanFeeSet(_loanFee);
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function setPlatformFeeRatio(uint16 _platformFeeRatio) external onlyRole(TIME_LOCKED_ROLE) {
     if (_platformFeeRatio > MAX_PLATFORM_FEE_RATIO) revert HighPlatformFeeRatio();
     platformFeeRatio = _platformFeeRatio;
     emit PlatformFeeRatioSet(_platformFeeRatio);
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
       allowedSwapIntervals |= Intervals.intervalToMask(_swapIntervals[i]);
@@ -70,6 +82,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     emit SwapIntervalsAllowed(_swapIntervals);
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
     for (uint256 i; i < _swapIntervals.length; i++) {
       allowedSwapIntervals &= ~Intervals.intervalToMask(_swapIntervals[i]);
@@ -77,20 +90,24 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     emit SwapIntervalsForbidden(_swapIntervals);
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function pause() external onlyRole(IMMEDIATE_ROLE) {
     _pause();
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function unpause() external onlyRole(IMMEDIATE_ROLE) {
     _unpause();
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   function paused() public view virtual override(IDCAHubConfigHandler, Pausable) returns (bool) {
     return super.paused();
   }
 
+  /// @inheritdoc IDCAHubConfigHandler
   // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() public pure returns (uint32) {
+  function FEE_PRECISION() external pure returns (uint32) {
     return FeeMath.FEE_PRECISION;
   }
 

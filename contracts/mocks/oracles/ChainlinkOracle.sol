@@ -42,6 +42,10 @@ contract ChainlinkOracleMock is ChainlinkOracle {
     _pricingPlan[__tokenA][__tokenB] = MockedPricingPlan({plan: _plan, isSet: true});
   }
 
+  function intercalCallRegistry(address _quote, address _base) external view returns (uint256) {
+    return _callRegistry(_quote, _base);
+  }
+
   function _determinePricingPlan(address _tokenA, address _tokenB) internal view override returns (PricingPlan) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     MockedPricingPlan memory _plan = _pricingPlan[__tokenA][__tokenB];

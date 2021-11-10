@@ -41,6 +41,12 @@ interface IChainlinkOracle is IPriceOracle {
   /// @param mappings Their new mappings
   event MappingsAdded(address[] tokens, address[] mappings);
 
+  /// @notice Thrown when the price is non-positive
+  error InvalidPrice();
+
+  /// @notice Thrown when the last price update was too long ago
+  error LastUpdateIsTooOld();
+
   /// @notice Returns the Chainlink feed registry
   /// @return The Chainlink registry
   function registry() external view returns (FeedRegistryInterface);
