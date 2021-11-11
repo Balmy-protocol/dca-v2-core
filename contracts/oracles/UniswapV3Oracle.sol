@@ -10,11 +10,16 @@ import '../libraries/UniswapWeightedOracleLibrary.sol';
 import '../libraries/TokenSorting.sol';
 
 contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
+  /// @inheritdoc IUniswapV3Oracle
   uint16 public constant override MINIMUM_PERIOD = 1 minutes;
+  /// @inheritdoc IUniswapV3Oracle
   uint16 public constant override MAXIMUM_PERIOD = 20 minutes;
+  /// @inheritdoc IUniswapV3Oracle
   uint16 public constant override MINIMUM_LIQUIDITY_THRESHOLD = 1;
   uint8 private constant _AVERAGE_BLOCK_INTERVAL = 15 seconds;
+  /// @inheritdoc IUniswapV3Oracle
   IUniswapV3Factory public immutable override factory;
+  /// @inheritdoc IUniswapV3Oracle
   uint16 public override period = 5 minutes;
   uint24[] internal _supportedFeeTiers = [500, 3000, 10000];
   mapping(address => mapping(address => address[])) internal _poolsForPair;
@@ -24,6 +29,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     factory = _factory;
   }
 
+  /// @inheritdoc IPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view override returns (bool) {
     uint24[] memory _feeTiers = _supportedFeeTiers;
     for (uint256 i; i < _feeTiers.length; i++) {
@@ -35,6 +41,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     return false;
   }
 
+  /// @inheritdoc IPriceOracle
   function quote(
     address _tokenIn,
     uint128 _amountIn,
@@ -47,12 +54,14 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     _amountOut = OracleLibrary.getQuoteAtTick(_arithmeticMeanWeightedTick, _amountIn, _tokenIn, _tokenOut);
   }
 
+  /// @inheritdoc IPriceOracle
   function reconfigureSupportForPair(address _tokenA, address _tokenB) external override {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     delete _poolsForPair[__tokenA][__tokenB];
     _addSupportForPair(__tokenA, __tokenB);
   }
 
+  /// @inheritdoc IPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external override {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     if (_poolsForPair[__tokenA][__tokenB].length == 0) {
@@ -60,15 +69,18 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     }
   }
 
+  /// @inheritdoc IUniswapV3Oracle
   function poolsUsedForPair(address _tokenA, address _tokenB) external view override returns (address[] memory _usedPools) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     _usedPools = _poolsForPair[__tokenA][__tokenB];
   }
 
+  /// @inheritdoc IUniswapV3Oracle
   function supportedFeeTiers() external view override returns (uint24[] memory _feeTiers) {
     _feeTiers = _supportedFeeTiers;
   }
 
+  /// @inheritdoc IUniswapV3Oracle
   function setPeriod(uint16 _period) external override onlyGovernor {
     require(_period <= MAXIMUM_PERIOD, 'GreaterThanMaximumPeriod');
     require(_period >= MINIMUM_PERIOD, 'LessThanMinimumPeriod');
@@ -76,6 +88,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     emit PeriodChanged(_period);
   }
 
+  /// @inheritdoc IUniswapV3Oracle
   function addFeeTier(uint24 _feeTier) external override onlyGovernor {
     require(factory.feeAmountTickSpacing(_feeTier) > 0, 'InvalidFeeTier');
 

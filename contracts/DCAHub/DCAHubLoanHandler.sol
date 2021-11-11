@@ -10,6 +10,7 @@ import './DCAHubConfigHandler.sol';
 abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubLoanHandler {
   using SafeERC20 for IERC20Metadata;
 
+  /// @inheritdoc IDCAHubLoanHandler
   function loan(
     IDCAHub.AmountOfToken[] calldata _loan,
     address _to,
