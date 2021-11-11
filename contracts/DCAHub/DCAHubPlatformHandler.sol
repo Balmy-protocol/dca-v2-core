@@ -8,6 +8,7 @@ import './DCAHubConfigHandler.sol';
 abstract contract DCAHubPlatformHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPlatformHandler {
   using SafeERC20 for IERC20Metadata;
 
+  /// @inheritdoc IDCAHubPlatformHandler
   function withdrawFromPlatformBalance(IDCAHub.AmountOfToken[] calldata _amounts, address _recipient)
     external
     nonReentrant
