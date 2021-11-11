@@ -108,6 +108,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
   }
 
+  /// @inheritdoc IDCAHubSwapHandler
   function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
     public
     view
@@ -197,6 +198,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
   }
 
+  /// @inheritdoc IDCAHubSwapHandler
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
