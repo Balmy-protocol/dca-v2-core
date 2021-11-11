@@ -8,8 +8,11 @@ import '../libraries/TokenSorting.sol';
 import '../utils/Governable.sol';
 
 contract ChainlinkOracle is Governable, IChainlinkOracle {
+  /// @inheritdoc IChainlinkOracle
   mapping(address => mapping(address => PricingPlan)) public planForPair;
+  /// @inheritdoc IChainlinkOracle
   FeedRegistryInterface public immutable registry;
+  /// @inheritdoc IChainlinkOracle
   // solhint-disable-next-line var-name-mixedcase
   address public immutable WETH;
 
@@ -22,6 +25,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   int8 private constant USD_DECIMALS = 8;
   int8 private constant ETH_DECIMALS = 18;
+  uint32 private constant MAX_DELAY = 24 hours;
   // solhint-enable private-vars-leading-underscore
 
   mapping(address => bool) internal _shouldBeConsideredUSD;
@@ -38,12 +42,14 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     WETH = _WETH;
   }
 
+  /// @inheritdoc IPriceOracle
   function canSupportPair(address _tokenA, address _tokenB) external view returns (bool) {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
     return _plan != PricingPlan.NONE;
   }
 
+  /// @inheritdoc IPriceOracle
   function quote(
     address _tokenIn,
     uint128 _amountIn,
@@ -65,10 +71,12 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     }
   }
 
+  /// @inheritdoc IPriceOracle
   function reconfigureSupportForPair(address _tokenA, address _tokenB) external {
     _addSupportForPair(_tokenA, _tokenB);
   }
 
+  /// @inheritdoc IPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     if (planForPair[__tokenA][__tokenB] == PricingPlan.NONE) {
@@ -84,6 +92,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);
   }
 
+  /// @inheritdoc IChainlinkOracle
   function addUSDStablecoins(address[] calldata _addresses) external onlyGovernor {
     for (uint256 i; i < _addresses.length; i++) {
       _shouldBeConsideredUSD[_addresses[i]] = true;
@@ -91,6 +100,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     emit TokensConsideredUSD(_addresses);
   }
 
+  /// @inheritdoc IChainlinkOracle
   function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {
     require(_addresses.length == _mappings.length, 'InvalidInput');
     for (uint256 i; i < _addresses.length; i++) {
@@ -99,6 +109,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     emit MappingsAdded(_addresses, _mappings);
   }
 
+  /// @inheritdoc IChainlinkOracle
   function mappedToken(address _token) public view returns (address) {
     if (_token == RENBTC || _token == WBTC) {
       return Denominations.BTC;
@@ -226,7 +237,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _exists(address _base, address _quote) internal view returns (bool) {
-    try registry.latestAnswer(mappedToken(_base), _quote) returns (int256) {
+    try registry.latestRoundData(mappedToken(_base), _quote) returns (uint80, int256, uint256, uint256, uint80) {
       return true;
     } catch {
       return false;
@@ -246,7 +257,10 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
-    return uint256(registry.latestAnswer(_base, _quote));
+    (, int256 _price, , uint256 _updatedAt, ) = registry.latestRoundData(_base, _quote);
+    if (_price <= 0) revert InvalidPrice();
+    if (_updatedAt < block.timestamp - MAX_DELAY) revert LastUpdateIsTooOld();
+    return uint256(_price);
   }
 
   function _getETHUSD() internal view returns (uint256) {

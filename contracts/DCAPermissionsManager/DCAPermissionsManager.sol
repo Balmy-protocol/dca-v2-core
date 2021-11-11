@@ -18,14 +18,20 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   using PermissionMath for Permission[];
   using PermissionMath for uint8;
 
+  /// @inheritdoc IDCAPermissionManager
   bytes32 public constant PERMIT_TYPEHASH = keccak256('Permit(address spender,uint256 tokenId,uint256 nonce,uint256 deadline)');
+  /// @inheritdoc IDCAPermissionManager
   bytes32 public constant PERMISSION_PERMIT_TYPEHASH =
     keccak256(
       'PermissionPermit(PermissionSet[] permissions,uint256 tokenId,uint256 nonce,uint256 deadline)PermissionSet(address operator,uint8[] permissions)'
     );
+  /// @inheritdoc IDCAPermissionManager
   bytes32 public constant PERMISSION_SET_TYPEHASH = keccak256('PermissionSet(address operator,uint8[] permissions)');
+  /// @inheritdoc IDCAPermissionManager
   IDCATokenDescriptor public nftDescriptor;
+  /// @inheritdoc IDCAPermissionManager
   address public hub;
+  /// @inheritdoc IDCAPermissionManager
   mapping(address => uint256) public nonces;
   mapping(uint256 => uint32) public lastOwnershipChange;
   mapping(uint256 => mapping(address => InternalPermission)) internal _tokenPermissions;
@@ -39,12 +45,14 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     nftDescriptor = _descriptor;
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function setHub(address _hub) external {
     if (_hub == address(0)) revert ZeroAddress();
     if (hub != address(0)) revert HubAlreadySet();
     hub = _hub;
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function mint(
     uint256 _id,
     address _owner,
@@ -55,6 +63,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     _setPermissions(_id, _permissions);
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function hasPermission(
     uint256 _id,
     address _address,
@@ -68,21 +77,25 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     return _internalPermission.permissions.hasPermission(_permission) && lastOwnershipChange[_id] <= _internalPermission.lastUpdated;
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function burn(uint256 _id) external {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _burn(_id);
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function modify(uint256 _id, PermissionSet[] calldata _permissions) external {
     if (msg.sender != ownerOf(_id)) revert NotOwner();
     _modify(_id, _permissions);
   }
 
+  /// @inheritdoc IDCAPermissionManager
   // solhint-disable-next-line func-name-mixedcase
   function DOMAIN_SEPARATOR() external view returns (bytes32) {
     return _domainSeparatorV4();
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function permit(
     address _spender,
     uint256 _tokenId,
@@ -103,6 +116,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     _approve(_spender, _tokenId);
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function permissionPermit(
     PermissionSet[] calldata _permissions,
     uint256 _tokenId,
@@ -125,12 +139,14 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     _modify(_tokenId, _permissions);
   }
 
+  /// @inheritdoc IDCAPermissionManager
   function setNFTDescriptor(IDCATokenDescriptor _descriptor) external onlyGovernor {
     if (address(_descriptor) == address(0)) revert ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);
   }
 
+  /// @inheritdoc ERC721
   function tokenURI(uint256 _tokenId) public view override returns (string memory) {
     return nftDescriptor.tokenURI(hub, _tokenId);
   }
