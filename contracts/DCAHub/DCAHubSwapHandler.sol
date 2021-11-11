@@ -108,6 +108,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
   }
 
+  /// @inheritdoc IDCAHubSwapHandler
   function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
     public
     view
@@ -197,13 +198,14 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
   }
 
+  /// @inheritdoc IDCAHubSwapHandler
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
     uint256[] calldata _borrow,
     address _to,
     bytes calldata _data
-  ) public nonReentrant whenNotPaused {
+  ) external nonReentrant whenNotPaused {
     SwapInfo memory _swapInformation;
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
