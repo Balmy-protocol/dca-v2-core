@@ -22,10 +22,10 @@ interface IDCAHubParameters {
 
   /// @notice The difference of tokens to swap between a swap, and the previous one
   struct SwapDelta {
-    // How much (could be more, or could be less) of token A will the following swap require
-    int128 swapDeltaAToB;
-    // How much (could be more, or could be less) of token B will the following swap require
-    int128 swapDeltaBToA;
+    // How much less of token A will the following swap require
+    uint128 swapDeltaAToB;
+    // How much less of token B will the following swap require
+    uint128 swapDeltaBToA;
   }
 
   /// @notice The sum of the ratios the oracle reported in all executed swaps

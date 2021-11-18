@@ -14,10 +14,10 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
   bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
-  /// @inheritdoc IDCAHubConfigHandler
-  uint32 public MAX_FEE = 10 * FeeMath.FEE_PRECISION; // 10%
-  /// @inheritdoc IDCAHubConfigHandler
   // solhint-enable var-name-mixedcase
+  /// @inheritdoc IDCAHubConfigHandler
+  uint32 public constant MAX_FEE = 100000; // 10%
+  /// @inheritdoc IDCAHubConfigHandler
   uint16 public constant MAX_PLATFORM_FEE_RATIO = 10000;
 
   /// @inheritdoc IDCAHubConfigHandler
@@ -111,7 +111,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     return FeeMath.FEE_PRECISION;
   }
 
-  function _validateFee(uint32 _fee) internal view {
+  function _validateFee(uint32 _fee) internal pure {
     if (_fee > MAX_FEE) revert HighFee();
     if (_fee % 100 != 0) revert InvalidFee();
   }

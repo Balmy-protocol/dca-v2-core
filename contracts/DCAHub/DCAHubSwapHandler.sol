@@ -31,17 +31,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapDataMem.performedSwaps + 1,
         lastSwappedAt: _timestamp,
-        nextAmountToSwapAToB: _addDeltaToNextAmount(_swapDataMem.nextAmountToSwapAToB, _swapDeltaMem.swapDeltaAToB),
-        nextAmountToSwapBToA: _addDeltaToNextAmount(_swapDataMem.nextAmountToSwapBToA, _swapDeltaMem.swapDeltaBToA)
+        nextAmountToSwapAToB: _swapDataMem.nextAmountToSwapAToB - _swapDeltaMem.swapDeltaAToB,
+        nextAmountToSwapBToA: _swapDataMem.nextAmountToSwapBToA - _swapDeltaMem.swapDeltaBToA
       });
       delete _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
     } else {
       activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
-  }
-
-  function _addDeltaToNextAmount(uint224 _nextAmountToSwap, int128 _swapDelta) internal pure returns (uint224) {
-    return _swapDelta < 0 ? _nextAmountToSwap - uint128(-_swapDelta) : _nextAmountToSwap + uint128(_swapDelta);
   }
 
   function _convertTo(

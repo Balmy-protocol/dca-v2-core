@@ -314,7 +314,7 @@ contract('DCAPositionHandler', () => {
 
         expect(deltaPerformedSwaps).to.equal(0);
         expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(POSITION_RATE_5));
-        expect(deltaLastDay).to.equal(tokenA.asUnits(POSITION_RATE_5).mul(-1));
+        expect(deltaLastDay).to.equal(tokenA.asUnits(POSITION_RATE_5));
       });
 
       then('other swap intervals remain unaffected', async () => {
@@ -1227,7 +1227,7 @@ contract('DCAPositionHandler', () => {
         const { swapDeltaAToB: deltaLastSwap } = await swapAmountDelta(tokenA, tokenB, SwapInterval.ONE_DAY, PERFORMED_SWAPS_11 + newSwaps! + 1);
 
         expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(newRate!));
-        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
+        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!));
       });
     });
   }
