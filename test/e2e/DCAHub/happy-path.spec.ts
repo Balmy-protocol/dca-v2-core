@@ -520,7 +520,7 @@ contract('DCAHub', () => {
             to.address === ratio.token1.address ? ratio.ratio.token1 / ratio.ratio.token0 : ratio.ratio.token0 / ratio.ratio.token1;
           const swapped = tempRatio < 1 ? rateBN.div(1 / tempRatio) : rateBN.mul(tempRatio);
           const withCorrectDecimals = swapped.mul(to.magnitude).div(from.magnitude);
-          return substractFee(fee, withCorrectDecimals);
+          return subtractFee(fee, withCorrectDecimals);
         })
         .reduce(sumBN);
     }
@@ -648,7 +648,7 @@ contract('DCAHub', () => {
       lastBalanceTokenC.set('platform', currentBalanceC);
     }
 
-    function substractFee(fee: number, number: BigNumber) {
+    function subtractFee(fee: number, number: BigNumber) {
       const percent = 100;
       return number.mul(percent * percent - fee * percent).div(percent * percent);
     }
