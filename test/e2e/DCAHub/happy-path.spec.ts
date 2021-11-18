@@ -71,6 +71,7 @@ contract('DCAHub', () => {
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
       await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.FIFTEEN_MINUTES.seconds, SwapInterval.ONE_HOUR.seconds]);
+      await DCAHub.setPlatformFeeRatio(5000);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances(
         [tokenA.address, tokenB.address, tokenC.address],
@@ -251,7 +252,7 @@ contract('DCAHub', () => {
       const [balanceTokenA, balanceTokenB] = [await tokenA.balanceOf(DCAHub.address), await tokenB.balanceOf(DCAHub.address)];
       await loan({ callee: DCAHubLoanCallee, tokenA: balanceTokenA, tokenB: balanceTokenB });
 
-      const [loanFeeTokenA, loanFeeTokenB] = [balanceTokenA.div(1000), balanceTokenB.div(1000)];
+      const [loanFeeTokenA, loanFeeTokenB] = [balanceTokenA.div(10000), balanceTokenB.div(10000)];
       await assertHubBalanceDifferencesAre({ tokenA: loanFeeTokenA, tokenB: loanFeeTokenB });
       await assertPlatformBalanceIncreasedBy({ tokenA: loanFeeTokenA, tokenB: loanFeeTokenB });
       await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: loanFeeTokenA.mul(-1), tokenB: loanFeeTokenB.mul(-1) });
