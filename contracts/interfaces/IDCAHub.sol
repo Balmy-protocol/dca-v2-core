@@ -146,6 +146,7 @@ interface IDCAHubPositionHandler {
   /// @param rate How many "from" tokens need to be traded in each swap
   /// @param startingSwap The number of the swap when the position will be executed for the first time
   /// @param lastSwap The number of the swap when the position will be executed for the last time
+  /// @param permissions The permissions defined for the position
   event Deposited(
     address indexed depositor,
     address indexed owner,
@@ -155,7 +156,8 @@ interface IDCAHubPositionHandler {
     uint32 swapInterval,
     uint120 rate,
     uint32 startingSwap,
-    uint32 lastSwap
+    uint32 lastSwap,
+    IDCAPermissionManager.PermissionSet[] permissions
   );
 
   /// @notice Emitted when a user withdraws all swapped tokens from a position
