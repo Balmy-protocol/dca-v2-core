@@ -17,7 +17,7 @@ const COMP = { address: '0xc00e94cb662c3520282e6f5717214004a7f26888', decimals: 
 const BNT = { address: '0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c', decimals: 18, symbol: 'BNT', id: 'bancor' };
 const CRV = { address: '0xD533a949740bb3306d119CC777fa900bA034cd52', decimals: 18, symbol: 'CRV', id: 'curve-dao-token' };
 const AMP = { address: '0xff20817765cb7f73d4bde2e66e067e58d11095c2', decimals: 18, symbol: 'AMP', id: 'amp-token' };
-const DIA = { address: '0x84cA8bc7997272c7CfB4D0Cd3D55cd942B3c9419', decimals: 18, symbol: 'DIA', id: 'dia-data' };
+const FXS = { address: '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0', decimals: 18, symbol: 'FXS', id: 'frax-share' };
 const ALCX = { address: '0xdbdb4d16eda451d0503b854cf79d55697f90c8df', decimals: 18, symbol: 'ALCX', id: 'alchemix' };
 const MANA = { address: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942', decimals: 18, symbol: 'MANA', id: 'decentraland' };
 const AXS = { address: '0xbb0e17ef65f82ab018d8edd776e8dd940327b28b', decimals: 18, symbol: 'AXS', id: 'axie-infinity' };
@@ -48,7 +48,7 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   [
     // TOKEN_TO_USD_TO_TOKEN_PAIR
     { tokenIn: WBTC, tokenOut: COMP, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => USD => OUT (tokenB)
-    { tokenIn: AMP, tokenOut: DIA, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD => OUT (tokenA)
+    { tokenIn: AMP, tokenOut: FXS, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD => OUT (tokenA)
   ],
   [
     // TOKEN_TO_ETH_TO_TOKEN_PAIR
@@ -57,13 +57,13 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   ],
   [
     // TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B
-    { tokenIn: DIA, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // IN (tokenA) => USD, OUT (tokenB) is ETH
+    { tokenIn: FXS, tokenOut: WETH, price: { quote: 'IN', currency: 'eth' } }, // IN (tokenA) => USD, OUT (tokenB) is ETH
     { tokenIn: WETH, tokenOut: MATIC, price: { quote: 'OUT', currency: 'eth' } }, // IN (tokenB) is ETH, USD => OUT (tokenA)
 
     { tokenIn: USDC, tokenOut: AXS, price: { quote: 'OUT', currency: 'usd' } }, // IN (tokenA) is USD, ETH => OUT (tokenB)
     { tokenIn: ALCX, tokenOut: USDT, price: { quote: 'IN', currency: 'usd' } }, // IN (tokenB) => ETH, OUT is USD (tokenA)
 
-    { tokenIn: DIA, tokenOut: AXS, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => USD, ETH => OUT (tokenB)
+    { tokenIn: FXS, tokenOut: AXS, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => USD, ETH => OUT (tokenB)
     { tokenIn: ALCX, tokenOut: MATIC, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => ETH, USD => OUT (tokenA)
   ],
   [
@@ -75,9 +75,11 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
     { tokenIn: AMP, tokenOut: WETH, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenB) => USD, OUT is ETH (tokenA)
 
     { tokenIn: AXS, tokenOut: AMP, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => ETH, USD => OUT (tokenB)
-    { tokenIn: DIA, tokenOut: MANA, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD, ETH => OUT (tokenA)
+    { tokenIn: FXS, tokenOut: MANA, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD, ETH => OUT (tokenA)
   ],
 ];
+
+const TRESHOLD_PERCENTAGE = 2; // In mainnet, max threshold is usually 2%
 
 contract('ChainlinkOracle', () => {
   before(async () => {
@@ -98,14 +100,17 @@ contract('ChainlinkOracle', () => {
           const quote = await oracle.quote(tokenIn.address, utils.parseUnits('1', tokenIn.decimals), tokenOut.address);
 
           const coingeckoPrice = await getPriceBetweenTokens(tokenIn, tokenOut, price);
-          const onePercent = coingeckoPrice / 100;
-          const upperThreshold = convertPriceToBigNumberWithDecimals(coingeckoPrice + onePercent, tokenOut.decimals);
-          const lowerThreshold = convertPriceToBigNumberWithDecimals(coingeckoPrice - onePercent, tokenOut.decimals);
+          const expected = convertPriceToBigNumberWithDecimals(coingeckoPrice, tokenOut.decimals);
+          const threshold = expected.mul(TRESHOLD_PERCENTAGE * 10).div(100 * 10);
+          const [upperThreshold, lowerThreshold] = [expected.add(threshold), expected.sub(threshold)];
+          const diff = quote.sub(expected);
+          const sign = diff.isNegative() ? '-' : '+';
+          const diffPercentage = diff.abs().mul(10000).div(expected).toNumber() / 100;
 
           expect(
             quote.lte(upperThreshold) && quote.gte(lowerThreshold),
-            `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]`
-          );
+            `Expected ${quote.toString()} to be within [${lowerThreshold.toString()},${upperThreshold.toString()}]. Diff was ${sign}${diffPercentage}%`
+          ).to.be.true;
         });
         then(`pricing plan is the correct one`, async () => {
           const plan1 = await oracle.planForPair(tokenIn.address, tokenOut.address);
@@ -122,7 +127,7 @@ async function getPriceBetweenTokens(tokenA: Token, tokenB: Token, compare: Pric
   if (compare.quote === 'IN') {
     return fetchPrice(tokenA.id, compare.currency);
   } else if (compare.quote === 'OUT') {
-    return fetchPrice(tokenB.id, compare.currency);
+    return 1 / (await fetchPrice(tokenB.id, compare.currency));
   } else {
     const tokenAPrice = await fetchPrice(tokenA.id, compare.currency);
     const tokenBPrice = await fetchPrice(tokenB.id, compare.currency);

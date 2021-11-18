@@ -1,6 +1,6 @@
 {
   "name": "@mean-finance/dca-v2-core",
-  "version": "1.0.0-rc.4",
+  "version": "1.0.0-rc.8",
   "description": "💱 Core smart contracts of DCA v2 by mean.finance",
   "keywords": [
     "ethereum",
@@ -21,14 +21,15 @@
   "files": [
     "contracts/libraries",
     "contracts/interfaces",
-    "artifacts/contracts/interfaces/**/*.json",
-    "artifacts/contracts/libraries/**/*.json",
+    "artifacts/contracts/**/*.json",
+    "!artifacts/contracts/mocks",
     "!artifacts/contracts/**/**/*.dbg.json",
     "typechained",
     "!typechained/**/*Mock*",
     "deployments",
     "!deployments/localhost",
-    "!.env"
+    "!.env",
+    "!**/.DS_Store"
   ],
   "scripts": {
     "compile": "npx hardhat compile",
