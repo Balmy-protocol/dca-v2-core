@@ -139,7 +139,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     } else if (_plan == PricingPlan.TOKEN_ETH_PAIR) {
       _price = _getPriceAgainstETH(_tokenOut == WETH ? _tokenIn : _tokenOut);
     }
-    if (_needsInverting) {
+    if (!_needsInverting) {
       return _adjustDecimals(_price * _amountIn, _outDecimals - _resultDecimals - _inDecimals);
     } else {
       return _adjustDecimals(_adjustDecimals(_amountIn, _resultDecimals + _outDecimals) / _price, -_inDecimals);
