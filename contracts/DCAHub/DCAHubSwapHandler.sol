@@ -175,7 +175,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       uint256 _totalBeingSwapped = _total[i];
 
       if (_neededInSwap > 0 || _totalBeingSwapped > 0) {
-        uint256 _totalFee = FeeMath.calculatesubtractedFee(_swapFee, _neededInSwap);
+        uint256 _totalFee = FeeMath.calculateSubtractedFee(_swapFee, _neededInSwap);
 
         int256 _platformFee = int256((_totalFee * _platformFeeRatio) / MAX_PLATFORM_FEE_RATIO);
 

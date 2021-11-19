@@ -11,7 +11,7 @@ library FeeMath {
   /// @param _fee Fee that was applied
   /// @param _subtractionResult Amount that had the fee subtracted
   /// @return The amount that was subtracted
-  function calculatesubtractedFee(uint32 _fee, uint256 _subtractionResult) internal pure returns (uint256) {
+  function calculateSubtractedFee(uint32 _fee, uint256 _subtractionResult) internal pure returns (uint256) {
     return (_subtractionResult * _fee) / (FEE_PRECISION * 100 - _fee);
   }
 
