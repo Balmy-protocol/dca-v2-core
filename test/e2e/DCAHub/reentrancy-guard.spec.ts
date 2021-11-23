@@ -98,12 +98,13 @@ contract('DCAHub', () => {
       });
 
       testReentrantForFunction({
-        funcAndSignature: 'swap(address[],(uint8,uint8)[],uint256[],address,bytes)',
+        funcAndSignature: 'swap(address[],(uint8,uint8)[],address,address,uint256[],bytes)',
         args: () => [
           [tokenA.address, tokenB.address],
           [{ indexTokenA: 0, indexTokenB: 1 }],
-          [0, 0],
           reentrantDCAHubSwapCallee.address,
+          reentrantDCAHubSwapCallee.address,
+          [0, 0],
           utils.formatBytes32String(''),
         ],
         attackerContract: () => reentrantDCAHubSwapCallee,
@@ -217,7 +218,7 @@ contract('DCAHub', () => {
         args,
         attackerContract,
         attack: async () => {
-          const result = await DCAHub.populateTransaction.swap([], [], [], constants.NOT_ZERO_ADDRESS, '0x');
+          const result = await DCAHub.populateTransaction.swap([], [], constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, [], '0x');
           return result.data!;
         },
       });
