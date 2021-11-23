@@ -104,10 +104,10 @@ contract('DCAHub', () => {
 
     function calculateSwapped() {
       const swapped = MAX_RATE.mul(TOTAL_AMOUNT_OF_SWAPS).mul(AMOUNT_OF_POSITIONS).mul(tokenB.magnitude).div(tokenA.magnitude);
-      return substractFee(0.6, swapped);
+      return subtractFee(0.6, swapped);
     }
 
-    function substractFee(fee: number, number: BigNumber) {
+    function subtractFee(fee: number, number: BigNumber) {
       const percent = 100;
       return number.mul(percent * percent - fee * percent).div(percent * percent);
     }

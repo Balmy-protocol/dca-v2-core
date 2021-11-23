@@ -31,17 +31,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapDataMem.performedSwaps + 1,
         lastSwappedAt: _timestamp,
-        nextAmountToSwapAToB: _addDeltaToNextAmount(_swapDataMem.nextAmountToSwapAToB, _swapDeltaMem.swapDeltaAToB),
-        nextAmountToSwapBToA: _addDeltaToNextAmount(_swapDataMem.nextAmountToSwapBToA, _swapDeltaMem.swapDeltaBToA)
+        nextAmountToSwapAToB: _swapDataMem.nextAmountToSwapAToB - _swapDeltaMem.swapDeltaAToB,
+        nextAmountToSwapBToA: _swapDataMem.nextAmountToSwapBToA - _swapDeltaMem.swapDeltaBToA
       });
       delete _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
     } else {
       activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
-  }
-
-  function _addDeltaToNextAmount(uint224 _nextAmountToSwap, int128 _swapDelta) internal pure returns (uint224) {
-    return _swapDelta < 0 ? _nextAmountToSwap - uint128(-_swapDelta) : _nextAmountToSwap + uint128(_swapDelta);
   }
 
   function _convertTo(
@@ -50,7 +46,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _rateFromTo,
     uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    uint256 _numerator = (_amountFrom * FeeMath.substractFeeFromAmount(_swapFee, _rateFromTo));
+    uint256 _numerator = (_amountFrom * FeeMath.subtractFeeFromAmount(_swapFee, _rateFromTo));
     _amountTo = _numerator / _fromTokenMagnitude;
     // Note: we need to round up because we can't ask for less than what we actually need
     if (_numerator % _fromTokenMagnitude != 0) _amountTo++;
@@ -179,7 +175,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       uint256 _totalBeingSwapped = _total[i];
 
       if (_neededInSwap > 0 || _totalBeingSwapped > 0) {
-        uint256 _totalFee = FeeMath.calculateSubstractedFee(_swapFee, _neededInSwap);
+        uint256 _totalFee = FeeMath.calculateSubtractedFee(_swapFee, _neededInSwap);
 
         int256 _platformFee = int256((_totalFee * _platformFeeRatio) / MAX_PLATFORM_FEE_RATIO);
 
@@ -225,8 +221,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
               _pairInSwap.tokenA,
               _pairInSwap.tokenB,
               _mask,
-              FeeMath.substractFeeFromAmount(_swapFee, _pairInSwap.ratioAToB),
-              FeeMath.substractFeeFromAmount(_swapFee, _pairInSwap.ratioBToA),
+              FeeMath.subtractFeeFromAmount(_swapFee, _pairInSwap.ratioAToB),
+              FeeMath.subtractFeeFromAmount(_swapFee, _pairInSwap.ratioBToA),
               _timestamp
             );
           }
