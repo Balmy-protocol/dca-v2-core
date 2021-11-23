@@ -19,6 +19,7 @@ contract DCAHubSwapCalleeMock is IDCAHubSwapCallee {
   mapping(address => uint256) private _amountToReturn;
   SwapCall private _lastCall;
   bool private _returnAsExpected = true;
+  bool private _avoidRewardCheck = false;
 
   // solhint-disable-next-line func-name-mixedcase
   function DCAHubSwapCall(
@@ -27,11 +28,13 @@ contract DCAHubSwapCalleeMock is IDCAHubSwapCallee {
     uint256[] calldata _borrowed,
     bytes calldata _data
   ) external {
-    for (uint256 i; i < _tokens.length; i++) {
-      require(
-        IERC20Metadata(_tokens[i].token).balanceOf(address(this)) == _initialBalance[_tokens[i].token] + _borrowed[i] + _tokens[i].reward,
-        'DCAHubSwapCallee: token not sent optimistically'
-      );
+    if (!_avoidRewardCheck) {
+      for (uint256 i; i < _tokens.length; i++) {
+        require(
+          IERC20Metadata(_tokens[i].token).balanceOf(address(this)) == _initialBalance[_tokens[i].token] + _borrowed[i] + _tokens[i].reward,
+          'DCAHubSwapCallee: token not sent optimistically'
+        );
+      }
     }
     _lastCall.hub = msg.sender;
     _lastCall.sender = _sender;
@@ -54,6 +57,10 @@ contract DCAHubSwapCalleeMock is IDCAHubSwapCallee {
       uint256 _amount = _returnAsExpected ? _borrowed[i] + _tokens[i].toProvide : _amountToReturn[_tokens[i].token];
       IERC20Metadata(_tokens[i].token).transfer(msg.sender, _amount);
     }
+  }
+
+  function avoidRewardCheck() external {
+    _avoidRewardCheck = true;
   }
 
   function setInitialBalances(address[] calldata _tokens, uint256[] calldata _amounts) external {

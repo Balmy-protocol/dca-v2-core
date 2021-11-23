@@ -4,14 +4,12 @@ import { BigNumber, BigNumberish } from 'ethers';
 import { ethers } from 'hardhat';
 
 describe('NFTDescriptor', () => {
-  let NFTDescriptorContract: NFTDescriptorMock__factory;
   let NFTDescriptor: NFTDescriptorMock;
 
   before('Setup accounts and contracts', async () => {
-    NFTDescriptorContract = await ethers.getContractFactory('contracts/mocks/libraries/NFTDescriptor.sol:NFTDescriptorMock');
-  });
-
-  beforeEach('Deploy and configure', async () => {
+    const NFTDescriptorContract: NFTDescriptorMock__factory = await ethers.getContractFactory(
+      'contracts/mocks/libraries/NFTDescriptor.sol:NFTDescriptorMock'
+    );
     NFTDescriptor = await NFTDescriptorContract.deploy();
   });
 

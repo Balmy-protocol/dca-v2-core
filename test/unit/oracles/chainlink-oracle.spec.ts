@@ -86,9 +86,6 @@ describe('ChainlinkOracle', () => {
 
   describe('canSupportPair', () => {
     when('no plan can be found for pair', () => {
-      given(async () => {
-        await chainlinkOracle.setPricingPlan(TOKEN_A, TOKEN_B, NO_PLAN);
-      });
       then('pair is not supported', async () => {
         expect(await chainlinkOracle.canSupportPair(TOKEN_A, TOKEN_B)).to.be.false;
       });

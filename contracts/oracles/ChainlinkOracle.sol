@@ -237,8 +237,8 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _exists(address _base, address _quote) internal view returns (bool) {
-    try registry.latestRoundData(mappedToken(_base), _quote) returns (uint80, int256, uint256, uint256, uint80) {
-      return true;
+    try registry.latestRoundData(mappedToken(_base), _quote) returns (uint80, int256 _price, uint256, uint256, uint80) {
+      return _price > 0;
     } catch {
       return false;
     }

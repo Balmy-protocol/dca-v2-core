@@ -5,11 +5,12 @@ import { when, then } from '@test-utils/bdd';
 import { Permission } from 'js-lib/types';
 
 describe('Permission Math', () => {
-  let permissionMathFactory: PermissionMathMock__factory;
   let permissionMath: PermissionMathMock;
 
   before('Setup accounts and contracts', async () => {
-    permissionMathFactory = await ethers.getContractFactory('contracts/mocks/libraries/PermissionMath.sol:PermissionMathMock');
+    const permissionMathFactory: PermissionMathMock__factory = await ethers.getContractFactory(
+      'contracts/mocks/libraries/PermissionMath.sol:PermissionMathMock'
+    );
     permissionMath = await permissionMathFactory.deploy();
   });
 

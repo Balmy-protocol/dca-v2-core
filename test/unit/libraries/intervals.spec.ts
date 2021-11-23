@@ -6,14 +6,10 @@ import { SwapInterval } from 'js-lib/interval-utils';
 import { behaviours } from '@test-utils';
 
 describe('Intervals', () => {
-  let intervalsFactory: IntervalsMock__factory;
   let intervals: IntervalsMock;
 
   before('Setup accounts and contracts', async () => {
-    intervalsFactory = await ethers.getContractFactory('contracts/mocks/libraries/Intervals.sol:IntervalsMock');
-  });
-
-  beforeEach('Deploy and configure', async () => {
+    const intervalsFactory: IntervalsMock__factory = await ethers.getContractFactory('contracts/mocks/libraries/Intervals.sol:IntervalsMock');
     intervals = await intervalsFactory.deploy();
   });
 
