@@ -22,10 +22,10 @@ interface IDCAHubParameters {
 
   /// @notice The difference of tokens to swap between a swap, and the previous one
   struct SwapDelta {
-    // How much (could be more, or could be less) of token A will the following swap require
-    int128 swapDeltaAToB;
-    // How much (could be more, or could be less) of token B will the following swap require
-    int128 swapDeltaBToA;
+    // How much less of token A will the following swap require
+    uint128 swapDeltaAToB;
+    // How much less of token B will the following swap require
+    uint128 swapDeltaBToA;
   }
 
   /// @notice The sum of the ratios the oracle reported in all executed swaps
@@ -75,6 +75,18 @@ interface IDCAHubParameters {
     address _tokenB,
     bytes1 _swapIntervalMask
   ) external view returns (SwapData memory);
+
+  /// @notice Returns the byte representation of the set of actice swap intervals for the given pair
+  /// @dev `_tokenA` must be smaller than `_tokenB` (_tokenA < _tokenB)
+  /// @param _tokenA The smaller of the pair's token
+  /// @param _tokenB The other of the pair's token
+  /// @return The byte representation of the set of actice swap intervals
+  function activeSwapIntervals(address _tokenA, address _tokenB) external view returns (bytes1);
+
+  /// @notice Returns how much of the hub's token balance belongs to the platform
+  /// @param _token The token to check
+  /// @return The amount that belongs to the platform
+  function platformBalance(address _token) external view returns (uint256);
 }
 
 /// @title The interface for all position related matters
@@ -134,6 +146,7 @@ interface IDCAHubPositionHandler {
   /// @param rate How many "from" tokens need to be traded in each swap
   /// @param startingSwap The number of the swap when the position will be executed for the first time
   /// @param lastSwap The number of the swap when the position will be executed for the last time
+  /// @param permissions The permissions defined for the position
   event Deposited(
     address indexed depositor,
     address indexed owner,
@@ -143,7 +156,8 @@ interface IDCAHubPositionHandler {
     uint32 swapInterval,
     uint120 rate,
     uint32 startingSwap,
-    uint32 lastSwap
+    uint32 lastSwap,
+    IDCAPermissionManager.PermissionSet[] permissions
   );
 
   /// @notice Emitted when a user withdraws all swapped tokens from a position
@@ -192,6 +206,10 @@ interface IDCAHubPositionHandler {
 
   /// @notice Thrown when a user tries create or modify a position with an amount too big
   error AmountTooBig();
+
+  /// @notice Returns the permission manager contract
+  /// @return The contract itself
+  function permissionManager() external view returns (IDCAPermissionManager);
 
   /// @notice Returns a user position
   /// @param _positionId The id of the position
@@ -453,12 +471,6 @@ interface IDCAHubConfigHandler {
 
   /// @notice Thrown when trying to set a fee ratio that is higher that the maximum allowed
   error HighPlatformFeeRatio();
-
-  /// @notice Returns the precision used for fees. In other terms, how a 1% fee would look like
-  /// @dev Cannot be modified
-  /// @return The fee precision
-  // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() external view returns (uint32);
 
   /// @notice Returns the max fee ratio that can be set
   /// @dev Cannot be modified
