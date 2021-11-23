@@ -80,7 +80,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _swapInterval,
       _rate,
       _userPosition.swapWhereLastUpdated + 1,
-      _userPosition.finalSwap
+      _userPosition.finalSwap,
+      _permissions
     );
     return _positionId;
   }
