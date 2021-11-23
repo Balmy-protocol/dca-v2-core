@@ -25,11 +25,11 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   /// @inheritdoc IDCAHubConfigHandler
   uint32 public swapFee = 6000; // 0.6%
   /// @inheritdoc IDCAHubConfigHandler
-  uint32 public loanFee = 1000; // 0.1%
+  uint32 public loanFee = 100; // 0.01%
   /// @inheritdoc IDCAHubConfigHandler
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
   /// @inheritdoc IDCAHubConfigHandler
-  uint16 public platformFeeRatio = 5000; // 50%
+  uint16 public platformFeeRatio = 2500; // 25%
 
   constructor(
     address _immediateGovernor,
@@ -103,12 +103,6 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   /// @inheritdoc IDCAHubConfigHandler
   function paused() public view virtual override(IDCAHubConfigHandler, Pausable) returns (bool) {
     return super.paused();
-  }
-
-  /// @inheritdoc IDCAHubConfigHandler
-  // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() external pure returns (uint32) {
-    return FeeMath.FEE_PRECISION;
   }
 
   function _validateFee(uint32 _fee) internal pure {

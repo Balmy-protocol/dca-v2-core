@@ -25,6 +25,16 @@ export async function readArgFromEventOrFail<T>(response: TransactionResponse, e
   throw new Error(`Failed to find event with name ${eventName}`);
 }
 
+export async function getEventArgs<T>(response: TransactionResponse, eventName: string): Promise<T> {
+  const receipt = await response.wait();
+  for (const event of getEvents(receipt)) {
+    if (event.event === eventName) {
+      return event.args;
+    }
+  }
+  throw new Error(`Failed to find event with name ${eventName}`);
+}
+
 function getEvents(receipt: TransactionReceipt): Event[] {
   // @ts-ignore
   return receipt.events;
