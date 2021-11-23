@@ -129,7 +129,7 @@ contract('DCAHub', () => {
 
     async function flashSwap({ callee }: { callee: HasAddress }) {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-      await DCAHub.swap(tokens, pairIndexes, borrow, callee.address, ethers.utils.randomBytes(5));
+      await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5));
     }
 
     async function setInitialBalance(
