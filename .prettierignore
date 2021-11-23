@@ -13,6 +13,7 @@ CHANGELOG.md
 codechecks.yml
 gasReporterOutput-*.json
 **/LICENSE
+audits
 
 # Hardhat
 artifacts
