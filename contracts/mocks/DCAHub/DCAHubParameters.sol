@@ -17,14 +17,6 @@ contract DCAHubParametersMock is DCAHubParameters {
     activeSwapIntervals[_tokenA][_tokenB] |= _swapIntervalMask;
   }
 
-  function removeActiveSwapInterval(
-    address _tokenA,
-    address _tokenB,
-    bytes1 _swapIntervalMask
-  ) external {
-    activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
-  }
-
   function setSwapAmountDelta(
     address _tokenA,
     address _tokenB,

@@ -79,7 +79,7 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   ],
 ];
 
-const TRESHOLD_PERCENTAGE = 2; // In mainnet, max threshold is usually 2%
+const TRESHOLD_PERCENTAGE = 2.5; // In mainnet, max threshold is usually 2%, but since we are combining pairs, it can sometimes be a little higer
 
 contract('ChainlinkOracle', () => {
   before(async () => {
