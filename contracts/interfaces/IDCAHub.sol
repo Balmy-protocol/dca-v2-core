@@ -22,10 +22,10 @@ interface IDCAHubParameters {
 
   /// @notice The difference of tokens to swap between a swap, and the previous one
   struct SwapDelta {
-    // How much (could be more, or could be less) of token A will the following swap require
-    int128 swapDeltaAToB;
-    // How much (could be more, or could be less) of token B will the following swap require
-    int128 swapDeltaBToA;
+    // How much less of token A will the following swap require
+    uint128 swapDeltaAToB;
+    // How much less of token B will the following swap require
+    uint128 swapDeltaBToA;
   }
 
   /// @notice The sum of the ratios the oracle reported in all executed swaps
@@ -75,6 +75,18 @@ interface IDCAHubParameters {
     address _tokenB,
     bytes1 _swapIntervalMask
   ) external view returns (SwapData memory);
+
+  /// @notice Returns the byte representation of the set of actice swap intervals for the given pair
+  /// @dev `_tokenA` must be smaller than `_tokenB` (_tokenA < _tokenB)
+  /// @param _tokenA The smaller of the pair's token
+  /// @param _tokenB The other of the pair's token
+  /// @return The byte representation of the set of actice swap intervals
+  function activeSwapIntervals(address _tokenA, address _tokenB) external view returns (bytes1);
+
+  /// @notice Returns how much of the hub's token balance belongs to the platform
+  /// @param _token The token to check
+  /// @return The amount that belongs to the platform
+  function platformBalance(address _token) external view returns (uint256);
 }
 
 /// @title The interface for all position related matters
@@ -134,6 +146,7 @@ interface IDCAHubPositionHandler {
   /// @param rate How many "from" tokens need to be traded in each swap
   /// @param startingSwap The number of the swap when the position will be executed for the first time
   /// @param lastSwap The number of the swap when the position will be executed for the last time
+  /// @param permissions The permissions defined for the position
   event Deposited(
     address indexed depositor,
     address indexed owner,
@@ -143,7 +156,8 @@ interface IDCAHubPositionHandler {
     uint32 swapInterval,
     uint120 rate,
     uint32 startingSwap,
-    uint32 lastSwap
+    uint32 lastSwap,
+    IDCAPermissionManager.PermissionSet[] permissions
   );
 
   /// @notice Emitted when a user withdraws all swapped tokens from a position
@@ -193,6 +207,10 @@ interface IDCAHubPositionHandler {
   /// @notice Thrown when a user tries create or modify a position with an amount too big
   error AmountTooBig();
 
+  /// @notice Returns the permission manager contract
+  /// @return The contract itself
+  function permissionManager() external view returns (IDCAPermissionManager);
+
   /// @notice Returns a user position
   /// @param _positionId The id of the position
   /// @return _position The position itself
@@ -241,7 +259,8 @@ interface IDCAHubPositionHandler {
   /// With PositionDoesNotMatchToken if any of the positions do not match the token in their position set
   /// @param _positions A list positions, grouped by `to` token
   /// @param _recipient The address to withdraw swapped tokens to
-  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external;
+  /// @return _withdrawn How much was withdrawn for each token
+  function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external returns (uint256[] memory _withdrawn);
 
   /// @notice Takes the unswapped balance, adds the new deposited funds and modifies the position so that
   /// it is executed in _newSwaps swaps
@@ -284,11 +303,13 @@ interface IDCAHubPositionHandler {
   /// @param _positionId The position's id
   /// @param _recipientUnswapped The address to withdraw unswapped tokens to
   /// @param _recipientSwapped The address to withdraw swapped tokens to
+  /// @return _unswapped The unswapped balance sent to `_recipientUnswapped`
+  /// @return _swapped The swapped balance sent to `_recipientSwapped`
   function terminate(
     uint256 _positionId,
     address _recipientUnswapped,
     address _recipientSwapped
-  ) external;
+  ) external returns (uint256 _unswapped, uint256 _swapped);
 }
 
 /// @title The interface for all swap related matters
@@ -338,11 +359,19 @@ interface IDCAHubSwapHandler {
 
   /// @notice Emitted when a swap is executed
   /// @param sender The address of the user that initiated the swap
-  /// @param to The address that received the reward + loan
+  /// @param rewardRecipient The address that received the reward
+  /// @param callbackHandler The address that executed the callback
   /// @param swapInformation All information related to the swap
   /// @param borrowed How much was borrowed
   /// @param fee The swap fee at the moment of the swap
-  event Swapped(address indexed sender, address indexed to, SwapInfo swapInformation, uint256[] borrowed, uint32 fee);
+  event Swapped(
+    address indexed sender,
+    address indexed rewardRecipient,
+    address indexed callbackHandler,
+    SwapInfo swapInformation,
+    uint256[] borrowed,
+    uint32 fee
+  );
 
   /// @notice Thrown when pairs indexes are not sorted correctly
   error InvalidPairs();
@@ -368,16 +397,19 @@ interface IDCAHubSwapHandler {
   /// LiquidityNotReturned if the required tokens were not back during the callback
   /// @param _tokens The tokens involved in the next swap
   /// @param _pairsToSwap The pairs that you want to swap. Each element of the list points to the index of the token in the _tokens array
+  /// @param _rewardRecipient The address to send the reward to
+  /// @param _callbackHandler Address to call for callback (and send the borrowed tokens to)
   /// @param _borrow How much to borrow of each of the tokens in _tokens. The amount must match the position of the token in the _tokens array
-  /// @param _to Address to send the reward + the borrowed tokens
   /// @param _data Bytes to send to the caller during the callback
+  /// @return Information about the executed swap
   function swap(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairsToSwap,
+    address _rewardRecipient,
+    address _callbackHandler,
     uint256[] calldata _borrow,
-    address _to,
     bytes calldata _data
-  ) external;
+  ) external returns (SwapInfo memory);
 }
 
 /// @title The interface for all loan related matters
@@ -439,12 +471,6 @@ interface IDCAHubConfigHandler {
 
   /// @notice Thrown when trying to set a fee ratio that is higher that the maximum allowed
   error HighPlatformFeeRatio();
-
-  /// @notice Returns the precision used for fees. In other terms, how a 1% fee would look like
-  /// @dev Cannot be modified
-  /// @return The fee precision
-  // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() external view returns (uint32);
 
   /// @notice Returns the max fee ratio that can be set
   /// @dev Cannot be modified

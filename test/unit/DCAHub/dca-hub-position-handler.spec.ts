@@ -4,7 +4,7 @@ import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermi
 import { erc20, behaviours, constants, wallet } from '@test-utils';
 import chai, { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import { getEventArgs, readArgFromEventOrFail } from '@test-utils/event-utils';
 import { when, then, given, contract } from '@test-utils/bdd';
 import { TokenContract } from '@test-utils/erc20';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -267,19 +267,22 @@ contract('DCAPositionHandler', () => {
       });
 
       then('event is emitted correctly', async () => {
-        await expect(tx)
-          .to.emit(DCAPositionHandler, 'Deposited')
-          .withArgs(
-            owner.address,
-            nftOwner,
-            1,
-            tokenA.address,
-            tokenB.address,
-            SwapInterval.ONE_DAY.seconds,
-            tokenA.asUnits(POSITION_RATE_5),
-            PERFORMED_SWAPS_10 + 1,
-            PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10
-          );
+        const [depositor, positionOwner, positionId, from, to, interval, rate, startSwap, lastSwap, positionPermissions] = await getEventArgs(
+          tx,
+          'Deposited'
+        );
+        expect(depositor).to.equal(owner.address);
+        expect(nftOwner).to.equal(positionOwner);
+        expect(positionId).to.equal(1);
+        expect(from).to.equal(tokenA.address);
+        expect(to).to.equal(tokenB.address);
+        expect(interval).to.equal(SwapInterval.ONE_DAY.seconds);
+        expect(rate).to.equal(tokenA.asUnits(POSITION_RATE_5));
+        expect(startSwap).to.equal(PERFORMED_SWAPS_10 + 1);
+        expect(lastSwap).to.equal(PERFORMED_SWAPS_10 + POSITION_SWAPS_TO_PERFORM_10);
+        expect(positionPermissions.length).to.equal(1);
+        expect(positionPermissions[0].operator).to.equal(permissions[0].operator);
+        expect(positionPermissions[0].permissions).to.eql(permissions[0].permissions);
       });
 
       then('correct amount is transferred from sender', async () => {
@@ -314,7 +317,7 @@ contract('DCAPositionHandler', () => {
 
         expect(deltaPerformedSwaps).to.equal(0);
         expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(POSITION_RATE_5));
-        expect(deltaLastDay).to.equal(tokenA.asUnits(POSITION_RATE_5).mul(-1));
+        expect(deltaLastDay).to.equal(tokenA.asUnits(POSITION_RATE_5));
       });
 
       then('other swap intervals remain unaffected', async () => {
@@ -1227,7 +1230,7 @@ contract('DCAPositionHandler', () => {
         const { swapDeltaAToB: deltaLastSwap } = await swapAmountDelta(tokenA, tokenB, SwapInterval.ONE_DAY, PERFORMED_SWAPS_11 + newSwaps! + 1);
 
         expect(nextAmountToSwapAToB).to.equal(tokenA.asUnits(newRate!));
-        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!).mul(-1));
+        expect(deltaLastSwap).to.equal(tokenA.asUnits(newRate!));
       });
     });
   }

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.8.7 <0.9.0;
 
-import '../DCAHub/DCAHub.sol';
-
 /// @title The interface for generating a token's description
 /// @notice Contracts that implement this interface must return a base64 JSON with the entire description
 interface IDCATokenDescriptor {

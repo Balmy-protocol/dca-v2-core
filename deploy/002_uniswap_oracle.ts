@@ -15,5 +15,5 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 };
 
 deployFunction.tags = ['UniswapOracle'];
-deployFunction.dependencies = ['Timelock'];
+deployFunction.dependencies = ['ChainlinkOracle'];
 export default deployFunction;

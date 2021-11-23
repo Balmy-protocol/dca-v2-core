@@ -104,10 +104,10 @@ contract('DCAHub', () => {
 
     function calculateSwapped() {
       const swapped = MAX_RATE.mul(TOTAL_AMOUNT_OF_SWAPS).mul(AMOUNT_OF_POSITIONS).mul(tokenB.magnitude).div(tokenA.magnitude);
-      return substractFee(0.6, swapped);
+      return subtractFee(0.6, swapped);
     }
 
-    function substractFee(fee: number, number: BigNumber) {
+    function subtractFee(fee: number, number: BigNumber) {
       const percent = 100;
       return number.mul(percent * percent - fee * percent).div(percent * percent);
     }
@@ -131,7 +131,7 @@ contract('DCAHub', () => {
     async function flashSwap({ times }: { times: number }) {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
       for (let i = 0; i < times; i++) {
-        await DCAHub.swap(tokens, pairIndexes, borrow, DCAHubSwapCallee.address, ethers.utils.randomBytes(5));
+        await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5));
         await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
       }
     }
