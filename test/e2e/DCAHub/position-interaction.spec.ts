@@ -216,7 +216,7 @@ contract('DCAHub', () => {
           [tokenA.address, tokenB.address],
           [await tokenA.balanceOf(DCAHubSwapCallee.address), await tokenB.balanceOf(DCAHubSwapCallee.address)]
         );
-        await DCAHub.swap(tokens, pairIndexes, borrow, DCAHubSwapCallee.address, ethers.utils.randomBytes(5));
+        await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5));
         await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
       }
     }
