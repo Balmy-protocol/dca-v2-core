@@ -97,10 +97,10 @@ contract('DCAHubConfigHandler', () => {
           expect(await isSwapIntervalAllowed(interval)).to.be.false;
         }
       });
-      then(`platform fee ratio starts at 50%`, async () => {
+      then(`platform fee ratio starts at 25%`, async () => {
         const platformFeeRatio = await deployedContract.platformFeeRatio();
         const maxPlatformFeeRatio = await deployedContract.MAX_PLATFORM_FEE_RATIO();
-        expect(platformFeeRatio).to.equal(maxPlatformFeeRatio / 2);
+        expect(platformFeeRatio).to.equal(maxPlatformFeeRatio / 4);
       });
     });
   });

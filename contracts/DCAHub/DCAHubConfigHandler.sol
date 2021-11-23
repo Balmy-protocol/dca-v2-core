@@ -13,11 +13,10 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   // solhint-disable var-name-mixedcase
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
+  bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
   // solhint-enable var-name-mixedcase
-  bytes32 public constant PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
   /// @inheritdoc IDCAHubConfigHandler
-  // solhint-disable-next-line var-name-mixedcase
-  uint32 public MAX_FEE = 10 * FeeMath.FEE_PRECISION; // 10%
+  uint32 public constant MAX_FEE = 100000; // 10%
   /// @inheritdoc IDCAHubConfigHandler
   uint16 public constant MAX_PLATFORM_FEE_RATIO = 10000;
 
@@ -26,11 +25,11 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   /// @inheritdoc IDCAHubConfigHandler
   uint32 public swapFee = 6000; // 0.6%
   /// @inheritdoc IDCAHubConfigHandler
-  uint32 public loanFee = 1000; // 0.1%
+  uint32 public loanFee = 100; // 0.01%
   /// @inheritdoc IDCAHubConfigHandler
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
   /// @inheritdoc IDCAHubConfigHandler
-  uint16 public platformFeeRatio = 5000; // 50%
+  uint16 public platformFeeRatio = 2500; // 25%
 
   constructor(
     address _immediateGovernor,
@@ -106,13 +105,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     return super.paused();
   }
 
-  /// @inheritdoc IDCAHubConfigHandler
-  // solhint-disable-next-line func-name-mixedcase
-  function FEE_PRECISION() external pure returns (uint32) {
-    return FeeMath.FEE_PRECISION;
-  }
-
-  function _validateFee(uint32 _fee) internal view {
+  function _validateFee(uint32 _fee) internal pure {
     if (_fee > MAX_FEE) revert HighFee();
     if (_fee % 100 != 0) revert InvalidFee();
   }
