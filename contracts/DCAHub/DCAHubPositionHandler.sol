@@ -38,8 +38,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _newestSwapToConsider = _min(_performedSwaps, _position.finalSwap);
     _userPosition.from = IERC20Metadata(_position.from);
     _userPosition.to = IERC20Metadata(_position.to);
-    _userPosition.swapsExecuted = _substractIfPossible(_newestSwapToConsider, _position.swapWhereLastUpdated);
-    _userPosition.swapsLeft = _substractIfPossible(_position.finalSwap, _performedSwaps);
+    _userPosition.swapsExecuted = _subtractIfPossible(_newestSwapToConsider, _position.swapWhereLastUpdated);
+    _userPosition.swapsLeft = _subtractIfPossible(_position.finalSwap, _performedSwaps);
     _userPosition.remaining = _calculateUnswapped(_position, _performedSwaps);
     _userPosition.rate = _mergeRate(_position);
     if (_position.swapIntervalMask > 0) {
@@ -80,7 +80,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _swapInterval,
       _rate,
       _userPosition.swapWhereLastUpdated + 1,
-      _userPosition.finalSwap
+      _userPosition.finalSwap,
+      _permissions
     );
     return _positionId;
   }
@@ -241,23 +242,22 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint120 _rate,
     bool _add
   ) internal {
-    // Note: this function might look weird and unnecessary, but after a few different tries, it was the best way to reduce contract size,
-    // while also avoding the need for unchecked math
-    int128 _intRate = _add ? -int128(uint128(_rate)) : int128(uint128(_rate));
     if (_from < _to) {
       if (_add) {
         _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
+        _swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _rate;
       } else {
         _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB -= _rate;
+        _swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB -= _rate;
       }
-      _swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _intRate;
     } else {
       if (_add) {
         _swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += _rate;
+        _swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _rate;
       } else {
         _swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA -= _rate;
+        _swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA -= _rate;
       }
-      _swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _intRate;
     }
   }
 
@@ -306,7 +306,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
   /** Returns how many FROM remains unswapped  */
   function _calculateUnswapped(DCA memory _userPosition, uint32 _performedSwaps) internal pure returns (uint256 _unswapped) {
-    _unswapped = uint256(_substractIfPossible(_userPosition.finalSwap, _performedSwaps)) * _mergeRate(_userPosition);
+    _unswapped = uint256(_subtractIfPossible(_userPosition.finalSwap, _performedSwaps)) * _mergeRate(_userPosition);
   }
 
   function _executeWithdraw(uint256 _positionId) internal returns (uint256 _swapped, address _to) {
@@ -367,7 +367,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     return _a > _b ? _b : _a;
   }
 
-  function _substractIfPossible(uint32 _a, uint32 _b) internal pure returns (uint32) {
+  function _subtractIfPossible(uint32 _a, uint32 _b) internal pure returns (uint32) {
     return _a > _b ? _a - _b : 0;
   }
 }

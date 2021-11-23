@@ -11,7 +11,7 @@ import { snapshot } from '@test-utils/evm';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 
 const WITH_FEE = (bn: BigNumber) => bn.add(CALCULATE_FEE(bn));
-const CALCULATE_FEE = (bn: BigNumber) => bn.mul(1).div(1000);
+const CALCULATE_FEE = (bn: BigNumber) => bn.mul(1).div(10000);
 
 describe('DCAHubLoanHandler', () => {
   let owner: SignerWithAddress;
@@ -139,7 +139,7 @@ describe('DCAHubLoanHandler', () => {
         expect(hub).to.equal(DCAHubLoanHandler.address);
         expect(sender).to.equal(owner.address);
         expect(loan).to.eql(loan);
-        expect(loanFee).to.equal(1000);
+        expect(loanFee).to.equal(100);
         expect(data).to.equal(ethers.utils.hexlify(BYTES));
       });
 
@@ -174,7 +174,7 @@ describe('DCAHubLoanHandler', () => {
         const fee = await readArgFromEventOrFail(tx, 'Loaned', 'fee');
         expect(sender).to.equal(owner.address);
         expect(to).to.equal(DCAHubLoanCallee.address);
-        expect(fee).to.equal(1000);
+        expect(fee).to.equal(100);
         for (let i = 0; i < emittedLoan.length; i++) {
           expect(emittedLoan[i].token).to.equal(loan[i].token);
           expect(emittedLoan[i].amount).to.equal(loan[i].amount);
