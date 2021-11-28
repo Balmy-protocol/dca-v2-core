@@ -106,7 +106,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
 
   /// @inheritdoc IChainlinkOracle
   function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {
-    if (_addresses.length != _mappings.length) revert InvalidInput();
+    if (_addresses.length != _mappings.length) revert InvalidMappingsInput();
     for (uint256 i; i < _addresses.length; i++) {
       _tokenMappings[_addresses[i]] = _mappings[i];
     }
