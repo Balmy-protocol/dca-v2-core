@@ -10,6 +10,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock';
 import moment from 'moment';
 
 describe('ChainlinkOracle', () => {
+  const ONE_DAY = moment.duration('24', 'hours').asSeconds();
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const WETH = '0x0000000000000000000000000000000000000003';
@@ -26,7 +27,7 @@ describe('ChainlinkOracle', () => {
     [, governor] = await ethers.getSigners();
     chainlinkOracleFactory = await ethers.getContractFactory('contracts/mocks/oracles/ChainlinkOracle.sol:ChainlinkOracleMock');
     feedRegistry = await smock.fake('FeedRegistryInterface');
-    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, governor.address);
+    chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, ONE_DAY, governor.address);
     snapshotId = await snapshot.take();
   });
 
@@ -40,7 +41,7 @@ describe('ChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [constants.ZERO_ADDRESS, feedRegistry.address, governor.address],
+          args: [constants.ZERO_ADDRESS, feedRegistry.address, ONE_DAY, governor.address],
           message: 'ZeroAddress',
         });
       });
@@ -49,8 +50,17 @@ describe('ChainlinkOracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: chainlinkOracleFactory,
-          args: [WETH, constants.ZERO_ADDRESS, governor.address],
+          args: [WETH, constants.ZERO_ADDRESS, ONE_DAY, governor.address],
           message: 'ZeroAddress',
+        });
+      });
+    });
+    when('max delay is zero', () => {
+      then('tx is reverted with reason error', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: chainlinkOracleFactory,
+          args: [WETH, feedRegistry.address, 0, governor.address],
+          message: 'ZeroMaxDelay',
         });
       });
     });
@@ -62,6 +72,10 @@ describe('ChainlinkOracle', () => {
       then('registry is set correctly', async () => {
         const registry = await chainlinkOracle.registry();
         expect(registry).to.eql(feedRegistry.address);
+      });
+      then('max delay is set correctly', async () => {
+        const maxDelay = await chainlinkOracle.maxDelay();
+        expect(maxDelay).to.eql(ONE_DAY);
       });
       then('hardcoded stablecoins are considered USD', async () => {
         const stablecoins = [
@@ -203,7 +217,7 @@ describe('ChainlinkOracle', () => {
           contract: chainlinkOracle.connect(governor),
           func: 'addMappings',
           args: [[TOKEN_A], [TOKEN_A, TOKEN_B]],
-          message: 'InvalidInput',
+          message: 'InvalidMappingsInput',
         });
       });
     });

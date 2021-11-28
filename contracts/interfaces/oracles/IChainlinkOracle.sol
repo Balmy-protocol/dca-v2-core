@@ -47,9 +47,25 @@ interface IChainlinkOracle is IPriceOracle {
   /// @notice Thrown when the last price update was too long ago
   error LastUpdateIsTooOld();
 
+  /// @notice Thrown when one of the parameters is a zero address
+  error ZeroAddress();
+
+  /// @notice Thrown when the given max delay is zero
+  error ZeroMaxDelay();
+
+  /// @notice Thrown when trying to configure a pair that is not supported
+  error PairNotSupported();
+
+  /// @notice Thrown when the input for adding mappings in invalid
+  error InvalidMappingsInput();
+
   /// @notice Returns the Chainlink feed registry
   /// @return The Chainlink registry
   function registry() external view returns (FeedRegistryInterface);
+
+  /// @notice Returns how old the last price update can be before the oracle reverts by considering it too old
+  /// @return How old the last price update can be in seconds
+  function maxDelay() external view returns (uint32);
 
   /// @notice Returns the address of the WETH ERC-20 token
   /// @return The address of the token

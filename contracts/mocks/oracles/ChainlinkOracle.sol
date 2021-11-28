@@ -17,8 +17,9 @@ contract ChainlinkOracleMock is ChainlinkOracle {
     // solhint-disable-next-line var-name-mixedcase
     address _WETH,
     FeedRegistryInterface _registry,
+    uint32 _maxDelay,
     address _governor
-  ) ChainlinkOracle(_WETH, _registry, _governor) {}
+  ) ChainlinkOracle(_WETH, _registry, _maxDelay, _governor) {}
 
   function internalAddSupportForPair(address _tokenA, address _tokenB) external {
     _addSupportForPair(_tokenA, _tokenB);

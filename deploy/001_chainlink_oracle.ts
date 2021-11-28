@@ -1,5 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
+import moment from 'moment';
+import { BigNumber } from 'ethers';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -11,16 +13,19 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   let registry: string;
   let weth: string;
+  let maxDelay: BigNumber;
 
   switch (hre.network.name) {
     case 'mainnet':
     case 'hardhat':
       registry = FEED_REGISTRY_MAINNET_ADDRESS;
       weth = WETH_MAINNET_ADDRESS;
+      maxDelay = BigNumber.from(moment.duration('1', 'day').asSeconds());
       break;
     case 'kovan':
       registry = FEED_REGISTRY_KOVAN_ADDRESS;
       weth = WETH_KOVAN_ADDRESS;
+      maxDelay = BigNumber.from(2).pow(32).sub(1);
       break;
     default:
       throw new Error(`Unsupported chain '${hre.network.name}`);
@@ -29,7 +34,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await hre.deployments.deploy('ChainlinkOracle', {
     contract: 'contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle',
     from: deployer,
-    args: [weth, registry, governor],
+    args: [weth, registry, maxDelay, governor],
     log: true,
   });
 };
