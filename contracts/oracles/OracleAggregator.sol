@@ -63,16 +63,25 @@ contract OracleAggregator is Governable, IOracleAggregator {
   function overrideDefault(address _tokenA, address _tokenB) external onlyGovernor {
     oracle2.reconfigureSupportForPair(_tokenA, _tokenB);
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    oracleInUse[__tokenA][__tokenB] = OracleInUse.ORACLE_2;
+    _setOracleInUse(__tokenA, __tokenB, OracleInUse.ORACLE_2);
   }
 
   function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
     if (oracle1.canSupportPair(_tokenA, _tokenB)) {
       oracle1.reconfigureSupportForPair(_tokenA, _tokenB);
-      oracleInUse[_tokenA][_tokenB] = OracleInUse.ORACLE_1;
+      _setOracleInUse(_tokenA, _tokenB, OracleInUse.ORACLE_1);
     } else {
       oracle2.reconfigureSupportForPair(_tokenA, _tokenB);
-      oracleInUse[_tokenA][_tokenB] = OracleInUse.ORACLE_2;
+      _setOracleInUse(_tokenA, _tokenB, OracleInUse.ORACLE_2);
     }
+  }
+
+  function _setOracleInUse(
+    address _tokenA,
+    address _tokenB,
+    OracleInUse _oracle
+  ) internal {
+    oracleInUse[_tokenA][_tokenB] = _oracle;
+    emit OracleSetForUse(_tokenA, _tokenB, _oracle);
   }
 }

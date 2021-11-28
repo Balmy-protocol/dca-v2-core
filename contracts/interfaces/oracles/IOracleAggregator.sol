@@ -16,6 +16,12 @@ interface IOracleAggregator is IPriceOracle {
     ORACLE_2
   }
 
+  /// @notice Emitted when a new oracle is set for use for a pair
+  /// @param tokenA One of the pair's tokens
+  /// @param tokenB The other of the pair's tokens
+  /// @param oracleInUse The oracle that will be used for the pair
+  event OracleSetForUse(address tokenA, address tokenB, OracleInUse oracleInUse);
+
   /// @notice Returns the first oracle of the two being aggregated
   /// @return The first oracle
   function oracle1() external view returns (IPriceOracle);

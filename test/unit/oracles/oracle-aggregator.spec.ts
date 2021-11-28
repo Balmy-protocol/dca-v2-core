@@ -7,6 +7,7 @@ import { OracleAggregatorMock, OracleAggregatorMock__factory, IPriceOracle } fro
 import { snapshot } from '@test-utils/evm';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import { BigNumber } from '@ethersproject/bignumber';
+import { TransactionResponse } from '@ethersproject/abstract-provider';
 
 describe('OracleAggregator', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
@@ -63,16 +64,18 @@ describe('OracleAggregator', () => {
 
   describe('overrideDefault', () => {
     when('default is overriden for a pair', () => {
+      let tx: TransactionResponse;
       given(async () => {
-        await oracleAggregator.overrideDefault(TOKEN_A, TOKEN_B);
+        tx = await oracleAggregator.overrideDefault(TOKEN_A, TOKEN_B);
       });
-
       then('oracle 2 is called', async () => {
         expect(oracle2.reconfigureSupportForPair).to.be.calledWith(TOKEN_A, TOKEN_B);
       });
-
       then('now oracle 2 will be used', async () => {
         expect(await oracleAggregator.oracleInUse(TOKEN_A, TOKEN_B)).to.equal(2);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(oracleAggregator, 'OracleSetForUse').withArgs(TOKEN_A, TOKEN_B, 2);
       });
     });
     behaviours.shouldBeExecutableOnlyByGovernor({
@@ -174,9 +177,10 @@ describe('OracleAggregator', () => {
 
   describe('internalAddSupportForPair', () => {
     when('oracle 1 can support the given pair', () => {
+      let tx: TransactionResponse;
       given(async () => {
         oracle1.canSupportPair.returns(true);
-        await oracleAggregator.internalAddSupportForPair(TOKEN_A, TOKEN_B);
+        tx = await oracleAggregator.internalAddSupportForPair(TOKEN_A, TOKEN_B);
       });
       then('oracle 1 is called', async () => {
         expect(oracle1.reconfigureSupportForPair).to.be.calledWith(TOKEN_A, TOKEN_B);
@@ -187,11 +191,15 @@ describe('OracleAggregator', () => {
       then('now oracle 1 will be used', async () => {
         expect(await oracleAggregator.oracleInUse(TOKEN_A, TOKEN_B)).to.equal(1);
       });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(oracleAggregator, 'OracleSetForUse').withArgs(TOKEN_A, TOKEN_B, 1);
+      });
     });
     when('oracle 1 cant support the given pair', () => {
+      let tx: TransactionResponse;
       given(async () => {
         oracle1.canSupportPair.returns(false);
-        await oracleAggregator.internalAddSupportForPair(TOKEN_A, TOKEN_B);
+        tx = await oracleAggregator.internalAddSupportForPair(TOKEN_A, TOKEN_B);
       });
       then('oracle 2 is called', async () => {
         expect(oracle2.reconfigureSupportForPair).to.be.calledWith(TOKEN_A, TOKEN_B);
@@ -201,6 +209,9 @@ describe('OracleAggregator', () => {
       });
       then('now oracle 2 will be used', async () => {
         expect(await oracleAggregator.oracleInUse(TOKEN_A, TOKEN_B)).to.equal(2);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(oracleAggregator, 'OracleSetForUse').withArgs(TOKEN_A, TOKEN_B, 2);
       });
     });
   });
