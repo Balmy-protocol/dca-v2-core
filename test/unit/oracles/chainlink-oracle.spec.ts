@@ -261,7 +261,7 @@ describe('ChainlinkOracle', () => {
       given(() => feedRegistry.latestRoundData.reverts(NO_REASON));
       thenRegistryCallRevertsWithReason(NO_REASON);
     });
-    when.only('max delay is the biggest possible', () => {
+    when('max delay is the biggest possible', () => {
       const PRICE = 10;
       let chainlinkOracle: ChainlinkOracleMock;
       given(async () => {
