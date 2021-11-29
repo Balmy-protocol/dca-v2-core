@@ -38,7 +38,7 @@ interface IOracleAggregator is IPriceOracle {
   /// @return The oracle that is being used for the given pair
   function oracleInUse(address _tokenA, address _tokenB) external view returns (OracleInUse);
 
-  /// @notice Sets the oracle for the given pair, and initialized the oracle if necessary
+  /// @notice Sets the oracle for the given pair, and initializes the oracle if necessary
   /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
   /// @param _tokenA One of the pair's tokens
   /// @param _tokenB The other of the pair's tokens
