@@ -15,6 +15,8 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   /// @inheritdoc IChainlinkOracle
   // solhint-disable-next-line var-name-mixedcase
   address public immutable WETH;
+  /// @inheritdoc IChainlinkOracle
+  uint32 public immutable maxDelay;
 
   // solhint-disable private-vars-leading-underscore
   // Addresses in Ethereum Mainnet
@@ -25,7 +27,6 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   int8 private constant USD_DECIMALS = 8;
   int8 private constant ETH_DECIMALS = 18;
-  uint32 private constant MAX_DELAY = 24 hours;
   // solhint-enable private-vars-leading-underscore
 
   mapping(address => bool) internal _shouldBeConsideredUSD;
@@ -35,10 +36,13 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
     // solhint-disable-next-line var-name-mixedcase
     address _WETH,
     FeedRegistryInterface _registry,
+    uint32 _maxDelay,
     address _governor
   ) Governable(_governor) {
-    require(_WETH != address(0) && address(_registry) != address(0), 'ZeroAddress');
+    if (_WETH == address(0) || address(_registry) == address(0)) revert ZeroAddress();
+    if (_maxDelay == 0) revert ZeroMaxDelay();
     registry = _registry;
+    maxDelay = _maxDelay;
     WETH = _WETH;
   }
 
@@ -57,7 +61,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   ) external view returns (uint256 _amountOut) {
     (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_tokenIn, _tokenOut);
     PricingPlan _plan = planForPair[_tokenA][_tokenB];
-    require(_plan != PricingPlan.NONE, 'PairNotSupported');
+    if (_plan == PricingPlan.NONE) revert PairNotSupported();
 
     int8 _inDecimals = _getDecimals(_tokenIn);
     int8 _outDecimals = _getDecimals(_tokenOut);
@@ -87,7 +91,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     PricingPlan _plan = _determinePricingPlan(__tokenA, __tokenB);
-    require(_plan != PricingPlan.NONE, 'PairNotSupported');
+    if (_plan == PricingPlan.NONE) revert PairNotSupported();
     planForPair[__tokenA][__tokenB] = _plan;
     emit AddedSupportForPairInChainlinkOracle(__tokenA, __tokenB);
   }
@@ -102,7 +106,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
 
   /// @inheritdoc IChainlinkOracle
   function addMappings(address[] calldata _addresses, address[] calldata _mappings) external onlyGovernor {
-    require(_addresses.length == _mappings.length, 'InvalidInput');
+    if (_addresses.length != _mappings.length) revert InvalidMappingsInput();
     for (uint256 i; i < _addresses.length; i++) {
       _tokenMappings[_addresses[i]] = _mappings[i];
     }
@@ -259,7 +263,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
     (, int256 _price, , uint256 _updatedAt, ) = registry.latestRoundData(_base, _quote);
     if (_price <= 0) revert InvalidPrice();
-    if (_updatedAt < block.timestamp - MAX_DELAY) revert LastUpdateIsTooOld();
+    if (maxDelay < block.timestamp && _updatedAt < block.timestamp - maxDelay) revert LastUpdateIsTooOld();
     return uint256(_price);
   }
 
