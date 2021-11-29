@@ -11,8 +11,7 @@ contract OracleAggregator is Governable, IOracleAggregator {
   IPriceOracle public immutable oracle1;
   /// @inheritdoc IOracleAggregator
   IPriceOracle public immutable oracle2;
-  /// @inheritdoc IOracleAggregator
-  mapping(address => mapping(address => OracleInUse)) public oracleInUse;
+  mapping(address => mapping(address => OracleInUse)) internal _oracleInUse;
 
   constructor(
     IPriceOracle _oracle1,
@@ -36,7 +35,7 @@ contract OracleAggregator is Governable, IOracleAggregator {
     address _tokenOut
   ) external view returns (uint256 _amountOut) {
     (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_tokenIn, _tokenOut);
-    OracleInUse _inUse = oracleInUse[_tokenA][_tokenB];
+    OracleInUse _inUse = _oracleInUse[_tokenA][_tokenB];
     require(_inUse != OracleInUse.NONE, 'PairNotSupported');
     if (_inUse == OracleInUse.ORACLE_1) {
       return oracle1.quote(_tokenIn, _amountIn, _tokenOut);
@@ -45,8 +44,14 @@ contract OracleAggregator is Governable, IOracleAggregator {
     }
   }
 
+  /// @inheritdoc IOracleAggregator
+  function oracleInUse(address _tokenA, address _tokenB) external view returns (OracleInUse) {
+    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
+    return _oracleInUse[__tokenA][__tokenB];
+  }
+
   /// @inheritdoc IPriceOracle
-  function reconfigureSupportForPair(address _tokenA, address _tokenB) external {
+  function reconfigureSupportForPair(address _tokenA, address _tokenB) external onlyGovernor {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
     _addSupportForPair(__tokenA, __tokenB);
   }
@@ -54,16 +59,26 @@ contract OracleAggregator is Governable, IOracleAggregator {
   /// @inheritdoc IPriceOracle
   function addSupportForPairIfNeeded(address _tokenA, address _tokenB) external {
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    if (oracleInUse[__tokenA][__tokenB] == OracleInUse.NONE) {
+    if (_oracleInUse[__tokenA][__tokenB] == OracleInUse.NONE) {
       _addSupportForPair(__tokenA, __tokenB);
     }
   }
 
   /// @inheritdoc IOracleAggregator
-  function overrideDefault(address _tokenA, address _tokenB) external onlyGovernor {
-    oracle2.reconfigureSupportForPair(_tokenA, _tokenB);
+  function setOracleForPair(
+    address _tokenA,
+    address _tokenB,
+    OracleInUse _oracle
+  ) external onlyGovernor {
+    if (_oracle == OracleInUse.ORACLE_1) {
+      oracle1.addSupportForPairIfNeeded(_tokenA, _tokenB);
+    } else if (_oracle == OracleInUse.ORACLE_2) {
+      oracle2.addSupportForPairIfNeeded(_tokenA, _tokenB);
+    } else {
+      revert InvalidOracle();
+    }
     (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    _setOracleInUse(__tokenA, __tokenB, OracleInUse.ORACLE_2);
+    _setOracleInUse(__tokenA, __tokenB, _oracle);
   }
 
   function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
@@ -81,7 +96,7 @@ contract OracleAggregator is Governable, IOracleAggregator {
     address _tokenB,
     OracleInUse _oracle
   ) internal {
-    oracleInUse[_tokenA][_tokenB] = _oracle;
+    _oracleInUse[_tokenA][_tokenB] = _oracle;
     emit OracleSetForUse(_tokenA, _tokenB, _oracle);
   }
 }

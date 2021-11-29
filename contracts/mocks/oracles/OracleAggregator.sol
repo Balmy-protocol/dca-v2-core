@@ -21,12 +21,4 @@ contract OracleAggregatorMock is OracleAggregator {
     addSupportForPairCalled[_tokenA][_tokenB] = true;
     super._addSupportForPair(_tokenA, _tokenB);
   }
-
-  function setOracle(
-    address _tokenA,
-    address _tokenB,
-    OracleInUse _oracle
-  ) external {
-    oracleInUse[_tokenA][_tokenB] = _oracle;
-  }
 }

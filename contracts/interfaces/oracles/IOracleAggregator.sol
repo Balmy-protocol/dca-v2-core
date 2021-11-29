@@ -22,6 +22,9 @@ interface IOracleAggregator is IPriceOracle {
   /// @param oracleInUse The oracle that will be used for the pair
   event OracleSetForUse(address tokenA, address tokenB, OracleInUse oracleInUse);
 
+  /// @notice Thrown when trying to set an invalid oracle for use
+  error InvalidOracle();
+
   /// @notice Returns the first oracle of the two being aggregated
   /// @return The first oracle
   function oracle1() external view returns (IPriceOracle);
@@ -31,13 +34,17 @@ interface IOracleAggregator is IPriceOracle {
   function oracle2() external view returns (IPriceOracle);
 
   /// @notice Returns the oracle that is being used for the given pair
-  /// @dev It is expected that _tokenA < _tokenB
+  /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
   /// @return The oracle that is being used for the given pair
   function oracleInUse(address _tokenA, address _tokenB) external view returns (OracleInUse);
 
-  /// @notice Overrides the default and sets oracle2 as the oracle for the pair (while also configuring it for use)
+  /// @notice Sets the oracle for the given pair, and initializes the oracle if necessary
   /// @dev _tokenA and _tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
   /// @param _tokenA One of the pair's tokens
   /// @param _tokenB The other of the pair's tokens
-  function overrideDefault(address _tokenA, address _tokenB) external;
+  function setOracleForPair(
+    address _tokenA,
+    address _tokenB,
+    OracleInUse _oracle
+  ) external;
 }
