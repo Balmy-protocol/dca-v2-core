@@ -8,8 +8,6 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const oracleAggregator = await hre.deployments.get('OracleAggregator');
   const permissionsManager = await hre.deployments.get('PermissionsManager');
 
-  console.log(timelock.address);
-
   const deployedHub = await hre.deployments.deploy('DCAHub', {
     contract: 'contracts/DCAHub/DCAHub.sol:DCAHub',
     from: deployer,
