@@ -8,6 +8,7 @@ import { snapshot } from '@test-utils/evm';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import moment from 'moment';
+import { BigNumber } from '@ethersproject/bignumber';
 
 describe('ChainlinkOracle', () => {
   const ONE_DAY = moment.duration('24', 'hours').asSeconds();
@@ -259,6 +260,17 @@ describe('ChainlinkOracle', () => {
       const NO_REASON = '';
       given(() => feedRegistry.latestRoundData.reverts(NO_REASON));
       thenRegistryCallRevertsWithReason(NO_REASON);
+    });
+    when.only('max delay is the biggest possible', () => {
+      const PRICE = 10;
+      let chainlinkOracle: ChainlinkOracleMock;
+      given(async () => {
+        makeRegistryReturn({ price: PRICE });
+        chainlinkOracle = await chainlinkOracleFactory.deploy(WETH, feedRegistry.address, BigNumber.from(2).pow(32).sub(1), governor.address);
+      });
+      then('price is returned correctly', async () => {
+        expect(await chainlinkOracle.intercalCallRegistry(TOKEN_A, TOKEN_A)).to.equal(PRICE);
+      });
     });
     function makeRegistryReturn({ price, lastUpdate }: { price?: number; lastUpdate?: number }) {
       feedRegistry.latestRoundData.returns([0, price ?? 1, 0, lastUpdate ?? moment().unix(), 0]);

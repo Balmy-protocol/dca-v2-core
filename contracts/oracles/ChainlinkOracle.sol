@@ -263,7 +263,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   function _callRegistry(address _base, address _quote) internal view returns (uint256) {
     (, int256 _price, , uint256 _updatedAt, ) = registry.latestRoundData(_base, _quote);
     if (_price <= 0) revert InvalidPrice();
-    if (_updatedAt < block.timestamp - maxDelay) revert LastUpdateIsTooOld();
+    if (maxDelay < block.timestamp && _updatedAt < block.timestamp - maxDelay) revert LastUpdateIsTooOld();
     return uint256(_price);
   }
 
