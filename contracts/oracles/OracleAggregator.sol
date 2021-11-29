@@ -11,7 +11,7 @@ contract OracleAggregator is Governable, IOracleAggregator {
   IPriceOracle public immutable oracle1;
   /// @inheritdoc IOracleAggregator
   IPriceOracle public immutable oracle2;
-  mapping(address => mapping(address => OracleInUse)) private _oracleInUse;
+  mapping(address => mapping(address => OracleInUse)) internal _oracleInUse;
 
   constructor(
     IPriceOracle _oracle1,
