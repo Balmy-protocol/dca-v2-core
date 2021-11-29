@@ -62,14 +62,39 @@ describe('OracleAggregator', () => {
     });
   });
 
-  describe('overrideDefault', () => {
-    when('default is overriden for a pair', () => {
+  describe('setOracleForPair', () => {
+    when('trying to set an invalid oracle for use', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: oracleAggregator,
+          func: 'setOracleForPair',
+          args: [TOKEN_A, TOKEN_B, 0],
+          message: 'InvalidOracle',
+        });
+      });
+    });
+    when('setting oracle 1 for use', () => {
       let tx: TransactionResponse;
       given(async () => {
-        tx = await oracleAggregator.overrideDefault(TOKEN_A, TOKEN_B);
+        tx = await oracleAggregator.setOracleForPair(TOKEN_A, TOKEN_B, 1);
+      });
+      then('oracle 1 is called', async () => {
+        expect(oracle1.addSupportForPairIfNeeded).to.be.calledWith(TOKEN_A, TOKEN_B);
+      });
+      then('now oracle 1 will be used', async () => {
+        expect(await oracleAggregator.oracleInUse(TOKEN_A, TOKEN_B)).to.equal(1);
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(oracleAggregator, 'OracleSetForUse').withArgs(TOKEN_A, TOKEN_B, 1);
+      });
+    });
+    when('setting oracle 2 for use', () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await oracleAggregator.setOracleForPair(TOKEN_A, TOKEN_B, 2);
       });
       then('oracle 2 is called', async () => {
-        expect(oracle2.reconfigureSupportForPair).to.be.calledWith(TOKEN_A, TOKEN_B);
+        expect(oracle2.addSupportForPairIfNeeded).to.be.calledWith(TOKEN_A, TOKEN_B);
       });
       then('now oracle 2 will be used', async () => {
         expect(await oracleAggregator.oracleInUse(TOKEN_A, TOKEN_B)).to.equal(2);
@@ -80,8 +105,8 @@ describe('OracleAggregator', () => {
     });
     behaviours.shouldBeExecutableOnlyByGovernor({
       contract: () => oracleAggregator,
-      funcAndSignature: 'overrideDefault(address,address)',
-      params: [TOKEN_A, TOKEN_B],
+      funcAndSignature: 'setOracleForPair',
+      params: [TOKEN_A, TOKEN_B, 2],
       governor: () => governor,
     });
   });
@@ -142,6 +167,12 @@ describe('OracleAggregator', () => {
         expect(await oracleAggregator.addSupportForPairCalled(TOKEN_A, TOKEN_B)).to.be.true;
       });
     });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => oracleAggregator,
+      funcAndSignature: 'reconfigureSupportForPair(address,address)',
+      params: [TOKEN_A, TOKEN_B],
+      governor: () => governor,
+    });
   });
 
   describe('addSupportForPairIfNeeded', () => {
@@ -166,7 +197,7 @@ describe('OracleAggregator', () => {
 
     when('pair already an assigned oracle', () => {
       given(async () => {
-        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, 1);
+        await oracleAggregator.setOracleForPair(TOKEN_A, TOKEN_B, 1);
         await oracleAggregator.addSupportForPairIfNeeded(TOKEN_A, TOKEN_B);
       });
       then('internal add support is not called again', async () => {
@@ -230,7 +261,7 @@ describe('OracleAggregator', () => {
       const RESULT = BigNumber.from(5);
       let amountOut: BigNumber;
       given(async () => {
-        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, 1);
+        await oracleAggregator.setOracleForPair(TOKEN_A, TOKEN_B, 1);
         oracle1.quote.returns(RESULT);
         amountOut = await oracleAggregator.quote(TOKEN_A, 1000, TOKEN_B);
       });
@@ -248,7 +279,7 @@ describe('OracleAggregator', () => {
       const RESULT = BigNumber.from(15);
       let amountOut: BigNumber;
       given(async () => {
-        await oracleAggregator.setOracle(TOKEN_A, TOKEN_B, 2);
+        await oracleAggregator.setOracleForPair(TOKEN_A, TOKEN_B, 2);
         oracle2.quote.returns(RESULT);
         amountOut = await oracleAggregator.quote(TOKEN_A, 3000, TOKEN_B);
       });
