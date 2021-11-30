@@ -1,7 +1,7 @@
 {
   "name": "@mean-finance/dca-v2-core",
   "version": "1.0.0-rc.8",
-  "description": "💱 Core smart contracts of DCA v2 by mean.finance",
+  "description": "Core smart contracts of DCA v2 by mean.finance",
   "keywords": [
     "ethereum",
     "smart",
