@@ -23,13 +23,13 @@ Check our docs at [docs.mean.finance](https://docs.mean.finance)
 - NPM Installation
 
 ```bash
-npm @mean-finance/dca-v2-core
+npm install @mean-finance/dca-v2-core
 ```
 
 - Yarn installation
 
 ```bash
-yarn @mean-finance/dca-v2-core
+yarn add @mean-finance/dca-v2-core
 ```
 
 ## 👨‍💻 Development environment
