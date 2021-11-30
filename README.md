@@ -16,7 +16,7 @@ This repository is subject to the DCA V2 bug bounty program, per the terms defin
 
 ## 📖 Docs
 
-Documentations live under [docs.mean.finance](https://docs.mean.finance)
+Check our docs at [docs.mean.finance](https://docs.mean.finance)
 
 ## 📦 NPM/YARN Package
 
