@@ -17,6 +17,7 @@ const networks: NetworksUserConfig = process.env.TEST
   ? {
       hardhat: {
         allowUnlimitedContractSize: true,
+        chainId: 1, // We are trying to mock mainnet
       },
     }
   : {

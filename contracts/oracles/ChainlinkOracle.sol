@@ -115,7 +115,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
 
   /// @inheritdoc IChainlinkOracle
   function mappedToken(address _token) public view returns (address) {
-    if (_token == RENBTC || _token == WBTC) {
+    if (block.chainid == 1 && (_token == RENBTC || _token == WBTC)) {
       return Denominations.BTC;
     } else {
       address _mapping = _tokenMappings[_token];
@@ -272,6 +272,8 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   }
 
   function _isUSD(address _token) internal view returns (bool) {
-    return _token == DAI || _token == USDC || _token == USDT || _shouldBeConsideredUSD[_token];
+    // We are doing this, to avoid expensive storage read
+    bool _isHardcodedUSDInMainnet = block.chainid == 1 && (_token == DAI || _token == USDC || _token == USDT);
+    return _isHardcodedUSDInMainnet || _shouldBeConsideredUSD[_token];
   }
 }
