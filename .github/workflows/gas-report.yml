@@ -23,14 +23,6 @@ jobs:
           path: "**/node_modules"
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/yarn.lock') }}
 
-      - name: Cache hardhat network fork
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-hardhat-network-fork
-        with:
-          path: cache/hardhat-network-fork
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('test/integration/fork-block-numbers.ts') }}
-
       - name: Install dependencies
         run: yarn --frozen-lockfile
 
