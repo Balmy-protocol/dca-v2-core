@@ -25,32 +25,32 @@ library NFTSVG {
   }
 
   function generateSVG(SVGParams memory params) internal pure returns (string memory svg) {
+    uint32 _percentage = (params.swapsExecuted + params.swapsLeft) > 0
+      ? (params.swapsExecuted * 100) / (params.swapsExecuted + params.swapsLeft)
+      : 100;
     return
       string(
         abi.encodePacked(
           '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 580.71 1118.71" >',
-          _generateStyleDefs(params.swapsExecuted, params.swapsLeft),
+          _generateStyleDefs(_percentage),
           _generateSVGDefs(),
           _generateSVGBackground(),
           _generateSVGCardMantle(params.fromSymbol, params.toSymbol, params.interval),
           _generateSVGPositionData(params.tokenId, params.swapped, params.averagePrice, params.remaining, params.rate),
           _generateSVGBorderText(params.fromToken, params.toToken, params.fromSymbol, params.toSymbol),
-          _generateSVGLinesAndMainLogo(),
+          _generateSVGLinesAndMainLogo(_percentage),
           _generageSVGProgressArea(params.swapsExecuted, params.swapsLeft),
           '</svg>'
         )
       );
   }
 
-  function _generateStyleDefs(uint32 _swapsExecuted, uint32 _swapsLeft) private pure returns (string memory svg) {
-    uint32 _percentage = (_swapsExecuted + _swapsLeft) > 0 ? (_swapsExecuted * 100) / (_swapsExecuted + _swapsLeft) : 100;
+  function _generateStyleDefs(uint32 _percentage) private pure returns (string memory svg) {
     svg = string(
       abi.encodePacked(
-        '<style type="text/css">.st0{fill:url(#SVGID_1)}.st1{fill:none;stroke:#fff;stroke-miterlimit:10}.st2{opacity:.5}.st3{fill:none;stroke:#b5baba;stroke-miterlimit:10}.st36{fill:#fff}.st37{fill:#48a7de}.st38{font-family:"Verdana"}.st39{font-size:60px}.st40{letter-spacing:-4}.st44{font-size:25px}.st46{fill:#c6c6c6}.st47{font-size:18px}.st48{font-size:19.7266px}.st49{font-family:"Verdana";font-weight:bold}.st50{font-size:38px}.st52{stroke:#848484;mix-blend-mode:multiply}.st55{opacity:.2;fill:#fff}.st57{fill:#48a7de;stroke:#fff;stroke-width:2.8347;stroke-miterlimit:10}.st58{font-size:18px}.st59{offset-path:path("M290.35,368.77 a 119.5,119.5 0 1,1 0,239 a 119.5,119.5 0 1,1 0,-239");offset-distance:100%;transform-origin:290.35px 488.04px;animation:move 2s linear alternate forwards}.cls-79{stroke:#d1dbe0;transform:rotate(-90deg);transform-origin:290.35px 488.04px;animation:dash 2s linear alternate forwards}@keyframes dash{from{stroke-dashoffset:750.84}to{stroke-dashoffset:',
+        '<style type="text/css">.st0{fill:url(#SVGID_1)}.st1{fill:none;stroke:#fff;stroke-miterlimit:10}.st2{opacity:.5}.st3{fill:none;stroke:#b5baba;stroke-miterlimit:10}.st36{fill:#fff}.st37{fill:#48a7de}.st38{font-family:"Verdana"}.st39{font-size:60px}.st40{letter-spacing:-4}.st44{font-size:25px}.st46{fill:#c6c6c6}.st47{font-size:18px}.st48{font-size:19.7266px}.st49{font-family:"Verdana";font-weight:bold}.st50{font-size:38px}.st52{stroke:#848484;mix-blend-mode:multiply}.st55{opacity:.2;fill:#fff}.st57{fill:#48a7de;stroke:#fff;stroke-width:2.8347;stroke-miterlimit:10}.st58{font-size:18px}.cls-79{stroke:#d1dbe0;transform:rotate(-90deg);transform-origin:290.35px 488.04px;animation:dash 2s linear alternate forwards}@keyframes dash{from{stroke-dashoffset:750.84}to{stroke-dashoffset:',
         (((100 - _percentage) * 75084) / 10000).toString(),
-        ';}} @keyframes move{0%{offset-distance:0%;}100%{offset-distance:',
-        _percentage.toString(),
-        '%;}}</style>'
+        ';}}</style>'
       )
     );
   }
@@ -74,12 +74,10 @@ library NFTSVG {
 
     svg = string(
       abi.encodePacked(
-        '<text text-rendering="optimizeSpeed">',
         _generateTextWithPath('-100', _fromText),
         _generateTextWithPath('0', _fromText),
         _generateTextWithPath('50', _toText),
-        _generateTextWithPath('-50', _toText),
-        '</text>'
+        _generateTextWithPath('-50', _toText)
       )
     );
   }
@@ -87,11 +85,11 @@ library NFTSVG {
   function _generateTextWithPath(string memory offset, string memory text) private pure returns (string memory path) {
     path = string(
       abi.encodePacked(
-        '<textPath startOffset="',
+        '<text text-rendering="optimizeSpeed"><textPath startOffset="',
         offset,
         '%" xlink:href="#text-path-a" class="st46 st38 st47">',
         text,
-        '<animate additive="sum" attributeName="startOffset" from="0%" to="100%" dur="60s" repeatCount="indefinite" /></textPath>'
+        '<animate additive="sum" attributeName="startOffset" from="0%" to="100%" dur="60s" repeatCount="indefinite" /></textPath></text>'
       )
     );
   }
@@ -120,7 +118,7 @@ library NFTSVG {
         '<text text-rendering="optimizeSpeed"><textPath xlink:href="#text-path-executed"><tspan class="st38 st58" fill="#d1dbe0" style="text-shadow:#214c64 0px 0px 5px">Executed*: ',
         _swapsExecuted.toString(),
         _swapsExecuted != 1 ? ' swaps' : ' swap',
-        '</tspan></textPath><textPath xlink:href="#text-path-left" startOffset="30%" ><tspan class="st38 st58" alignment-baseline="hanging" fill="#153041" stroke="#000" stroke-width="0.5">Left: ',
+        '</tspan></textPath></text><text text-rendering="optimizeSpeed"><textPath xlink:href="#text-path-left" startOffset="30%" ><tspan class="st38 st58" alignment-baseline="hanging" fill="#153041" stroke="#000" stroke-width="0.5">Left: ',
         _swapsLeft.toString(),
         _swapsLeft != 1 ? ' swaps' : ' swap',
         '</tspan></textPath></text>'
@@ -152,7 +150,14 @@ library NFTSVG {
     );
   }
 
-  function _generateSVGLinesAndMainLogo() private pure returns (string memory svg) {
-    svg = '<path class="st1" d="M68.35 175.29h440.12M68.35 249.38h440.12M68.35 737.58h440.12M68.35 792.11h440.12M68.35 844.47h440.12M68.35 896.82h440.12M68.35 949.17h440.12M68.35 1001.53h440.12"/><circle cx="290.35" cy="488.04" r="164.57" fill="url(#SVGID_3)"/><circle transform="rotate(-45.001 290.349 488.046)" class="st1" cx="290.35" cy="488.04" r="177.22"/><circle class="st52" cx="290.35" cy="488.04" r="119.5" stroke-width="21" fill="none" stroke-linecap="round"/><path class="st55" d="M359.92 508.63c-3.97-.13-8.71-15.84-11.26-24.3-5.16-17.12-10.04-33.3-23.44-33.3-11.95 0-17.08 13.02-21.31 26.36-.48 1.5-1.41 4.55-3.94 13.05-.32 1.07-.62 2.13-.92 3.18-2.15 7.55-4.01 14.08-8.73 14.08-4.54 0-6.85-7.09-8.83-14.35-.81-2.99-4.11-14.12-4.51-15.4-4.29-13.62-9.47-26.93-21.49-26.93-13.4 0-18.28 16.18-23.44 33.31-2.55 8.44-7.28 24.16-11.19 24.29l-4.52-.11v12.69l4.21.1c13.6 0 18.48-16.18 23.64-33.31.66-2.2 1.25-4.54 1.82-6.8 2.15-8.52 4.18-16.56 9.47-16.56 5.03 0 7.4 8.93 9.49 16.81.1.38 3.51 11.92 4.35 14.52 3.95 12.26 9.15 25.34 20.98 25.34 11.95 0 17.06-12.95 21.27-26.22.74-2.33 4.27-14.12 4.55-15.15 2.16-8.07 4.49-15.3 9.08-15.3 5.29 0 7.32 8.04 9.47 16.56.57 2.26 1.16 4.6 1.82 6.8 5.17 17.13 10.05 33.31 23.68 33.3l4.17-.1V508.5l-4.42.13z"/><circle class="cls-79" cx="290.35" cy="488.04" r="119.5" stroke-width="21" stroke-dasharray="750.84" stroke-dashoffset="562" fill="none" stroke-linecap="round"/><circle class="st57 st59" cx="290.35" cy="488.04" r="13.79"/>';
+  function _generateSVGLinesAndMainLogo(uint32 _percentage) private pure returns (string memory svg) {
+    svg = string(
+      abi.encodePacked(
+        '<path class="st1" d="M68.35 175.29h440.12M68.35 249.38h440.12M68.35 737.58h440.12M68.35 792.11h440.12M68.35 844.47h440.12M68.35 896.82h440.12M68.35 949.17h440.12M68.35 1001.53h440.12"/><circle cx="290.35" cy="488.04" r="164.57" fill="url(#SVGID_3)"/><circle transform="rotate(-45.001 290.349 488.046)" class="st1" cx="290.35" cy="488.04" r="177.22"/><circle class="st52" cx="290.35" cy="488.04" r="119.5" stroke-width="21" fill="none" stroke-linecap="round"/><path class="st55" d="M359.92 508.63c-3.97-.13-8.71-15.84-11.26-24.3-5.16-17.12-10.04-33.3-23.44-33.3-11.95 0-17.08 13.02-21.31 26.36-.48 1.5-1.41 4.55-3.94 13.05-.32 1.07-.62 2.13-.92 3.18-2.15 7.55-4.01 14.08-8.73 14.08-4.54 0-6.85-7.09-8.83-14.35-.81-2.99-4.11-14.12-4.51-15.4-4.29-13.62-9.47-26.93-21.49-26.93-13.4 0-18.28 16.18-23.44 33.31-2.55 8.44-7.28 24.16-11.19 24.29l-4.52-.11v12.69l4.21.1c13.6 0 18.48-16.18 23.64-33.31.66-2.2 1.25-4.54 1.82-6.8 2.15-8.52 4.18-16.56 9.47-16.56 5.03 0 7.4 8.93 9.49 16.81.1.38 3.51 11.92 4.35 14.52 3.95 12.26 9.15 25.34 20.98 25.34 11.95 0 17.06-12.95 21.27-26.22.74-2.33 4.27-14.12 4.55-15.15 2.16-8.07 4.49-15.3 9.08-15.3 5.29 0 7.32 8.04 9.47 16.56.57 2.26 1.16 4.6 1.82 6.8 5.17 17.13 10.05 33.31 23.68 33.3l4.17-.1V508.5l-4.42.13z"/><circle class="cls-79" cx="290.35" cy="488.04" r="119.5" stroke-width="21" stroke-dasharray="750.84" stroke-dashoffset="562" fill="none" stroke-linecap="round"/><circle class="st57" r="13.79"><animateMotion path="M290.35,368.77 a 119.5,119.5 0 1,1 0,239 a 119.5,119.5 0 1,1 0,-239" calcMode="linear" fill="freeze" dur="2s" keyTimes="0;1" keyPoints="0;',
+        _percentage == 100 ? '1' : '0.',
+        _percentage == 100 ? '' : _percentage.toString(),
+        '"/></circle>'
+      )
+    );
   }
 }
