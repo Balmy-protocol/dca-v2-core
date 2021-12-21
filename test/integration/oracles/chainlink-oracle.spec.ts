@@ -48,7 +48,7 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   [
     // TOKEN_TO_USD_TO_TOKEN_PAIR
     { tokenIn: WBTC, tokenOut: COMP, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => USD => OUT (tokenB)
-    { tokenIn: USDT, tokenOut: USDC, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => ETH => OUT (tokenA)
+    { tokenIn: USDT, tokenOut: USDC, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD => OUT (tokenA)
   ],
   [
     // TOKEN_TO_ETH_TO_TOKEN_PAIR
