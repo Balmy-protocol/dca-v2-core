@@ -489,29 +489,53 @@ contract('DCAPermissionsManager', () => {
       await DCAPermissionsManager.mint(TOKEN_ID, owner.address, []);
     });
 
-    when(`owner tries to execute a permission permit`, () => {
-      let tx: TransactionResponse;
+    function permitTest({ when: title, permissions }: { when: string; permissions: Permission[] }) {
+      when(title, () => {
+        let tx: TransactionResponse;
 
-      given(async () => {
-        tx = await signAndPermit({ signer: owner, permissions: [{ operator: OPERATOR, permissions: [Permission.TERMINATE] }] });
-      });
+        given(async () => {
+          tx = await signAndPermit({ signer: owner, permissions: [{ operator: OPERATOR, permissions }] });
+        });
 
-      then('operator gains permission', async () => {
-        expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OPERATOR, Permission.TERMINATE)).to.be.true;
-      });
+        then('operator gains permissions', async () => {
+          for (const permission of permissions) {
+            expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, OPERATOR, permission)).to.be.true;
+          }
+        });
 
-      then('nonces is increased', async () => {
-        expect(await DCAPermissionsManager.nonces(owner.address)).to.be.equal(1);
-      });
+        then('nonces is increased', async () => {
+          expect(await DCAPermissionsManager.nonces(owner.address)).to.be.equal(1);
+        });
 
-      then('event is emitted', async () => {
-        const id = await readArgFromEventOrFail(tx, 'Modified', 'tokenId');
-        const permissions: any = await readArgFromEventOrFail(tx, 'Modified', 'permissions');
-        expect(id).to.equal(TOKEN_ID);
-        expect(permissions.length).to.equal(1);
-        expect(permissions[0].operator).to.equal(OPERATOR);
-        expect(permissions[0].permissions).to.eql([Permission.TERMINATE]);
+        then('event is emitted', async () => {
+          const id = await readArgFromEventOrFail(tx, 'Modified', 'tokenId');
+          const emittedPermissions: any = await readArgFromEventOrFail(tx, 'Modified', 'permissions');
+          expect(id).to.equal(TOKEN_ID);
+          expect(emittedPermissions.length).to.equal(1);
+          expect(emittedPermissions[0].operator).to.equal(OPERATOR);
+          expect(emittedPermissions[0].permissions).to.eql(permissions);
+        });
       });
+    }
+
+    permitTest({
+      when: `setting only one permission`,
+      permissions: [Permission.INCREASE],
+    });
+
+    permitTest({
+      when: `setting two permissions`,
+      permissions: [Permission.REDUCE, Permission.TERMINATE],
+    });
+
+    permitTest({
+      when: `setting three permissions`,
+      permissions: [Permission.REDUCE, Permission.WITHDRAW, Permission.INCREASE],
+    });
+
+    permitTest({
+      when: `setting all permissions`,
+      permissions: [Permission.INCREASE, Permission.REDUCE, Permission.WITHDRAW, Permission.TERMINATE],
     });
 
     permitFailsTest({

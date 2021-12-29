@@ -164,7 +164,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   function _encode(Permission[] calldata _permissions) internal pure returns (bytes memory _result) {
     _result = new bytes(_permissions.length * 32);
     for (uint256 i; i < _permissions.length; i++) {
-      _result[(_permissions.length - i) * 32 - 1] = bytes1(uint8(_permissions[i]));
+      _result[(i + 1) * 32 - 1] = bytes1(uint8(_permissions[i]));
     }
   }
 
