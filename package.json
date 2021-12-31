@@ -79,7 +79,7 @@
     "@types/mocha": "9.0.0",
     "@types/node": "16.7.8",
     "@uniswap/v3-core": "1.0.0",
-    "axios": "0.21.1",
+    "axios": "0.21.2",
     "chai": "4.3.4",
     "chai-as-promised": "7.1.1",
     "dotenv": "10.0.0",
