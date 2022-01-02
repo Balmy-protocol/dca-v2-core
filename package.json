@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "@chainlink/contracts": "^0.2.2",
-    "@openzeppelin/contracts": "4.3.2",
+    "@openzeppelin/contracts": "4.4.1",
     "@uniswap/v3-periphery": "1.2.0",
     "base64-sol": "1.0.1"
   },
