@@ -64,6 +64,11 @@ const networks: NetworksUserConfig = process.env.TEST
         accounts: accounts('optimism'),
         tags: ['production'],
       },
+      'optimism-kovan': {
+        url: 'https://kovan.optimism.io',
+        accounts: accounts('optimism'),
+        tags: ['production'],
+      },
     };
 
 const config: HardhatUserConfig = {

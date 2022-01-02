@@ -230,6 +230,7 @@ interface IDCAHubPositionHandler {
   /// @param _amountOfSwaps How many swaps to execute for this position
   /// @param _swapInterval How frequently the position's swaps should be executed
   /// @param _owner The address of the owner of the position being created
+  /// @param _permissions Extra permissions to add to the position. Can be empty
   /// @return _positionId The id of the created position
   function deposit(
     address _from,
@@ -267,7 +268,6 @@ interface IDCAHubPositionHandler {
   /// @dev Will revert:
   /// With InvalidPosition if _positionId is invalid
   /// With UnauthorizedCaller if the caller doesn't have access to the position
-  /// With ZeroAmount if _amount is zero
   /// With AmountTooBig if _amount is too big
   /// @param _positionId The position's id
   /// @param _amount Amount of funds to add to the position

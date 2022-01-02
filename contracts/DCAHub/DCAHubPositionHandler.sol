@@ -193,10 +193,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _removeFromDelta(_userPosition, _performedSwaps);
     _addToDelta(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask, _finalSwap, _newRate);
 
-    if (_increase) {
-      IERC20Metadata(_userPosition.from).safeTransferFrom(msg.sender, address(this), _amount);
-    } else {
-      IERC20Metadata(_userPosition.from).safeTransfer(_recipient, _amount);
+    if (_amount > 0) {
+      if (_increase) {
+        IERC20Metadata(_userPosition.from).safeTransferFrom(msg.sender, address(this), _amount);
+      } else {
+        IERC20Metadata(_userPosition.from).safeTransfer(_recipient, _amount);
+      }
     }
 
     emit Modified(msg.sender, _positionId, _newRate, _performedSwaps + 1, _finalSwap);
