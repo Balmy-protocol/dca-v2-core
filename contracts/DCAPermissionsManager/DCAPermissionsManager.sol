@@ -10,9 +10,11 @@ import '../utils/Governable.sol';
 
 // Note: ideally, this would be part of the DCAHub. However, since we've reached the max bytecode size, we needed to make it its own contract
 contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionManager {
-  struct InternalPermission {
+  struct TokenPermission {
+    // The actual permissions
     uint8 permissions;
-    uint32 lastUpdated;
+    // The block number when it was last updated
+    uint248 lastUpdated;
   }
 
   using PermissionMath for Permission[];
@@ -33,8 +35,8 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   address public hub;
   /// @inheritdoc IDCAPermissionManager
   mapping(address => uint256) public nonces;
-  mapping(uint256 => uint32) public lastOwnershipChange;
-  mapping(uint256 => mapping(address => InternalPermission)) internal _tokenPermissions;
+  mapping(uint256 => uint256) public lastOwnershipChange;
+  mapping(uint256 => mapping(address => TokenPermission)) public tokenPermissions;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
     ERC721('Mean Finance DCA', 'DCA')
@@ -72,9 +74,9 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     if (ownerOf(_id) == _address) {
       return true;
     }
-    InternalPermission memory _internalPermission = _tokenPermissions[_id][_address];
+    TokenPermission memory _tokenPermission = tokenPermissions[_id][_address];
     // If there was an ownership change after the permission was last updated, then the address doesn't have the permission
-    return _internalPermission.permissions.hasPermission(_permission) && lastOwnershipChange[_id] <= _internalPermission.lastUpdated;
+    return _tokenPermission.permissions.hasPermission(_permission) && lastOwnershipChange[_id] < _tokenPermission.lastUpdated;
   }
 
   /// @inheritdoc IDCAPermissionManager
@@ -174,14 +176,14 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
-    uint32 _blockTimestamp = uint32(block.timestamp);
+    uint248 _blockNumber = uint248(_getBlockNumber());
     for (uint256 i; i < _permissions.length; i++) {
       if (_permissions[i].permissions.length == 0) {
-        delete _tokenPermissions[_id][_permissions[i].operator];
+        delete tokenPermissions[_id][_permissions[i].operator];
       } else {
-        _tokenPermissions[_id][_permissions[i].operator] = InternalPermission({
+        tokenPermissions[_id][_permissions[i].operator] = TokenPermission({
           permissions: _permissions[i].permissions.toUInt8(),
-          lastUpdated: _blockTimestamp
+          lastUpdated: _blockNumber
         });
       }
     }
@@ -197,7 +199,12 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
       delete lastOwnershipChange[_id];
     } else if (_from != address(0)) {
       // If the token is being minted, then no need to write this
-      lastOwnershipChange[_id] = uint32(block.timestamp);
+      lastOwnershipChange[_id] = _getBlockNumber();
     }
+  }
+
+  // Note: virtual so that it can be overriden in tests
+  function _getBlockNumber() internal view virtual returns (uint256) {
+    return block.number;
   }
 }
