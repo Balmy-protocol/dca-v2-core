@@ -94,6 +94,17 @@ interface IDCAPermissionManager is IERC721 {
     Permission _permission
   ) external view returns (bool);
 
+  /// @notice Returns whether the given address has the permissions for the given token
+  /// @param _id The id of the token to check
+  /// @param _address The address of the user to check
+  /// @param _permissions The permissions to check
+  /// @return _hasPermissions Whether the user has each permission or not
+  function hasPermissions(
+    uint256 _id,
+    address _address,
+    Permission[] calldata _permissions
+  ) external view returns (bool[] memory _hasPermissions);
+
   /// @notice Sets the address for the hub
   /// @dev Can only be successfully executed once. Once it's set, it can be modified again
   /// Will revert:

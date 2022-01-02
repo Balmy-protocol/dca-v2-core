@@ -115,6 +115,81 @@ contract('DCAPermissionsManager', () => {
     });
   });
 
+  describe('hasPermissions', () => {
+    const TOKEN_ID = 1;
+    when('checking permisisons for the owner', () => {
+      const OWNER = constants.NOT_ZERO_ADDRESS;
+      given(async () => {
+        await DCAPermissionsManager.mint(TOKEN_ID, OWNER, []);
+      });
+      then('they have all permissions', async () => {
+        const result = await DCAPermissionsManager.hasPermissions(TOKEN_ID, OWNER, [
+          Permission.INCREASE,
+          Permission.REDUCE,
+          Permission.WITHDRAW,
+          Permission.TERMINATE,
+        ]);
+        expect(result).to.eql([true, true, true, true]);
+      });
+    });
+
+    hasPermissionsTest({
+      when: 'operator has no permissions',
+      set: [],
+      expected: [
+        { permission: Permission.INCREASE, result: false },
+        { permission: Permission.REDUCE, result: false },
+        { permission: Permission.WITHDRAW, result: false },
+        { permission: Permission.TERMINATE, result: false },
+      ],
+    });
+
+    hasPermissionsTest({
+      when: 'operator has some permissions',
+      set: [Permission.REDUCE, Permission.WITHDRAW],
+      expected: [
+        { permission: Permission.INCREASE, result: false },
+        { permission: Permission.REDUCE, result: true },
+        { permission: Permission.WITHDRAW, result: true },
+        { permission: Permission.TERMINATE, result: false },
+      ],
+    });
+
+    hasPermissionsTest({
+      when: 'operator has all permissions',
+      set: [Permission.INCREASE, Permission.REDUCE, Permission.WITHDRAW, Permission.TERMINATE],
+      expected: [
+        { permission: Permission.INCREASE, result: true },
+        { permission: Permission.REDUCE, result: true },
+        { permission: Permission.WITHDRAW, result: true },
+        { permission: Permission.TERMINATE, result: true },
+      ],
+    });
+
+    function hasPermissionsTest({
+      when: title,
+      set,
+      expected,
+    }: {
+      when: string;
+      set: Permission[];
+      expected: { permission: Permission; result: boolean }[];
+    }) {
+      const OWNER = wallet.generateRandomAddress();
+      const OPERATOR = constants.NOT_ZERO_ADDRESS;
+      when(title, () => {
+        given(async () => {
+          await DCAPermissionsManager.mint(TOKEN_ID, OWNER, [{ operator: OPERATOR, permissions: set }]);
+        });
+        then('result is returned correctly', async () => {
+          const toCheck = expected.map(({ permission }) => permission);
+          const result = await DCAPermissionsManager.hasPermissions(TOKEN_ID, OPERATOR, toCheck);
+          expect(result).to.eql(expected.map(({ result }) => result));
+        });
+      });
+    }
+  });
+
   describe('mint', () => {
     const TOKEN_ID = 1;
     when('owner is zero address', () => {
