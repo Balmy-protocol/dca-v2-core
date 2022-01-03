@@ -80,6 +80,31 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   /// @inheritdoc IDCAPermissionManager
+  function hasPermissions(
+    uint256 _id,
+    address _address,
+    Permission[] calldata _permissions
+  ) external view returns (bool[] memory _hasPermissions) {
+    _hasPermissions = new bool[](_permissions.length);
+    if (ownerOf(_id) == _address) {
+      // If the address is the owner, then they have all permissions
+      for (uint256 i; i < _permissions.length; i++) {
+        _hasPermissions[i] = true;
+      }
+    } else {
+      // If it's not the owner, then check one by one
+      TokenPermission memory _tokenPermission = tokenPermissions[_id][_address];
+      if (lastOwnershipChange[_id] < _tokenPermission.lastUpdated) {
+        for (uint256 i; i < _permissions.length; i++) {
+          if (_tokenPermission.permissions.hasPermission(_permissions[i])) {
+            _hasPermissions[i] = true;
+          }
+        }
+      }
+    }
+  }
+
+  /// @inheritdoc IDCAPermissionManager
   function burn(uint256 _id) external {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _burn(_id);
