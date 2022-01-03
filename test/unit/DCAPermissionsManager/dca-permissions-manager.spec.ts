@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { DCAPermissionsManager__factory, DCAPermissionsManager } from '@typechained';
+import { DCAPermissionsManagerMock__factory, DCAPermissionsManagerMock } from '@typechained';
 import { constants, wallet, behaviours } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
@@ -17,15 +17,15 @@ contract('DCAPermissionsManager', () => {
   const NFT_NAME = 'Mean Finance DCA';
   const NFT_DESCRIPTOR = wallet.generateRandomAddress();
   let hub: SignerWithAddress, governor: SignerWithAddress;
-  let DCAPermissionsManagerFactory: DCAPermissionsManager__factory;
-  let DCAPermissionsManager: DCAPermissionsManager;
+  let DCAPermissionsManagerFactory: DCAPermissionsManagerMock__factory;
+  let DCAPermissionsManager: DCAPermissionsManagerMock;
   let snapshotId: string;
   let chainId: BigNumber;
 
   before('Setup accounts and contracts', async () => {
     [hub, governor] = await ethers.getSigners();
     DCAPermissionsManagerFactory = await ethers.getContractFactory(
-      'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
+      'contracts/mocks/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManagerMock'
     );
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     await DCAPermissionsManager.setHub(hub.address);
@@ -38,7 +38,7 @@ contract('DCAPermissionsManager', () => {
   });
 
   describe('constructor', () => {
-    let DCAPermissionsManager: DCAPermissionsManager;
+    let DCAPermissionsManager: DCAPermissionsManagerMock;
     given(async () => {
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
     });
@@ -92,7 +92,7 @@ contract('DCAPermissionsManager', () => {
 
     when('parameter is a valid address', () => {
       const ADDRESS = wallet.generateRandomAddress();
-      let DCAPermissionsManager: DCAPermissionsManager;
+      let DCAPermissionsManager: DCAPermissionsManagerMock;
       given(async () => {
         DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, NFT_DESCRIPTOR);
         await DCAPermissionsManager.setHub(ADDRESS);
@@ -113,6 +113,81 @@ contract('DCAPermissionsManager', () => {
         });
       });
     });
+  });
+
+  describe('hasPermissions', () => {
+    const TOKEN_ID = 1;
+    when('checking permisisons for the owner', () => {
+      const OWNER = constants.NOT_ZERO_ADDRESS;
+      given(async () => {
+        await DCAPermissionsManager.mint(TOKEN_ID, OWNER, []);
+      });
+      then('they have all permissions', async () => {
+        const result = await DCAPermissionsManager.hasPermissions(TOKEN_ID, OWNER, [
+          Permission.INCREASE,
+          Permission.REDUCE,
+          Permission.WITHDRAW,
+          Permission.TERMINATE,
+        ]);
+        expect(result).to.eql([true, true, true, true]);
+      });
+    });
+
+    hasPermissionsTest({
+      when: 'operator has no permissions',
+      set: [],
+      expected: [
+        { permission: Permission.INCREASE, result: false },
+        { permission: Permission.REDUCE, result: false },
+        { permission: Permission.WITHDRAW, result: false },
+        { permission: Permission.TERMINATE, result: false },
+      ],
+    });
+
+    hasPermissionsTest({
+      when: 'operator has some permissions',
+      set: [Permission.REDUCE, Permission.WITHDRAW],
+      expected: [
+        { permission: Permission.INCREASE, result: false },
+        { permission: Permission.REDUCE, result: true },
+        { permission: Permission.WITHDRAW, result: true },
+        { permission: Permission.TERMINATE, result: false },
+      ],
+    });
+
+    hasPermissionsTest({
+      when: 'operator has all permissions',
+      set: [Permission.INCREASE, Permission.REDUCE, Permission.WITHDRAW, Permission.TERMINATE],
+      expected: [
+        { permission: Permission.INCREASE, result: true },
+        { permission: Permission.REDUCE, result: true },
+        { permission: Permission.WITHDRAW, result: true },
+        { permission: Permission.TERMINATE, result: true },
+      ],
+    });
+
+    function hasPermissionsTest({
+      when: title,
+      set,
+      expected,
+    }: {
+      when: string;
+      set: Permission[];
+      expected: { permission: Permission; result: boolean }[];
+    }) {
+      const OWNER = wallet.generateRandomAddress();
+      const OPERATOR = constants.NOT_ZERO_ADDRESS;
+      when(title, () => {
+        given(async () => {
+          await DCAPermissionsManager.mint(TOKEN_ID, OWNER, [{ operator: OPERATOR, permissions: set }]);
+        });
+        then('result is returned correctly', async () => {
+          const toCheck = expected.map(({ permission }) => permission);
+          const result = await DCAPermissionsManager.hasPermissions(TOKEN_ID, OPERATOR, toCheck);
+          expect(result).to.eql(expected.map(({ result }) => result));
+        });
+      });
+    }
   });
 
   describe('mint', () => {
@@ -188,10 +263,12 @@ contract('DCAPermissionsManager', () => {
     const TOKEN_ID = 1;
     const OPERATOR = constants.NOT_ZERO_ADDRESS;
     const NEW_OWNER = wallet.generateRandomAddress();
+    const BLOCK_NUMBER = 10;
     let owner: Wallet;
 
     given(async () => {
       owner = await wallet.generateRandom();
+      await DCAPermissionsManager.setBlockNumber(BLOCK_NUMBER); // We set a block number so that mint + transfer is done on the same block
       await DCAPermissionsManager.mint(TOKEN_ID, owner.address, [{ operator: OPERATOR, permissions: [Permission.WITHDRAW] }]);
       await DCAPermissionsManager.connect(owner).transferFrom(owner.address, NEW_OWNER, TOKEN_ID);
     });
@@ -201,10 +278,12 @@ contract('DCAPermissionsManager', () => {
         const newOwner = await DCAPermissionsManager.ownerOf(TOKEN_ID);
         expect(newOwner).to.equal(NEW_OWNER);
       });
-
       then('previous operators lost permissions', async () => {
         const hasPermission = await DCAPermissionsManager.hasPermission(TOKEN_ID, OPERATOR, Permission.WITHDRAW);
         expect(hasPermission).to.be.false;
+      });
+      then('block number is recorded', async () => {
+        expect(await DCAPermissionsManager.lastOwnershipChange(TOKEN_ID)).to.equal(BLOCK_NUMBER);
       });
     });
   });
@@ -227,17 +306,17 @@ contract('DCAPermissionsManager', () => {
         });
       });
     });
-
     when('the hub is the caller', () => {
       given(async () => {
         await DCAPermissionsManager.burn(TOKEN_ID);
       });
-
       then('nft is burned', async () => {
         const balance = await DCAPermissionsManager.balanceOf(OWNER);
         expect(balance).to.equal(0);
       });
-
+      then('clean up is performed', async () => {
+        expect(await DCAPermissionsManager.lastOwnershipChange(TOKEN_ID)).to.equal(0);
+      });
       then('asking for permission reverts', async () => {
         await behaviours.txShouldRevertWithMessage({
           contract: DCAPermissionsManager,
@@ -309,18 +388,31 @@ contract('DCAPermissionsManager', () => {
       modify: Permissions;
       expected: Permissions;
     }) {
+      const BLOCK_NUMBER = 500;
       when(title, () => {
         let tx: TransactionResponse;
         given(async () => {
           const owner = await wallet.generateRandom();
           await DCAPermissionsManager.mint(TOKEN_ID, owner.address, initial);
+          await DCAPermissionsManager.setBlockNumber(BLOCK_NUMBER);
           tx = await DCAPermissionsManager.connect(owner).modify(TOKEN_ID, modify);
         });
-        then('then permissions are updated correctly', async () => {
+        then('permissions are updated correctly', async () => {
           for (const { operator, permissions } of expected) {
             for (const permission of [Permission.INCREASE, Permission.REDUCE, Permission.TERMINATE, Permission.WITHDRAW]) {
               expect(await DCAPermissionsManager.hasPermission(TOKEN_ID, operator, permission)).to.equal(permissions.includes(permission));
             }
+          }
+        });
+        then('token permission are updated', async () => {
+          for (const { operator, permissions: expectedPermissions } of modify) {
+            const { permissions, lastUpdated } = await DCAPermissionsManager.tokenPermissions(TOKEN_ID, operator);
+            if (expectedPermissions.length == 0) {
+              expect(lastUpdated).to.equal(0);
+            } else {
+              expect(lastUpdated).to.equal(BLOCK_NUMBER);
+            }
+            expect(permissions).to.equal(toUint8(expectedPermissions));
           }
         });
         then('event is emitted', async () => {
@@ -334,6 +426,9 @@ contract('DCAPermissionsManager', () => {
           }
         });
       });
+      function toUint8(permissions: Permission[]) {
+        return permissions.reduce((accum, curr) => accum + Math.pow(2, curr), 0);
+      }
     }
   });
 
