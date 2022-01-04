@@ -36,6 +36,7 @@
     "deploy": "npx hardhat deploy",
     "sizer": "TEST=true hardhat compile && TEST=true npx hardhat size-contracts",
     "coverage": "npx hardhat coverage --solcoverjs ./solcover.js",
+    "verify": "npx hardhat run scripts/verify-contracts.ts",
     "fork": "FORK=true npx hardhat node",
     "fork:script": "FORK=true npx hardhat run",
     "fork:test": "FORK=true npx hardhat test",

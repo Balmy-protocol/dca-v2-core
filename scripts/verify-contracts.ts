@@ -34,15 +34,18 @@ async function main() {
 }
 
 async function verify({ name, path }: { name: string; path: string }) {
-  const title = `Verified ${name} ...`;
-  console.time(title);
   const contract = await deployments.getOrNull(name);
-  await run('verify:verify', {
-    address: contract!.address,
-    constructorArguments: contract!.args,
-    contract: path,
-  });
-  console.timeEnd(title);
+  try {
+    await run('verify:verify', {
+      address: contract!.address,
+      constructorArguments: contract!.args,
+      contract: path,
+    });
+  } catch (e: any) {
+    if (!e.message.toLowerCase().includes('already verified')) {
+      throw e;
+    }
+  }
 }
 
 main()

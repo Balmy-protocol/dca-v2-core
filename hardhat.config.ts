@@ -66,7 +66,7 @@ const networks: NetworksUserConfig = process.env.TEST
       },
       'optimism-kovan': {
         url: 'https://kovan.optimism.io',
-        accounts: accounts('optimism'),
+        accounts: accounts('optimism-kovan'),
         tags: ['production'],
       },
     };
