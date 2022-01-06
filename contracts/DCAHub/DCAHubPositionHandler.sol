@@ -129,6 +129,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     _removeFromDelta(_userPosition, _performedSwaps);
     delete _userPositions[_positionId];
+    delete _swappedBeforeModified[_positionId];
     permissionManager.burn(_positionId);
 
     if (_swapped > 0) {

@@ -22,14 +22,14 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     // Remember balances before callback
     uint256[] memory _beforeBalances = new uint256[](_loan.length);
     for (uint256 i; i < _beforeBalances.length; i++) {
+      // We are now making sure that tokens are sorted, as an easy way to detect duplicates
+      if (i > 0 && _loan[i].token <= _loan[i - 1].token) revert IDCAHub.InvalidTokens();
+
       _beforeBalances[i] = IERC20Metadata(_loan[i].token).balanceOf(address(this));
     }
 
     // Transfer tokens
     for (uint256 i; i < _loan.length; i++) {
-      // We are now making sure that tokens are sorted, as an easy way to detect duplicates
-      if (i > 0 && _loan[i].token <= _loan[i - 1].token) revert IDCAHub.InvalidTokens();
-
       IERC20Metadata(_loan[i].token).safeTransfer(_to, _loan[i].amount);
     }
 

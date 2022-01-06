@@ -46,7 +46,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _rateFromTo,
     uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    uint256 _numerator = (_amountFrom * FeeMath.subtractFeeFromAmount(_swapFee, _rateFromTo));
+    uint256 _numerator = _amountFrom * FeeMath.subtractFeeFromAmount(_swapFee, _rateFromTo);
     _amountTo = _numerator / _fromTokenMagnitude;
     // Note: we need to round up because we can't ask for less than what we actually need
     if (_numerator % _fromTokenMagnitude != 0) _amountTo++;
@@ -70,7 +70,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32 _blockTimestamp = _getTimestamp();
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
-      if (_activeIntervals & _mask == _mask) {
+      if (_activeIntervals & _mask != 0) {
         SwapData memory _swapDataMem = _swapData[_tokenA][_tokenB][_mask];
         uint32 _swapInterval = Intervals.maskToInterval(_mask);
         if (((_swapDataMem.lastSwappedAt / _swapInterval) + 1) * _swapInterval > _blockTimestamp) {
@@ -216,7 +216,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         bytes1 _intervalsInSwap = _pairInSwap.intervalsInSwap;
         bytes1 _mask = 0x01;
         while (_intervalsInSwap >= _mask && _mask > 0) {
-          if (_intervalsInSwap & _mask == _mask) {
+          if (_intervalsInSwap & _mask != 0) {
             _registerSwap(
               _pairInSwap.tokenA,
               _pairInSwap.tokenB,

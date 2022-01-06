@@ -21,6 +21,6 @@ library PermissionMath {
   /// @return _hasPermission Whether the representation contains the given permission
   function hasPermission(uint8 _representation, IDCAPermissionManager.Permission _permission) internal pure returns (bool _hasPermission) {
     uint256 _bitMask = 1 << uint8(_permission);
-    _hasPermission = (_representation & _bitMask) == _bitMask;
+    _hasPermission = (_representation & _bitMask) != 0;
   }
 }
