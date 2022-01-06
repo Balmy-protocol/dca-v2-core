@@ -51,7 +51,7 @@ library Intervals {
     uint8 _index;
     bytes1 _mask = 0x01;
     while (_byte >= _mask && _mask > 0) {
-      if (_byte & _mask == _mask) {
+      if (_byte & _mask != 0) {
         _intervals[_index++] = maskToInterval(_mask);
       }
       _mask <<= 1;
