@@ -1,7 +1,7 @@
 import { Contract, ContractFactory } from '@ethersproject/contracts';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { ContractInterface, Signer } from 'ethers';
-import { getStatic } from 'ethers/lib/utils';
+import { ContractInterface, ethers, Signer } from 'ethers';
+import { getStatic, ParamType } from 'ethers/lib/utils';
 
 const deploy = async (contract: ContractFactory, args: any[]): Promise<{ tx: TransactionResponse; contract: Contract }> => {
   const deploymentTransactionRequest = await contract.getDeployTransaction(...args);
@@ -17,6 +17,17 @@ const deploy = async (contract: ContractFactory, args: any[]): Promise<{ tx: Tra
   };
 };
 
+const getCreationCode = ({
+  bytecode,
+  constructorArgs,
+}: {
+  bytecode: string;
+  constructorArgs: { types: string[] | ParamType[]; values: any[] };
+}): string => {
+  return `${bytecode}${ethers.utils.defaultAbiCoder.encode(constructorArgs.types, constructorArgs.values).slice(2)}`;
+};
+
 export default {
   deploy,
+  getCreationCode,
 };

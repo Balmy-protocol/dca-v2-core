@@ -17,9 +17,11 @@ const generateRandom = async () => {
 
 // Note: we are hardcoding the random address to make tests deterministic. We couldn't generate a random address by using a seed
 export const generateRandomAddress = () => '0x37601c8d013fA4DFA82e9C0d416b70143f4cbFcF';
+export const generateRandomAddress2 = () => '0x37601C8D013fA4dfA82e9C0d416B70143f4cBfcc';
 
 export default {
   impersonate,
   generateRandom,
   generateRandomAddress,
+  generateRandomAddress2,
 };
