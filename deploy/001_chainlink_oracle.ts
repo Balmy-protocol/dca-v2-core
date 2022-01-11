@@ -1,7 +1,10 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
+import { bytecode } from '@artifacts/contracts/oracles/ChainlinkOracle.sol/ChainlinkOracle.json';
 import moment from 'moment';
-import { BigNumber } from 'ethers';
+import { BigNumber, utils } from 'ethers';
+import { ethers } from 'hardhat';
+import { getCreationCode } from '@test-utils/contracts';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -36,13 +39,28 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       throw new Error(`Unsupported chain '${hre.network.name}`);
   }
 
-  await hre.deployments.deploy('ChainlinkOracle', {
-    contract: 'contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle',
-    from: deployer,
-    args: [weth, registry, maxDelay, governor],
-    log: true,
-  });
+  await hre.deployments.execute(
+    'Factory',
+    {
+      from: deployer,
+      log: true,
+    },
+    'deploy',
+    utils.formatBytes32String('grizz'),
+    getCreationCode({
+      bytecode,
+      constructorArgs: {
+        types: ['address', 'address', 'uint32', 'address'],
+        values: [weth, registry, maxDelay, governor],
+      },
+    })
+  );
+
+  const deployment = await hre.deployments.getDeploymentsFromAddress((await ethers.getContract('Factory')).address);
+
+  hre.deployments.save('ChainlinkOracle', deployment[0]);
 };
 
+deployFunction.dependencies = ['Factory'];
 deployFunction.tags = ['ChainlinkOracle'];
 export default deployFunction;

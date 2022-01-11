@@ -3,7 +3,7 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ContractInterface, ethers, Signer } from 'ethers';
 import { getStatic, ParamType } from 'ethers/lib/utils';
 
-const deploy = async (contract: ContractFactory, args: any[]): Promise<{ tx: TransactionResponse; contract: Contract }> => {
+export const deploy = async (contract: ContractFactory, args: any[]): Promise<{ tx: TransactionResponse; contract: Contract }> => {
   const deploymentTransactionRequest = await contract.getDeployTransaction(...args);
   const deploymentTx = await contract.signer.sendTransaction(deploymentTransactionRequest);
   const contractAddress = getStatic<(deploymentTx: TransactionResponse) => string>(contract.constructor, 'getContractAddress')(deploymentTx);
@@ -17,7 +17,7 @@ const deploy = async (contract: ContractFactory, args: any[]): Promise<{ tx: Tra
   };
 };
 
-const getCreationCode = ({
+export const getCreationCode = ({
   bytecode,
   constructorArgs,
 }: {

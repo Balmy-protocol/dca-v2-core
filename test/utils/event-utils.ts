@@ -1,5 +1,6 @@
 import { TransactionResponse, TransactionReceipt } from '@ethersproject/abstract-provider';
 import { expect } from 'chai';
+import { Receipt } from 'hardhat-deploy/types';
 
 export async function expectNoEventWithName(response: TransactionResponse, eventName: string) {
   const receipt = await response.wait();
@@ -10,6 +11,14 @@ export async function expectNoEventWithName(response: TransactionResponse, event
 
 export async function readArgFromEvent<T>(response: TransactionResponse, eventName: string, paramName: string): Promise<T | undefined> {
   const receipt = await response.wait();
+  for (const event of getEvents(receipt)) {
+    if (event.event === eventName) {
+      return event.args[paramName];
+    }
+  }
+}
+
+export async function readArgFromReceipt<T>(receipt: Receipt, eventName: string, paramName: string): Promise<T | undefined> {
   for (const event of getEvents(receipt)) {
     if (event.event === eventName) {
       return event.args[paramName];
@@ -35,7 +44,7 @@ export async function getEventArgs<T>(response: TransactionResponse, eventName: 
   throw new Error(`Failed to find event with name ${eventName}`);
 }
 
-function getEvents(receipt: TransactionReceipt): Event[] {
+function getEvents(receipt: TransactionReceipt | Receipt): Event[] {
   // @ts-ignore
   return receipt.events;
 }
