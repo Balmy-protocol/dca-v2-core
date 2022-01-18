@@ -151,8 +151,9 @@ contract('DCAHub', () => {
         args,
         attackerContract,
         attack: async () =>
+          // @ts-ignore
           (
-            await DCAHub.populateTransaction['deposit(address,address,uint256,uint32,uint32,address,tuple[])'](
+            await DCAHub.populateTransaction['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
               constants.NOT_ZERO_ADDRESS,
               constants.NOT_ZERO_ADDRESS,
               0,
@@ -247,15 +248,10 @@ contract('DCAHub', () => {
     }) {
       await from().mint(depositor.address, from().asUnits(rate).mul(swaps));
       await from().connect(depositor).approve(DCAHub.address, from().asUnits(rate).mul(swaps));
-      const response: TransactionResponse = await DCAHub.connect(depositor)['deposit(address,address,uint256,uint32,uint32,address,tuple[])'](
-        from().address,
-        to().address,
-        from().asUnits(rate).mul(swaps),
-        swaps,
-        SwapInterval.FIFTEEN_MINUTES.seconds,
-        depositor.address,
-        []
-      );
+      // @ts-ignore
+      const response: TransactionResponse = await DCAHub.connect(depositor)[
+        'deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'
+      ](from().address, to().address, from().asUnits(rate).mul(swaps), swaps, SwapInterval.FIFTEEN_MINUTES.seconds, depositor.address, []);
       const positionId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'positionId');
       return { response, positionId };
     }

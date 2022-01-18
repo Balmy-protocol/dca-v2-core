@@ -492,7 +492,10 @@ contract('DCAHub', () => {
       const amount = from.asUnits(rate).mul(swaps);
       await from.mint(owner.address, amount);
       await from.connect(owner).approve(DCAHub.address, amount);
-      const response: TransactionResponse = await DCAHub.connect(owner)['deposit(address,address,uint256,uint32,uint32,address,tuple[])'](
+      // @ts-ignore
+      const response: TransactionResponse = await DCAHub.connect(owner)[
+        'deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'
+      ](
         from.address,
         to.address,
         amount,

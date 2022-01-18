@@ -194,15 +194,10 @@ contract('DCAHub', () => {
       const amount = rate.mul(amountOfSwaps);
       await tokenA.mint(owner.address, amount);
       await tokenA.approve(DCAHub.address, amount);
-      const response: TransactionResponse = await DCAHub.connect(owner)['deposit(address,address,uint256,uint32,uint32,address,tuple[])'](
-        tokenA.address,
-        tokenB.address,
-        amount,
-        amountOfSwaps,
-        SwapInterval.ONE_DAY.seconds,
-        owner.address,
-        []
-      );
+      // @ts-ignore
+      const response: TransactionResponse = await DCAHub.connect(owner)[
+        'deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'
+      ](tokenA.address, tokenB.address, amount, amountOfSwaps, SwapInterval.ONE_DAY.seconds, owner.address, []);
       return await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'positionId');
     }
 

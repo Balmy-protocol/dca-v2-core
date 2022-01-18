@@ -75,7 +75,8 @@ contract('DCATokenDescriptor', () => {
 
   it('Validate tokenURI result', async () => {
     // Deposit
-    const response = await DCAHub['deposit(address,address,uint256,uint32,uint32,address,tuple[])'](
+    // @ts-ignore
+    const response = await DCAHub['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
       tokenB.address,
       tokenA.address,
       tokenB.asUnits(20),

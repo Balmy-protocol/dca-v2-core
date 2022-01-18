@@ -1314,7 +1314,8 @@ contract('DCAPositionHandler', () => {
     permissions?: { operator: string; permissions: Permission[] }[];
   }) {
     const to = tokenA == token ? tokenB : tokenA;
-    const response: TransactionResponse = await DCAPositionHandler['deposit(address,address,uint256,uint32,uint32,address,tuple[])'](
+    // @ts-ignore
+    const response: TransactionResponse = await DCAPositionHandler['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
       token.address,
       to.address,
       (BigNumber.isBigNumber(rate) ? rate : token.asUnits(rate)).mul(swaps),
