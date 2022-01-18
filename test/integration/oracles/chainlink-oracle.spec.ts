@@ -19,12 +19,10 @@ const CRV = { address: '0xD533a949740bb3306d119CC777fa900bA034cd52', decimals: 1
 const AMP = { address: '0xff20817765cb7f73d4bde2e66e067e58d11095c2', decimals: 18, symbol: 'AMP', id: 'amp-token' };
 const FXS = { address: '0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0', decimals: 18, symbol: 'FXS', id: 'frax-share' };
 const ALCX = { address: '0xdbdb4d16eda451d0503b854cf79d55697f90c8df', decimals: 18, symbol: 'ALCX', id: 'alchemix' };
-const MANA = { address: '0x0f5d2fb29fb7d3cfee444a200298f468908cc942', decimals: 18, symbol: 'MANA', id: 'decentraland' };
+const BOND = { address: '0x0391d2021f89dc339f60fff84546ea23e337750f', decimals: 18, symbol: 'BOND', id: 'barnbridge' };
 const AXS = { address: '0xbb0e17ef65f82ab018d8edd776e8dd940327b28b', decimals: 18, symbol: 'AXS', id: 'axie-infinity' };
 const MATIC = { address: '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0', decimals: 18, symbol: 'MATIC', id: 'matic-network' };
 const WBTC = { address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals: 8, symbol: 'WBTC', id: 'wrapped-bitcoin' };
-const HUSD = { address: '0xdf574c24545e5ffecb9a659c229253d4111d87e1', decimals: 8, symbol: 'HUSD', id: 'husd' };
-const TUSD = { address: '0x0000000000085d4780b73119b644ae5ecd22b376', decimals: 18, symbol: 'TUSD', id: 'true-usd' };
 
 const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   [
@@ -53,8 +51,8 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   ],
   [
     // TOKEN_TO_ETH_TO_TOKEN_PAIR
-    { tokenIn: TUSD, tokenOut: HUSD, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenA) => ETH => OUT (tokenB)
-    { tokenIn: ALCX, tokenOut: MANA, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenB) => ETH => OUT (tokenA)
+    { tokenIn: BOND, tokenOut: AXS, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenA) => ETH => OUT (tokenB)
+    { tokenIn: ALCX, tokenOut: BOND, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenB) => ETH => OUT (tokenA)
   ],
   [
     // TOKEN_A_TO_USD_TO_ETH_TO_TOKEN_B
@@ -69,14 +67,14 @@ const PLANS: { tokenIn: Token; tokenOut: Token; price: PriceComparison }[][] = [
   ],
   [
     // TOKEN_A_TO_ETH_TO_USD_TO_TOKEN_B
-    { tokenIn: MANA, tokenOut: USDC, price: { quote: 'IN', currency: 'usd' } }, // IN (tokenA) => ETH, OUT (tokenB) is USD
+    { tokenIn: BOND, tokenOut: USDC, price: { quote: 'IN', currency: 'usd' } }, // IN (tokenA) => ETH, OUT (tokenB) is USD
     { tokenIn: USDT, tokenOut: AXS, price: { quote: 'OUT', currency: 'usd' } }, // IN (tokenB) is USD, ETH => OUT (tokenA)
 
     { tokenIn: WETH, tokenOut: AMP, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenA) is ETH, USD => OUT (tokenB)
     { tokenIn: AMP, tokenOut: WETH, price: { quote: 'BOTH', currency: 'eth' } }, // IN (tokenB) => USD, OUT is ETH (tokenA)
 
     { tokenIn: AXS, tokenOut: AMP, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenA) => ETH, USD => OUT (tokenB)
-    { tokenIn: FXS, tokenOut: MANA, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD, ETH => OUT (tokenA)
+    { tokenIn: FXS, tokenOut: BOND, price: { quote: 'BOTH', currency: 'usd' } }, // IN (tokenB) => USD, ETH => OUT (tokenA)
   ],
 ];
 
