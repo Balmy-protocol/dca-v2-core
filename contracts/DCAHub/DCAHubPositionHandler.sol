@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '../libraries/Intervals.sol';
@@ -57,7 +56,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint32 _swapInterval,
     address _owner,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
-  ) external nonReentrant whenNotPaused returns (uint256) {
+  ) public nonReentrant whenNotPaused returns (uint256) {
     if (_from == address(0) || _to == address(0) || _owner == address(0)) revert IDCAHub.ZeroAddress();
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
@@ -87,11 +86,28 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   }
 
   /// @inheritdoc IDCAHubPositionHandler
+  function deposit(
+    address _from,
+    address _to,
+    uint256 _amount,
+    uint32 _amountOfSwaps,
+    uint32 _swapInterval,
+    address _owner,
+    IDCAPermissionManager.PermissionSet[] calldata _permissions,
+    bytes calldata _miscellaneous
+  ) external returns (uint256 _positionId) {
+    _positionId = deposit(_from, _to, _amount, _amountOfSwaps, _swapInterval, _owner, _permissions);
+    if (_miscellaneous.length > 0) {
+      emit Miscellaneous(_positionId, _miscellaneous);
+    }
+  }
+
+  /// @inheritdoc IDCAHubPositionHandler
   function withdrawSwapped(uint256 _positionId, address _recipient) external nonReentrant returns (uint256) {
     _assertNonZeroAddress(_recipient);
 
     (uint256 _swapped, address _to) = _executeWithdraw(_positionId);
-    IERC20Metadata(_to).safeTransfer(_recipient, _swapped);
+    _transfer(_to, _recipient, _swapped);
     emit Withdrew(msg.sender, _recipient, _positionId, _to, _swapped);
     return _swapped;
   }
@@ -107,7 +123,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         if (_to != _token) revert PositionDoesNotMatchToken();
         _swapped[i] += _swappedByPosition;
       }
-      IERC20Metadata(_token).safeTransfer(_recipient, _swapped[i]);
+      _transfer(_token, _recipient, _swapped[i]);
     }
     emit WithdrewMany(msg.sender, _recipient, _positions, _swapped);
   }
@@ -133,11 +149,11 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     permissionManager.burn(_positionId);
 
     if (_swapped > 0) {
-      IERC20Metadata(_userPosition.to).safeTransfer(_recipientSwapped, _swapped);
+      _transfer(_userPosition.to, _recipientSwapped, _swapped);
     }
 
     if (_unswapped > 0) {
-      IERC20Metadata(_userPosition.from).safeTransfer(_recipientUnswapped, _unswapped);
+      _transfer(_userPosition.from, _recipientUnswapped, _unswapped);
     }
 
     emit Terminated(msg.sender, _recipientUnswapped, _recipientSwapped, _positionId, _unswapped, _swapped);
@@ -198,7 +214,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       if (_increase) {
         IERC20Metadata(_userPosition.from).safeTransferFrom(msg.sender, address(this), _amount);
       } else {
-        IERC20Metadata(_userPosition.from).safeTransfer(_recipient, _amount);
+        _transfer(_userPosition.from, _recipient, _amount);
       }
     }
 

@@ -25,19 +25,19 @@ abstract contract DCAHubLoanHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       // We are now making sure that tokens are sorted, as an easy way to detect duplicates
       if (i > 0 && _loan[i].token <= _loan[i - 1].token) revert IDCAHub.InvalidTokens();
 
-      _beforeBalances[i] = IERC20Metadata(_loan[i].token).balanceOf(address(this));
+      _beforeBalances[i] = _balanceOf(_loan[i].token);
     }
 
     // Transfer tokens
     for (uint256 i; i < _loan.length; i++) {
-      IERC20Metadata(_loan[i].token).safeTransfer(_to, _loan[i].amount);
+      _transfer(_loan[i].token, _to, _loan[i].amount);
     }
 
     // Make call
     IDCAHubLoanCallee(_to).DCAHubLoanCall(msg.sender, _loan, _loanFee, _data);
 
     for (uint256 i; i < _loan.length; i++) {
-      uint256 _afterBalance = IERC20Metadata(_loan[i].token).balanceOf(address(this));
+      uint256 _afterBalance = _balanceOf(_loan[i].token);
 
       // Make sure that they sent the tokens back
       if (_afterBalance < _beforeBalances[i] + FeeMath.calculateFeeForAmount(_loanFee, _loan[i].amount)) {

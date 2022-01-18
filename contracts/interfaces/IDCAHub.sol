@@ -160,6 +160,11 @@ interface IDCAHubPositionHandler {
     IDCAPermissionManager.PermissionSet[] permissions
   );
 
+  /// @notice Emitted when a position is created and extra data is provided
+  /// @param positionId The id of the position that was created
+  /// @param data The extra data that was provided
+  event Miscellaneous(uint256 positionId, bytes data);
+
   /// @notice Emitted when a user withdraws all swapped tokens from a position
   /// @param withdrawer The address of the user that executed the withdraw
   /// @param recipient The address of the user that will receive the withdrawn tokens
@@ -240,6 +245,34 @@ interface IDCAHubPositionHandler {
     uint32 _swapInterval,
     address _owner,
     IDCAPermissionManager.PermissionSet[] calldata _permissions
+  ) external returns (uint256 _positionId);
+
+  /// @notice Creates a new position
+  /// @dev Will revert:
+  /// With ZeroAddress if _from, _to or _owner are zero
+  /// With InvalidToken if _from == _to
+  /// With ZeroAmount if _amount is zero
+  /// With AmountTooBig if _amount is too big
+  /// With ZeroSwaps if _amountOfSwaps is zero
+  /// With IntervalNotAllowed if _swapInterval is not allowed
+  /// @param _from The address of the "from" token
+  /// @param _to The address of the "to" token
+  /// @param _amount How many "from" tokens will be swapped in total
+  /// @param _amountOfSwaps How many swaps to execute for this position
+  /// @param _swapInterval How frequently the position's swaps should be executed
+  /// @param _owner The address of the owner of the position being created
+  /// @param _permissions Extra permissions to add to the position. Can be empty
+  /// @param _miscellaneous Bytes that will be emitted, and associated with the position
+  /// @return _positionId The id of the created position
+  function deposit(
+    address _from,
+    address _to,
+    uint256 _amount,
+    uint32 _amountOfSwaps,
+    uint32 _swapInterval,
+    address _owner,
+    IDCAPermissionManager.PermissionSet[] calldata _permissions,
+    bytes calldata _miscellaneous
   ) external returns (uint256 _positionId);
 
   /// @notice Withdraws all swapped tokens from a position to a recipient
