@@ -116,7 +116,7 @@ contract('DCAHub', () => {
       const amount = MAX_RATE.mul(TOTAL_AMOUNT_OF_SWAPS);
       await tokenA.mint(owner.address, amount);
       await tokenA.approve(DCAHub.address, amount);
-      const response: TransactionResponse = await DCAHub.connect(owner).deposit(
+      const response: TransactionResponse = await DCAHub.connect(owner)['deposit(address,address,uint256,uint32,uint32,address,tuple[])'](
         tokenA.address,
         tokenB.address,
         amount,
