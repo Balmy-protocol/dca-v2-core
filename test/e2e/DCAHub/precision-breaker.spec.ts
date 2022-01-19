@@ -66,7 +66,6 @@ contract('DCAHub', () => {
     when('all swaps are done', () => {
       given(async () => {
         await tokenB.connect(alice).approve(DCAHub.address, constants.MAX_UINT_256);
-        // @ts-ignore
         await DCAHub.connect(alice)['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
           tokenB.address,
           tokenA.address,
@@ -78,7 +77,6 @@ contract('DCAHub', () => {
         );
 
         await tokenB.connect(john).approve(DCAHub.address, constants.MAX_UINT_256);
-        // @ts-ignore
         await DCAHub.connect(john)['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
           tokenB.address,
           tokenA.address,

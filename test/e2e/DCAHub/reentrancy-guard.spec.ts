@@ -151,7 +151,6 @@ contract('DCAHub', () => {
         args,
         attackerContract,
         attack: async () => {
-          // @ts-ignore
           const tx = await DCAHub.populateTransaction['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
             constants.NOT_ZERO_ADDRESS,
             constants.NOT_ZERO_ADDRESS,
@@ -248,7 +247,6 @@ contract('DCAHub', () => {
     }) {
       await from().mint(depositor.address, from().asUnits(rate).mul(swaps));
       await from().connect(depositor).approve(DCAHub.address, from().asUnits(rate).mul(swaps));
-      // @ts-ignore
       const response: TransactionResponse = await DCAHub.connect(depositor)[
         'deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'
       ](from().address, to().address, from().asUnits(rate).mul(swaps), swaps, SwapInterval.FIFTEEN_MINUTES.seconds, depositor.address, []);
