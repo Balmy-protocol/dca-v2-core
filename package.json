@@ -1,6 +1,6 @@
 {
   "name": "@mean-finance/dca-v2-core",
-  "version": "1.0.0-rc.9",
+  "version": "1.0.0-rc.10",
   "description": "Core smart contracts of DCA v2 by mean.finance",
   "keywords": [
     "ethereum",
@@ -73,8 +73,8 @@
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@0.3.0-beta.10",
     "@nomiclabs/hardhat-etherscan": "2.1.6",
     "@nomiclabs/hardhat-waffle": "2.0.1",
-    "@typechain/ethers-v5": "7.0.1",
-    "@typechain/hardhat": "2.3.0",
+    "@typechain/ethers-v5": "9.0.0",
+    "@typechain/hardhat": "4.0.0",
     "@types/chai": "4.2.21",
     "@types/chai-as-promised": "7.1.4",
     "@types/mocha": "9.0.0",
@@ -106,7 +106,7 @@
     "standard-version": "9.3.1",
     "ts-node": "10.2.1",
     "tsconfig-paths": "3.11.0",
-    "typechain": "5.1.2",
+    "typechain": "7.0.0",
     "typescript": "4.4.2"
   },
   "publishConfig": {

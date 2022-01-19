@@ -99,7 +99,7 @@ contract('DCAPositionHandler', () => {
     }) =>
       behaviours.txShouldRevertWithMessage({
         contract: DCAPositionHandler,
-        func: 'deposit',
+        func: 'deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])',
         args: [from, to, amount, swaps, interval, owner, []],
         message: error,
       });
@@ -377,6 +377,44 @@ contract('DCAPositionHandler', () => {
         } = await DCAPositionHandler.userPosition(positionId);
         expect(rate).to.equal(RATE);
         expect(remaining).to.equal(RATE.mul(2));
+      });
+    });
+    when('depositing with an empty misc', async () => {
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await DCAPositionHandler['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[],bytes)'](
+          tokenA.address,
+          tokenB.address,
+          POSITION_RATE_5,
+          POSITION_SWAPS_TO_PERFORM_10,
+          SwapInterval.ONE_DAY.seconds,
+          owner.address,
+          [],
+          ethers.utils.randomBytes(0) // Empty
+        );
+      });
+      then('event is not emitted', async () => {
+        await expect(tx).to.not.emit(DCAPositionHandler, 'Miscellaneous');
+      });
+    });
+    when('depositing with a non-empty misc', async () => {
+      const MISC = ethers.utils.randomBytes(10);
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await DCAPositionHandler['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[],bytes)'](
+          tokenA.address,
+          tokenB.address,
+          POSITION_RATE_5,
+          POSITION_SWAPS_TO_PERFORM_10,
+          SwapInterval.ONE_DAY.seconds,
+          owner.address,
+          [],
+          MISC
+        );
+      });
+      then('event is emitted', async () => {
+        const positionId = await readArgFromEventOrFail<BigNumber>(tx, 'Deposited', 'positionId');
+        await expect(tx).to.emit(DCAPositionHandler, 'Miscellaneous').withArgs(positionId, ethers.utils.hexlify(MISC));
       });
     });
   });
@@ -1314,7 +1352,7 @@ contract('DCAPositionHandler', () => {
     permissions?: { operator: string; permissions: Permission[] }[];
   }) {
     const to = tokenA == token ? tokenB : tokenA;
-    const response: TransactionResponse = await DCAPositionHandler.deposit(
+    const response: TransactionResponse = await DCAPositionHandler['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
       token.address,
       to.address,
       (BigNumber.isBigNumber(rate) ? rate : token.asUnits(rate)).mul(swaps),

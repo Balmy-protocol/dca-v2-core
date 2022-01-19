@@ -243,21 +243,21 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       // Remember balances before callback
       if (_tokenInSwap.toProvide > 0 || _amountToBorrow > 0) {
-        _beforeBalances[i] = IERC20Metadata(_tokenInSwap.token).balanceOf(address(this));
+        _beforeBalances[i] = _balanceOf(_tokenInSwap.token);
       }
 
       // Optimistically transfer tokens
       if (_rewardRecipient == _callbackHandler) {
         uint256 _amountToSend = _tokenInSwap.reward + _amountToBorrow;
         if (_amountToSend > 0) {
-          IERC20Metadata(_tokenInSwap.token).safeTransfer(_callbackHandler, _amountToSend);
+          _transfer(_tokenInSwap.token, _callbackHandler, _amountToSend);
         }
       } else {
         if (_tokenInSwap.reward > 0) {
-          IERC20Metadata(_tokenInSwap.token).safeTransfer(_rewardRecipient, _tokenInSwap.reward);
+          _transfer(_tokenInSwap.token, _rewardRecipient, _tokenInSwap.reward);
         }
         if (_amountToBorrow > 0) {
-          IERC20Metadata(_tokenInSwap.token).safeTransfer(_callbackHandler, _amountToBorrow);
+          _transfer(_tokenInSwap.token, _callbackHandler, _amountToBorrow);
         }
       }
     }
@@ -273,7 +273,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       if (_tokenInSwap.toProvide > 0 || _borrow[i] > 0) {
         uint256 _amountToHave = _beforeBalances[i] + _tokenInSwap.toProvide - _tokenInSwap.reward;
 
-        uint256 _currentBalance = IERC20Metadata(_tokenInSwap.token).balanceOf(address(this));
+        uint256 _currentBalance = _balanceOf(_tokenInSwap.token);
 
         // Make sure tokens were sent back
         if (_currentBalance < _amountToHave) {
