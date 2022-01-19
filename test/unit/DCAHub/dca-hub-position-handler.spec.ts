@@ -99,7 +99,7 @@ contract('DCAPositionHandler', () => {
     }) =>
       behaviours.txShouldRevertWithMessage({
         contract: DCAPositionHandler,
-        func: 'deposit',
+        func: 'deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])',
         args: [from, to, amount, swaps, interval, owner, []],
         message: error,
       });

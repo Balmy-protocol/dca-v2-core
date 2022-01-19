@@ -150,19 +150,19 @@ contract('DCAHub', () => {
         funcAndSignature,
         args,
         attackerContract,
-        attack: async () =>
+        attack: async () => {
           // @ts-ignore
-          (
-            await DCAHub.populateTransaction['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
-              constants.NOT_ZERO_ADDRESS,
-              constants.NOT_ZERO_ADDRESS,
-              0,
-              0,
-              0,
-              wallet.generateRandomAddress(),
-              []
-            )
-          ).data!,
+          const tx = await DCAHub.populateTransaction['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
+            constants.NOT_ZERO_ADDRESS,
+            constants.NOT_ZERO_ADDRESS,
+            0,
+            0,
+            0,
+            wallet.generateRandomAddress(),
+            []
+          );
+          return tx.data!;
+        },
       });
       testReentrantAttack({
         title: 'trying to do a reentrancy attack through withdrawing swapped',
