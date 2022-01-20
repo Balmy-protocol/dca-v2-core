@@ -20,19 +20,22 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   /// @inheritdoc IUniswapV3Oracle
   uint16 public immutable override maximumPeriod;
   /// @inheritdoc IUniswapV3Oracle
-  uint16 public override period = 5 minutes;
+  uint16 public override period;
   uint24[] internal _supportedFeeTiers = [500, 3000, 10000];
   mapping(address => mapping(address => address[])) internal _poolsForPair;
 
   constructor(
     address _governor,
     IUniswapV3Factory _factory,
+    uint16 _period,
     uint16 _minimumPeriod,
     uint16 _maximumPeriod
   ) Governable(_governor) {
     require(address(_factory) != address(0), 'ZeroAddress');
     require(_minimumPeriod > 0 && _maximumPeriod > 0, 'ZeroPeriods');
+    require(_period <= _maximumPeriod && _period >= _minimumPeriod, 'PeriodOutOfRange');
     factory = _factory;
+    period = _period;
     minimumPeriod = _minimumPeriod;
     maximumPeriod = _maximumPeriod;
   }

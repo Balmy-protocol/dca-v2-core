@@ -15,6 +15,7 @@ describe('UniswapV3Oracle', () => {
   const INITIAL_FEE_TIERS = [500, 3000, 10000];
   const FEE = INITIAL_FEE_TIERS[0];
   const FEE_2 = INITIAL_FEE_TIERS[1];
+  const PERIOD = moment.duration('5', 'minute').as('seconds');
   const MINIMUM_PERIOD = moment.duration('1', 'minute').as('seconds');
   const MAXIMUM_PERIOD = moment.duration('20', 'minutes').as('seconds');
   let owner: SignerWithAddress;
@@ -30,7 +31,7 @@ describe('UniswapV3Oracle', () => {
     [owner] = await ethers.getSigners();
     UniswapV3OracleContract = await ethers.getContractFactory('contracts/mocks/oracles/UniswapV3Oracle.sol:UniswapV3OracleMock');
     uniswapV3Factory = await smock.fake('IUniswapV3Factory');
-    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, uniswapV3Factory.address, MINIMUM_PERIOD, MAXIMUM_PERIOD);
+    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, uniswapV3Factory.address, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD);
     uniswapV3Pool = await smock.fake('IUniswapV3Pool');
     uniswapV3Pool2 = await smock.fake('IUniswapV3Pool');
     snapshotId = await snapshot.take();
@@ -56,8 +57,27 @@ describe('UniswapV3Oracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, constants.ZERO_ADDRESS, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [owner.address, constants.ZERO_ADDRESS, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD],
           message: 'ZeroAddress',
+        });
+      });
+    });
+    when('period is zero, lower than minimum or higher than maximum period', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, constants.ZERO, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          message: 'PeriodOutOfRange',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, MINIMUM_PERIOD - 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          message: 'PeriodOutOfRange',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, MAXIMUM_PERIOD + 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          message: 'PeriodOutOfRange',
         });
       });
     });
@@ -65,7 +85,7 @@ describe('UniswapV3Oracle', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, constants.ZERO, MAXIMUM_PERIOD],
+          args: [owner.address, uniswapV3Factory.address, PERIOD, constants.ZERO, MAXIMUM_PERIOD],
           message: 'ZeroPeriods',
         });
       });
@@ -74,7 +94,7 @@ describe('UniswapV3Oracle', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, MINIMUM_PERIOD, constants.ZERO],
+          args: [owner.address, uniswapV3Factory.address, PERIOD, MINIMUM_PERIOD, constants.ZERO],
           message: 'ZeroPeriods',
         });
       });
