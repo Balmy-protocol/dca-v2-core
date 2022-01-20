@@ -7,23 +7,28 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   const UNISWAP_V3_FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984';
 
+  let period: number;
   let minimumPeriod: number;
   let maximumPeriod: number;
   switch (hre.network.name) {
     case 'mainnet':
     case 'hardhat':
+      period = moment.duration('5', 'minutes').as('seconds');
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
       maximumPeriod = moment.duration('20', 'minutes').as('seconds');
       break;
     case 'kovan':
+      period = moment.duration('5', 'minutes').as('seconds');
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
       maximumPeriod = moment.duration('20', 'minutes').as('seconds');
       break;
     case 'optimism':
+      period = moment.duration('10', 'minutes').as('seconds');
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
       maximumPeriod = moment.duration('45', 'minutes').as('seconds');
       break;
     case 'optimism-kovan':
+      period = moment.duration('10', 'minutes').as('seconds');
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
       maximumPeriod = moment.duration('45', 'minutes').as('seconds');
       break;
@@ -34,7 +39,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await hre.deployments.deploy('UniswapOracle', {
     contract: 'contracts/oracles/UniswapV3Oracle.sol:UniswapV3Oracle',
     from: deployer,
-    args: [governor, UNISWAP_V3_FACTORY_ADDRESS, minimumPeriod, maximumPeriod],
+    args: [governor, UNISWAP_V3_FACTORY_ADDRESS, period, minimumPeriod, maximumPeriod],
     log: true,
   });
 };
