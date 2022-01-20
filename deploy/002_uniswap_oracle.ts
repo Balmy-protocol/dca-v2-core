@@ -21,11 +21,11 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       break;
     case 'optimism':
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
-      maximumPeriod = moment.duration('30', 'minutes').as('seconds');
+      maximumPeriod = moment.duration('45', 'minutes').as('seconds');
       break;
     case 'optimism-kovan':
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
-      maximumPeriod = moment.duration('30', 'minutes').as('seconds');
+      maximumPeriod = moment.duration('45', 'minutes').as('seconds');
       break;
     default:
       throw new Error(`Unsupported chain '${hre.network.name}`);
