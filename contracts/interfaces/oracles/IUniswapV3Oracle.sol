@@ -34,6 +34,10 @@ interface IUniswapV3Oracle is IPriceOracle {
   /// @return _pools An array with all pools used for quoting the given pair
   function poolsUsedForPair(address _tokenA, address _tokenB) external view returns (address[] memory _pools);
 
+  /// @notice Returns the cardinality per minute used for adding support to pairs
+  /// @return _cardinalityPerMinute The cardinality per minute used for increase cardinality calculations
+  function cardinalityPerMinute() external view returns (uint8 _cardinalityPerMinute);
+
   /// @notice Returns the period used for the TWAP calculation
   /// @return _period The period used for the TWAP
   function period() external view returns (uint16 _period);

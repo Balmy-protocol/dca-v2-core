@@ -12,9 +12,10 @@ import '../libraries/TokenSorting.sol';
 contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   /// @inheritdoc IUniswapV3Oracle
   uint16 public constant override MINIMUM_LIQUIDITY_THRESHOLD = 1;
-  uint8 private constant _AVERAGE_BLOCK_INTERVAL = 15 seconds;
   /// @inheritdoc IUniswapV3Oracle
   IUniswapV3Factory public immutable override factory;
+  /// @inheritdoc IUniswapV3Oracle
+  uint8 public immutable override cardinalityPerMinute;
   /// @inheritdoc IUniswapV3Oracle
   uint16 public immutable override minimumPeriod;
   /// @inheritdoc IUniswapV3Oracle
@@ -27,14 +28,17 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   constructor(
     address _governor,
     IUniswapV3Factory _factory,
+    uint8 _cardinalityPerMinute,
     uint16 _period,
     uint16 _minimumPeriod,
     uint16 _maximumPeriod
   ) Governable(_governor) {
     require(address(_factory) != address(0), 'ZeroAddress');
+    require(_cardinalityPerMinute > 0, 'ZeroCadinalityPerMinute');
     require(_minimumPeriod > 0 && _maximumPeriod > 0, 'ZeroPeriods');
     require(_period <= _maximumPeriod && _period >= _minimumPeriod, 'PeriodOutOfRange');
     factory = _factory;
+    cardinalityPerMinute = _cardinalityPerMinute;
     period = _period;
     minimumPeriod = _minimumPeriod;
     maximumPeriod = _maximumPeriod;
@@ -113,7 +117,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   }
 
   function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
-    uint16 _cardinality = uint16(period / _AVERAGE_BLOCK_INTERVAL) + 10; // We add 10 just to be on the safe side
+    uint16 _cardinality = uint16((period / 60) * cardinalityPerMinute) + 10; // We add 10 just to be on the safe side
     address[] storage _pools = _poolsForPair[_tokenA][_tokenB];
     uint24[] memory _feeTiers = _supportedFeeTiers;
     for (uint256 i; i < _feeTiers.length; i++) {
