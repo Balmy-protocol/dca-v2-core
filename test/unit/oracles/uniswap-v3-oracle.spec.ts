@@ -7,6 +7,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { UniswapV3OracleMock, UniswapV3OracleMock__factory, IUniswapV3Pool, IUniswapV3Factory } from '@typechained';
 import { snapshot } from '@test-utils/evm';
 import { FakeContract, smock } from '@defi-wonderland/smock';
+import moment from 'moment';
 
 describe('UniswapV3Oracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
@@ -14,6 +15,8 @@ describe('UniswapV3Oracle', () => {
   const INITIAL_FEE_TIERS = [500, 3000, 10000];
   const FEE = INITIAL_FEE_TIERS[0];
   const FEE_2 = INITIAL_FEE_TIERS[1];
+  const MINIMUM_PERIOD = moment.duration('1', 'minute').as('seconds');
+  const MAXIMUM_PERIOD = moment.duration('20', 'minutes').as('seconds');
   let owner: SignerWithAddress;
   let UniswapV3OracleContract: UniswapV3OracleMock__factory;
   let UniswapV3Oracle: UniswapV3OracleMock;
@@ -27,7 +30,7 @@ describe('UniswapV3Oracle', () => {
     [owner] = await ethers.getSigners();
     UniswapV3OracleContract = await ethers.getContractFactory('contracts/mocks/oracles/UniswapV3Oracle.sol:UniswapV3OracleMock');
     uniswapV3Factory = await smock.fake('IUniswapV3Factory');
-    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, uniswapV3Factory.address);
+    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, uniswapV3Factory.address, MINIMUM_PERIOD, MAXIMUM_PERIOD);
     uniswapV3Pool = await smock.fake('IUniswapV3Pool');
     uniswapV3Pool2 = await smock.fake('IUniswapV3Pool');
     snapshotId = await snapshot.take();
@@ -53,8 +56,26 @@ describe('UniswapV3Oracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, constants.ZERO_ADDRESS],
+          args: [owner.address, constants.ZERO_ADDRESS, MINIMUM_PERIOD, MAXIMUM_PERIOD],
           message: 'ZeroAddress',
+        });
+      });
+    });
+    when('minimum period is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, constants.ZERO, MAXIMUM_PERIOD],
+          message: 'ZeroPeriods',
+        });
+      });
+    });
+    when('maximum period is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, MINIMUM_PERIOD, constants.ZERO],
+          message: 'ZeroPeriods',
         });
       });
     });
@@ -63,13 +84,13 @@ describe('UniswapV3Oracle', () => {
         const factory = await UniswapV3Oracle.factory();
         expect(factory).to.equal(uniswapV3Factory.address);
       });
-      then('max period is 20 minutes', async () => {
-        const maxPeriod = await UniswapV3Oracle.MAXIMUM_PERIOD();
-        expect(maxPeriod).to.equal(20 * 60);
-      });
       then('min period is 1 minute', async () => {
-        const minPeriod = await UniswapV3Oracle.MINIMUM_PERIOD();
+        const minPeriod = await UniswapV3Oracle.minimumPeriod();
         expect(minPeriod).to.equal(60);
+      });
+      then('max period is 20 minutes', async () => {
+        const maxPeriod = await UniswapV3Oracle.maximumPeriod();
+        expect(maxPeriod).to.equal(20 * 60);
       });
       then('starting period is 5 minutes', async () => {
         const period = await UniswapV3Oracle.period();

@@ -11,22 +11,30 @@ import '../libraries/TokenSorting.sol';
 
 contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   /// @inheritdoc IUniswapV3Oracle
-  uint16 public constant override MINIMUM_PERIOD = 1 minutes;
-  /// @inheritdoc IUniswapV3Oracle
-  uint16 public constant override MAXIMUM_PERIOD = 20 minutes;
-  /// @inheritdoc IUniswapV3Oracle
   uint16 public constant override MINIMUM_LIQUIDITY_THRESHOLD = 1;
   uint8 private constant _AVERAGE_BLOCK_INTERVAL = 15 seconds;
   /// @inheritdoc IUniswapV3Oracle
   IUniswapV3Factory public immutable override factory;
   /// @inheritdoc IUniswapV3Oracle
+  uint16 public immutable override minimumPeriod;
+  /// @inheritdoc IUniswapV3Oracle
+  uint16 public immutable override maximumPeriod;
+  /// @inheritdoc IUniswapV3Oracle
   uint16 public override period = 5 minutes;
   uint24[] internal _supportedFeeTiers = [500, 3000, 10000];
   mapping(address => mapping(address => address[])) internal _poolsForPair;
 
-  constructor(address _governor, IUniswapV3Factory _factory) Governable(_governor) {
+  constructor(
+    address _governor,
+    IUniswapV3Factory _factory,
+    uint16 _minimumPeriod,
+    uint16 _maximumPeriod
+  ) Governable(_governor) {
     require(address(_factory) != address(0), 'ZeroAddress');
+    require(_minimumPeriod > 0 && _maximumPeriod > 0, 'ZeroPeriods');
     factory = _factory;
+    minimumPeriod = _minimumPeriod;
+    maximumPeriod = _maximumPeriod;
   }
 
   /// @inheritdoc IPriceOracle
@@ -82,8 +90,8 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
 
   /// @inheritdoc IUniswapV3Oracle
   function setPeriod(uint16 _period) external override onlyGovernor {
-    require(_period <= MAXIMUM_PERIOD, 'GreaterThanMaximumPeriod');
-    require(_period >= MINIMUM_PERIOD, 'LessThanMinimumPeriod');
+    require(_period <= maximumPeriod, 'GreaterThanMaximumPeriod');
+    require(_period >= minimumPeriod, 'LessThanMinimumPeriod');
     period = _period;
     emit PeriodChanged(_period);
   }
