@@ -7,7 +7,13 @@ import '../../oracles/UniswapV3Oracle.sol';
 contract UniswapV3OracleMock is UniswapV3Oracle {
   mapping(address => mapping(address => bool)) public addSupportForPairCalled;
 
-  constructor(address _governor, IUniswapV3Factory _factory) UniswapV3Oracle(_governor, _factory) {}
+  constructor(
+    address _governor,
+    IUniswapV3Factory _factory,
+    uint16 _period,
+    uint16 _minimumPeriod,
+    uint16 _maximumPeriod
+  ) UniswapV3Oracle(_governor, _factory, _period, _minimumPeriod, _maximumPeriod) {}
 
   function internalAddSupportForPair(address _tokenA, address _tokenB) external {
     _addSupportForPair(_tokenA, _tokenB);

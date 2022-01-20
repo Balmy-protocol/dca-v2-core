@@ -21,6 +21,7 @@ interface IUniswapV3Oracle is IPriceOracle {
   event AddedSupportForPairInUniswapOracle(address tokenA, address tokenB);
 
   /// @notice Returns the Uniswap V3 Factory
+  /// @dev Cannot be modified after deployment
   /// @return _factory The Uniswap V3 Factory
   function factory() external view returns (IUniswapV3Factory _factory);
 
@@ -38,16 +39,14 @@ interface IUniswapV3Oracle is IPriceOracle {
   function period() external view returns (uint16 _period);
 
   /// @notice Returns minimum possible period
-  /// @dev Cannot be modified
+  /// @dev Cannot be modified after deployment
   /// @return The minimum possible period
-  // solhint-disable-next-line func-name-mixedcase
-  function MINIMUM_PERIOD() external view returns (uint16);
+  function minimumPeriod() external view returns (uint16);
 
   /// @notice Returns maximum possible period
-  /// @dev Cannot be modified
+  /// @dev Cannot be modified after deployment
   /// @return The maximum possible period
-  // solhint-disable-next-line func-name-mixedcase
-  function MAXIMUM_PERIOD() external view returns (uint16);
+  function maximumPeriod() external view returns (uint16);
 
   /// @notice Returns the minimum liquidity that a pool needs to have in order to be used for a pair's quote
   /// @dev This check is only performed when adding support for a pair. If the pool's liquidity then
