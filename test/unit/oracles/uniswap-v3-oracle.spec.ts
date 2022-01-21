@@ -16,6 +16,8 @@ describe.only('UniswapV3Oracle', () => {
   const FEE = INITIAL_FEE_TIERS[0];
   const FEE_2 = INITIAL_FEE_TIERS[1];
   const CARDINALITY_PER_MINUTE = 60;
+  const MINIMUM_CARDINALITY_PER_MINUTE = 10;
+  const MAXIMUM_CARDINALITY_PER_MINUTE = 80;
   const PERIOD = moment.duration('5', 'minute').as('seconds');
   const MINIMUM_PERIOD = moment.duration('1', 'minute').as('seconds');
   const MAXIMUM_PERIOD = moment.duration('20', 'minutes').as('seconds');
@@ -36,6 +38,8 @@ describe.only('UniswapV3Oracle', () => {
       owner.address,
       uniswapV3Factory.address,
       CARDINALITY_PER_MINUTE,
+      MINIMUM_CARDINALITY_PER_MINUTE,
+      MAXIMUM_CARDINALITY_PER_MINUTE,
       PERIOD,
       MINIMUM_PERIOD,
       MAXIMUM_PERIOD
@@ -65,17 +69,127 @@ describe.only('UniswapV3Oracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, constants.ZERO_ADDRESS, CARDINALITY_PER_MINUTE, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [
+            owner.address,
+            constants.ZERO_ADDRESS,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
           message: 'ZeroAddress',
         });
       });
     });
-    when('cardinality per minute is zero', () => {
+    when('cardinality per minute is zero,lower than minimum or higher than maximum cardinality per minute', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, constants.ZERO, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD],
-          message: 'ZeroCadinalityPerMinute',
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            constants.ZERO,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'CPMOutOfRange',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            MINIMUM_CARDINALITY_PER_MINUTE - 1,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'CPMOutOfRange',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            MAXIMUM_CARDINALITY_PER_MINUTE + 1,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'CPMOutOfRange',
+        });
+      });
+    });
+    when('minimum cardinality per minute is zero, or higher than the maximum cardinality per minute', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            constants.ZERO,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'InvalidCPMThreshold',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE + 1,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'InvalidCPMThreshold',
+        });
+      });
+    });
+    when('maximum cardinality per minute is zero, or less than minimum cardinality per minute', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            constants.ZERO,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'InvalidCPMThreshold',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE - 1,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'InvalidCPMThreshold',
         });
       });
     });
@@ -83,36 +197,109 @@ describe.only('UniswapV3Oracle', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, constants.ZERO, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            constants.ZERO,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
           message: 'PeriodOutOfRange',
         });
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, MINIMUM_PERIOD - 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            MINIMUM_PERIOD - 1,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
           message: 'PeriodOutOfRange',
         });
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, MAXIMUM_PERIOD + 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_PERIOD + 1,
+            MINIMUM_PERIOD,
+            MAXIMUM_PERIOD,
+          ],
           message: 'PeriodOutOfRange',
         });
       });
     });
-    when('minimum period is zero', () => {
+    when('minimum period is zero, or higher than the maximum period', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, PERIOD, constants.ZERO, MAXIMUM_PERIOD],
-          message: 'ZeroPeriods',
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            constants.ZERO,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'InvalidPeriodThreshold',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MAXIMUM_PERIOD + 1,
+            MAXIMUM_PERIOD,
+          ],
+          message: 'InvalidPeriodThreshold',
         });
       });
     });
-    when('maximum period is zero', () => {
+    when('maximum period is zero, or less than minimum period', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, PERIOD, MINIMUM_PERIOD, constants.ZERO],
-          message: 'ZeroPeriods',
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            constants.ZERO,
+          ],
+          message: 'InvalidPeriodThreshold',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [
+            owner.address,
+            uniswapV3Factory.address,
+            CARDINALITY_PER_MINUTE,
+            MINIMUM_CARDINALITY_PER_MINUTE,
+            MAXIMUM_CARDINALITY_PER_MINUTE,
+            PERIOD,
+            MINIMUM_PERIOD,
+            MINIMUM_PERIOD - 1,
+          ],
+          message: 'InvalidPeriodThreshold',
         });
       });
     });
@@ -124,6 +311,14 @@ describe.only('UniswapV3Oracle', () => {
       then('cardinality per minute is 60', async () => {
         const cardinalityPerMinute = await UniswapV3Oracle.cardinalityPerMinute();
         expect(cardinalityPerMinute).to.equal(60);
+      });
+      then('min cardinality per minute is 10', async () => {
+        const minCardinalityPerMinute = await UniswapV3Oracle.minimumCardinalityPerMinute();
+        expect(minCardinalityPerMinute).to.equal(10);
+      });
+      then('max cardinality per minute is 80', async () => {
+        const maxCardinalityPerMinute = await UniswapV3Oracle.maximumCardinalityPerMinute();
+        expect(maxCardinalityPerMinute).to.equal(80);
       });
       then('starting period is 5 minutes', async () => {
         const period = await UniswapV3Oracle.period();
