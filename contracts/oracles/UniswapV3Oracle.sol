@@ -114,6 +114,14 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   }
 
   /// @inheritdoc IUniswapV3Oracle
+  function setCardinalityPerMinute(uint8 _cardinalityPerMinute) external override onlyGovernor {
+    require(_cardinalityPerMinute <= maximumCardinalityPerMinute, 'GreaterThanMaximumCPM');
+    require(_cardinalityPerMinute >= minimumCardinalityPerMinute, 'LessThanMinimumCPM');
+    cardinalityPerMinute = _cardinalityPerMinute;
+    emit CardinalityPerMinuteChanged(_cardinalityPerMinute);
+  }
+
+  /// @inheritdoc IUniswapV3Oracle
   function addFeeTier(uint24 _feeTier) external override onlyGovernor {
     require(factory.feeAmountTickSpacing(_feeTier) > 0, 'InvalidFeeTier');
 

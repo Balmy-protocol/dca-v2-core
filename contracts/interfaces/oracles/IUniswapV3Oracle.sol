@@ -15,6 +15,10 @@ interface IUniswapV3Oracle is IPriceOracle {
   /// @return period The new period
   event PeriodChanged(uint32 period);
 
+  /// @notice Emitted when a new cardinality per minute is set
+  /// @return cardinality per minute The new cardinality per minute
+  event CardinalityPerMinuteChanged(uint8 cardinalityPerMinute);
+
   /// @notice Emitted when the oracle add supports for a new pair
   /// @param tokenA One of the pair's tokens
   /// @param tokenB The other of the pair's tokens
@@ -75,8 +79,14 @@ interface IUniswapV3Oracle is IPriceOracle {
   function addFeeTier(uint24 _feeTier) external;
 
   /// @notice Sets the period to be used for the TWAP calculation
-  /// @dev Will revert it is lower than MINIMUM_PERIOD or greater than MAXIMUM_PERIOD
+  /// @dev Will revert it is lower than minimumPeriod or greater than maximumPeriod
   /// WARNING: increasing the period could cause big problems, because Uniswap V3 pools might not support a TWAP so old.
   /// @param _period The new period
   function setPeriod(uint16 _period) external;
+
+  /// @notice Sets the cardinality per minute to be used when increasing observation cardinality at the moment of adding support for pairs
+  /// @dev Will revert it is lower than minimumCardinalityPerMinute or greater than maximumCardinalityPerMinute
+  /// WARNING: increasing the cardinality per minute will make adding support to a pair significantly costly
+  /// @param _cardinalityPerMinute The new period
+  function setCardinalityPerMinute(uint8 _cardinalityPerMinute) external;
 }

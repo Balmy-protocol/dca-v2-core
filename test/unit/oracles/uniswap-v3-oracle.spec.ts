@@ -9,7 +9,7 @@ import { snapshot } from '@test-utils/evm';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import moment from 'moment';
 
-describe.only('UniswapV3Oracle', () => {
+describe('UniswapV3Oracle', () => {
   const TOKEN_A = '0x0000000000000000000000000000000000000001';
   const TOKEN_B = '0x0000000000000000000000000000000000000002';
   const INITIAL_FEE_TIERS = [500, 3000, 10000];
@@ -470,6 +470,52 @@ describe.only('UniswapV3Oracle', () => {
       contract: () => UniswapV3Oracle,
       funcAndSignature: 'setPeriod(uint16)',
       params: [10 * 60],
+      governor: () => owner,
+    });
+  });
+
+  describe('setCardinalityPerMinute', () => {
+    when('period is higher than max period', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'setCardinalityPerMinute',
+          args: [MAXIMUM_CARDINALITY_PER_MINUTE + 1],
+          message: 'GreaterThanMaximumCPM',
+        });
+      });
+    });
+    when('period is lower than min period', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'setCardinalityPerMinute',
+          args: [MINIMUM_CARDINALITY_PER_MINUTE - 1],
+          message: 'LessThanMinimumCPM',
+        });
+      });
+    });
+    when('new cardinality per minute is valid', () => {
+      const NEW_CARDINALITY_PER_MINUTE = CARDINALITY_PER_MINUTE - 10;
+
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await UniswapV3Oracle.setCardinalityPerMinute(NEW_CARDINALITY_PER_MINUTE);
+      });
+
+      then('cardinality per minute is set', async () => {
+        expect(await UniswapV3Oracle.cardinalityPerMinute()).to.eql(NEW_CARDINALITY_PER_MINUTE);
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(UniswapV3Oracle, 'CardinalityPerMinuteChanged').withArgs(NEW_CARDINALITY_PER_MINUTE);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => UniswapV3Oracle,
+      funcAndSignature: 'setCardinalityPerMinute(uint8)',
+      params: [CARDINALITY_PER_MINUTE],
       governor: () => owner,
     });
   });
