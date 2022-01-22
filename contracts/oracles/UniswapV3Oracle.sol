@@ -135,7 +135,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   }
 
   function _addSupportForPair(address _tokenA, address _tokenB) internal virtual {
-    uint16 _cardinality = uint16((period * cardinalityPerMinute) / 60) + 10;
+    uint16 _cardinality = uint16((period * cardinalityPerMinute) / 60) + 10; // We add 10 just to be on the safe side
     address[] storage _pools = _poolsForPair[_tokenA][_tokenB];
     uint24[] memory _feeTiers = _supportedFeeTiers;
     for (uint256 i; i < _feeTiers.length; i++) {
