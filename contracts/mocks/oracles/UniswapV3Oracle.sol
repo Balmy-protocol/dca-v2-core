@@ -11,23 +11,10 @@ contract UniswapV3OracleMock is UniswapV3Oracle {
     address _governor,
     IUniswapV3Factory _factory,
     uint8 _cardinalityPerMinute,
-    uint8 _minimumCardinalityPerMinute,
-    uint8 _maximumCardinalityPerMinute,
     uint16 _period,
     uint16 _minimumPeriod,
     uint16 _maximumPeriod
-  )
-    UniswapV3Oracle(
-      _governor,
-      _factory,
-      _cardinalityPerMinute,
-      _minimumCardinalityPerMinute,
-      _maximumCardinalityPerMinute,
-      _period,
-      _minimumPeriod,
-      _maximumPeriod
-    )
-  {}
+  ) UniswapV3Oracle(_governor, _factory, _cardinalityPerMinute, _period, _minimumPeriod, _maximumPeriod) {}
 
   function internalAddSupportForPair(address _tokenA, address _tokenB) external {
     _addSupportForPair(_tokenA, _tokenB);

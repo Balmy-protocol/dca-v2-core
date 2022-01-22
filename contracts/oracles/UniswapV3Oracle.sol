@@ -22,10 +22,6 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
   uint16 public override period;
   /// @inheritdoc IUniswapV3Oracle
   uint8 public override cardinalityPerMinute;
-  /// @inheritdoc IUniswapV3Oracle
-  uint8 public override minimumCardinalityPerMinute;
-  /// @inheritdoc IUniswapV3Oracle
-  uint8 public override maximumCardinalityPerMinute;
 
   uint24[] internal _supportedFeeTiers = [500, 3000, 10000];
   mapping(address => mapping(address => address[])) internal _poolsForPair;
@@ -34,21 +30,16 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
     address _governor,
     IUniswapV3Factory _factory,
     uint8 _cardinalityPerMinute,
-    uint8 _minimumCardinalityPerMinute,
-    uint8 _maximumCardinalityPerMinute,
     uint16 _period,
     uint16 _minimumPeriod,
     uint16 _maximumPeriod
   ) Governable(_governor) {
     require(address(_factory) != address(0), 'ZeroAddress');
-    require(_minimumCardinalityPerMinute > 0 && _minimumCardinalityPerMinute < _maximumCardinalityPerMinute, 'InvalidCPMThreshold');
-    require(_cardinalityPerMinute <= _maximumCardinalityPerMinute && _cardinalityPerMinute >= _minimumCardinalityPerMinute, 'CPMOutOfRange');
+    require(_cardinalityPerMinute > 0, 'ZeroCPM');
     require(_minimumPeriod > 0 && _minimumPeriod < _maximumPeriod, 'InvalidPeriodThreshold');
     require(_period <= _maximumPeriod && _period >= _minimumPeriod, 'PeriodOutOfRange');
     factory = _factory;
     cardinalityPerMinute = _cardinalityPerMinute;
-    minimumCardinalityPerMinute = _minimumCardinalityPerMinute;
-    maximumCardinalityPerMinute = _maximumCardinalityPerMinute;
     period = _period;
     minimumPeriod = _minimumPeriod;
     maximumPeriod = _maximumPeriod;
@@ -115,8 +106,7 @@ contract UniswapV3Oracle is IUniswapV3Oracle, Governable {
 
   /// @inheritdoc IUniswapV3Oracle
   function setCardinalityPerMinute(uint8 _cardinalityPerMinute) external override onlyGovernor {
-    require(_cardinalityPerMinute <= maximumCardinalityPerMinute, 'GreaterThanMaximumCPM');
-    require(_cardinalityPerMinute >= minimumCardinalityPerMinute, 'LessThanMinimumCPM');
+    require(_cardinalityPerMinute > 0, 'ZeroCPM');
     cardinalityPerMinute = _cardinalityPerMinute;
     emit CardinalityPerMinuteChanged(_cardinalityPerMinute);
   }

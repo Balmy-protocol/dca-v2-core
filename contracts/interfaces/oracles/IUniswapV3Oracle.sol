@@ -42,16 +42,6 @@ interface IUniswapV3Oracle is IPriceOracle {
   /// @return The cardinality per minute used for increase cardinality calculations
   function cardinalityPerMinute() external view returns (uint8);
 
-  /// @notice Returns minimum possible cardinality per minute
-  /// @dev Cannot be modified after deployment
-  /// @return The minimum possible cardinality per minute
-  function minimumCardinalityPerMinute() external view returns (uint8);
-
-  /// @notice Returns maximum possible cardinality per minute
-  /// @dev Cannot be modified after deployment
-  /// @return The maximum possible cardinality per minute
-  function maximumCardinalityPerMinute() external view returns (uint8);
-
   /// @notice Returns the period used for the TWAP calculation
   /// @return The period used for the TWAP
   function period() external view returns (uint16);
