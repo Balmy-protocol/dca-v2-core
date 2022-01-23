@@ -76,6 +76,6 @@ interface IUniswapV3Oracle is IPriceOracle {
 
   /// @notice Sets the cardinality per minute to be used when increasing observation cardinality at the moment of adding support for pairs
   /// WARNING: increasing the cardinality per minute will make adding support to a pair significantly costly
-  /// @param _cardinalityPerMinute The new period
+  /// @param _cardinalityPerMinute The new cardinality per minute
   function setCardinalityPerMinute(uint8 _cardinalityPerMinute) external;
 }
