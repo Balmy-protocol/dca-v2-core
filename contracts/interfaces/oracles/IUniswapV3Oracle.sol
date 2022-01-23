@@ -16,7 +16,7 @@ interface IUniswapV3Oracle is IPriceOracle {
   event PeriodChanged(uint32 period);
 
   /// @notice Emitted when a new cardinality per minute is set
-  /// @return cardinality per minute The new cardinality per minute
+  /// @return cardinalityPerMinute The new cardinality per minute
   event CardinalityPerMinuteChanged(uint8 cardinalityPerMinute);
 
   /// @notice Emitted when the oracle add supports for a new pair
