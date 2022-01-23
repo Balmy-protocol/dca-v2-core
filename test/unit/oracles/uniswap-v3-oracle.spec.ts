@@ -15,6 +15,7 @@ describe('UniswapV3Oracle', () => {
   const INITIAL_FEE_TIERS = [500, 3000, 10000];
   const FEE = INITIAL_FEE_TIERS[0];
   const FEE_2 = INITIAL_FEE_TIERS[1];
+  const CARDINALITY_PER_MINUTE = 60;
   const PERIOD = moment.duration('5', 'minute').as('seconds');
   const MINIMUM_PERIOD = moment.duration('1', 'minute').as('seconds');
   const MAXIMUM_PERIOD = moment.duration('20', 'minutes').as('seconds');
@@ -31,7 +32,14 @@ describe('UniswapV3Oracle', () => {
     [owner] = await ethers.getSigners();
     UniswapV3OracleContract = await ethers.getContractFactory('contracts/mocks/oracles/UniswapV3Oracle.sol:UniswapV3OracleMock');
     uniswapV3Factory = await smock.fake('IUniswapV3Factory');
-    UniswapV3Oracle = await UniswapV3OracleContract.deploy(owner.address, uniswapV3Factory.address, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD);
+    UniswapV3Oracle = await UniswapV3OracleContract.deploy(
+      owner.address,
+      uniswapV3Factory.address,
+      CARDINALITY_PER_MINUTE,
+      PERIOD,
+      MINIMUM_PERIOD,
+      MAXIMUM_PERIOD
+    );
     uniswapV3Pool = await smock.fake('IUniswapV3Pool');
     uniswapV3Pool2 = await smock.fake('IUniswapV3Pool');
     snapshotId = await snapshot.take();
@@ -57,8 +65,17 @@ describe('UniswapV3Oracle', () => {
       then('tx is reverted with reason error', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, constants.ZERO_ADDRESS, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [owner.address, constants.ZERO_ADDRESS, CARDINALITY_PER_MINUTE, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD],
           message: 'ZeroAddress',
+        });
+      });
+    });
+    when('cardinality per minute is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, constants.ZERO, PERIOD, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          message: 'ZeroCPM',
         });
       });
     });
@@ -66,36 +83,46 @@ describe('UniswapV3Oracle', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, constants.ZERO, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, constants.ZERO, MINIMUM_PERIOD, MAXIMUM_PERIOD],
           message: 'PeriodOutOfRange',
         });
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, MINIMUM_PERIOD - 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, MINIMUM_PERIOD - 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
           message: 'PeriodOutOfRange',
         });
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, MAXIMUM_PERIOD + 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
+          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, MAXIMUM_PERIOD + 1, MINIMUM_PERIOD, MAXIMUM_PERIOD],
           message: 'PeriodOutOfRange',
         });
       });
     });
-    when('minimum period is zero', () => {
+    when('minimum period is zero, or higher than the maximum period', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, PERIOD, constants.ZERO, MAXIMUM_PERIOD],
-          message: 'ZeroPeriods',
+          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, PERIOD, constants.ZERO, MAXIMUM_PERIOD],
+          message: 'InvalidPeriodThreshold',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, PERIOD, MAXIMUM_PERIOD + 1, MAXIMUM_PERIOD],
+          message: 'InvalidPeriodThreshold',
         });
       });
     });
-    when('maximum period is zero', () => {
+    when('maximum period is zero, or less than minimum period', () => {
       then('tx is reverted with reason', async () => {
         await behaviours.deployShouldRevertWithMessage({
           contract: UniswapV3OracleContract,
-          args: [owner.address, uniswapV3Factory.address, PERIOD, MINIMUM_PERIOD, constants.ZERO],
-          message: 'ZeroPeriods',
+          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, PERIOD, MINIMUM_PERIOD, constants.ZERO],
+          message: 'InvalidPeriodThreshold',
+        });
+        await behaviours.deployShouldRevertWithMessage({
+          contract: UniswapV3OracleContract,
+          args: [owner.address, uniswapV3Factory.address, CARDINALITY_PER_MINUTE, PERIOD, MINIMUM_PERIOD, MINIMUM_PERIOD - 1],
+          message: 'InvalidPeriodThreshold',
         });
       });
     });
@@ -104,6 +131,14 @@ describe('UniswapV3Oracle', () => {
         const factory = await UniswapV3Oracle.factory();
         expect(factory).to.equal(uniswapV3Factory.address);
       });
+      then('cardinality per minute is 60', async () => {
+        const cardinalityPerMinute = await UniswapV3Oracle.cardinalityPerMinute();
+        expect(cardinalityPerMinute).to.equal(60);
+      });
+      then('starting period is 5 minutes', async () => {
+        const period = await UniswapV3Oracle.period();
+        expect(period).to.equal(5 * 60);
+      });
       then('min period is 1 minute', async () => {
         const minPeriod = await UniswapV3Oracle.minimumPeriod();
         expect(minPeriod).to.equal(60);
@@ -111,10 +146,6 @@ describe('UniswapV3Oracle', () => {
       then('max period is 20 minutes', async () => {
         const maxPeriod = await UniswapV3Oracle.maximumPeriod();
         expect(maxPeriod).to.equal(20 * 60);
-      });
-      then('starting period is 5 minutes', async () => {
-        const period = await UniswapV3Oracle.period();
-        expect(period).to.equal(5 * 60);
       });
       then('starting fee tiers are correct', async () => {
         const feeTiers = await UniswapV3Oracle.supportedFeeTiers();
@@ -258,6 +289,42 @@ describe('UniswapV3Oracle', () => {
     });
   });
 
+  describe('setCardinalityPerMinute', () => {
+    when('period is zero', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: UniswapV3Oracle,
+          func: 'setCardinalityPerMinute',
+          args: [constants.ZERO],
+          message: 'ZeroCPM',
+        });
+      });
+    });
+    when('new cardinality per minute is valid', () => {
+      const NEW_CARDINALITY_PER_MINUTE = CARDINALITY_PER_MINUTE - 10;
+
+      let tx: TransactionResponse;
+
+      given(async () => {
+        tx = await UniswapV3Oracle.setCardinalityPerMinute(NEW_CARDINALITY_PER_MINUTE);
+      });
+
+      then('cardinality per minute is set', async () => {
+        expect(await UniswapV3Oracle.cardinalityPerMinute()).to.eql(NEW_CARDINALITY_PER_MINUTE);
+      });
+
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(UniswapV3Oracle, 'CardinalityPerMinuteChanged').withArgs(NEW_CARDINALITY_PER_MINUTE);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => UniswapV3Oracle,
+      funcAndSignature: 'setCardinalityPerMinute(uint8)',
+      params: [CARDINALITY_PER_MINUTE],
+      governor: () => owner,
+    });
+  });
+
   describe('reconfigureSupportForPair', () => {
     when(`pair's addreses are inverted`, () => {
       given(async () => {
@@ -291,7 +358,7 @@ describe('UniswapV3Oracle', () => {
       });
 
       then(`pool's cardinality is increased correctly`, async () => {
-        expect(uniswapV3Pool2.increaseObservationCardinalityNext).has.been.calledWith((5 * 60) / 15 + 10);
+        expect(uniswapV3Pool2.increaseObservationCardinalityNext).has.been.calledWith(5 * CARDINALITY_PER_MINUTE + 10);
       });
     });
   });
@@ -384,7 +451,7 @@ describe('UniswapV3Oracle', () => {
       });
 
       then(`pool's cardinality is increased correctly`, async () => {
-        expect(uniswapV3Pool.increaseObservationCardinalityNext).has.been.calledWith((5 * 60) / 15 + 10);
+        expect(uniswapV3Pool.increaseObservationCardinalityNext).has.been.calledWith(5 * CARDINALITY_PER_MINUTE + 10);
       });
     });
   });

@@ -15,6 +15,10 @@ interface IUniswapV3Oracle is IPriceOracle {
   /// @return period The new period
   event PeriodChanged(uint32 period);
 
+  /// @notice Emitted when a new cardinality per minute is set
+  /// @return cardinalityPerMinute The new cardinality per minute
+  event CardinalityPerMinuteChanged(uint8 cardinalityPerMinute);
+
   /// @notice Emitted when the oracle add supports for a new pair
   /// @param tokenA One of the pair's tokens
   /// @param tokenB The other of the pair's tokens
@@ -34,9 +38,13 @@ interface IUniswapV3Oracle is IPriceOracle {
   /// @return _pools An array with all pools used for quoting the given pair
   function poolsUsedForPair(address _tokenA, address _tokenB) external view returns (address[] memory _pools);
 
+  /// @notice Returns the cardinality per minute used for adding support to pairs
+  /// @return The cardinality per minute used for increase cardinality calculations
+  function cardinalityPerMinute() external view returns (uint8);
+
   /// @notice Returns the period used for the TWAP calculation
-  /// @return _period The period used for the TWAP
-  function period() external view returns (uint16 _period);
+  /// @return The period used for the TWAP
+  function period() external view returns (uint16);
 
   /// @notice Returns minimum possible period
   /// @dev Cannot be modified after deployment
@@ -61,8 +69,13 @@ interface IUniswapV3Oracle is IPriceOracle {
   function addFeeTier(uint24 _feeTier) external;
 
   /// @notice Sets the period to be used for the TWAP calculation
-  /// @dev Will revert it is lower than MINIMUM_PERIOD or greater than MAXIMUM_PERIOD
+  /// @dev Will revert it is lower than minimumPeriod or greater than maximumPeriod
   /// WARNING: increasing the period could cause big problems, because Uniswap V3 pools might not support a TWAP so old.
   /// @param _period The new period
   function setPeriod(uint16 _period) external;
+
+  /// @notice Sets the cardinality per minute to be used when increasing observation cardinality at the moment of adding support for pairs
+  /// WARNING: increasing the cardinality per minute will make adding support to a pair significantly costly
+  /// @param _cardinalityPerMinute The new cardinality per minute
+  function setCardinalityPerMinute(uint8 _cardinalityPerMinute) external;
 }
