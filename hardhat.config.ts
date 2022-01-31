@@ -24,7 +24,7 @@ const networks: NetworksUserConfig = process.env.TEST
       hardhat: {
         forking: {
           enabled: process.env.FORK ? true : false,
-          url: getNodeUrl('mainnet'),
+          url: getNodeUrl('optimism'),
         },
         tags: ['test', 'local'],
       },
@@ -77,7 +77,7 @@ const config: HardhatUserConfig = {
     timeout: process.env.MOCHA_TIMEOUT || 300000,
   },
   namedAccounts: {
-    deployer: 0,
+    deployer: 4,
     governor: '0x1a00e1E311009E56e3b0B9Ed6F86f5Ce128a1C01',
   },
   networks,
