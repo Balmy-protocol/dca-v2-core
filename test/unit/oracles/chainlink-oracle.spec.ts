@@ -242,6 +242,27 @@ describe('ChainlinkOracle', () => {
       governor: () => governor,
     });
   });
+  describe('setMaxDelay', () => {
+    when('function is called by governor', () => {
+      const MAX_DELAY = 300000;
+      let tx: TransactionResponse;
+      given(async () => {
+        tx = await chainlinkOracle.connect(governor).setMaxDelay(MAX_DELAY);
+      });
+      then('new max delay registered', async () => {
+        expect(await chainlinkOracle.maxDelay()).to.equal(MAX_DELAY);
+      });
+      then('event is emmitted', async () => {
+        await expect(tx).to.emit(chainlinkOracle, 'MaxDelaySet').withArgs(MAX_DELAY);
+      });
+    });
+    behaviours.shouldBeExecutableOnlyByGovernor({
+      contract: () => chainlinkOracle,
+      funcAndSignature: 'setMaxDelay(uint32)',
+      params: [20],
+      governor: () => governor,
+    });
+  });
   describe('intercalCallRegistry', () => {
     when('price is negative', () => {
       given(() => makeRegistryReturn({ price: -1 }));

@@ -41,6 +41,10 @@ interface IChainlinkOracle is IPriceOracle {
   /// @param mappings Their new mappings
   event MappingsAdded(address[] tokens, address[] mappings);
 
+  /// @notice Emitted when a new max delay is set
+  /// @param newMaxDelay The new max delay
+  event MaxDelaySet(uint32 newMaxDelay);
+
   /// @notice Thrown when the price is non-positive
   error InvalidPrice();
 
@@ -89,4 +93,8 @@ interface IChainlinkOracle is IPriceOracle {
   /// @param _addresses The addresses of the tokens
   /// @param _mappings The addresses of their mappings
   function addMappings(address[] calldata _addresses, address[] calldata _mappings) external;
+
+  /// @notice Sets a new max delay
+  /// @param _maxDelay The new max delay
+  function setMaxDelay(uint32 _maxDelay) external;
 }
