@@ -16,7 +16,7 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
   // solhint-disable-next-line var-name-mixedcase
   address public immutable WETH;
   /// @inheritdoc IChainlinkOracle
-  uint32 public immutable maxDelay;
+  uint32 public maxDelay;
 
   // solhint-disable private-vars-leading-underscore
   // Addresses in Ethereum Mainnet
@@ -111,6 +111,12 @@ contract ChainlinkOracle is Governable, IChainlinkOracle {
       _tokenMappings[_addresses[i]] = _mappings[i];
     }
     emit MappingsAdded(_addresses, _mappings);
+  }
+
+  /// @inheritdoc IChainlinkOracle
+  function setMaxDelay(uint32 _maxDelay) external onlyGovernor {
+    maxDelay = _maxDelay;
+    emit MaxDelaySet(_maxDelay);
   }
 
   /// @inheritdoc IChainlinkOracle
