@@ -67,7 +67,12 @@ const networks: NetworksUserConfig = process.env.TEST
       'optimism-kovan': {
         url: 'https://kovan.optimism.io',
         accounts: accounts('optimism-kovan'),
-        tags: ['production'],
+        tags: ['staging'],
+      },
+      mumbai: {
+        url: 'https://rpc-mumbai.matic.today',
+        accounts: accounts('mumbai'),
+        tags: ['staging'],
       },
     };
 

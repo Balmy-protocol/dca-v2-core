@@ -1,21 +1,21 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import moment from 'moment';
-import { BigNumber } from 'ethers';
+import { BigNumber, BigNumberish } from 'ethers';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
 
   let registry: string;
   let weth: string;
-  let maxDelay: BigNumber;
+  let maxDelay: BigNumberish;
 
   switch (hre.network.name) {
     case 'mainnet':
     case 'hardhat':
       registry = '0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf';
       weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
-      maxDelay = BigNumber.from(moment.duration('1', 'day').asSeconds());
+      maxDelay = moment.duration('1', 'day').asSeconds();
       break;
     case 'kovan':
       registry = '0xAa7F6f7f507457a1EE157fE97F6c7DB2BEec5cD0';
@@ -30,7 +30,12 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     case 'optimism':
       registry = '0x2dfb2c5c013826a0728440d8036305b254ad9cce';
       weth = '0x4200000000000000000000000000000000000006';
-      maxDelay = BigNumber.from(moment.duration('1', 'day').asSeconds());
+      maxDelay = moment.duration('1', 'day').asSeconds();
+      break;
+    case 'mumbai':
+      registry = '0x2dfb2c5c013826a0728440d8036305b254ad9cce';
+      weth = '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889';
+      maxDelay = moment.duration('1', 'day').asSeconds();
       break;
     default:
       throw new Error(`Unsupported chain '${hre.network.name}`);
