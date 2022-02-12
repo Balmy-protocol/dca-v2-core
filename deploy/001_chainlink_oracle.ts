@@ -34,8 +34,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       break;
     case 'mumbai':
       registry = '0x2dfb2c5c013826a0728440d8036305b254ad9cce';
-      weth = '0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889';
-      maxDelay = moment.duration('1', 'day').asSeconds();
+      weth = '0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa';
+      maxDelay = BigNumber.from(2).pow(32).sub(1); // Max possible
       break;
     default:
       throw new Error(`Unsupported chain '${hre.network.name}`);
