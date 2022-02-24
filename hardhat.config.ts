@@ -74,6 +74,11 @@ const networks: NetworksUserConfig = process.env.TEST
         accounts: accounts('mumbai'),
         tags: ['staging'],
       },
+      polygon: {
+        url: 'https://polygon-rpc.com',
+        accounts: accounts('polygon'),
+        tags: ['production'],
+      },
     };
 
 const config: HardhatUserConfig = {
@@ -106,10 +111,22 @@ const config: HardhatUserConfig = {
           },
         },
       },
+      {
+        version: '0.8.3',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
     ],
     overrides: {
       '@uniswap/v3-core/contracts/libraries/FullMath.sol': {
         version: '0.7.6',
+      },
+      'contracts/TimelockController.sol': {
+        version: '0.8.3',
       },
       '@uniswap/v3-core/contracts/libraries/TickMath.sol': {
         version: '0.7.6',

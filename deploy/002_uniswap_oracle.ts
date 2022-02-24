@@ -43,6 +43,12 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
       maximumPeriod = moment.duration('45', 'minutes').as('seconds');
       break;
+    case 'polygon':
+      cardinalityPerMinute = 30; // blocks every 2 seconds
+      period = moment.duration('5', 'minutes').as('seconds');
+      minimumPeriod = moment.duration('5', 'minutes').as('seconds');
+      maximumPeriod = moment.duration('45', 'minutes').as('seconds');
+      break;
     default:
       throw new Error(`Unsupported chain '${hre.network.name}`);
   }
