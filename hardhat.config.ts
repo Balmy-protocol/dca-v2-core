@@ -125,9 +125,6 @@ const config: HardhatUserConfig = {
       '@uniswap/v3-core/contracts/libraries/FullMath.sol': {
         version: '0.7.6',
       },
-      'contracts/TimelockController.sol': {
-        version: '0.8.3',
-      },
       '@uniswap/v3-core/contracts/libraries/TickMath.sol': {
         version: '0.7.6',
       },
