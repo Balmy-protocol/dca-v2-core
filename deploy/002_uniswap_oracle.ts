@@ -13,6 +13,10 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   let maximumPeriod: number;
   switch (hre.network.name) {
     case 'mainnet':
+      cardinalityPerMinute = 4;
+      period = moment.duration('5', 'minutes').as('seconds');
+      minimumPeriod = moment.duration('5', 'minutes').as('seconds');
+      maximumPeriod = moment.duration('20', 'minutes').as('seconds');
     case 'hardhat':
       cardinalityPerMinute = 4;
       period = moment.duration('5', 'minutes').as('seconds');

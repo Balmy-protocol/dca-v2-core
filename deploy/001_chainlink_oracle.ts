@@ -12,6 +12,11 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   switch (hre.network.name) {
     case 'mainnet':
+      // Ref.: https://docs.chain.link/docs/feed-registry/#contract-addresses
+      registry = '0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf';
+      weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+      maxDelay = moment.duration('1', 'day').asSeconds();
+      break;
     case 'hardhat':
       registry = '0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf';
       weth = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
