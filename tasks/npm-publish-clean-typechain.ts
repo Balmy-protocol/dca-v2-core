@@ -8,10 +8,10 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE_JOBS, 'Clean mocks from types if needed').
     console.log('🧹 Excluding mock types from typechain');
     const typechainIndexBuffer = await fs.readFile('./typechained/index.ts');
     const finalTypechainIndex = typechainIndexBuffer
-        .toString('utf-8')
-        .split(/\r?\n/)
-        .filter(line => !line.includes('Mock'))
-        .join('\n')
+      .toString('utf-8')
+      .split(/\r?\n/)
+      .filter((line) => !line.includes('Mock'))
+      .join('\n');
     await fs.writeFile('./typechained/index.ts', finalTypechainIndex, 'utf-8');
   }
   return compileSolOutput;
