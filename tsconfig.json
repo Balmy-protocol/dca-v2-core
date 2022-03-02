@@ -13,6 +13,7 @@
       "@artifacts/*": ["artifacts/*"],
       "@deploy/*": ["deploy/*"],
       "@typechained": ["typechained"],
+      "@tasks": ["tasks"],
       "@typechained/*": ["typechained/*"],
       "@utils/*": ["utils/*"],
       "@test-utils": ["test/utils/index"],
@@ -22,5 +23,5 @@
       "@unit/*": ["test/unit/*"]
     }
   },
-  "include": ["hardhat.config.ts", "./scripts", "./deploy", "./test"]
+  "include": ["hardhat.config.ts", "./scripts", "./deploy", "./test", "./tasks"]
 }
