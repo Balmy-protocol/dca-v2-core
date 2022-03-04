@@ -15,7 +15,7 @@ import {
 } from '@typechained';
 import { constants, erc20, wallet } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { snapshot } from '@test-utils/evm';

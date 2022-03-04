@@ -5,7 +5,7 @@ import { behaviours, constants, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { ChainlinkOracleMock__factory, ChainlinkOracleMock, FeedRegistryInterface } from '@typechained';
 import { snapshot } from '@test-utils/evm';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import moment from 'moment';
 import { BigNumber } from '@ethersproject/bignumber';

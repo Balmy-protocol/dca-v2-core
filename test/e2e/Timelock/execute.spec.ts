@@ -1,4 +1,4 @@
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { Contract, PopulatedTransaction } from 'ethers';
 import { ethers } from 'hardhat';
 import TIMELOCK from '@openzeppelin/contracts/build/contracts/TimelockController.json';

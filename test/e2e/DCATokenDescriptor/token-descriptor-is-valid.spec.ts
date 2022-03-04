@@ -3,7 +3,7 @@ import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import {

@@ -4,7 +4,7 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, behaviours, wallet, contracts } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { GovernableMock, GovernableMock__factory } from '@typechained';
 import { snapshot } from '@test-utils/evm';
 
