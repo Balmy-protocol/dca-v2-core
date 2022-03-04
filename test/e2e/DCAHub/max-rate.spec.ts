@@ -12,7 +12,7 @@ import {
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';

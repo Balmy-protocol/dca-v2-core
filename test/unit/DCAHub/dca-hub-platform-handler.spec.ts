@@ -4,7 +4,7 @@ import { DCAHubPlatformHandlerMock__factory, DCAHubPlatformHandlerMock } from '@
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { erc20, behaviours, wallet } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';

@@ -3,7 +3,7 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { ethers } from 'hardhat';
 import { behaviours, constants } from '@test-utils';
 import { given, then, when } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { UniswapV3OracleMock, UniswapV3OracleMock__factory, IUniswapV3Pool, IUniswapV3Factory } from '@typechained';
 import { snapshot } from '@test-utils/evm';
 import { FakeContract, smock } from '@defi-wonderland/smock';

@@ -11,7 +11,7 @@ import {
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, bn, behaviours } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { TokenContract } from '@test-utils/erc20';
 import { snapshot } from '@test-utils/evm';

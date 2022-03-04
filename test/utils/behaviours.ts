@@ -4,9 +4,9 @@ import chai from 'chai';
 import { Contract, ContractFactory, ContractInterface, Signer, Wallet } from 'ethers';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { getStatic } from 'ethers/lib/utils';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { given, then, when } from './bdd';
 import { wallet } from '.';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 chai.use(chaiAsPromised);
 

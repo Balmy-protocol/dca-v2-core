@@ -4,11 +4,11 @@ import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, behaviours, contracts } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import { snapshot } from '@test-utils/evm';
 import { DCAHubConfigHandlerMock, DCAHubConfigHandlerMock__factory } from '@typechained';
 import moment from 'moment';
 import { SwapInterval } from 'js-lib/interval-utils';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
 contract('DCAHubConfigHandler', () => {
   let owner: SignerWithAddress, timeLockedOwner: SignerWithAddress, oracle: SignerWithAddress;

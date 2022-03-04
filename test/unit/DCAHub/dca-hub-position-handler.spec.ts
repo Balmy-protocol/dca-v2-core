@@ -7,7 +7,7 @@ import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { getEventArgs, readArgFromEventOrFail } from '@test-utils/event-utils';
 import { when, then, given, contract } from '@test-utils/bdd';
 import { TokenContract } from '@test-utils/erc20';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import moment from 'moment';
 import { snapshot } from '@test-utils/evm';
 import { FakeContract, smock } from '@defi-wonderland/smock';

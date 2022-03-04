@@ -3,7 +3,7 @@ import { ethers } from 'hardhat';
 import { DCAPermissionsManagerMock__factory, DCAPermissionsManagerMock } from '@typechained';
 import { constants, wallet, behaviours } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { snapshot } from '@test-utils/evm';
 import { Permission } from 'js-lib/types';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
