@@ -5,7 +5,7 @@ import { getNodeUrl } from '@utils/network';
 import { evm } from '@test-utils';
 import { contract, given, then } from '@test-utils/bdd';
 import { expect } from 'chai';
-import { getLastPrice, convertPriceToNumberWithDecimals } from '@test-utils/coingecko';
+import { getLastPrice, convertPriceToNumberWithDecimals } from '@test-utils/defillama';
 
 let oracle: UniswapV3Oracle;
 
@@ -31,7 +31,7 @@ contract('UniswapV3Oracle', () => {
     let feedPrice: number;
     given(async () => {
       // Funny thing, coingecko updates this price feed every 5 minute (not a twap, but close enough).
-      feedPrice = await getLastPrice('ethereum', 'usd');
+      feedPrice = await getLastPrice(WETH);
     });
     then('all USDC/WETH pools are used', async () => {
       expect(await oracle.poolsUsedForPair(WETH, USDC)).to.eql([UNI_WETH_USDC_POOL_LOW, UNI_WETH_USDC_POOL_MEDIUM, UNI_WETH_USDC_POOL_HIGH]);
