@@ -445,30 +445,6 @@ interface IDCAHubSwapHandler {
   ) external returns (SwapInfo memory);
 }
 
-/// @title The interface for all loan related matters
-/// @notice These methods allow users to execute flash loans
-interface IDCAHubLoanHandler {
-  /// @notice Emitted when a flash loan is executed
-  /// @param sender The address of the user that initiated the loan
-  /// @param to The address that received the loan
-  /// @param loan The tokens (and the amount) that were loaned
-  /// @param fee The loan fee at the moment of the loan
-  event Loaned(address indexed sender, address indexed to, IDCAHub.AmountOfToken[] loan, uint32 fee);
-
-  /// @notice Executes a flash loan, sending the required amounts to the specified loan recipient
-  /// @dev Will revert:
-  /// With Paused if loans are paused by protocol
-  /// With InvalidTokens if the tokens in `_loan` are not sorted
-  /// @param _loan The amount to borrow in each token
-  /// @param _to Address that will receive the loan. This address should be a contract that implements `IDCAPairLoanCallee`
-  /// @param _data Any data that should be passed through to the callback
-  function loan(
-    IDCAHub.AmountOfToken[] calldata _loan,
-    address _to,
-    bytes calldata _data
-  ) external;
-}
-
 /// @title The interface for handling all configuration
 /// @notice This contract will manage configuration that affects all pairs, swappers, etc
 interface IDCAHubConfigHandler {
@@ -479,10 +455,6 @@ interface IDCAHubConfigHandler {
   /// @notice Emitted when a new swap fee is set
   /// @param _feeSet The new swap fee
   event SwapFeeSet(uint32 _feeSet);
-
-  /// @notice Emitted when a new loan fee is set
-  /// @param _feeSet The new loan fee
-  event LoanFeeSet(uint32 _feeSet);
 
   /// @notice Emitted when new swap intervals are allowed
   /// @param _swapIntervals The new swap intervals
@@ -515,10 +487,6 @@ interface IDCAHubConfigHandler {
   /// @return _swapFee The fee itself
   function swapFee() external view returns (uint32 _swapFee);
 
-  /// @notice Returns the fee charged on loans
-  /// @return _loanFee The fee itself
-  function loanFee() external view returns (uint32 _loanFee);
-
   /// @notice Returns the price oracle contract
   /// @return _oracle The contract itself
   function oracle() external view returns (IPriceOracle _oracle);
@@ -527,7 +495,7 @@ interface IDCAHubConfigHandler {
   /// @return The current ratio
   function platformFeeRatio() external view returns (uint16);
 
-  /// @notice Returns the max fee that can be set for either swap or loans
+  /// @notice Returns the max fee that can be set for swaps
   /// @dev Cannot be modified
   /// @return _maxFee The maximum possible fee
   // solhint-disable-next-line func-name-mixedcase
@@ -537,8 +505,8 @@ interface IDCAHubConfigHandler {
   /// @return _allowedSwapIntervals The allowed swap intervals
   function allowedSwapIntervals() external view returns (bytes1 _allowedSwapIntervals);
 
-  /// @notice Returns whether swaps and loans are currently paused
-  /// @return _isPaused Whether swaps and loans are currently paused
+  /// @notice Returns whether swaps and deposits are currently paused
+  /// @return _isPaused Whether swaps and deposits are currently paused
   function paused() external view returns (bool _isPaused);
 
   /// @notice Sets a new swap fee
@@ -546,12 +514,6 @@ interface IDCAHubConfigHandler {
   /// @dev Will revert with InvalidFee if the fee is not multiple of 100
   /// @param _fee The new swap fee
   function setSwapFee(uint32 _fee) external;
-
-  /// @notice Sets a new loan fee
-  /// @dev Will revert with HighFee if the fee is higher than the maximum
-  /// @dev Will revert with InvalidFee if the fee is not multiple of 100
-  /// @param _fee The new loan fee
-  function setLoanFee(uint32 _fee) external;
 
   /// @notice Sets a new price oracle
   /// @dev Will revert with ZeroAddress if the zero address is passed
@@ -571,10 +533,10 @@ interface IDCAHubConfigHandler {
   /// @param _swapIntervals The swap intervals to remove
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external;
 
-  /// @notice Pauses all swaps and loans
+  /// @notice Pauses all swaps and deposits
   function pause() external;
 
-  /// @notice Unpauses all swaps and loans
+  /// @notice Unpauses all swaps and deposits
   function unpause() external;
 }
 
@@ -593,14 +555,7 @@ interface IDCAHubPlatformHandler {
   function withdrawFromPlatformBalance(IDCAHub.AmountOfToken[] calldata _amounts, address _recipient) external;
 }
 
-interface IDCAHub is
-  IDCAHubParameters,
-  IDCAHubConfigHandler,
-  IDCAHubSwapHandler,
-  IDCAHubPositionHandler,
-  IDCAHubLoanHandler,
-  IDCAHubPlatformHandler
-{
+interface IDCAHub is IDCAHubParameters, IDCAHubConfigHandler, IDCAHubSwapHandler, IDCAHubPositionHandler, IDCAHubPlatformHandler {
   /// @notice Specifies an amount of a token. For example to determine how much to borrow from certain tokens
   struct AmountOfToken {
     // The tokens' address
@@ -612,7 +567,7 @@ interface IDCAHub is
   /// @notice Thrown when one of the parameters is a zero address
   error ZeroAddress();
 
-  /// @notice Thrown when the expected liquidity is not returned, either in flash loans or swaps
+  /// @notice Thrown when the expected liquidity is not returned in flash swaps
   error LiquidityNotReturned();
 
   /// @notice Thrown when a list of token pairs is not sorted, or if there are duplicates

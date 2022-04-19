@@ -189,58 +189,6 @@ contract('DCAHubConfigHandler', () => {
     });
   });
 
-  describe('setLoanFee', () => {
-    when('sets fee bigger than MAX_FEE', () => {
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler.connect(timeLockedOwner),
-          func: 'setLoanFee',
-          args: [(await DCAHubConfigHandler.MAX_FEE()) + 1],
-          message: 'HighFee',
-        });
-      });
-    });
-    when('sets fee that is not multiple of 100', () => {
-      then('tx is reverted with reason', async () => {
-        await behaviours.txShouldRevertWithMessage({
-          contract: DCAHubConfigHandler.connect(timeLockedOwner),
-          func: 'setLoanFee',
-          args: [99],
-          message: 'InvalidFee',
-        });
-      });
-    });
-    when('sets fee equal to MAX_FEE', () => {
-      then('sets fee and emits event', async () => {
-        await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAHubConfigHandler.connect(timeLockedOwner),
-          getterFunc: 'loanFee',
-          setterFunc: 'setLoanFee',
-          variable: await DCAHubConfigHandler.MAX_FEE(),
-          eventEmitted: 'LoanFeeSet',
-        });
-      });
-    });
-    when('sets fee lower to MAX_FEE', () => {
-      then('sets fee and emits event', async () => {
-        await behaviours.txShouldSetVariableAndEmitEvent({
-          contract: DCAHubConfigHandler.connect(timeLockedOwner),
-          getterFunc: 'loanFee',
-          setterFunc: 'setLoanFee',
-          variable: (await DCAHubConfigHandler.MAX_FEE()) - 100,
-          eventEmitted: 'LoanFeeSet',
-        });
-      });
-    });
-    behaviours.shouldBeExecutableOnlyByRole({
-      contract: () => DCAHubConfigHandler,
-      funcAndSignature: 'setLoanFee(uint32)',
-      params: [1],
-      addressWithRole: () => timeLockedOwner,
-      role: () => timeLockedRole,
-    });
-  });
-
   describe('setPlatformFeeRatio', () => {
     when('sets ratio is bigger than allowed', () => {
       then('tx is reverted with reason', async () => {

@@ -67,4 +67,10 @@ contract DCAHubParametersMock is DCAHubParameters {
   ) external {
     _swapData[_tokenA][_tokenB][_swapIntervalMask].lastSwappedAt = _lastSwappedAt;
   }
+
+  function setMagnitude(address[] calldata _tokens) external {
+    for (uint256 i; i < _tokens.length; i++) {
+      magnitude[_tokens[i]] = 10**IERC20Metadata(_tokens[i]).decimals();
+    }
+  }
 }

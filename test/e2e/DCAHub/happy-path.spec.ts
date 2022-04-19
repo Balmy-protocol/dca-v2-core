@@ -6,8 +6,6 @@ import {
   DCAHub__factory,
   DCAHubSwapCalleeMock,
   DCAHubSwapCalleeMock__factory,
-  DCAHubLoanCalleeMock,
-  DCAHubLoanCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
   IPriceOracle,
@@ -32,7 +30,6 @@ contract('DCAHub', () => {
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
     let priceOracle: FakeContract<IPriceOracle>;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
-    let DCAHubLoanCalleeFactory: DCAHubLoanCalleeMock__factory, DCAHubLoanCallee: DCAHubLoanCalleeMock;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
 
     // Global variables
@@ -42,7 +39,6 @@ contract('DCAHub', () => {
       [governor, john, lucy, sarah, joe, larry] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
-      DCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:DCAHubLoanCalleeMock');
       DCAPermissionsManagerFactory = await ethers.getContractFactory(
         'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
       );
@@ -78,11 +74,7 @@ contract('DCAHub', () => {
         [tokenA.asUnits(2500), tokenB.asUnits(2500), tokenC.asUnits(2500)]
       );
 
-      DCAHubLoanCallee = await DCAHubLoanCalleeFactory.deploy();
-      await DCAHubLoanCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(20), tokenB.asUnits(20)]);
-
       await setInitialBalance(DCAHubSwapCallee, { tokenA: 2500, tokenB: 2500, tokenC: 2500 });
-      await setInitialBalance(DCAHubLoanCallee, { tokenA: 20, tokenB: 20, tokenC: 0 });
       await setSwapFee(swapFee1);
     });
 
@@ -93,8 +85,6 @@ contract('DCAHub', () => {
       setSwapRatio(swapRatioAB1);
       setSwapRatio(swapRatioAC1);
       setSwapRatio(swapRatioBC1);
-
-      await assertNoSwapsCanBeExecutedNow();
 
       const johnsPosition = await deposit({
         owner: john,
@@ -248,14 +238,6 @@ contract('DCAHub', () => {
       await assertHubBalanceDifferencesAre({ tokenA: -49.85, tokenC: -50 });
       await assertBalanceDifferencesAre(larry, { tokenA: +49.85, tokenC: +50 });
       await assertPositionIsTerminated(joesPosition);
-
-      const [balanceTokenA, balanceTokenB] = [await tokenA.balanceOf(DCAHub.address), await tokenB.balanceOf(DCAHub.address)];
-      await loan({ callee: DCAHubLoanCallee, tokenA: balanceTokenA, tokenB: balanceTokenB });
-
-      const [loanFeeTokenA, loanFeeTokenB] = [balanceTokenA.div(10000), balanceTokenB.div(10000)];
-      await assertHubBalanceDifferencesAre({ tokenA: loanFeeTokenA, tokenB: loanFeeTokenB });
-      await assertPlatformBalanceIncreasedBy({ tokenA: loanFeeTokenA, tokenB: loanFeeTokenB });
-      await assertBalanceDifferencesAre(DCAHubLoanCallee, { tokenA: loanFeeTokenA.mul(-1), tokenB: loanFeeTokenB.mul(-1) });
 
       await increasePosition(johnsPosition, { newSwaps: 10, amount: 100 });
 
@@ -422,25 +404,6 @@ contract('DCAHub', () => {
         []
       );
       await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5));
-    }
-
-    async function loan({
-      callee,
-      tokenA: amountTokenA,
-      tokenB: amountTokenB,
-    }: {
-      callee: HasAddress;
-      tokenA: number | BigNumber;
-      tokenB: number | BigNumber;
-    }) {
-      await DCAHub.loan(
-        [
-          { token: tokenA.address, amount: asUnitsIfNeeded(tokenA, amountTokenA) },
-          { token: tokenB.address, amount: asUnitsIfNeeded(tokenB, amountTokenB) },
-        ],
-        callee.address,
-        ethers.utils.randomBytes(5)
-      );
     }
 
     function getPosition(position: UserPositionDefinition): Promise<OngoingUserPosition> {
