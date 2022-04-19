@@ -25,8 +25,6 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   /// @inheritdoc IDCAHubConfigHandler
   uint32 public swapFee = 6000; // 0.6%
   /// @inheritdoc IDCAHubConfigHandler
-  uint32 public loanFee = 100; // 0.01%
-  /// @inheritdoc IDCAHubConfigHandler
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
   /// @inheritdoc IDCAHubConfigHandler
   uint16 public platformFeeRatio = 2500; // 25%
@@ -58,13 +56,6 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     _validateFee(_swapFee);
     swapFee = _swapFee;
     emit SwapFeeSet(_swapFee);
-  }
-
-  /// @inheritdoc IDCAHubConfigHandler
-  function setLoanFee(uint32 _loanFee) external onlyRole(TIME_LOCKED_ROLE) {
-    _validateFee(_loanFee);
-    loanFee = _loanFee;
-    emit LoanFeeSet(_loanFee);
   }
 
   /// @inheritdoc IDCAHubConfigHandler

@@ -4,19 +4,10 @@ pragma solidity >=0.8.7 <0.9.0;
 import './DCAHubParameters.sol';
 import './DCAHubPositionHandler.sol';
 import './DCAHubSwapHandler.sol';
-import './DCAHubLoanHandler.sol';
 import './DCAHubConfigHandler.sol';
 import './DCAHubPlatformHandler.sol';
 
-contract DCAHub is
-  DCAHubParameters,
-  DCAHubConfigHandler,
-  DCAHubSwapHandler,
-  DCAHubPositionHandler,
-  DCAHubLoanHandler,
-  DCAHubPlatformHandler,
-  IDCAHub
-{
+contract DCAHub is DCAHubParameters, DCAHubConfigHandler, DCAHubSwapHandler, DCAHubPositionHandler, DCAHubPlatformHandler, IDCAHub {
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,

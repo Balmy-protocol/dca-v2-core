@@ -7,8 +7,6 @@ import {
   DCAHub__factory,
   ReentrantDCAHubSwapCalleeMock,
   ReentrantDCAHubSwapCalleeMock__factory,
-  ReentrantDCAHubLoanCalleeMock,
-  ReentrantDCAHubLoanCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
   IPriceOracle,
@@ -30,7 +28,6 @@ contract('DCAHub', () => {
     let DCAHubFactory: DCAHub__factory;
     let DCAHub: DCAHub;
     let reentrantDCAHubSwapCalleeFactory: ReentrantDCAHubSwapCalleeMock__factory;
-    let reentrantDCAHubLoanCalleeFactory: ReentrantDCAHubLoanCalleeMock__factory;
     let priceOracle: FakeContract<IPriceOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let snapshotId: string;
@@ -38,7 +35,6 @@ contract('DCAHub', () => {
     before('Setup accounts and contracts', async () => {
       [governor, dude] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
-      reentrantDCAHubLoanCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubLoanCallee.sol:ReentrantDCAHubLoanCalleeMock');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');
       DCAPermissionsManagerFactory = await ethers.getContractFactory(
         'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
@@ -57,28 +53,6 @@ contract('DCAHub', () => {
 
     beforeEach('Deploy and configure', async () => {
       await snapshot.revert(snapshotId);
-    });
-
-    describe('loan', () => {
-      const rateTokenA = 50;
-      const swapsTokenA = 13;
-      let reentrantDCAHubLoanCallee: ReentrantDCAHubLoanCalleeMock;
-      given(async () => {
-        await deposit({
-          from: () => tokenA,
-          to: () => tokenB,
-          depositor: dude,
-          rate: rateTokenA,
-          swaps: swapsTokenA,
-        });
-        reentrantDCAHubLoanCallee = await reentrantDCAHubLoanCalleeFactory.deploy();
-      });
-
-      testReentrantForFunction({
-        funcAndSignature: 'loan',
-        args: () => [[], reentrantDCAHubLoanCallee.address, '0x'],
-        attackerContract: () => reentrantDCAHubLoanCallee,
-      });
     });
 
     describe('flash swap', () => {
@@ -221,14 +195,6 @@ contract('DCAHub', () => {
           const result = await DCAHub.populateTransaction.swap([], [], constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, [], '0x');
           return result.data!;
         },
-      });
-
-      testReentrantAttack({
-        title: 'trying to do a reentrancy attack through a flash loan',
-        funcAndSignature,
-        args,
-        attackerContract,
-        attack: async () => (await DCAHub.populateTransaction.loan([], constants.NOT_ZERO_ADDRESS, '0x')).data!,
       });
     }
 
