@@ -150,6 +150,7 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: 'typechained',
     target: 'ethers-v5',
+    externalArtifacts: ['node_modules/@openzeppelin/contracts/build/contracts/TimelockController.json'],
   },
 };
 

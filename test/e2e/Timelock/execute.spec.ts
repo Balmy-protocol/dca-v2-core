@@ -5,10 +5,10 @@ import TIMELOCK from '@openzeppelin/contracts/build/contracts/TimelockController
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
-import { DCAHub__factory, DCAHub } from '@typechained';
+import { DCAHub__factory, DCAHub, TimelockController } from '@typechained';
 import moment from 'moment';
 import { expect } from 'chai';
-import { hexZeroPad } from 'ethers/lib/utils';
+import { BytesLike, hexZeroPad } from 'ethers/lib/utils';
 import { deployContract } from 'ethereum-waffle';
 import { snapshot } from '@test-utils/evm';
 
@@ -20,7 +20,7 @@ contract('Timelock', () => {
 
   let DCAHubFactory: DCAHub__factory;
   let DCAHub: DCAHub;
-  let timelock: Contract;
+  let timelock: TimelockController;
 
   let snapshotId: string;
 
@@ -32,7 +32,11 @@ contract('Timelock', () => {
   before(async () => {
     [deployer, immediateGovernor] = await ethers.getSigners();
     DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
-    timelock = await deployContract(deployer, TIMELOCK, [minDelay, [immediateGovernor.address], [immediateGovernor.address]]);
+    timelock = (await deployContract(deployer, TIMELOCK, [
+      minDelay,
+      [immediateGovernor.address],
+      [immediateGovernor.address],
+    ])) as TimelockController;
     const tokenA = await erc20.deploy({
       name: 'WBTC',
       symbol: 'WBTC',
@@ -57,12 +61,16 @@ contract('Timelock', () => {
     const NEW_ORACLE = wallet.generateRandomAddress();
     given(async () => {
       populatedTransaction = await DCAHub.populateTransaction.setOracle(NEW_ORACLE);
-      await timelock.connect(immediateGovernor).schedule(DCAHub.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT, minDelay);
+      await timelock
+        .connect(immediateGovernor)
+        .schedule(DCAHub.address, VALUE, populatedTransaction.data as BytesLike, PREDECESSOR, SALT, minDelay);
     });
     when('executing before delay', () => {
       let executeTx: Promise<TransactionResponse>;
       given(async () => {
-        executeTx = timelock.connect(immediateGovernor).execute(DCAHub.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT);
+        executeTx = timelock
+          .connect(immediateGovernor)
+          .execute(DCAHub.address, VALUE, populatedTransaction.data as BytesLike, PREDECESSOR, SALT);
       });
       then('tx is reverted', async () => {
         await expect(executeTx).to.be.revertedWith('TimelockController: operation is not ready');
@@ -71,7 +79,7 @@ contract('Timelock', () => {
     when('executing after delay', () => {
       given(async () => {
         await evm.advanceTimeAndBlock(minDelay);
-        await timelock.connect(immediateGovernor).execute(DCAHub.address, VALUE, populatedTransaction.data, PREDECESSOR, SALT);
+        await timelock.connect(immediateGovernor).execute(DCAHub.address, VALUE, populatedTransaction.data as BytesLike, PREDECESSOR, SALT);
       });
       then('tx is sent', async () => {
         expect(await DCAHub.oracle()).to.be.equal(NEW_ORACLE);
