@@ -94,8 +94,6 @@ contract('DCAHub', () => {
       setSwapRatio(swapRatioAC1);
       setSwapRatio(swapRatioBC1);
 
-      await assertNoSwapsCanBeExecutedNow();
-
       const johnsPosition = await deposit({
         owner: john,
         from: tokenA,

@@ -10,6 +10,7 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   /// @inheritdoc IDCAHubParameters
   mapping(address => mapping(address => bytes1)) public activeSwapIntervals; // token A => token B => active swap intervals
+  mapping(address => uint256) public magnitude;
   /// @inheritdoc IDCAHubParameters
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) internal _swapAmountDelta; // token A => token B => swap interval => swap number => delta
@@ -50,10 +51,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   function _assertNonZeroAddress(address _address) internal pure {
     if (_address == address(0)) revert IDCAHub.ZeroAddress();
-  }
-
-  function _calculateMagnitude(address _token) internal view returns (uint120) {
-    return uint120(10**IERC20Metadata(_token).decimals());
   }
 
   function _transfer(
