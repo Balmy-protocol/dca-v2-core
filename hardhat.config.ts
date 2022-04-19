@@ -140,6 +140,7 @@ const config: HardhatUserConfig = {
     enabled: true,
     outputFile: 'gasReporterOutput.json',
     noColors: true,
+    excludeContracts: ['contracts/mocks/'],
   },
   preprocess: {
     eachLine: removeConsoleLog((hre) => hre.network.name !== 'hardhat'),
