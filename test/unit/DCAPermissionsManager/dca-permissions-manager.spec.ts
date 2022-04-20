@@ -14,7 +14,7 @@ import { _TypedDataEncoder } from '@ethersproject/hash';
 import { fromRpcSig } from 'ethereumjs-util';
 
 contract('DCAPermissionsManager', () => {
-  const NFT_NAME = 'Mean Finance DCA';
+  const NFT_NAME = 'Mean Finance - DCA Position';
   const NFT_DESCRIPTOR = wallet.generateRandomAddress();
   let hub: SignerWithAddress, governor: SignerWithAddress;
   let DCAPermissionsManagerFactory: DCAPermissionsManagerMock__factory;
@@ -53,7 +53,7 @@ contract('DCAPermissionsManager', () => {
       });
       then('symbol is correct', async () => {
         const symbol = await DCAPermissionsManager.symbol();
-        expect(symbol).to.equal('DCA');
+        expect(symbol).to.equal('MF-DCA-P');
       });
       then('initial nonce is 0', async () => {
         expect(await DCAPermissionsManager.nonces(hub.address)).to.equal(0);
