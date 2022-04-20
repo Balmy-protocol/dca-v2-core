@@ -39,8 +39,8 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   mapping(uint256 => mapping(address => TokenPermission)) public tokenPermissions;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
-    ERC721('Mean Finance DCA', 'DCA')
-    EIP712('Mean Finance DCA', '1')
+    ERC721('Mean Finance - DCA Position', 'MF-DCA-P')
+    EIP712('Mean Finance - DCA Position', '1')
     Governable(_governor)
   {
     if (address(_descriptor) == address(0)) revert ZeroAddress();
