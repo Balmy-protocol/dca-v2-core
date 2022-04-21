@@ -37,6 +37,8 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   mapping(address => uint256) public nonces;
   mapping(uint256 => uint256) public lastOwnershipChange;
   mapping(uint256 => mapping(address => TokenPermission)) public tokenPermissions;
+  /// @inheritdoc IERC721BasicEnumerable
+  uint256 public override totalSupply;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
     ERC721('Mean Finance - DCA Position', 'MF-DCA-P')
@@ -63,6 +65,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
     _setPermissions(_id, _permissions);
+    ++totalSupply;
   }
 
   /// @inheritdoc IDCAPermissionManager
@@ -108,6 +111,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   function burn(uint256 _id) external {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _burn(_id);
+    --totalSupply;
   }
 
   /// @inheritdoc IDCAPermissionManager
