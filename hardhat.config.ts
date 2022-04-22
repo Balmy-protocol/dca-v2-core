@@ -114,6 +114,24 @@ const config: HardhatUserConfig = {
       },
     ],
     overrides: {
+      'contracts/DCAHub/DCAHub.sol': {
+        version: '0.8.13',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 830,
+          },
+        },
+      },
+      'contracts/DCATokenDescriptor/DCATokenDescriptor.sol': {
+        version: '0.8.13',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 0,
+          },
+        },
+      },
       '@uniswap/v3-core/contracts/libraries/FullMath.sol': {
         version: '0.7.6',
       },
