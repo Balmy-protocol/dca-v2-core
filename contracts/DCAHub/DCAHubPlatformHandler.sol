@@ -16,7 +16,7 @@ abstract contract DCAHubPlatformHandler is ReentrancyGuard, DCAHubConfigHandler,
   {
     for (uint256 i; i < _amounts.length; i++) {
       platformBalance[_amounts[i].token] -= _amounts[i].amount;
-      IERC20Metadata(_amounts[i].token).safeTransfer(_recipient, _amounts[i].amount);
+      _transfer(_amounts[i].token, _recipient, _amounts[i].amount);
     }
 
     emit WithdrewFromPlatform(msg.sender, _recipient, _amounts);
