@@ -34,20 +34,24 @@ const advanceBlock = async () => {
   });
 };
 
-type ForkConfig = { network: string; skipHardhatDeployFork?: boolean } & Record<string, any>;
-const reset = async (forkingConfig: ForkConfig) => {
-  if (!forkingConfig.skipHardhatDeployFork) {
-    process.env.HARDHAT_DEPLOY_FORK = forkingConfig.network;
+type ForkConfig = { network?: string; skipHardhatDeployFork?: boolean } & Record<string, any>;
+const reset = async (forkingConfig?: ForkConfig) => {
+  const params = !forkingConfig
+    ? []
+    : [
+        {
+          forking: {
+            ...forkingConfig,
+          },
+        },
+      ];
+  if (forkingConfig && forkingConfig.hasOwnProperty('network')) {
+    if (forkingConfig.hasOwnProperty('skipHardhatDeployFork') && !forkingConfig.skipHardhatDeployFork) {
+      process.env.HARDHAT_DEPLOY_FORK = forkingConfig.network!;
+    }
+    params[0].forking.jsonRpcUrl = getNodeUrl(forkingConfig.network!);
+    networkBeingForked = forkingConfig.network!;
   }
-  networkBeingForked = forkingConfig.network;
-  const params = [
-    {
-      forking: {
-        ...forkingConfig,
-        jsonRpcUrl: getNodeUrl(forkingConfig.network),
-      },
-    },
-  ];
   await network.provider.request({
     method: 'hardhat_reset',
     params,
