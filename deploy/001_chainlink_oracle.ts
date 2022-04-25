@@ -2,6 +2,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import moment from 'moment';
 import { BigNumber, BigNumberish } from 'ethers';
+import { networkBeingForked } from '@test-utils/evm';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -10,7 +11,8 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   let weth: string;
   let maxDelay: BigNumberish;
 
-  switch (hre.network.name) {
+  const network = hre.network.name !== 'hardhat' ? hre.network.name : networkBeingForked ?? hre.network.name;
+  switch (network) {
     case 'mainnet':
     case 'hardhat':
       registry = '0x47Fb2585D2C56Fe188D0E6ec628a38b74fCeeeDf';
