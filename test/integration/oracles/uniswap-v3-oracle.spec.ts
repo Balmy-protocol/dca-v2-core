@@ -23,7 +23,7 @@ contract('UniswapV3Oracle', () => {
       network: 'mainnet',
       skipHardhatDeployFork: true,
     });
-    await deployments.run('UniswapOracle', {
+    await deployments.run(['FeedRegistry', 'UniswapOracle'], {
       resetMemory: true,
       deletePreviousDeployments: false,
       writeDeploymentsToFiles: false,

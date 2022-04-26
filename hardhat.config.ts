@@ -156,6 +156,21 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
+  external: {
+    contracts: [
+      {
+        artifacts: 'node_modules/@mean-finance/chainlink-registry/artifacts',
+        deploy: 'node_modules/@mean-finance/chainlink-registry/deploy',
+      },
+    ],
+    deployments: {
+      mainnet: ['node_modules/@mean-finance/chainlink-registry/deployments/mainnet'],
+      mumbai: ['node_modules/@mean-finance/chainlink-registry/deployments/mumbai'],
+      optimism: ['node_modules/@mean-finance/chainlink-registry/deployments/optimism'],
+      'optimism-kovan': ['node_modules/@mean-finance/chainlink-registry/deployments/optimismkovan'],
+      polygon: ['node_modules/@mean-finance/chainlink-registry/deployments/polygon'],
+    },
+  },
   typechain: {
     outDir: 'typechained',
     target: 'ethers-v5',
