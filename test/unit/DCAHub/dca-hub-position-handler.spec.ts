@@ -73,6 +73,9 @@ contract('DCAPositionHandler', () => {
       });
     });
     when('contract is initiated', () => {
+      then('total created position is initialized as 0', async () => {
+        expect(await DCAPositionHandler.totalCreatedPositions()).to.equal(0);
+      });
       then('permission manager is set correctly', async () => {
         expect(await DCAPositionHandler.permissionManager()).to.equal(DCAPermissionManager.address);
       });
@@ -248,7 +251,7 @@ contract('DCAPositionHandler', () => {
 
     when('making a valid deposit', async () => {
       let positionId: BigNumber;
-      let initialIdCounter: BigNumber;
+      let initialTotalCreatedPositions: BigNumber;
       let tx: TransactionResponse;
 
       const nftOwner = wallet.generateRandomAddress();
@@ -256,7 +259,7 @@ contract('DCAPositionHandler', () => {
 
       given(async () => {
         priceOracle.addSupportForPairIfNeeded.reset();
-        initialIdCounter = await DCAPositionHandler.idCounter();
+        initialTotalCreatedPositions = await DCAPositionHandler.totalCreatedPositions();
         const depositTx = await deposit({
           owner: nftOwner,
           token: tokenA,
@@ -287,8 +290,8 @@ contract('DCAPositionHandler', () => {
         expect(positionPermissions[0].permissions).to.eql(permissions[0].permissions);
       });
 
-      then('id counter gets increased', async () => {
-        expect(await DCAPositionHandler.idCounter()).to.equal(initialIdCounter.add(1));
+      then('total created positions gets increased', async () => {
+        expect(await DCAPositionHandler.totalCreatedPositions()).to.equal(initialTotalCreatedPositions.add(1));
       });
 
       then('correct amount is transferred from sender', async () => {

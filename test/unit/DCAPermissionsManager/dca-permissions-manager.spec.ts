@@ -55,8 +55,8 @@ contract('DCAPermissionsManager', () => {
         const symbol = await DCAPermissionsManager.symbol();
         expect(symbol).to.equal('MF-DCA-P');
       });
-      then('burn counter starts at 1', async () => {
-        expect(await DCAPermissionsManager.burnCounter()).to.equal(1);
+      then('burn counter starts at 0', async () => {
+        expect(await DCAPermissionsManager.burnCounter()).to.equal(0);
       });
       then('initial nonce is 0', async () => {
         expect(await DCAPermissionsManager.nonces(hub.address)).to.equal(0);

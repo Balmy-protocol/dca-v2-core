@@ -217,8 +217,8 @@ interface IDCAHubPositionHandler {
   function permissionManager() external view returns (IDCAPermissionManager);
 
   /// @notice Returns total created positions
-  /// @return The id counter
-  function idCounter() external view returns (uint256);
+  /// @return The total created positions
+  function totalCreatedPositions() external view returns (uint256);
 
   /// @notice Returns a user position
   /// @param _positionId The id of the position

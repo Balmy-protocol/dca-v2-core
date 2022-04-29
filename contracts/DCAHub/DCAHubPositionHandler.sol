@@ -24,7 +24,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   mapping(uint256 => DCA) internal _userPositions;
   mapping(uint256 => uint256) internal _swappedBeforeModified;
   /// @inheritdoc IDCAHubPositionHandler
-  uint256 public idCounter;
+  uint256 public totalCreatedPositions;
 
   constructor(IDCAPermissionManager _permissionManager) {
     _assertNonZeroAddress(address(_permissionManager));
@@ -63,7 +63,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
     uint120 _rate = _calculateRate(_amount, _amountOfSwaps);
-    uint256 _positionId = ++idCounter;
+    uint256 _positionId = ++totalCreatedPositions;
     DCA memory _userPosition = _buildPosition(_from, _to, _amountOfSwaps, Intervals.intervalToMask(_swapInterval), _rate);
     if (allowedSwapIntervals & _userPosition.swapIntervalMask == 0) revert IntervalNotAllowed();
     permissionManager.mint(_positionId, _owner, _permissions);

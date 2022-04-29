@@ -38,8 +38,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   mapping(address => uint256) public nonces;
   mapping(uint256 => uint256) public lastOwnershipChange;
   mapping(uint256 => mapping(address => TokenPermission)) public tokenPermissions;
-  // Gets initialized as 1 so first deposit doesn't get gas hit
-  uint256 internal _burnCounter = 1;
+  uint256 internal _burnCounter;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
     ERC721('Mean Finance - DCA Position', 'MF-DCA-P')
@@ -128,9 +127,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
 
   /// @inheritdoc IERC721BasicEnumerable
   function totalSupply() external view returns (uint256) {
-    // We subtract 1 from burn counter, since it will start at 1 to avoid
-    // gas hitting first depositor
-    return IDCAHubPositionHandler(hub).idCounter() - (_burnCounter - 1);
+    return IDCAHubPositionHandler(hub).totalCreatedPositions() - _burnCounter;
   }
 
   /// @inheritdoc IDCAPermissionManager
