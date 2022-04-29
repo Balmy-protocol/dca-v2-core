@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import moment from 'moment';
+import { networkBeingForked } from '@test-utils/evm';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -11,7 +12,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   let period: number;
   let minimumPeriod: number;
   let maximumPeriod: number;
-  switch (hre.network.name) {
+
+  const network = hre.network.name !== 'hardhat' ? hre.network.name : networkBeingForked ?? hre.network.name;
+  switch (network) {
     case 'mainnet':
     case 'hardhat':
       cardinalityPerMinute = 4;

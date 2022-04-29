@@ -81,13 +81,18 @@ const PLANS: { tokenIn: Token; tokenOut: Token }[][] = [
 
 const TRESHOLD_PERCENTAGE = 2.5; // In mainnet, max threshold is usually 2%, but since we are combining pairs, it can sometimes be a little higher
 
-contract('ChainlinkOracle', () => {
+contract.only('ChainlinkOracle', () => {
   before(async () => {
     await evm.reset({
-      jsonRpcUrl: getNodeUrl('mainnet'),
+      network: 'mainnet',
       blockNumber: 14612248,
+      skipHardhatDeployFork: true,
     });
-    await deployments.fixture('ChainlinkOracle', { keepExistingDeployments: false });
+    await deployments.run('ChainlinkOracle', {
+      resetMemory: true,
+      deletePreviousDeployments: false,
+      writeDeploymentsToFiles: false,
+    });
     oracle = await ethers.getContract('ChainlinkOracle');
   });
 

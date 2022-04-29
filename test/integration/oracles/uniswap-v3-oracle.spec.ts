@@ -20,9 +20,14 @@ const UNI_WETH_USDC_POOL_HIGH = '0x7BeA39867e4169DBe237d55C8242a8f2fcDcc387';
 contract('UniswapV3Oracle', () => {
   before(async () => {
     await evm.reset({
-      jsonRpcUrl: getNodeUrl('mainnet'),
+      network: 'mainnet',
+      skipHardhatDeployFork: true,
     });
-    await deployments.fixture('UniswapOracle', { keepExistingDeployments: false });
+    await deployments.run('UniswapOracle', {
+      resetMemory: true,
+      deletePreviousDeployments: false,
+      writeDeploymentsToFiles: false,
+    });
     oracle = await ethers.getContract('UniswapOracle');
     await oracle.addSupportForPairIfNeeded(WETH, USDC);
   });

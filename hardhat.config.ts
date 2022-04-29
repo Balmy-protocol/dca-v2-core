@@ -95,11 +95,11 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.10',
+        version: '0.8.13',
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 9999,
           },
         },
       },
@@ -108,21 +108,30 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
-          },
-        },
-      },
-      {
-        version: '0.8.3',
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
+            runs: 9999,
           },
         },
       },
     ],
     overrides: {
+      'contracts/DCAHub/DCAHub.sol': {
+        version: '0.8.13',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 830,
+          },
+        },
+      },
+      'contracts/DCATokenDescriptor/DCATokenDescriptor.sol': {
+        version: '0.8.13',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 0,
+          },
+        },
+      },
       '@uniswap/v3-core/contracts/libraries/FullMath.sol': {
         version: '0.7.6',
       },
