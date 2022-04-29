@@ -18,7 +18,7 @@ import { TokenContract } from '@test-utils/erc20';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 
-contract.only('DCAPermissionManager', () => {
+contract('DCAPermissionManager', () => {
   let governor: SignerWithAddress, user: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
