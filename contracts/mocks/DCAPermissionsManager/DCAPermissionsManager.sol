@@ -13,6 +13,10 @@ contract DCAPermissionsManagerMock is DCAPermissionsManager {
     _blockNumber = __blockNumber;
   }
 
+  function burnCounter() external view returns (uint256) {
+    return _burnCounter;
+  }
+
   function _getBlockNumber() internal view override returns (uint256) {
     if (_blockNumber > 0) {
       return _blockNumber;

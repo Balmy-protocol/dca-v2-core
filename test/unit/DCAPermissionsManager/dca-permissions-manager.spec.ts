@@ -55,6 +55,9 @@ contract('DCAPermissionsManager', () => {
         const symbol = await DCAPermissionsManager.symbol();
         expect(symbol).to.equal('MF-DCA-P');
       });
+      then('burn counter starts at 0', async () => {
+        expect(await DCAPermissionsManager.burnCounter()).to.equal(0);
+      });
       then('initial nonce is 0', async () => {
         expect(await DCAPermissionsManager.nonces(hub.address)).to.equal(0);
       });
@@ -307,8 +310,13 @@ contract('DCAPermissionsManager', () => {
       });
     });
     when('the hub is the caller', () => {
+      let initialBurnCounter: BigNumber;
       given(async () => {
+        initialBurnCounter = await DCAPermissionsManager.burnCounter();
         await DCAPermissionsManager.burn(TOKEN_ID);
+      });
+      then('burn counter gets increased', async () => {
+        expect(await DCAPermissionsManager.burnCounter()).to.equal(initialBurnCounter.add(1));
       });
       then('nft is burned', async () => {
         const balance = await DCAPermissionsManager.balanceOf(OWNER);
