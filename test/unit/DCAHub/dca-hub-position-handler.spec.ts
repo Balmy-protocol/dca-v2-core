@@ -248,6 +248,7 @@ contract('DCAPositionHandler', () => {
 
     when('making a valid deposit', async () => {
       let positionId: BigNumber;
+      let initialIdCounter: BigNumber;
       let tx: TransactionResponse;
 
       const nftOwner = wallet.generateRandomAddress();
@@ -255,6 +256,7 @@ contract('DCAPositionHandler', () => {
 
       given(async () => {
         priceOracle.addSupportForPairIfNeeded.reset();
+        initialIdCounter = await DCAPositionHandler.idCounter();
         const depositTx = await deposit({
           owner: nftOwner,
           token: tokenA,
@@ -283,6 +285,10 @@ contract('DCAPositionHandler', () => {
         expect(positionPermissions.length).to.equal(1);
         expect(positionPermissions[0].operator).to.equal(permissions[0].operator);
         expect(positionPermissions[0].permissions).to.eql(permissions[0].permissions);
+      });
+
+      then('id counter gets increased', async () => {
+        expect(await DCAPositionHandler.idCounter()).to.equal(initialIdCounter.add(1));
       });
 
       then('correct amount is transferred from sender', async () => {

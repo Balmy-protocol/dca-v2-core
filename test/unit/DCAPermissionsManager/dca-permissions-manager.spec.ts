@@ -55,6 +55,9 @@ contract('DCAPermissionsManager', () => {
         const symbol = await DCAPermissionsManager.symbol();
         expect(symbol).to.equal('MF-DCA-P');
       });
+      then('burn counter is 0', async () => {
+        expect(await DCAPermissionsManager.burnCounter()).to.equal(0);
+      });
       then('initial nonce is 0', async () => {
         expect(await DCAPermissionsManager.nonces(hub.address)).to.equal(0);
       });
@@ -229,15 +232,9 @@ contract('DCAPermissionsManager', () => {
       const OWNER = wallet.generateRandomAddress();
       const OPERATOR = constants.NOT_ZERO_ADDRESS;
       let tx: TransactionResponse;
-      let initialTotalSupply: BigNumber;
 
       given(async () => {
-        initialTotalSupply = await DCAPermissionsManager.totalSupply();
         tx = await DCAPermissionsManager.mint(TOKEN_ID, OWNER, [{ operator: OPERATOR, permissions: [Permission.WITHDRAW] }]);
-      });
-
-      then('increases total supply', async () => {
-        expect(await DCAPermissionsManager.totalSupply()).to.equal(initialTotalSupply.add(1));
       });
 
       then('owner has all permisisons', async () => {
@@ -313,13 +310,13 @@ contract('DCAPermissionsManager', () => {
       });
     });
     when('the hub is the caller', () => {
-      let initialTotalSupply: BigNumber;
+      let initialBurnCounter: BigNumber;
       given(async () => {
-        initialTotalSupply = await DCAPermissionsManager.totalSupply();
+        initialBurnCounter = await DCAPermissionsManager.burnCounter();
         await DCAPermissionsManager.burn(TOKEN_ID);
       });
-      then('totalSupply gets decreased', async () => {
-        expect(await DCAPermissionsManager.totalSupply()).to.equal(initialTotalSupply.sub(1));
+      then('burn counter gets increased', async () => {
+        expect(await DCAPermissionsManager.burnCounter()).to.equal(initialBurnCounter.add(1));
       });
       then('nft is burned', async () => {
         const balance = await DCAPermissionsManager.balanceOf(OWNER);

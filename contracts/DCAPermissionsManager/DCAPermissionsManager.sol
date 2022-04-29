@@ -3,6 +3,7 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
+import '../interfaces/IDCAHub.sol';
 import '../interfaces/IDCATokenDescriptor.sol';
 import '../interfaces/IDCAPermissionManager.sol';
 import '../libraries/PermissionMath.sol';
@@ -37,8 +38,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   mapping(address => uint256) public nonces;
   mapping(uint256 => uint256) public lastOwnershipChange;
   mapping(uint256 => mapping(address => TokenPermission)) public tokenPermissions;
-  /// @inheritdoc IERC721BasicEnumerable
-  uint256 public override totalSupply;
+  uint256 internal _burnCounter;
 
   constructor(address _governor, IDCATokenDescriptor _descriptor)
     ERC721('Mean Finance - DCA Position', 'MF-DCA-P')
@@ -65,7 +65,6 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _mint(_owner, _id);
     _setPermissions(_id, _permissions);
-    ++totalSupply;
   }
 
   /// @inheritdoc IDCAPermissionManager
@@ -111,7 +110,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   function burn(uint256 _id) external {
     if (msg.sender != hub) revert OnlyHubCanExecute();
     _burn(_id);
-    --totalSupply;
+    ++_burnCounter;
   }
 
   /// @inheritdoc IDCAPermissionManager
@@ -124,6 +123,11 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   // solhint-disable-next-line func-name-mixedcase
   function DOMAIN_SEPARATOR() external view returns (bytes32) {
     return _domainSeparatorV4();
+  }
+
+  /// @inheritdoc IERC721BasicEnumerable
+  function totalSupply() external view returns (uint256) {
+    return IDCAHubPositionHandler(hub).idCounter() - _burnCounter;
   }
 
   /// @inheritdoc IDCAPermissionManager
