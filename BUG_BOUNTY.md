@@ -14,9 +14,9 @@ Mean Finance ImmuneFi bug bounty program is focused on the prevention of negativ
 
 | **Smart Contracts** |                   |
 | ------------------- | ----------------- |
-| Critical            | Up to USD $40,000 |
-| High                | USD $20,000       |
-| Medium              | USD $4,000        |
-| Low                 | USD $2,500        |
+| Critical            | Up to USD $20,000 |
+| High                | USD $10,000       |
+| Medium              | USD $2,000        |
+| Low                 | USD $1,000        |
 
 **Further detail can be found here**: https://immunefi.com/bounty/meanfinance/
