@@ -7,7 +7,7 @@ import '@typechain/hardhat/dist/type-extensions';
 import { removeConsoleLog } from 'hardhat-preprocessor';
 import 'hardhat-gas-reporter';
 import 'hardhat-contract-sizer';
-import 'hardhat-deploy';
+import '@0xged/hardhat-deploy';
 import 'solidity-coverage';
 import './tasks/npm-publish-clean-typechain';
 import { HardhatUserConfig, MultiSolcUserConfig, NetworksUserConfig } from 'hardhat/types';
