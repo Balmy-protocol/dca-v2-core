@@ -9,6 +9,8 @@ import { ethers } from 'hardhat';
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
 
+  const deployerSigner = await ethers.getSigner(deployer);
+
   const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
     DeterministicFactory__factory.abi,
     '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
@@ -26,17 +28,21 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     },
   });
 
-  const deploymentTx = await deterministicFactory.deploy(
+  const deploymentAddress = await deterministicFactory.getDeployed(SALT);
+
+  const deploymentTx = await deterministicFactory.connect(deployerSigner).deploy(
     SALT, // SALT
     creationCode,
     0 // Value
   );
 
+  console.log(`deploying "DCAPermissionsManager" (tx: ${deploymentTx.hash}) at ${deploymentAddress}`);
+
   const receipt = await deploymentTx.wait();
 
   const deployment = await hre.deployments.buildDeploymentSubmission({
     name: 'DCAPermissionsManager',
-    contractAddress: await deterministicFactory.getDeployed(SALT),
+    contractAddress: deploymentAddress,
     options: {
       contract: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
       from: deployer,
