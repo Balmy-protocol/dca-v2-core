@@ -16,7 +16,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
   );
 
-  const SALT = utils.formatBytes32String('MF-DCAV2-DCAPermissionsManager');
+  const SALT = utils.formatBytes32String('MF-DCAV2-PermissionsManager');
 
   const tokenDescriptor = await hre.deployments.get('TokenDescriptor');
 
@@ -36,12 +36,12 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     0 // Value
   );
 
-  console.log(`deploying "DCAPermissionsManager" (tx: ${deploymentTx.hash}) at ${deploymentAddress}`);
+  console.log(`deploying "PermissionsManager" (tx: ${deploymentTx.hash}) at ${deploymentAddress}`);
 
   const receipt = await deploymentTx.wait();
 
   const deployment = await hre.deployments.buildDeploymentSubmission({
-    name: 'DCAPermissionsManager',
+    name: 'PermissionsManager',
     contractAddress: deploymentAddress,
     options: {
       contract: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
@@ -52,7 +52,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     receipt,
   });
 
-  await hre.deployments.save('TokenDescriptor', deployment);
+  await hre.deployments.save('PermissionsManager', deployment);
 };
 
 deployFunction.tags = ['PermissionsManager'];

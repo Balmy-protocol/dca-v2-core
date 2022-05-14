@@ -71,7 +71,7 @@ const networks: NetworksUserConfig = process.env.TEST
         tags: ['staging'],
       },
       mumbai: {
-        url: 'https://rpc-mumbai.matic.today',
+        url: getNodeUrl('mumbai'),
         accounts: accounts('mumbai'),
         tags: ['staging'],
       },

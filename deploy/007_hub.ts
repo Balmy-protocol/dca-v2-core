@@ -56,7 +56,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
   await hre.deployments.save('DCAHub', deployment);
 
-  await hre.deployments.execute('DCAHub', { from: deployer }, 'setHub', deploymentAddress);
+  await hre.deployments.execute('PermissionsManager', { from: deployer }, 'setHub', deploymentAddress);
 };
 deployFunction.tags = ['DCAHub'];
 deployFunction.dependencies = ['OracleAggregator', 'PermissionsManager', 'Timelock'];
