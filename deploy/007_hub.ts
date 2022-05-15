@@ -1,10 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
-import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
-import { ethers } from 'hardhat';
-import { utils } from 'ethers';
-
-import { DCAHub__factory } from '@typechained';
+import { DCAHub__factory } from '../typechained';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
