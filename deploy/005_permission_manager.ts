@@ -1,58 +1,24 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
-import { getCreationCode } from '@test-utils/contracts';
 import { DCAPermissionsManager__factory } from '@typechained';
-import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
-import { utils } from 'ethers';
-import { ethers } from 'hardhat';
+import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
 
-  const deployerSigner = await ethers.getSigner(deployer);
-
-  const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
-    DeterministicFactory__factory.abi,
-    '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
-  );
-
-  const SALT = utils.formatBytes32String('MF-DCAV2-PermissionsManager');
-
   const tokenDescriptor = await hre.deployments.get('TokenDescriptor');
 
-  const creationCode = getCreationCode({
+  await deployThroughDeterministicFactory({
+    deployer,
+    name: 'PermissionsManager',
+    salt: 'MF-DCAV2-PermissionsManager',
+    contract: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
     bytecode: DCAPermissionsManager__factory.bytecode,
     constructorArgs: {
       types: ['address', 'address'],
       values: [governor, tokenDescriptor.address],
     },
   });
-
-  const deploymentAddress = await deterministicFactory.getDeployed(SALT);
-
-  const deploymentTx = await deterministicFactory.connect(deployerSigner).deploy(
-    SALT, // SALT
-    creationCode,
-    0 // Value
-  );
-
-  console.log(`deploying "PermissionsManager" (tx: ${deploymentTx.hash}) at ${deploymentAddress}`);
-
-  const receipt = await deploymentTx.wait();
-
-  const deployment = await hre.deployments.buildDeploymentSubmission({
-    name: 'PermissionsManager',
-    contractAddress: deploymentAddress,
-    options: {
-      contract: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
-      from: deployer,
-      args: [governor, tokenDescriptor.address],
-      log: true,
-    },
-    receipt,
-  });
-
-  await hre.deployments.save('PermissionsManager', deployment);
 };
 
 deployFunction.tags = ['PermissionsManager'];

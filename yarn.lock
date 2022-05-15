@@ -797,10 +797,10 @@
   resolved "https://registry.yarnpkg.com/@hutson/parse-repository-url/-/parse-repository-url-3.0.2.tgz#98c23c950a3d9b6c8f0daed06da6c3af06981340"
   integrity sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==
 
-"@mean-finance/deterministic-factory@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.0.0.tgz#b18651549403b857e0d8397f1c36c02d4c956b18"
-  integrity sha512-m6TGKWIdMy3EgPmaMOD1Tb8NqB0x8PL7UiBTnGU2ZyqlvYzL5Iut+Zp0ScwDWGwTGDcRmSptZjiGX8Ta2C+jlw==
+"@mean-finance/deterministic-factory@1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.0.1.tgz#0f603912bd1451a2effc0c7ecc94d1594cb7e9a8"
+  integrity sha512-I9pO9klXUsjh7KsTw9mE1aIPws072l9u7JHcgayl9WzypsvLXp/YnOR2p2XwBvUHcOqwpolAS2eQYyYt9d1Gnw==
   dependencies:
     "@openzeppelin/contracts" "4.6.0"
     "@rari-capital/solmate" "6.2.0"
