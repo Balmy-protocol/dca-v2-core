@@ -16,6 +16,9 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       types: [],
       values: [],
     },
+    overrides: {
+      gasLimit: 5_800_000,
+    },
   });
 };
 
