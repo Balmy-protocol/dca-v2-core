@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { DeployFunction } from 'hardhat-deploy/types';
+import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
 import { networkBeingForked } from '@test-utils/evm';
 
@@ -61,6 +61,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     from: deployer,
     args: [governor, UNISWAP_V3_FACTORY_ADDRESS, cardinalityPerMinute, period, minimumPeriod, maximumPeriod],
     log: true,
+    skipIfAlreadyDeployed: true,
   });
 };
 

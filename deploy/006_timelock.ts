@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import TimelockController from '@openzeppelin/contracts/build/contracts/TimelockController.json';
-import { DeployFunction } from 'hardhat-deploy/types';
+import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -20,6 +20,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       from: deployer,
       args: [minDelay, proposers, executors],
       log: true,
+      skipIfAlreadyDeployed: true,
     });
   }
 };

@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { DeployFunction } from 'hardhat-deploy/types';
+import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
 import { BigNumber, BigNumberish } from 'ethers';
 import { networkBeingForked } from '@test-utils/evm';
@@ -53,6 +53,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     from: deployer,
     args: [weth, registry, maxDelay, governor],
     log: true,
+    skipIfAlreadyDeployed: true,
   });
 };
 

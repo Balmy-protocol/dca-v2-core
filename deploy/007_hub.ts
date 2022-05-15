@@ -1,5 +1,11 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { DeployFunction } from 'hardhat-deploy/types';
+import { DeployFunction } from '@0xged/hardhat-deploy/types';
+import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
+import { ethers } from 'hardhat';
+import { utils } from 'ethers';
+
+import { DCAHub__factory } from '@typechained';
+import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -8,14 +14,19 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const oracleAggregator = await hre.deployments.get('OracleAggregator');
   const permissionsManager = await hre.deployments.get('PermissionsManager');
 
-  const deployedHub = await hre.deployments.deploy('DCAHub', {
+  const deployment = await deployThroughDeterministicFactory({
+    deployer,
+    name: 'DCAHub',
+    salt: 'MF-DCAV2-DCAHub',
     contract: 'contracts/DCAHub/DCAHub.sol:DCAHub',
-    from: deployer,
-    args: [governor, timelock.address, oracleAggregator.address, permissionsManager.address],
-    log: true,
+    bytecode: DCAHub__factory.bytecode,
+    constructorArgs: {
+      types: ['address', 'address', 'address', 'address'],
+      values: [governor, timelock.address, oracleAggregator.address, permissionsManager.address],
+    },
   });
 
-  await hre.deployments.execute('PermissionsManager', { from: deployer }, 'setHub', deployedHub.address);
+  await hre.deployments.execute('PermissionsManager', { from: deployer }, 'setHub', deployment.address);
 };
 deployFunction.tags = ['DCAHub'];
 deployFunction.dependencies = ['OracleAggregator', 'PermissionsManager', 'Timelock'];
