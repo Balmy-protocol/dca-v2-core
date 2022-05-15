@@ -20,6 +20,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       from: deployer,
       args: [minDelay, proposers, executors],
       log: true,
+      skipIfAlreadyDeployed: true,
     });
   }
 };

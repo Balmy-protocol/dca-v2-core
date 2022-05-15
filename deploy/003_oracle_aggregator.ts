@@ -12,6 +12,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     from: deployer,
     args: [chainlinkOracle.address, uniswapOracle.address, governor],
     log: true,
+    skipIfAlreadyDeployed: true,
   });
 };
 

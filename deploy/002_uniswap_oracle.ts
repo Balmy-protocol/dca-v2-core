@@ -61,6 +61,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     from: deployer,
     args: [governor, UNISWAP_V3_FACTORY_ADDRESS, cardinalityPerMinute, period, minimumPeriod, maximumPeriod],
     log: true,
+    skipIfAlreadyDeployed: true,
   });
 };
 
