@@ -2,6 +2,8 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
 import { networkBeingForked } from '@test-utils/evm';
+import { UniswapV3Oracle__factory } from '@typechained';
+import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -56,12 +58,20 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       throw new Error(`Unsupported chain '${hre.network.name}`);
   }
 
-  await hre.deployments.deploy('UniswapOracle', {
+  await deployThroughDeterministicFactory({
+    deployer,
+    name: 'UniswapOracle',
+    salt: 'MF-DCAV2-UniswapOracle',
     contract: 'contracts/oracles/UniswapV3Oracle.sol:UniswapV3Oracle',
-    from: deployer,
-    args: [governor, UNISWAP_V3_FACTORY_ADDRESS, cardinalityPerMinute, period, minimumPeriod, maximumPeriod],
-    log: true,
-    skipIfAlreadyDeployed: true,
+    bytecode: UniswapV3Oracle__factory.bytecode,
+    constructorArgs: {
+      types: ['address', 'address', 'uint8', 'uint16', 'uint16', 'uint16'],
+      values: [governor, UNISWAP_V3_FACTORY_ADDRESS, cardinalityPerMinute, period, minimumPeriod, maximumPeriod],
+    },
+    log: !process.env.TEST,
+    overrides: {
+      gasLimit: 3_000_000,
+    },
   });
 };
 

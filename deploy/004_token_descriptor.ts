@@ -16,6 +16,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       types: [],
       values: [],
     },
+    log: !process.env.TEST,
     overrides: {
       gasLimit: 5_800_000,
     },

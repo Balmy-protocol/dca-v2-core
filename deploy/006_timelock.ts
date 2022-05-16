@@ -2,27 +2,30 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import TimelockController from '@openzeppelin/contracts/build/contracts/TimelockController.json';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
+import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
-  const alreadyDeployedNetworks = ['mainnet', 'rinkeby', 'kovan', 'ropsten', 'goerli'];
 
-  if (alreadyDeployedNetworks.includes(hre.network.name)) {
-    // Re-use already deployed timelock
-    await hre.deployments.save('Timelock', { abi: TimelockController.abi, address: '0x763BB5611A7e748f8434Ca69EDabE128bEcF9578' });
-  } else {
-    const minDelay = moment.duration('3', 'days').as('seconds');
-    const proposers = [governor];
-    const executors = [governor];
+  const minDelay = moment.duration('3', 'days').as('seconds');
+  const proposers = [governor];
+  const executors = [governor];
 
-    await hre.deployments.deploy('Timelock', {
-      contract: TimelockController,
-      from: deployer,
-      args: [minDelay, proposers, executors],
-      log: true,
-      skipIfAlreadyDeployed: true,
-    });
-  }
+  await deployThroughDeterministicFactory({
+    deployer,
+    name: 'Timelock',
+    salt: 'MF-DCAV2-Timelock',
+    contract: TimelockController,
+    bytecode: TimelockController.bytecode,
+    constructorArgs: {
+      types: ['uint256', 'address[]', 'address[]'],
+      values: [minDelay, proposers, executors],
+    },
+    log: !process.env.TEST,
+    overrides: {
+      gasLimit: 2_000_000,
+    },
+  });
 };
 deployFunction.tags = ['Timelock'];
 export default deployFunction;

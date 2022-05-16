@@ -1,11 +1,12 @@
 import { utils } from 'ethers';
-import { deployments, ethers } from 'hardhat';
+import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { UniswapV3Oracle } from '@typechained';
 import { getNodeUrl } from '@utils/network';
-import { evm } from '@test-utils';
+import { evm, wallet } from '@test-utils';
 import { contract, given, then } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { getLastPrice, convertPriceToNumberWithDecimals } from '@test-utils/defillama';
+import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
 
 let oracle: UniswapV3Oracle;
 
@@ -23,6 +24,18 @@ contract('UniswapV3Oracle', () => {
       network: 'mainnet',
       skipHardhatDeployFork: true,
     });
+    const namedAccounts = await getNamedAccounts();
+    const governorAddress = namedAccounts.governor;
+    const governor = await wallet.impersonate(governorAddress);
+    await ethers.provider.send('hardhat_setBalance', [governorAddress, '0xffffffffffffffff']);
+
+    const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
+      DeterministicFactory__factory.abi,
+      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+    );
+
+    await deterministicFactory.connect(governor).grantRole(await deterministicFactory.DEPLOYER_ROLE(), namedAccounts.deployer);
+
     await deployments.run('UniswapOracle', {
       resetMemory: true,
       deletePreviousDeployments: false,

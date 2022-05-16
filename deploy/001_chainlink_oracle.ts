@@ -3,6 +3,8 @@ import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
 import { BigNumber, BigNumberish } from 'ethers';
 import { networkBeingForked } from '@test-utils/evm';
+import { ChainlinkOracle__factory } from '@typechained';
+import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -48,12 +50,20 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       throw new Error(`Unsupported chain '${hre.network.name}`);
   }
 
-  await hre.deployments.deploy('ChainlinkOracle', {
+  await deployThroughDeterministicFactory({
+    deployer,
+    name: 'ChainlinkOracle',
+    salt: 'MF-DCAV2-ChainlinkOracle',
     contract: 'contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle',
-    from: deployer,
-    args: [weth, registry, maxDelay, governor],
-    log: true,
-    skipIfAlreadyDeployed: true,
+    bytecode: ChainlinkOracle__factory.bytecode,
+    constructorArgs: {
+      types: ['address', 'address', 'uint32', 'address'],
+      values: [weth, registry, maxDelay, governor],
+    },
+    log: !process.env.TEST,
+    overrides: {
+      gasLimit: 3_000_000,
+    },
   });
 };
 

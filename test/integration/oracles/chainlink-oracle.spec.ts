@@ -1,11 +1,12 @@
 import { utils } from 'ethers';
-import { deployments, ethers } from 'hardhat';
+import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { ChainlinkOracle } from '@typechained';
 import { getNodeUrl } from '@utils/network';
-import { evm } from '@test-utils';
+import { evm, wallet } from '@test-utils';
 import { contract, given, then } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { convertPriceToBigNumberWithDecimals, getPrice } from '@test-utils/defillama';
+import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
 
 let oracle: ChainlinkOracle;
 
@@ -85,9 +86,21 @@ contract('ChainlinkOracle', () => {
   before(async () => {
     await evm.reset({
       network: 'mainnet',
-      blockNumber: 14612248,
+      blockNumber: 14783400,
       skipHardhatDeployFork: true,
     });
+
+    const namedAccounts = await getNamedAccounts();
+    const governorAddress = namedAccounts.governor;
+    const governor = await wallet.impersonate(governorAddress);
+    await ethers.provider.send('hardhat_setBalance', [governorAddress, '0xffffffffffffffff']);
+
+    const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
+      DeterministicFactory__factory.abi,
+      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+    );
+
+    await deterministicFactory.connect(governor).grantRole(await deterministicFactory.DEPLOYER_ROLE(), namedAccounts.deployer);
     await deployments.run('ChainlinkOracle', {
       resetMemory: true,
       deletePreviousDeployments: false,
@@ -138,7 +151,7 @@ async function getPriceBetweenTokens(tokenA: Token, tokenB: Token) {
 let priceCache: Map<string, number> = new Map();
 async function fetchPrice(address: string): Promise<number> {
   if (!priceCache.has(address)) {
-    const price = await getPrice(address, 1650326629);
+    const price = await getPrice(address, 1652664896);
     priceCache.set(address, price);
   }
   return priceCache.get(address)!;
