@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
 import { networkBeingForked } from '@test-utils/evm';
-import { UniswapV3Oracle__factory } from '@typechained';
+import { UniswapV3Oracle__factory } from '../typechained';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
