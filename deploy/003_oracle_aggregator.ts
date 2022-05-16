@@ -1,5 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
+import { OracleAggregator__factory } from '@typechained';
+import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
@@ -7,12 +9,19 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const chainlinkOracle = await hre.deployments.get('ChainlinkOracle');
   const uniswapOracle = await hre.deployments.get('UniswapOracle');
 
-  await hre.deployments.deploy('OracleAggregator', {
+  await deployThroughDeterministicFactory({
+    deployer,
+    name: 'OracleAggregator',
+    salt: 'MF-DCAV2-OracleAggregator',
     contract: 'contracts/oracles/OracleAggregator.sol:OracleAggregator',
-    from: deployer,
-    args: [chainlinkOracle.address, uniswapOracle.address, governor],
-    log: true,
-    skipIfAlreadyDeployed: true,
+    bytecode: OracleAggregator__factory.bytecode,
+    constructorArgs: {
+      types: ['address', 'address', 'address'],
+      values: [chainlinkOracle.address, uniswapOracle.address, governor],
+    },
+    overrides: {
+      gasLimit: 1_500_000,
+    },
   });
 };
 
