@@ -3,7 +3,7 @@ import { DeployFunction } from '@0xged/hardhat-deploy/types';
 import moment from 'moment';
 import { BigNumber, BigNumberish } from 'ethers';
 import { networkBeingForked } from '@test-utils/evm';
-import { ChainlinkOracle__factory } from '@typechained';
+import { ChainlinkOracle__factory } from '../typechained';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
