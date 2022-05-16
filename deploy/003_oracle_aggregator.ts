@@ -19,6 +19,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       types: ['address', 'address', 'address'],
       values: [chainlinkOracle.address, uniswapOracle.address, governor],
     },
+    log: !process.env.TEST,
     overrides: {
       gasLimit: 2_500_000,
     },
