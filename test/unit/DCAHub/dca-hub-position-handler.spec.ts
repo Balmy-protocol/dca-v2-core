@@ -897,6 +897,48 @@ contract('DCAPositionHandler', () => {
       });
     });
 
+    when('increasing position with unallowed from', () => {
+      let positionId: BigNumber;
+      given(async () => {
+        ({ positionId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        }));
+        await DCAPositionHandler.setAllowedTokens([tokenA.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'increasePosition',
+          args: [positionId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
+          message: 'UnallowedToken',
+        });
+      });
+    });
+
+    when('increasing position with unallowed to', () => {
+      let positionId: BigNumber;
+      given(async () => {
+        ({ positionId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        }));
+        await DCAPositionHandler.setAllowedTokens([tokenB.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'increasePosition',
+          args: [positionId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
+          message: 'UnallowedToken',
+        });
+      });
+    });
+
     when('adding funds but with 0 swaps', () => {
       then('tx is reverted with message', async () => {
         const { positionId } = await deposit({
