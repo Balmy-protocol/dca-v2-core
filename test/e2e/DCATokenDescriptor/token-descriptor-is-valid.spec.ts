@@ -61,6 +61,7 @@ contract('DCATokenDescriptor', () => {
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
     DCAHub = await DCAHubContract.deploy(governor.address, constants.NOT_ZERO_ADDRESS, priceOracle.address, DCAPermissionsManager.address);
 
+    await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
     await DCAPermissionsManager.setHub(DCAHub.address);
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval]);
 
