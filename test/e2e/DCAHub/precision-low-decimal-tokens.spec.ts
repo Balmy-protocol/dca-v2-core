@@ -28,14 +28,14 @@ contract('DCAHub', () => {
     let USDC: TokenContract, myToken: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
     let priceOracle: FakeContract<IPriceOracle>;
-    let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
+    let DCAPermissionsManager: DCAPermissionsManager;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
     let snapshotId: string;
 
     before('Setup accounts and contracts', async () => {
       [governor, alice] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
-      DCAPermissionsManagerFactory = await ethers.getContractFactory(
+      const DCAPermissionsManagerFactory: DCAPermissionsManager__factory = await ethers.getContractFactory(
         'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
       );
       DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');

@@ -296,7 +296,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   }
 
   // Note: This is almost exactly as FeeMath.subtractFeeFromAmount, but without dividing by FEE_PRECISION.
-  // We will make that division when calculating how much was swapped. By doing so, we don't lose precision, which
+  // We will make that division when calculating how much was swapped. By doing so, we don't lose precision which,
   // in the case of tokens with a small amount of decimals (like USDC), can end up being a lot of funds
   function _subtractFeeFromAmount(uint32 _fee, uint256 _amount) internal pure returns (uint256) {
     return _amount * (FeeMath.FEE_PRECISION - _fee / 100);
