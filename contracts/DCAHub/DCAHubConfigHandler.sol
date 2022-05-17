@@ -29,6 +29,8 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   /// @inheritdoc IDCAHubConfigHandler
   uint16 public platformFeeRatio = 2500; // 25%
 
+  mapping(address => bool) public allowedTokens;
+
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
@@ -42,6 +44,15 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
     _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);
     oracle = _oracle;
+  }
+
+  function setAllowedTokens(address[] calldata _tokens, bool[] calldata _allowed) external onlyRole(IMMEDIATE_ROLE) {
+    if (_tokens.length != _allowed.length) revert InvalidAllowedTokensInput();
+    for (uint256 i; i < _tokens.length; i++) {
+      _assertNonZeroAddress(_tokens[i]);
+      allowedTokens[_tokens[i]] = _allowed[i];
+    }
+    emit TokensAllowedUpdated(_tokens, _allowed);
   }
 
   /// @inheritdoc IDCAHubConfigHandler

@@ -472,6 +472,14 @@ interface IDCAHubConfigHandler {
   /// @param _platformFeeRatio The new platform fee ratio
   event PlatformFeeRatioSet(uint16 _platformFeeRatio);
 
+  event TokensAllowedUpdated(address[] _tokens, bool[] _allowed);
+
+  /// @notice Thrown when trying to interact with an unallowed token
+  error UnallowedToken();
+
+  /// @notice Thrown when set allowed tokens input is not valid
+  error InvalidAllowedTokensInput();
+
   /// @notice Thrown when trying to set a fee higher than the maximum allowed
   error HighFee();
 
