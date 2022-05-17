@@ -17,6 +17,7 @@ import { SwapInterval } from 'js-lib/interval-utils';
 chai.use(smock.matchers);
 
 contract('DCAPositionHandler', () => {
+  const FEE_PRECISION = 10000;
   const PERFORMED_SWAPS_10 = 10;
   const POSITION_RATE_5 = 5;
   const POSITION_SWAPS_TO_PERFORM_10 = 10;
@@ -1082,56 +1083,6 @@ contract('DCAPositionHandler', () => {
         expect(swapped).to.equal(0);
       });
     });
-
-    describe('verify overflow errors', () => {
-      when('accum is MAX(uint256) and position rate is more than 1', () => {
-        then('there is an overflow', async () => {
-          await expectCalculationToFailWithOverflow({
-            accumRate: constants.MAX_UINT_256,
-            positionRate: 2,
-          });
-        });
-      });
-    });
-
-    describe('verify overflow limits', () => {
-      when('accum is MAX(uint256) and position rate is 1', () => {
-        then('swapped should be max uint', async () => {
-          const swapped = await calculateSwappedWith({
-            accumRate: constants.MAX_UINT_256,
-            positionRate: 1,
-          });
-          // We are losing precision when accumRate is MAX(uint256), but we accept that
-          expect(swapped.gte('0xfffffffffffffffffffffffffffffffffffffffffffffffffff1c2d3019e0000')).to.true;
-        });
-      });
-    });
-
-    async function calculateSwappedWith({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate?: number }) {
-      const { positionId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
-      await setPerformedSwaps(tokenA, tokenB, SwapInterval.ONE_DAY, PERFORMED_SWAPS_10 + 1);
-      await setRatio({
-        accumRate,
-        onSwap: PERFORMED_SWAPS_10 + 1,
-      });
-
-      return calculateSwapped(positionId);
-    }
-
-    async function expectCalculationToFailWithOverflow({ accumRate, positionRate }: { accumRate: number | BigNumber; positionRate: number }) {
-      const { positionId } = await deposit({ owner: owner.address, token: tokenA, rate: positionRate ?? 1, swaps: 1 });
-      await setPerformedSwaps(tokenA, tokenB, SwapInterval.ONE_DAY, PERFORMED_SWAPS_10 + 1);
-      await setRatio({
-        accumRate,
-        onSwap: PERFORMED_SWAPS_10 + 1,
-      });
-      const tx = DCAPositionHandler.userPosition(positionId) as any as Promise<TransactionResponse>;
-
-      return behaviours.checkTxRevertedWithMessage({
-        tx,
-        message: 'reverted with panic code 0x11 (Arithmetic operation underflowed or overflowed outside of an unchecked block)',
-      });
-    }
   });
 
   async function setRatio({ accumRate, onSwap }: { accumRate: number | BigNumber; onSwap: number }) {
@@ -1140,7 +1091,7 @@ contract('DCAPositionHandler', () => {
       tokenB.address,
       SwapInterval.ONE_DAY.mask,
       onSwap,
-      BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate),
+      (BigNumber.isBigNumber(accumRate) ? accumRate : tokenB.asUnits(accumRate)).mul(FEE_PRECISION),
       0
     );
   }
@@ -1301,8 +1252,8 @@ contract('DCAPositionHandler', () => {
       tokenB.address,
       SwapInterval.ONE_DAY.mask,
       swap,
-      tokenB.asUnits(ratioAToB ?? 0),
-      tokenA.asUnits(ratioBToA ?? 0)
+      tokenB.asUnits(ratioAToB ?? 0).mul(FEE_PRECISION),
+      tokenA.asUnits(ratioBToA ?? 0).mul(FEE_PRECISION)
     );
     if (amountAToB) {
       await tokenA.burn(DCAPositionHandler.address, tokenA.asUnits(amountAToB));
