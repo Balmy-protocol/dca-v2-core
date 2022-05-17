@@ -47,6 +47,7 @@ contract('DCAHub', () => {
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, constants.NOT_ZERO_ADDRESS, priceOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
+      await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
       await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.FIFTEEN_MINUTES.seconds]);
       snapshotId = await snapshot.take();
     });
