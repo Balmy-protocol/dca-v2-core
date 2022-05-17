@@ -48,6 +48,7 @@ contract('DCAPositionHandler', () => {
     DCAPermissionManager = await smock.fake('DCAPermissionsManager');
     priceOracle = await smock.fake('IPriceOracle');
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, priceOracle.address, DCAPermissionManager.address);
+    await DCAPositionHandler.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
@@ -245,6 +246,40 @@ contract('DCAPositionHandler', () => {
           swaps: 1,
           interval: SwapInterval.ONE_DAY.seconds,
           error: 'AmountTooBig',
+        });
+      });
+    });
+
+    when('making a deposit from an unallowed token', () => {
+      given(async () => {
+        await DCAPositionHandler.setAllowedTokens([tokenA.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 2,
+          interval: SwapInterval.ONE_DAY.seconds,
+          error: 'UnallowedToken',
+        });
+      });
+    });
+
+    when('making a deposit to an unallowed token', () => {
+      given(async () => {
+        await DCAPositionHandler.setAllowedTokens([tokenB.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 2,
+          interval: SwapInterval.ONE_DAY.seconds,
+          error: 'UnallowedToken',
         });
       });
     });

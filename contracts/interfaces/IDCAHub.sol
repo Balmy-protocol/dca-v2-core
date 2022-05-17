@@ -472,6 +472,9 @@ interface IDCAHubConfigHandler {
   /// @param _platformFeeRatio The new platform fee ratio
   event PlatformFeeRatioSet(uint16 _platformFeeRatio);
 
+  /// @notice Emitted when allowed states of tokens are updated
+  /// @param _tokens Array of updated tokens
+  /// @param _allowed Array of new allow state per token were _allowed[i] is the updated state of _tokens[i]
   event TokensAllowedUpdated(address[] _tokens, bool[] _allowed);
 
   /// @notice Thrown when trying to interact with an unallowed token

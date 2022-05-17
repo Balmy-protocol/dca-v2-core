@@ -62,7 +62,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    if (!allowedTokens[_from] || !allowedTokens[_to]) revert IDCAHubConfigHandler.UnallowedToken();
+    if (!_allowedTokens[_from] || !_allowedTokens[_to]) revert IDCAHubConfigHandler.UnallowedToken();
     uint120 _rate = _calculateRate(_amount, _amountOfSwaps);
     uint256 _positionId = ++totalCreatedPositions;
     DCA memory _userPosition = _buildPosition(_from, _to, _amountOfSwaps, Intervals.intervalToMask(_swapInterval), _rate);
