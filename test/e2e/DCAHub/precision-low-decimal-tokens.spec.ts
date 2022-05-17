@@ -17,6 +17,7 @@ import { buildSwapInput } from 'js-lib/swap-utils';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { BigNumber } from 'ethers';
 import { expect } from 'chai';
+import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
   describe('Precision with low decimal tokens', () => {
@@ -29,6 +30,7 @@ contract('DCAHub', () => {
     let priceOracle: FakeContract<IPriceOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
+    let snapshotId: string;
 
     before('Setup accounts and contracts', async () => {
       [governor, alice] = await ethers.getSigners();
@@ -37,9 +39,6 @@ contract('DCAHub', () => {
         'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
       );
       DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
-    });
-
-    beforeEach('Deploy and configure', async () => {
       USDC = await erc20.deploy({
         name: 'USDC',
         symbol: 'USDC',
@@ -51,22 +50,29 @@ contract('DCAHub', () => {
         decimals: 18,
       });
       priceOracle = await smock.fake('IPriceOracle');
-      priceOracle.quote.returns(PRICE_IN_USDC);
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
-      DCAPermissionsManager.setHub(DCAHub.address);
+      await DCAPermissionsManager.setHub(DCAHub.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
 
-      await DCAHubSwapCallee.setInitialBalances([USDC.address, myToken.address], [USDC.asUnits(2000000), myToken.asUnits(2000)]);
+      await DCAHubSwapCallee.setInitialBalances([USDC.address, myToken.address], [USDC.asUnits(100_000_000), myToken.asUnits(2000)]);
       await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.ONE_HOUR.seconds]);
       await setInitialBalance(alice, { tokenA: 0, tokenB: 10000000 });
-      await setInitialBalance(DCAHubSwapCallee, { tokenA: 2000000, tokenB: 2000 });
+      await setInitialBalance(DCAHubSwapCallee, { tokenA: 100_000_000, tokenB: 2000 });
+      snapshotId = await snapshot.take();
+    });
+
+    beforeEach('Deploy and configure', async () => {
+      await snapshot.revert(snapshotId);
+
+      // magnitude(myToken) == 100 units of USDC
+      priceOracle.quote.returns(USDC.address < myToken.address ? PRICE_IN_USDC : USDC.magnitude.mul(myToken.magnitude).div(PRICE_IN_USDC));
     });
 
     when('position is created and swap is executed', () => {
       let expectedSwapped: BigNumber, expectedPlatformFee: BigNumber;
       given(async () => {
-        const amountToSwap = myToken.magnitude.mul(1000000);
+        const amountToSwap = myToken.magnitude.mul(1_000_000);
         await myToken.connect(alice).approve(DCAHub.address, constants.MAX_UINT_256);
         await DCAHub.connect(alice)['deposit(address,address,uint256,uint32,uint32,address,(address,uint8[])[])'](
           myToken.address,
