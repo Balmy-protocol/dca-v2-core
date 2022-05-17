@@ -166,6 +166,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
+      if (!_allowedTokens[_tokens[i]]) revert IDCAHubConfigHandler.UnallowedToken();
       if (i > 0 && _tokens[i] <= _tokens[i - 1]) {
         revert IDCAHub.InvalidTokens();
       }
@@ -241,6 +242,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
       TokenInSwap memory _tokenInSwap = _swapInformation.tokens[i];
+
       uint256 _amountToBorrow = _borrow[i];
 
       // Remember balances before callback

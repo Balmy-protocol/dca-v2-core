@@ -50,6 +50,7 @@ contract('DCAHubSwapHandler', () => {
 
     priceOracle = await smock.fake('IPriceOracle');
     DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(owner.address, owner.address, priceOracle.address);
+    await DCAHubSwapHandler.setAllowedTokens([tokenA.address, tokenB.address, tokenC.address], [true, true, true]);
     snapshotId = await snapshot.take();
   });
 
@@ -906,6 +907,28 @@ contract('DCAHubSwapHandler', () => {
       error: 'InvalidTokens',
       context: async () => {
         await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
+      },
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenA is not allowed',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'UnallowedToken',
+      context: async () => {
+        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
+        await DCAHubSwapHandler.setAllowedTokens([tokenA.address], [false]);
+      },
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenB is not allowed',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'UnallowedToken',
+      context: async () => {
+        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
+        await DCAHubSwapHandler.setAllowedTokens([tokenB.address], [false]);
       },
     });
   });
