@@ -19,8 +19,10 @@ import { readArgFromEventOrFail } from '@test-utils/event-utils';
 import { buildSwapInput } from 'js-lib/swap-utils';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
+import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
+  let snapshotId: string;
   let governor: SignerWithAddress, john: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
@@ -29,15 +31,14 @@ contract('DCAHub', () => {
   let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
 
   before('Setup accounts and contracts', async () => {
+    await evm.reset();
     [governor, john] = await ethers.getSigners();
     DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
     DCAPermissionsManagerFactory = await ethers.getContractFactory(
       'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager'
     );
-  });
 
-  beforeEach('Deploy and configure', async () => {
     tokenA = await erc20.deploy({
       name: 'tokenA',
       symbol: 'TKNA',
@@ -70,6 +71,11 @@ contract('DCAHub', () => {
         token1: 1,
       },
     });
+    snapshotId = await snapshot.take();
+  });
+
+  beforeEach('Deploy and configure', async () => {
+    await snapshot.revert(snapshotId);
   });
 
   it('allows to withdraw unallowed tokens', async () => {

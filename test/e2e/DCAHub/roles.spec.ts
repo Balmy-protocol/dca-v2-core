@@ -6,7 +6,7 @@ import { constants, erc20, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
 import Web3 from 'web3';
 import { expect } from 'chai';
-import { snapshot } from '@test-utils/evm';
+import evm, { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
   let immediateGovernor: SignerWithAddress;
@@ -22,6 +22,7 @@ contract('DCAHub', () => {
   const PLATFORM_WITHDRAW_ROLE: string = new Web3().utils.soliditySha3('PLATFORM_WITHDRAW_ROLE') as string;
 
   before(async () => {
+    await evm.reset();
     DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     [immediateGovernor, timeLockedGovernor] = await ethers.getSigners();
     DCAHub = await DCAHubFactory.deploy(

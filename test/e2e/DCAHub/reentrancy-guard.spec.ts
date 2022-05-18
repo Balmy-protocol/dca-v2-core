@@ -16,7 +16,7 @@ import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { TokenContract } from '@test-utils/erc20';
 import { readArgFromEventOrFail } from '@test-utils/event-utils';
-import { snapshot } from '@test-utils/evm';
+import evm, { snapshot } from '@test-utils/evm';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 
@@ -33,6 +33,7 @@ contract('DCAHub', () => {
     let snapshotId: string;
 
     before('Setup accounts and contracts', async () => {
+      await evm.reset();
       [governor, dude] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');

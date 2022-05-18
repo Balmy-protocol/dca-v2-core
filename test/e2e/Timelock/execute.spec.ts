@@ -30,6 +30,7 @@ contract('Timelock', () => {
   const PREDECESSOR = constants.ZERO_BYTES32;
 
   before(async () => {
+    await evm.reset();
     [deployer, immediateGovernor] = await ethers.getSigners();
     DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     timelock = (await deployContract(deployer, TIMELOCK, [

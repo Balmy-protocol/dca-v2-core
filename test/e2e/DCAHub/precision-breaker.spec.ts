@@ -40,6 +40,7 @@ contract('DCAHub', () => {
     });
 
     beforeEach('Deploy and configure', async () => {
+      await evm.reset();
       tokenA = await erc20.deploy({
         name: 'WBTC',
         symbol: 'WBTC',

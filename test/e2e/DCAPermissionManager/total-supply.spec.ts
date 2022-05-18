@@ -36,6 +36,7 @@ contract('DCAPermissionManager', () => {
   });
 
   beforeEach('Deploy and configure', async () => {
+    await evm.reset();
     tokenA = await erc20.deploy({
       name: 'tokenA',
       symbol: 'TKNA',

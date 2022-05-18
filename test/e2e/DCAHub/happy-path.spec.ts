@@ -36,6 +36,7 @@ contract('DCAHub', () => {
     const swapFee1: number = 0.3;
 
     before('Setup accounts and contracts', async () => {
+      await evm.reset();
       [governor, john, lucy, sarah, joe, larry] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       DCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
