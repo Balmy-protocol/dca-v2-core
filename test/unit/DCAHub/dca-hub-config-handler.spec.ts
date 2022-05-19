@@ -148,6 +148,31 @@ contract('DCAHubConfigHandler', () => {
         await expect(tx).to.emit(DCAHubConfigHandler, 'TokensAllowedUpdated').withArgs([tokenA.address, tokenB.address], [true, false]);
       });
     });
+
+    when('setting tokens as unallowed', () => {
+      let token: FakeContract<IERC20Metadata>;
+      given(async () => {
+        token = await smock.fake(IERC20Metadata__factory.abi);
+        token.decimals.returns(3);
+      });
+      context('they were already unallowed', () => {
+        given(async () => {
+          await DCAHubConfigHandler.setAllowedTokens([token.address], [false]);
+        });
+        then('token is unallowed', async () => {
+          expect(await DCAHubConfigHandler.allowedTokens(token.address)).to.be.false;
+        });
+      });
+      context('they where allowed', () => {
+        given(async () => {
+          await DCAHubConfigHandler.setAllowedTokens([token.address], [true]);
+          await DCAHubConfigHandler.setAllowedTokens([token.address], [false]);
+        });
+        then('token is unallowed', async () => {
+          expect(await DCAHubConfigHandler.allowedTokens(token.address)).to.be.false;
+        });
+      });
+    });
   });
 
   describe('setOracle', () => {
