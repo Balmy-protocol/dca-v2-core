@@ -41,18 +41,18 @@ contract('DCAHub', () => {
     when('not granting from role admin', () => {
       let grantRoleTx: Promise<TransactionResponse>;
       given(async () => {
-        grantRoleTx = DCAHub.connect(immediateGovernor).grantRole(PLATFORM_WITHDRAW_ROLE, wallet.generateRandomAddress());
+        grantRoleTx = DCAHub.connect(timeLockedGovernor).grantRole(PLATFORM_WITHDRAW_ROLE, wallet.generateRandomAddress());
       });
       then('tx is reverted', async () => {
         await expect(grantRoleTx).to.be.revertedWith(
-          `AccessControl: account ${immediateGovernor.address.toLowerCase()} is missing role ${TIME_LOCKED_ROLE.toLowerCase()}`
+          `AccessControl: account ${timeLockedGovernor.address.toLowerCase()} is missing role ${IMMEDIATE_ROLE.toLowerCase()}`
         );
       });
     });
     when('granting from admin of role', () => {
       const newDudeWithRole = wallet.generateRandomAddress();
       given(async () => {
-        await DCAHub.connect(timeLockedGovernor).grantRole(PLATFORM_WITHDRAW_ROLE, newDudeWithRole);
+        await DCAHub.connect(immediateGovernor).grantRole(PLATFORM_WITHDRAW_ROLE, newDudeWithRole);
       });
       then('grants platform withdraw role to new address', async () => {
         expect(await DCAHub.hasRole(PLATFORM_WITHDRAW_ROLE, newDudeWithRole)).to.be.true;

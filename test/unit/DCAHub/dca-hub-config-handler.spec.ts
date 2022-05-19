@@ -79,9 +79,9 @@ contract('DCAHubConfigHandler', () => {
       then('contract starts as unpaused', async () => {
         expect(await deployedContract.paused()).to.be.false;
       });
-      then(`time locked role is platform withdraw's admin`, async () => {
+      then(`immediate role is platform withdraw's admin`, async () => {
         const adminRole = await deployedContract.getRoleAdmin(await deployedContract.PLATFORM_WITHDRAW_ROLE());
-        expect(adminRole).to.equal(timeLockedRole);
+        expect(adminRole).to.equal(immediateRole);
       });
       then(`bigger intervals start allowed`, async () => {
         const allowedIntervals = [SwapInterval.ONE_WEEK, SwapInterval.ONE_DAY, SwapInterval.FOUR_HOURS, SwapInterval.ONE_HOUR];

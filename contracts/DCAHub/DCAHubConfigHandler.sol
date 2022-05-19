@@ -41,7 +41,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     if (_immediateGovernor == address(0) || _timeLockedGovernor == address(0) || address(_oracle) == address(0)) revert IDCAHub.ZeroAddress();
     _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
     _setupRole(TIME_LOCKED_ROLE, _timeLockedGovernor);
-    _setRoleAdmin(PLATFORM_WITHDRAW_ROLE, TIME_LOCKED_ROLE);
+    _setRoleAdmin(PLATFORM_WITHDRAW_ROLE, IMMEDIATE_ROLE);
     // We set each role as its own admin, so they can assign new addresses with the same role
     _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
     _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);
