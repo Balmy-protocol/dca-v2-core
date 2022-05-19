@@ -901,50 +901,6 @@ contract('DCAHubSwapHandler', () => {
         await DCAHubSwapHandler.setAllowedTokens([tokenB.address], [false]);
       },
     });
-
-    failedGetNextSwapInfoTest({
-      title: 'tokenA is not allowed',
-      tokens: [() => tokenA, () => tokenB],
-      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
-      error: 'UnallowedToken',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-        await DCAHubSwapHandler.setAllowedTokens([tokenA.address], [false]);
-      },
-    });
-
-    failedGetNextSwapInfoTest({
-      title: 'tokenB is not allowed',
-      tokens: [() => tokenA, () => tokenB],
-      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
-      error: 'UnallowedToken',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-        await DCAHubSwapHandler.setAllowedTokens([tokenB.address], [false]);
-      },
-    });
-
-    failedGetNextSwapInfoTest({
-      title: 'tokenA is not allowed',
-      tokens: [() => tokenA, () => tokenB],
-      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
-      error: 'UnallowedToken',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-        await DCAHubSwapHandler.setAllowedTokens([tokenA.address], [false]);
-      },
-    });
-
-    failedGetNextSwapInfoTest({
-      title: 'tokenB is not allowed',
-      tokens: [() => tokenA, () => tokenB],
-      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
-      error: 'UnallowedToken',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-        await DCAHubSwapHandler.setAllowedTokens([tokenB.address], [false]);
-      },
-    });
   });
 
   const setOracleData = ({ ratioBToA }: { ratioBToA: BigNumber }) => {
