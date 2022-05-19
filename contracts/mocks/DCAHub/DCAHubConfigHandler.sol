@@ -15,4 +15,8 @@ contract DCAHubConfigHandlerMock is DCAHubConfigHandler, DCAHubParametersMock {
   function allowedTokens(address _token) external view returns (bool) {
     return _allowedTokens[_token];
   }
+
+  function magnitude(address _token) external view returns (uint120) {
+    return _magnitude[_token];
+  }
 }

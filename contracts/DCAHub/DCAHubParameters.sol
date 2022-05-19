@@ -10,7 +10,6 @@ abstract contract DCAHubParameters is IDCAHubParameters {
 
   /// @inheritdoc IDCAHubParameters
   mapping(address => mapping(address => bytes1)) public activeSwapIntervals; // token A => token B => active swap intervals
-  mapping(address => uint256) public magnitude;
   /// @inheritdoc IDCAHubParameters
   mapping(address => uint256) public platformBalance; // token => balance
   mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) internal _swapAmountDelta; // token A => token B => swap interval => swap number => delta

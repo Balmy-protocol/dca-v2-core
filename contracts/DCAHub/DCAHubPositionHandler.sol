@@ -71,8 +71,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _updateActiveIntervalsAndOracle(_from, _to, _userPosition.swapIntervalMask);
     _addToDelta(_from, _to, _userPosition.swapIntervalMask, _userPosition.finalSwap, _rate);
     _userPositions[_positionId] = _userPosition;
-    _storeMagnitudeIfNecessary(_from);
-    _storeMagnitudeIfNecessary(_to);
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     emit Deposited(
       msg.sender,
@@ -236,12 +234,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (!permissionManager.hasPermission(_positionId, msg.sender, _permission)) revert UnauthorizedCaller();
   }
 
-  function _storeMagnitudeIfNecessary(address _token) internal {
-    if (magnitude[_token] == 0) {
-      magnitude[_token] = uint120(10**IERC20Metadata(_token).decimals());
-    }
-  }
-
   function _addToDelta(
     address _from,
     address _to,
@@ -328,10 +320,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioAToB
       : _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
         _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
-    uint256 _magnitude = magnitude[_userPosition.from];
+    uint256 __magnitude = _magnitude[_userPosition.from];
     uint120 _rate = _mergeRate(_userPosition);
     (bool _ok, uint256 _mult) = SafeMath.tryMul(_accumRatio, _rate);
-    uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _rate;
+    uint256 _swappedInCurrentPosition = _ok ? _mult / __magnitude : (_accumRatio / __magnitude) * _rate;
     _swapped = _swappedInCurrentPosition + _swappedBeforeModified[_positionId];
   }
 
