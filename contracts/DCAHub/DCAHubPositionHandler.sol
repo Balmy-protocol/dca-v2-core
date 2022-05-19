@@ -5,6 +5,7 @@ import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '../libraries/Intervals.sol';
 import './DCAHubConfigHandler.sol';
+import '../libraries/FeeMath.sol';
 
 abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubPositionHandler {
   struct DCA {
@@ -328,7 +329,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _magnitude = magnitude[_userPosition.from];
     uint120 _rate = _mergeRate(_userPosition);
     (bool _ok, uint256 _mult) = SafeMath.tryMul(_accumRatio, _rate);
-    uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _rate;
+    uint256 _swappedInCurrentPosition = (_ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _rate) / FeeMath.FEE_PRECISION;
     _swapped = _swappedInCurrentPosition + _swappedBeforeModified[_positionId];
   }
 

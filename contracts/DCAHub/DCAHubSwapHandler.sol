@@ -46,7 +46,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _rateFromTo,
     uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    uint256 _numerator = _amountFrom * FeeMath.subtractFeeFromAmount(_swapFee, _rateFromTo);
+    uint256 _numerator = FeeMath.subtractFeeFromAmount(_swapFee, _amountFrom * _rateFromTo);
     _amountTo = _numerator / _fromTokenMagnitude;
     // Note: we need to round up because we can't ask for less than what we actually need
     if (_numerator % _fromTokenMagnitude != 0) _amountTo++;
@@ -222,8 +222,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
               _pairInSwap.tokenA,
               _pairInSwap.tokenB,
               _mask,
-              FeeMath.subtractFeeFromAmount(_swapFee, _pairInSwap.ratioAToB),
-              FeeMath.subtractFeeFromAmount(_swapFee, _pairInSwap.ratioBToA),
+              _subtractFeeFromAmount(_swapFee, _pairInSwap.ratioAToB),
+              _subtractFeeFromAmount(_swapFee, _pairInSwap.ratioBToA),
               _timestamp
             );
           }
@@ -293,5 +293,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     // Emit event
     emit Swapped(msg.sender, _rewardRecipient, _callbackHandler, _swapInformation, _borrow, _swapFee);
+  }
+
+  // Note: This is almost exactly as FeeMath.subtractFeeFromAmount, but without dividing by FEE_PRECISION.
+  // We will make that division when calculating how much was swapped. By doing so, we don't lose precision which,
+  // in the case of tokens with a small amount of decimals (like USDC), can end up being a lot of funds
+  function _subtractFeeFromAmount(uint32 _fee, uint256 _amount) internal pure returns (uint256) {
+    return _amount * (FeeMath.FEE_PRECISION - _fee / 100);
   }
 }

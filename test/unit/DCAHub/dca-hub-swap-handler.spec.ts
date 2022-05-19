@@ -19,8 +19,9 @@ import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 
-const CALCULATE_FEE = (bn: BigNumber) => bn.mul(6).div(1000);
-const APPLY_FEE = (bn: BigNumber) => bn.mul(994).div(1000);
+const CALCULATE_FEE = (bn: BigNumberish) => BigNumber.from(bn).mul(6).div(1000);
+const APPLY_FEE = (bn: BigNumberish) => BigNumber.from(bn).mul(FEE_PRECISION).mul(994).div(1000);
+const FEE_PRECISION = 10000;
 
 contract('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
@@ -1093,8 +1094,8 @@ contract('DCAHubSwapHandler', () => {
           for (const pair of pairs) {
             for (const interval of pair.intervalsInSwap) {
               const call = await DCAHubSwapHandler.registerSwapCalls(pair.tokenA().address, pair.tokenB().address, interval.mask);
-              expect(call.ratioAToB).to.equal(APPLY_FEE(BigNumber.from(pair.ratioAToB)));
-              expect(call.ratioBToA).to.equal(APPLY_FEE(BigNumber.from(pair.ratioBToA)));
+              expect(call.ratioAToB).to.equal(APPLY_FEE(pair.ratioAToB));
+              expect(call.ratioBToA).to.equal(APPLY_FEE(pair.ratioBToA));
               expect(call.timestamp).to.equal(BLOCK_TIMESTAMP);
             }
           }
