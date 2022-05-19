@@ -33,7 +33,6 @@ contract('DCAHub', () => {
     let snapshotId: string;
 
     before('Setup accounts and contracts', async () => {
-      await evm.reset();
       [governor, dude] = await ethers.getSigners();
       DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
       reentrantDCAHubSwapCalleeFactory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:ReentrantDCAHubSwapCalleeMock');

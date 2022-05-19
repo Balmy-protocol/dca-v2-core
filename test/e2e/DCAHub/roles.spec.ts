@@ -22,7 +22,6 @@ contract('DCAHub', () => {
   const PLATFORM_WITHDRAW_ROLE: string = new Web3().utils.soliditySha3('PLATFORM_WITHDRAW_ROLE') as string;
 
   before(async () => {
-    await evm.reset();
     DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
     [immediateGovernor, timeLockedGovernor] = await ethers.getSigners();
     DCAHub = await DCAHubFactory.deploy(
