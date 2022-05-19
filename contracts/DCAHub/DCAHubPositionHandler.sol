@@ -320,10 +320,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioAToB
       : _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
         _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
-    uint256 __magnitude = _magnitude[_userPosition.from];
+    uint256 _magnitude = tokenMagnitude[_userPosition.from];
     uint120 _rate = _mergeRate(_userPosition);
     (bool _ok, uint256 _mult) = SafeMath.tryMul(_accumRatio, _rate);
-    uint256 _swappedInCurrentPosition = _ok ? _mult / __magnitude : (_accumRatio / __magnitude) * _rate;
+    uint256 _swappedInCurrentPosition = _ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _rate;
     _swapped = _swappedInCurrentPosition + _swappedBeforeModified[_positionId];
   }
 

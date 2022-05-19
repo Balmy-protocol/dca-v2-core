@@ -141,8 +141,8 @@ contract('DCAHubConfigHandler', () => {
         expect(await DCAHubConfigHandler.allowedTokens(tokenB.address)).to.be.false;
       });
       then('sets magnitude of tokens', async () => {
-        expect(await DCAHubConfigHandler.magnitude(tokenA.address)).to.equal(utils.parseUnits('1', await tokenA.decimals()));
-        expect(await DCAHubConfigHandler.magnitude(tokenB.address)).to.equal(utils.parseUnits('1', await tokenB.decimals()));
+        expect(await DCAHubConfigHandler.tokenMagnitude(tokenA.address)).to.equal(utils.parseUnits('1', await tokenA.decimals()));
+        expect(await DCAHubConfigHandler.tokenMagnitude(tokenB.address)).to.equal(utils.parseUnits('1', await tokenB.decimals()));
       });
       then('event is emitted', async () => {
         await expect(tx).to.emit(DCAHubConfigHandler, 'TokensAllowedUpdated').withArgs([tokenA.address, tokenB.address], [true, false]);

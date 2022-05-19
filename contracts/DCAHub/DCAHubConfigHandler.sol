@@ -30,7 +30,8 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   uint16 public platformFeeRatio = 2500; // 25%
 
   mapping(address => bool) internal _allowedTokens;
-  mapping(address => uint120) internal _magnitude;
+  /// @inheritdoc IDCAHubConfigHandler
+  mapping(address => uint120) public override tokenMagnitude;
 
   constructor(
     address _immediateGovernor,
@@ -51,8 +52,8 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     if (_tokens.length != _allowed.length) revert InvalidAllowedTokensInput();
     for (uint256 i; i < _tokens.length; i++) {
       _allowedTokens[_tokens[i]] = _allowed[i];
-      if (_magnitude[_tokens[i]] == 0) {
-        _magnitude[_tokens[i]] = uint120(10**IERC20Metadata(_tokens[i]).decimals());
+      if (tokenMagnitude[_tokens[i]] == 0) {
+        tokenMagnitude[_tokens[i]] = uint120(10**IERC20Metadata(_tokens[i]).decimals());
       }
     }
     emit TokensAllowedUpdated(_tokens, _allowed);
