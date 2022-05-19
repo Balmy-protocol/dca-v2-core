@@ -2,11 +2,11 @@ import { DCAHub__factory, DCAHub } from '@typechained';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, erc20, wallet } from '@test-utils';
+import { constants, wallet } from '@test-utils';
 import { contract, given, then, when } from '@test-utils/bdd';
 import Web3 from 'web3';
 import { expect } from 'chai';
-import evm, { snapshot } from '@test-utils/evm';
+import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
   let immediateGovernor: SignerWithAddress;
