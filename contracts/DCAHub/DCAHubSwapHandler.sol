@@ -135,9 +135,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _pairInSwap.tokenA = _tokens[indexTokenA];
       _pairInSwap.tokenB = _tokens[indexTokenB];
 
-      uint256 _magnitudeA = magnitude[_pairInSwap.tokenA];
-      uint256 _magnitudeB = magnitude[_pairInSwap.tokenB];
-      if (_magnitudeA == 0 || _magnitudeB == 0) revert IDCAHub.InvalidTokens();
+      uint256 _magnitudeA = tokenMagnitude[_pairInSwap.tokenA];
+      uint256 _magnitudeB = tokenMagnitude[_pairInSwap.tokenB];
 
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;

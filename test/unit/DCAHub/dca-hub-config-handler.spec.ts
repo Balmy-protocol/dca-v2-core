@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Contract } from 'ethers';
+import { BigNumber, Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, behaviours, contracts } from '@test-utils';
@@ -139,6 +139,10 @@ contract('DCAHubConfigHandler', () => {
       then('sets token allowed state', async () => {
         expect(await DCAHubConfigHandler.allowedTokens(tokenA.address)).to.be.true;
         expect(await DCAHubConfigHandler.allowedTokens(tokenB.address)).to.be.false;
+      });
+      then('sets magnitude of tokens', async () => {
+        expect(await DCAHubConfigHandler.tokenMagnitude(tokenA.address)).to.equal(utils.parseUnits('1', await tokenA.decimals()));
+        expect(await DCAHubConfigHandler.tokenMagnitude(tokenB.address)).to.equal(utils.parseUnits('1', await tokenB.decimals()));
       });
       then('event is emitted', async () => {
         await expect(tx).to.emit(DCAHubConfigHandler, 'TokensAllowedUpdated').withArgs([tokenA.address, tokenB.address], [true, false]);

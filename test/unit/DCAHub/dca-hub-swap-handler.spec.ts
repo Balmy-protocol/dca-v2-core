@@ -473,7 +473,6 @@ contract('DCAHubSwapHandler', () => {
               tokenB().asUnits(amountTokenB),
               [SwapInterval.ONE_DAY.mask, SwapInterval.ONE_WEEK.mask]
             );
-            await DCAHubSwapHandler.setMagnitude([tokenA().address, tokenB().address]);
             await DCAHubSwapHandler.setRatio(tokenA().address, tokenB().address, tokenA().asUnits(ratioBToA));
             expectedRatios.set(tokenA().address + tokenB().address, {
               ratioBToA: tokenA().asUnits(ratioBToA),
@@ -829,9 +828,6 @@ contract('DCAHubSwapHandler', () => {
         { indexTokenA: 1, indexTokenB: 1 },
       ],
       error: 'InvalidPairs',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-      },
     });
 
     failedGetNextSwapInfoTest({
@@ -839,9 +835,6 @@ contract('DCAHubSwapHandler', () => {
       tokens: [() => tokenA, () => tokenB],
       pairs: [{ indexTokenA: 1, indexTokenB: 0 }],
       error: 'InvalidPairs',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-      },
     });
 
     failedGetNextSwapInfoTest({
@@ -852,9 +845,6 @@ contract('DCAHubSwapHandler', () => {
         { indexTokenA: 0, indexTokenB: 1 },
       ],
       error: 'InvalidPairs',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-      },
     });
 
     failedGetNextSwapInfoTest({
@@ -865,9 +855,6 @@ contract('DCAHubSwapHandler', () => {
         { indexTokenA: 0, indexTokenB: 1 },
       ],
       error: 'InvalidPairs',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address, tokenC.address]);
-      },
     });
 
     failedGetNextSwapInfoTest({
@@ -878,16 +865,6 @@ contract('DCAHubSwapHandler', () => {
         { indexTokenA: 0, indexTokenB: 1 },
       ],
       error: 'InvalidPairs',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-      },
-    });
-
-    failedGetNextSwapInfoTest({
-      title: 'magnitude is not set',
-      tokens: [() => tokenA, () => tokenB],
-      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
-      error: 'InvalidTokens',
     });
 
     failedGetNextSwapInfoTest({
@@ -895,9 +872,6 @@ contract('DCAHubSwapHandler', () => {
       tokens: [() => tokenA, () => tokenA],
       pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
       error: 'InvalidTokens',
-      context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
-      },
     });
 
     failedGetNextSwapInfoTest({
@@ -905,8 +879,25 @@ contract('DCAHubSwapHandler', () => {
       tokens: [() => tokenB, () => tokenA],
       pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
       error: 'InvalidTokens',
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenA is not allowed',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'UnallowedToken',
       context: async () => {
-        await DCAHubSwapHandler.setMagnitude([tokenA.address, tokenB.address]);
+        await DCAHubSwapHandler.setAllowedTokens([tokenA.address], [false]);
+      },
+    });
+
+    failedGetNextSwapInfoTest({
+      title: 'tokenB is not allowed',
+      tokens: [() => tokenA, () => tokenB],
+      pairs: [{ indexTokenA: 0, indexTokenB: 1 }],
+      error: 'UnallowedToken',
+      context: async () => {
+        await DCAHubSwapHandler.setAllowedTokens([tokenB.address], [false]);
       },
     });
 
