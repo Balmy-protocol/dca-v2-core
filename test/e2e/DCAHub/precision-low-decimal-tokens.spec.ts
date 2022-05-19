@@ -98,8 +98,6 @@ contract('DCAHub', () => {
 
       then('hub balance is enough for the withdraw', async () => {
         const hubBalance = await USDC.balanceOf(DCAHub.address);
-        console.log('hubBalance', hubBalance.toString());
-        console.log('expectedSwapped', expectedSwapped.toString());
         expect(hubBalance).to.equal(expectedSwapped.add(expectedPlatformFee));
       });
     });

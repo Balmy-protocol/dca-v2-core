@@ -146,6 +146,34 @@ contract('DCAHub', () => {
     ).to.be.revertedWith('UnallowedToken');
   });
 
+  it('user flow works even allowing previously unallowed tokens', async () => {
+    const positionId = await deposit({
+      from: tokenA,
+      to: tokenB,
+      owner: john,
+      rate: 10,
+      swaps: 4,
+      swapInterval: SwapInterval.ONE_MINUTE,
+    });
+    await flashSwap({ callee: DCAHubSwapCallee });
+    await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [false, false]);
+    const previousBalance = await tokenB.balanceOf(john.address);
+    await DCAHub.connect(john).withdrawSwapped(positionId, john.address);
+    expect(await tokenB.balanceOf(john.address)).to.be.gt(previousBalance);
+    const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
+    await evm.advanceTimeAndBlock(SwapInterval.ONE_MINUTE.seconds);
+    await expect(
+      DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5))
+    ).to.be.revertedWith('UnallowedToken');
+    await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
+    await flashSwap({ callee: DCAHubSwapCallee });
+    const previousBalanceA = await tokenA.balanceOf(john.address);
+    const previousBalanceB = await tokenB.balanceOf(john.address);
+    await DCAHub.connect(john).terminate(positionId, john.address, john.address);
+    expect(await tokenA.balanceOf(john.address)).to.be.gt(previousBalanceA);
+    expect(await tokenB.balanceOf(john.address)).to.be.gt(previousBalanceB);
+  });
+
   async function deposit({
     from,
     to,
