@@ -520,6 +520,10 @@ interface IDCAHubConfigHandler {
   /// @return _allowedSwapIntervals The allowed swap intervals
   function allowedSwapIntervals() external view returns (bytes1 _allowedSwapIntervals);
 
+  /// @notice Returns if a token is currently allowed or not
+  /// @return Allowed state of token
+  function allowedTokens(address _token) external view returns (bool);
+
   /// @notice Returns token's magnitude (10**decimals)
   /// @return Stored magnitude for token
   function tokenMagnitude(address _token) external view returns (uint120);

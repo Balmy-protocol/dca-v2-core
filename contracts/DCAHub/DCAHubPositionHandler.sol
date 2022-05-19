@@ -63,7 +63,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
-    if (!_allowedTokens[_from] || !_allowedTokens[_to]) revert IDCAHubConfigHandler.UnallowedToken();
+    if (!allowedTokens[_from] || !allowedTokens[_to]) revert IDCAHubConfigHandler.UnallowedToken();
     uint120 _rate = _calculateRate(_amount, _amountOfSwaps);
     uint256 _positionId = ++totalCreatedPositions;
     DCA memory _userPosition = _buildPosition(_from, _to, _amountOfSwaps, Intervals.intervalToMask(_swapInterval), _rate);
@@ -196,7 +196,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _increase ? IDCAPermissionManager.Permission.INCREASE : IDCAPermissionManager.Permission.REDUCE
     );
 
-    if (_increase && (!_allowedTokens[_userPosition.from] || !_allowedTokens[_userPosition.to])) revert IDCAHubConfigHandler.UnallowedToken();
+    if (_increase && (!allowedTokens[_userPosition.from] || !allowedTokens[_userPosition.to])) revert IDCAHubConfigHandler.UnallowedToken();
 
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask);
     uint256 _unswapped = _calculateUnswapped(_userPosition, _performedSwaps);
