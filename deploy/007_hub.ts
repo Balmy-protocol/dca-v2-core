@@ -13,7 +13,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const deployment = await deployThroughDeterministicFactory({
     deployer,
     name: 'DCAHub',
-    salt: 'MF-DCAV2-DCAHub',
+    salt: 'MF-DCAV2-DCAHub-V2',
     contract: 'contracts/DCAHub/DCAHub.sol:DCAHub',
     bytecode: DCAHub__factory.bytecode,
     constructorArgs: {
