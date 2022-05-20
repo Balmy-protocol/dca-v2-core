@@ -935,7 +935,7 @@ contract('DCAPositionHandler', () => {
           contract: DCAPositionHandler,
           func: 'increasePosition',
           args: [100, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
-          message: 'InvalidPosition',
+          message: 'UnallowedToken',
         });
       });
     });
