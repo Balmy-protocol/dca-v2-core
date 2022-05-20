@@ -168,6 +168,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     uint256 _amount,
     uint32 _newAmountOfSwaps
   ) external nonReentrant whenNotPaused {
+    DCA memory _userPosition = _userPositions[_positionId];
+    _assertTokensAreAllowed(_userPosition.from, _userPosition.to);
     _modify(_positionId, _amount, _newAmountOfSwaps, address(0));
   }
 
@@ -195,8 +197,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _userPosition,
       _increase ? IDCAPermissionManager.Permission.INCREASE : IDCAPermissionManager.Permission.REDUCE
     );
-
-    if (_increase) _assertTokensAreAllowed(_userPosition.from, _userPosition.to);
 
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask);
     uint256 _unswapped = _calculateUnswapped(_userPosition, _performedSwaps);
