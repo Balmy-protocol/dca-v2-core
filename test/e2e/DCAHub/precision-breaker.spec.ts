@@ -1,4 +1,4 @@
-import { BigNumber, utils } from 'ethers';
+import { BigNumber, BigNumberish, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import {
   DCAHub,
@@ -54,6 +54,7 @@ contract('DCAHub', () => {
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
       await DCAHub.connect(governor).grantRole(PLATFORM_WITHDRAW_ROLE, governor.address);
+      await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
       await DCAPermissionsManager.setHub(DCAHub.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances([tokenA.address, tokenB.address], [tokenA.asUnits(2000), tokenB.asUnits(2000)]);
@@ -88,22 +89,22 @@ contract('DCAHub', () => {
         );
 
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        priceOracle.quote.returns(BigNumber.from('2246'));
+        setPriceOracle('2246');
         await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        priceOracle.quote.returns(BigNumber.from('2209'));
+        setPriceOracle('2209');
         await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        priceOracle.quote.returns(BigNumber.from('2190'));
+        setPriceOracle('2190');
         await flashSwap({ callee: DCAHubSwapCallee });
 
         await DCAHub.connect(alice).withdrawSwapped(1, wallet.generateRandomAddress());
 
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        priceOracle.quote.returns(BigNumber.from('2175'));
+        setPriceOracle('2175');
         await flashSwap({ callee: DCAHubSwapCallee });
         await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
-        priceOracle.quote.returns(BigNumber.from('2216'));
+        setPriceOracle('2216');
         await flashSwap({ callee: DCAHubSwapCallee });
 
         // We need to withdraw all platform balance, so that it isn't used if the precision is wrong
@@ -138,6 +139,12 @@ contract('DCAHub', () => {
     ) {
       await tokenA.mint(hasAddress.address, tokenA.asUnits(amountTokenA));
       await tokenB.mint(hasAddress.address, tokenB.asUnits(amountTokenB));
+    }
+
+    function setPriceOracle(value: BigNumberish) {
+      priceOracle.quote.returns(
+        tokenA.address.toLowerCase() < tokenB.address.toLowerCase() ? value : tokenA.magnitude.mul(tokenB.magnitude).div(value)
+      );
     }
 
     type HasAddress = {

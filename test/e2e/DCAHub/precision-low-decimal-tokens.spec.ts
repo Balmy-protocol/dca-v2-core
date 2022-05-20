@@ -52,6 +52,7 @@ contract('DCAHub', () => {
       priceOracle = await smock.fake('IPriceOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
+      await DCAHub.setAllowedTokens([USDC.address, myToken.address], [true, true]);
       await DCAPermissionsManager.setHub(DCAHub.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
 
@@ -97,8 +98,6 @@ contract('DCAHub', () => {
 
       then('hub balance is enough for the withdraw', async () => {
         const hubBalance = await USDC.balanceOf(DCAHub.address);
-        console.log('hubBalance', hubBalance.toString());
-        console.log('expectedSwapped', expectedSwapped.toString());
         expect(hubBalance).to.equal(expectedSwapped.add(expectedPlatformFee));
       });
     });

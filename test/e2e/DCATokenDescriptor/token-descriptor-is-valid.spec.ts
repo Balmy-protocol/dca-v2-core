@@ -46,7 +46,6 @@ contract('DCATokenDescriptor', () => {
   });
 
   beforeEach('Deploy and configure', async () => {
-    await evm.reset();
     tokenA = await erc20.deploy({
       name: 'tokenA',
       symbol: 'TKNA',
@@ -61,6 +60,7 @@ contract('DCATokenDescriptor', () => {
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(governor.address, DCATokenDescriptor.address);
     DCAHub = await DCAHubContract.deploy(governor.address, constants.NOT_ZERO_ADDRESS, priceOracle.address, DCAPermissionsManager.address);
 
+    await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
     await DCAPermissionsManager.setHub(DCAHub.address);
     await DCAHub.addSwapIntervalsToAllowedList([swapInterval]);
 

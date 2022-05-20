@@ -63,6 +63,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     if (_from == _to) revert InvalidToken();
     if (_amount == 0) revert ZeroAmount();
     if (_amountOfSwaps == 0) revert ZeroSwaps();
+    _assertTokensAreAllowed(_from, _to);
     uint120 _rate = _calculateRate(_amount, _amountOfSwaps);
     uint256 _positionId = ++totalCreatedPositions;
     DCA memory _userPosition = _buildPosition(_from, _to, _amountOfSwaps, Intervals.intervalToMask(_swapInterval), _rate);
@@ -71,8 +72,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     _updateActiveIntervalsAndOracle(_from, _to, _userPosition.swapIntervalMask);
     _addToDelta(_from, _to, _userPosition.swapIntervalMask, _userPosition.finalSwap, _rate);
     _userPositions[_positionId] = _userPosition;
-    _storeMagnitudeIfNecessary(_from);
-    _storeMagnitudeIfNecessary(_to);
     IERC20Metadata(_from).safeTransferFrom(msg.sender, address(this), _amount);
     emit Deposited(
       msg.sender,
@@ -197,6 +196,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _increase ? IDCAPermissionManager.Permission.INCREASE : IDCAPermissionManager.Permission.REDUCE
     );
 
+    if (_increase) _assertTokensAreAllowed(_userPosition.from, _userPosition.to);
+
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask);
     uint256 _unswapped = _calculateUnswapped(_userPosition, _performedSwaps);
     uint256 _total = _increase ? _unswapped + _amount : _unswapped - _amount;
@@ -225,6 +226,10 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     emit Modified(msg.sender, _positionId, _newRate, _performedSwaps + 1, _finalSwap);
   }
 
+  function _assertTokensAreAllowed(address _tokenA, address _tokenB) internal view {
+    if (!allowedTokens[_tokenA] || !allowedTokens[_tokenB]) revert IDCAHubConfigHandler.UnallowedToken();
+  }
+
   function _assertPositionExistsAndCallerHasPermission(
     uint256 _positionId,
     DCA memory _userPosition,
@@ -232,12 +237,6 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) internal view {
     if (_userPosition.swapIntervalMask == 0) revert InvalidPosition();
     if (!permissionManager.hasPermission(_positionId, msg.sender, _permission)) revert UnauthorizedCaller();
-  }
-
-  function _storeMagnitudeIfNecessary(address _token) internal {
-    if (magnitude[_token] == 0) {
-      magnitude[_token] = uint120(10**IERC20Metadata(_token).decimals());
-    }
   }
 
   function _addToDelta(
@@ -326,7 +325,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
         _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioAToB
       : _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
         _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
-    uint256 _magnitude = magnitude[_userPosition.from];
+    uint256 _magnitude = tokenMagnitude[_userPosition.from];
     uint120 _rate = _mergeRate(_userPosition);
     (bool _ok, uint256 _mult) = SafeMath.tryMul(_accumRatio, _rate);
     uint256 _swappedInCurrentPosition = (_ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _rate) / FeeMath.FEE_PRECISION;

@@ -49,6 +49,7 @@ contract('DCAPositionHandler', () => {
     DCAPermissionManager = await smock.fake('DCAPermissionsManager');
     priceOracle = await smock.fake('IPriceOracle');
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, priceOracle.address, DCAPermissionManager.address);
+    await DCAPositionHandler.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
     await tokenB.approveInternal(owner.address, DCAPositionHandler.address, tokenB.asUnits(1000));
     await tokenA.mint(DCAPositionHandler.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_CONTRACT));
@@ -79,6 +80,48 @@ contract('DCAPositionHandler', () => {
       });
       then('permission manager is set correctly', async () => {
         expect(await DCAPositionHandler.permissionManager()).to.equal(DCAPermissionManager.address);
+      });
+    });
+  });
+
+  describe('assertTokensAreAllowed', () => {
+    const randomAddy = wallet.generateRandomAddress();
+    when('none is allowed', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'assertTokensAreAllowed',
+          args: [randomAddy, constants.NOT_ZERO_ADDRESS],
+          message: 'UnallowedToken',
+        });
+      });
+    });
+    when('only one is allowed', () => {
+      then('tx is reverted with message', async () => {
+        await DCAPositionHandler.setAllowedToken(randomAddy, true);
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'assertTokensAreAllowed',
+          args: [randomAddy, constants.NOT_ZERO_ADDRESS],
+          message: 'UnallowedToken',
+        });
+        await DCAPositionHandler.setAllowedToken(randomAddy, false);
+        await DCAPositionHandler.setAllowedToken(constants.NOT_ZERO_ADDRESS, true);
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'assertTokensAreAllowed',
+          args: [randomAddy, constants.NOT_ZERO_ADDRESS],
+          message: 'UnallowedToken',
+        });
+      });
+    });
+    when('both are allowed', () => {
+      given(async () => {
+        await DCAPositionHandler.setAllowedToken(randomAddy, true);
+        await DCAPositionHandler.setAllowedToken(constants.NOT_ZERO_ADDRESS, true);
+      });
+      then('doesnt revert', async () => {
+        await expect(DCAPositionHandler.assertTokensAreAllowed(randomAddy, constants.NOT_ZERO_ADDRESS)).to.not.be.reverted;
       });
     });
   });
@@ -246,6 +289,40 @@ contract('DCAPositionHandler', () => {
           swaps: 1,
           interval: SwapInterval.ONE_DAY.seconds,
           error: 'AmountTooBig',
+        });
+      });
+    });
+
+    when('making a deposit from an unallowed token', () => {
+      given(async () => {
+        await DCAPositionHandler.setAllowedTokens([tokenA.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 2,
+          interval: SwapInterval.ONE_DAY.seconds,
+          error: 'UnallowedToken',
+        });
+      });
+    });
+
+    when('making a deposit to an unallowed token', () => {
+      given(async () => {
+        await DCAPositionHandler.setAllowedTokens([tokenB.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await depositShouldRevert({
+          from: tokenA.address,
+          to: tokenB.address,
+          owner: constants.NOT_ZERO_ADDRESS,
+          amount: 10,
+          swaps: 2,
+          interval: SwapInterval.ONE_DAY.seconds,
+          error: 'UnallowedToken',
         });
       });
     });
@@ -859,6 +936,48 @@ contract('DCAPositionHandler', () => {
           func: 'increasePosition',
           args: [100, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
           message: 'InvalidPosition',
+        });
+      });
+    });
+
+    when('increasing position with unallowed from', () => {
+      let positionId: BigNumber;
+      given(async () => {
+        ({ positionId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        }));
+        await DCAPositionHandler.setAllowedTokens([tokenA.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'increasePosition',
+          args: [positionId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
+          message: 'UnallowedToken',
+        });
+      });
+    });
+
+    when('increasing position with unallowed to', () => {
+      let positionId: BigNumber;
+      given(async () => {
+        ({ positionId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        }));
+        await DCAPositionHandler.setAllowedTokens([tokenB.address], [false]);
+      });
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'increasePosition',
+          args: [positionId, tokenA.asUnits(EXTRA_AMOUNT_TO_ADD_1), POSITION_SWAPS_TO_PERFORM_10],
+          message: 'UnallowedToken',
         });
       });
     });

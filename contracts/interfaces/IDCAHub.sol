@@ -472,6 +472,17 @@ interface IDCAHubConfigHandler {
   /// @param _platformFeeRatio The new platform fee ratio
   event PlatformFeeRatioSet(uint16 _platformFeeRatio);
 
+  /// @notice Emitted when allowed states of tokens are updated
+  /// @param _tokens Array of updated tokens
+  /// @param _allowed Array of new allow state per token were _allowed[i] is the updated state of _tokens[i]
+  event TokensAllowedUpdated(address[] _tokens, bool[] _allowed);
+
+  /// @notice Thrown when trying to interact with an unallowed token
+  error UnallowedToken();
+
+  /// @notice Thrown when set allowed tokens input is not valid
+  error InvalidAllowedTokensInput();
+
   /// @notice Thrown when trying to set a fee higher than the maximum allowed
   error HighFee();
 
@@ -508,6 +519,14 @@ interface IDCAHubConfigHandler {
   /// @notice Returns a byte that represents allowed swap intervals
   /// @return _allowedSwapIntervals The allowed swap intervals
   function allowedSwapIntervals() external view returns (bytes1 _allowedSwapIntervals);
+
+  /// @notice Returns if a token is currently allowed or not
+  /// @return Allowed state of token
+  function allowedTokens(address _token) external view returns (bool);
+
+  /// @notice Returns token's magnitude (10**decimals)
+  /// @return Stored magnitude for token
+  function tokenMagnitude(address _token) external view returns (uint120);
 
   /// @notice Returns whether swaps and deposits are currently paused
   /// @return _isPaused Whether swaps and deposits are currently paused

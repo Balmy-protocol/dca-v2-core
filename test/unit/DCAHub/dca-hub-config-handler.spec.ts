@@ -1,14 +1,17 @@
 import { expect } from 'chai';
-import { Contract } from 'ethers';
+import { BigNumber, Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, behaviours, contracts } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
-import { DCAHubConfigHandlerMock, DCAHubConfigHandlerMock__factory } from '@typechained';
+import { DCAHubConfigHandlerMock, DCAHubConfigHandlerMock__factory, IERC20Metadata, IERC20Metadata__factory } from '@typechained';
 import moment from 'moment';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { generateRandomAddress } from '@test-utils/wallet';
+import { FakeContract, smock } from '@defi-wonderland/smock';
+import { IERC20 } from '@mean-finance/deterministic-factory/typechained';
 
 contract('DCAHubConfigHandler', () => {
   let owner: SignerWithAddress, timeLockedOwner: SignerWithAddress, oracle: SignerWithAddress;
@@ -101,6 +104,73 @@ contract('DCAHubConfigHandler', () => {
         const platformFeeRatio = await deployedContract.platformFeeRatio();
         const maxPlatformFeeRatio = await deployedContract.MAX_PLATFORM_FEE_RATIO();
         expect(platformFeeRatio).to.equal(maxPlatformFeeRatio / 4);
+      });
+    });
+  });
+
+  describe('setAllowedTokens', () => {
+    behaviours.shouldBeExecutableOnlyByRole({
+      contract: () => DCAHubConfigHandler,
+      funcAndSignature: 'setAllowedTokens(address[],bool[])',
+      params: [[], []],
+      addressWithRole: () => owner,
+      role: () => immediateRole,
+    });
+    when('tokens and allowed arrays have different length', () => {
+      then('tx is reverted with reason', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAHubConfigHandler,
+          func: 'setAllowedTokens',
+          args: [[generateRandomAddress()], []],
+          message: 'InvalidAllowedTokensInput',
+        });
+      });
+    });
+    when('setting allowed tokens for the first time', () => {
+      let tokenA: FakeContract<IERC20Metadata>, tokenB: FakeContract<IERC20Metadata>;
+      let tx: TransactionResponse;
+      given(async () => {
+        tokenA = await smock.fake(IERC20Metadata__factory.abi);
+        tokenB = await smock.fake(IERC20Metadata__factory.abi);
+        tokenA.decimals.returns(18);
+        tokenB.decimals.returns(2);
+        tx = await DCAHubConfigHandler.setAllowedTokens([tokenA.address, tokenB.address], [true, false]);
+      });
+      then('sets token allowed state', async () => {
+        expect(await DCAHubConfigHandler.allowedTokens(tokenA.address)).to.be.true;
+        expect(await DCAHubConfigHandler.allowedTokens(tokenB.address)).to.be.false;
+      });
+      then('sets magnitude of tokens', async () => {
+        expect(await DCAHubConfigHandler.tokenMagnitude(tokenA.address)).to.equal(utils.parseUnits('1', await tokenA.decimals()));
+        expect(await DCAHubConfigHandler.tokenMagnitude(tokenB.address)).to.equal(utils.parseUnits('1', await tokenB.decimals()));
+      });
+      then('event is emitted', async () => {
+        await expect(tx).to.emit(DCAHubConfigHandler, 'TokensAllowedUpdated').withArgs([tokenA.address, tokenB.address], [true, false]);
+      });
+    });
+
+    when('setting tokens as unallowed', () => {
+      let token: FakeContract<IERC20Metadata>;
+      given(async () => {
+        token = await smock.fake(IERC20Metadata__factory.abi);
+        token.decimals.returns(3);
+      });
+      context('they were already unallowed', () => {
+        given(async () => {
+          await DCAHubConfigHandler.setAllowedTokens([token.address], [false]);
+        });
+        then('token is unallowed', async () => {
+          expect(await DCAHubConfigHandler.allowedTokens(token.address)).to.be.false;
+        });
+      });
+      context('they where allowed', () => {
+        given(async () => {
+          await DCAHubConfigHandler.setAllowedTokens([token.address], [true]);
+          await DCAHubConfigHandler.setAllowedTokens([token.address], [false]);
+        });
+        then('token is unallowed', async () => {
+          expect(await DCAHubConfigHandler.allowedTokens(token.address)).to.be.false;
+        });
       });
     });
   });

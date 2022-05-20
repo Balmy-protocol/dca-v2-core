@@ -28,6 +28,10 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   bytes1 public allowedSwapIntervals = 0xF0; // Start allowing weekly, daily, every 4 hours, hourly
   /// @inheritdoc IDCAHubConfigHandler
   uint16 public platformFeeRatio = 2500; // 25%
+  /// @inheritdoc IDCAHubConfigHandler
+  mapping(address => bool) public override allowedTokens;
+  /// @inheritdoc IDCAHubConfigHandler
+  mapping(address => uint120) public override tokenMagnitude;
 
   constructor(
     address _immediateGovernor,
@@ -42,6 +46,17 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
     _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);
     oracle = _oracle;
+  }
+
+  function setAllowedTokens(address[] calldata _tokens, bool[] calldata _allowed) external onlyRole(IMMEDIATE_ROLE) {
+    if (_tokens.length != _allowed.length) revert InvalidAllowedTokensInput();
+    for (uint256 i; i < _tokens.length; i++) {
+      allowedTokens[_tokens[i]] = _allowed[i];
+      if (tokenMagnitude[_tokens[i]] == 0) {
+        tokenMagnitude[_tokens[i]] = uint120(10**IERC20Metadata(_tokens[i]).decimals());
+      }
+    }
+    emit TokensAllowedUpdated(_tokens, _allowed);
   }
 
   /// @inheritdoc IDCAHubConfigHandler
