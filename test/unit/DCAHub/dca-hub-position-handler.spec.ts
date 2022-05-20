@@ -84,6 +84,48 @@ contract('DCAPositionHandler', () => {
     });
   });
 
+  describe('assertTokensAreAllowed', () => {
+    const randomAddy = wallet.generateRandomAddress();
+    when('none is allowed', () => {
+      then('tx is reverted with message', async () => {
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'assertTokensAreAllowed',
+          args: [randomAddy, constants.NOT_ZERO_ADDRESS],
+          message: 'UnallowedToken',
+        });
+      });
+    });
+    when('only one is allowed', () => {
+      then('tx is reverted with message', async () => {
+        await DCAPositionHandler.setAllowedToken(randomAddy, true);
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'assertTokensAreAllowed',
+          args: [randomAddy, constants.NOT_ZERO_ADDRESS],
+          message: 'UnallowedToken',
+        });
+        await DCAPositionHandler.setAllowedToken(randomAddy, false);
+        await DCAPositionHandler.setAllowedToken(constants.NOT_ZERO_ADDRESS, true);
+        await behaviours.txShouldRevertWithMessage({
+          contract: DCAPositionHandler,
+          func: 'assertTokensAreAllowed',
+          args: [randomAddy, constants.NOT_ZERO_ADDRESS],
+          message: 'UnallowedToken',
+        });
+      });
+    });
+    when('both are allowed', () => {
+      given(async () => {
+        await DCAPositionHandler.setAllowedToken(randomAddy, true);
+        await DCAPositionHandler.setAllowedToken(constants.NOT_ZERO_ADDRESS, true);
+      });
+      then('doesnt revert', async () => {
+        await expect(DCAPositionHandler.assertTokensAreAllowed(randomAddy, constants.NOT_ZERO_ADDRESS)).to.not.be.reverted;
+      });
+    });
+  });
+
   describe('deposit', () => {
     const depositShouldRevert = ({
       owner,

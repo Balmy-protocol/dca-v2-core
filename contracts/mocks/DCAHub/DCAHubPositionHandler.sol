@@ -15,4 +15,8 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandler
   function setLastUpdated(uint256 _positionId, uint32 _lastUpdated) external {
     _userPositions[_positionId].swapWhereLastUpdated = _lastUpdated;
   }
+
+  function assertTokensAreAllowed(address _tokenA, address _tokenB) external view {
+    _assertTokensAreAllowed(_tokenA, _tokenB);
+  }
 }
