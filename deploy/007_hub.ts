@@ -22,11 +22,11 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     },
     log: !process.env.TEST,
     overrides: {
-      gasLimit: 6_000_000,
+      gasLimit: 15_000_000,
     },
   });
 
-  await hre.deployments.execute('PermissionsManager', { from: deployer }, 'setHub', deployment.address);
+  if (deployment.newlyDeployed) await hre.deployments.execute('PermissionsManager', { from: deployer }, 'setHub', deployment.address);
 };
 deployFunction.tags = ['DCAHub'];
 deployFunction.dependencies = ['OracleAggregator', 'PermissionsManager', 'Timelock'];
