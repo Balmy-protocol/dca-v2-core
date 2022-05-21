@@ -89,7 +89,12 @@ const config: HardhatUserConfig = {
   },
   namedAccounts: {
     deployer: 4,
-    governor: '0x1a00e1E311009E56e3b0B9Ed6F86f5Ce128a1C01',
+    governor: {
+      // Gnosis multisigs
+      ethereum: '0xEC864BE26084ba3bbF3cAAcF8F6961A9263319C4',
+      optimism: '0x308810881807189cAe91950888b2cB73A1CC5920',
+      polygon: '0xCe9F6991b48970d6c9Ef99Fffb112359584488e3',
+    },
   },
   networks,
   solidity: {
