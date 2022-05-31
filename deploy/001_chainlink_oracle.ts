@@ -36,6 +36,11 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       weth = '0x4200000000000000000000000000000000000006';
       maxDelay = moment.duration('1', 'day').asSeconds();
       break;
+    case 'arbitrum':
+      registry = '0x2dfb2c5c013826a0728440d8036305b254ad9cce';
+      weth = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1';
+      maxDelay = moment.duration('1', 'day').asSeconds();
+      break;
     case 'mumbai':
       registry = '0x2dfb2c5c013826a0728440d8036305b254ad9cce';
       weth = '0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa';

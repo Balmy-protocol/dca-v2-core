@@ -30,6 +30,12 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
       minimumPeriod = moment.duration('5', 'minutes').as('seconds');
       maximumPeriod = moment.duration('20', 'minutes').as('seconds');
       break;
+    case 'arbitrum':
+      cardinalityPerMinute = 30;
+      period = moment.duration('10', 'minutes').as('seconds');
+      minimumPeriod = moment.duration('5', 'minutes').as('seconds');
+      maximumPeriod = moment.duration('45', 'minutes').as('seconds');
+      break;
     case 'optimism':
       cardinalityPerMinute = 30;
       period = moment.duration('10', 'minutes').as('seconds');
