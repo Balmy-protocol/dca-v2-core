@@ -90,6 +90,7 @@ The primary license for DCA V2 is the Business Source License 1.1 (`BUSL-1.1`), 
 
 ### Exceptions
 
+- All files in `contracts/oracles/` are licensed under `GPL-2.0-or-later` (as indicated in their SPDX headers), see [`contracts/oracles/LICENSE`](./contracts/oracles/LICENSE)
 - All files in `contracts/interfaces/` are licensed under `GPL-2.0-or-later` (as indicated in their SPDX headers), see [`contracts/interfaces/LICENSE`](./contracts/interfaces/LICENSE)
 - All files in `contracts/libraries/` are licensed under `GPL-2.0-or-later` (as indicated in their SPDX headers), see [`contracts/libraries/LICENSE`](./contracts/libraries/LICENSE)
 - All files in `contracts/mocks` remain unlicensed.
