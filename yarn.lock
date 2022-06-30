@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@0xged/hardhat-deploy@0.11.4":
-  version "0.11.4"
-  resolved "https://registry.yarnpkg.com/@0xged/hardhat-deploy/-/hardhat-deploy-0.11.4.tgz#cfcf42461089fe9a703245916dd006686ae680c8"
-  integrity sha512-n1fqwWclX72Zmo7Rj9BVCc4uq9OHW/fwKTYYd28xObX5o4bSa9ELy0eLqQOGD52LNd7AcWnvGzDnbnnVg3JYGQ==
+"@0xged/hardhat-deploy@0.11.5":
+  version "0.11.5"
+  resolved "https://registry.yarnpkg.com/@0xged/hardhat-deploy/-/hardhat-deploy-0.11.5.tgz#cd919b1dc259a9a14369afcdcceff2e3dde2b346"
+  integrity sha512-WtNKjZ+s+/nwEtveLQxzuUMJLR+23M++74dxzybEJrNtmnW19PkeP16D9mhlFbuTmRAADTVeWvku16PBHWsQXQ==
   dependencies:
     "@ethersproject/abi" "^5.4.0"
     "@ethersproject/abstract-signer" "^5.4.1"

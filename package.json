@@ -69,7 +69,7 @@
     "base64-sol": "1.0.1"
   },
   "devDependencies": {
-    "@0xged/hardhat-deploy": "0.11.4",
+    "@0xged/hardhat-deploy": "0.11.5",
     "@codechecks/client": "0.1.11",
     "@commitlint/cli": "13.1.0",
     "@commitlint/config-conventional": "13.1.0",
