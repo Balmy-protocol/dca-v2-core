@@ -3,7 +3,7 @@ import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { ChainlinkOracle, TokenPriceOracleAdapter } from '@typechained';
 import { getNodeUrl } from '@utils/network';
 import { evm, wallet } from '@test-utils';
-import { contract, given, then } from '@test-utils/bdd';
+import { contract, given, then, when } from '@test-utils/bdd';
 import { expect } from 'chai';
 import { convertPriceToBigNumberWithDecimals, getPrice } from '@test-utils/defillama';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
@@ -28,33 +28,23 @@ const PLANS: { tokenIn: Token; tokenOut: Token }[] = [
 
 const TRESHOLD_PERCENTAGE = 2.5;
 
-contract('TokenPriceOracleAdapter', () => {
-  before(async () => {
-    await evm.reset({
-      network: 'optimism',
-      skipHardhatDeployFork: true,
+contract.only('TokenPriceOracleAdapter', () => {
+  describe('migrating hub oracles', () => {
+    before(async () => {
+      // Prev.: https://optimistic.etherscan.io/tx/0xd5ffd365694e3ab3030565b6e2b604f3a6434a6747170f4972a150c9883b1544
+      await fork({
+        blockNumber: 13494237,
+      });
     });
-
-    const namedAccounts = await getNamedAccounts();
-    const governorAddress = namedAccounts.governor;
-    const governor = await wallet.impersonate(governorAddress);
-    await ethers.provider.send('hardhat_setBalance', [governorAddress, '0xffffffffffffffff']);
-
-    const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
-      DeterministicFactory__factory.abi,
-      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
-    );
-    await deterministicFactory.connect(governor).grantRole(await deterministicFactory.DEPLOYER_ROLE(), namedAccounts.deployer);
-
-    await deployments.run('TokenPriceOracleAdapter', {
-      resetMemory: true,
-      deletePreviousDeployments: false,
-      writeDeploymentsToFiles: false,
+    when('there are swaps available', () => {
+      then('forks', () => {});
     });
-    oracle = await ethers.getContract('TokenPriceOracleAdapter');
   });
 
   describe('quoting', () => {
+    before(async () => {
+      await fork({});
+    });
     for (const { tokenIn, tokenOut } of PLANS) {
       describe(`(${tokenIn.symbol}, ${tokenOut.symbol})`, () => {
         given(async () => {
@@ -79,6 +69,31 @@ contract('TokenPriceOracleAdapter', () => {
       });
     }
   });
+  async function fork({ blockNumber }: { blockNumber?: number }): Promise<void> {
+    await evm.reset({
+      network: 'optimism',
+      blockNumber,
+      skipHardhatDeployFork: true,
+    });
+
+    const namedAccounts = await getNamedAccounts();
+    const governorAddress = namedAccounts.governor;
+    const governor = await wallet.impersonate(governorAddress);
+    await ethers.provider.send('hardhat_setBalance', [governorAddress, '0xffffffffffffffff']);
+
+    const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
+      DeterministicFactory__factory.abi,
+      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+    );
+    await deterministicFactory.connect(governor).grantRole(await deterministicFactory.DEPLOYER_ROLE(), namedAccounts.deployer);
+
+    await deployments.run('TokenPriceOracleAdapter', {
+      resetMemory: true,
+      deletePreviousDeployments: false,
+      writeDeploymentsToFiles: false,
+    });
+    oracle = await ethers.getContract('TokenPriceOracleAdapter');
+  }
 });
 
 async function getPriceBetweenTokens(tokenA: Token, tokenB: Token) {
