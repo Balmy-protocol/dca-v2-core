@@ -12,14 +12,6 @@ contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandler
     IDCAPermissionManager _permissionManager
   ) DCAHubConfigHandlerMock(_immediateGovernor, address(1), _oracle) DCAHubPositionHandler(_permissionManager) {}
 
-  function setActiveSwapIntervals(
-    address _tokenA,
-    address _tokenB,
-    bytes1 _activeSwapIntervals
-  ) external {
-    activeSwapIntervals[_tokenA][_tokenB] = _activeSwapIntervals;
-  }
-
   function setLastUpdated(uint256 _positionId, uint32 _lastUpdated) external {
     _userPositions[_positionId].swapWhereLastUpdated = _lastUpdated;
   }

@@ -198,7 +198,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     if (_increase) {
       _assertTokensAreAllowed(_userPosition.from, _userPosition.to);
-      _updateActiveIntervalsAndOracle(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask);
+      (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_userPosition.from, _userPosition.to);
+      activeSwapIntervals[_tokenA][_tokenB] |= _userPosition.swapIntervalMask;
     }
 
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask);
