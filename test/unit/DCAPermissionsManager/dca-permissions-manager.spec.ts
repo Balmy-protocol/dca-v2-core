@@ -66,7 +66,7 @@ contract('DCAPermissionsManager', () => {
       });
       then('domain separator is the expected', async () => {
         expect(await DCAPermissionsManager.DOMAIN_SEPARATOR()).to.equal(
-          await domainSeparator(NFT_NAME, '1', chainId, DCAPermissionsManager.address)
+          await domainSeparator(NFT_NAME, '2', chainId, DCAPermissionsManager.address)
         );
       });
     });
@@ -567,7 +567,7 @@ contract('DCAPermissionsManager', () => {
       return {
         primaryType: 'Permit',
         types: { Permit },
-        domain: { name: NFT_NAME, version: '1', chainId: options.chainId, verifyingContract: DCAPermissionsManager.address },
+        domain: { name: NFT_NAME, version: '2', chainId: options.chainId, verifyingContract: DCAPermissionsManager.address },
         value: { tokenId: TOKEN_ID, ...options },
       };
     }
@@ -742,7 +742,7 @@ contract('DCAPermissionsManager', () => {
       return {
         primaryType: 'PermissionPermit',
         types: { PermissionSet, PermissionPermit },
-        domain: { name: NFT_NAME, version: '1', chainId: options.chainId, verifyingContract: DCAPermissionsManager.address },
+        domain: { name: NFT_NAME, version: '2', chainId: options.chainId, verifyingContract: DCAPermissionsManager.address },
         value: { tokenId: TOKEN_ID, ...options },
       };
     }
