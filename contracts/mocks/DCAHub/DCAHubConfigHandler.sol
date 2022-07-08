@@ -15,4 +15,12 @@ contract DCAHubConfigHandlerMock is DCAHubConfigHandler, DCAHubParametersMock {
   function setAllowedToken(address _token, bool _allowed) external {
     allowedTokens[_token] = _allowed;
   }
+
+  function setActiveSwapIntervals(
+    address _tokenA,
+    address _tokenB,
+    bytes1 _activeSwapIntervals
+  ) external {
+    activeSwapIntervals[_tokenA][_tokenB] = _activeSwapIntervals;
+  }
 }

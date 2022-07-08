@@ -1021,6 +1021,38 @@ contract('DCAPositionHandler', () => {
       });
     });
 
+    when('adding funds after interval was set as inactive', () => {
+      let positionId: BigNumber;
+      given(async () => {
+        ({ positionId } = await deposit({
+          owner: owner.address,
+          token: tokenA,
+          rate: POSITION_RATE_5,
+          swaps: POSITION_SWAPS_TO_PERFORM_10,
+        }));
+      });
+      context('and no other interval was active', () => {
+        given(async () => {
+          await DCAPositionHandler.setActiveSwapIntervals(tokenA.address, tokenB.address, '0x00');
+          await increasePosition(tokenA, positionId, EXTRA_AMOUNT_TO_ADD_1, 2);
+        });
+        then('sets interval as active again', async () => {
+          expect(await DCAPositionHandler.activeSwapIntervals(tokenA.address, tokenB.address)).to.equal(SwapInterval.ONE_DAY.mask);
+        });
+      });
+
+      context('and there are other intervals active', () => {
+        given(async () => {
+          await DCAPositionHandler.setActiveSwapIntervals(tokenA.address, tokenB.address, SwapInterval.ONE_WEEK.mask);
+          await increasePosition(tokenA, positionId, EXTRA_AMOUNT_TO_ADD_1, 2);
+        });
+        then('sets interval as active again', async () => {
+          const activeSwapIntervals = await DCAPositionHandler.activeSwapIntervals(tokenA.address, tokenB.address);
+          expect(activeSwapIntervals).to.be.equal(SwapInterval.intervalsToByte(SwapInterval.ONE_DAY, SwapInterval.ONE_WEEK));
+        });
+      });
+    });
+
     permissionTest(Permission.INCREASE, ({ token, contract, positionId }) => contract.increasePosition(positionId, token.asUnits(1), 2));
 
     modifyPositionTest({

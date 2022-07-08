@@ -196,7 +196,11 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       _increase ? IDCAPermissionManager.Permission.INCREASE : IDCAPermissionManager.Permission.REDUCE
     );
 
-    if (_increase) _assertTokensAreAllowed(_userPosition.from, _userPosition.to);
+    if (_increase) {
+      _assertTokensAreAllowed(_userPosition.from, _userPosition.to);
+      (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_userPosition.from, _userPosition.to);
+      activeSwapIntervals[_tokenA][_tokenB] |= _userPosition.swapIntervalMask;
+    }
 
     uint32 _performedSwaps = _getPerformedSwaps(_userPosition.from, _userPosition.to, _userPosition.swapIntervalMask);
     uint256 _unswapped = _calculateUnswapped(_userPosition, _performedSwaps);
