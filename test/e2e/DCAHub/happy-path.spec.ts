@@ -21,7 +21,7 @@ import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import { Permission } from 'js-lib/types';
 
-contract('DCAHub', () => {
+contract.only('DCAHub', () => {
   describe('Full e2e test', () => {
     let governor: SignerWithAddress, john: SignerWithAddress;
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
@@ -254,7 +254,7 @@ contract('DCAHub', () => {
       setSwapRatio(swapRatioBC2);
       await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
 
-      await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES, SwapInterval.ONE_HOUR);
+      await assertIntervalsToSwapNowAre(SwapInterval.FIFTEEN_MINUTES);
       await assertAmountsToSwapAre({ tokenA: 545, tokenB: 200, tokenC: 0 });
 
       await flashSwap({ callee: DCAHubSwapCallee });
@@ -364,15 +364,12 @@ contract('DCAHub', () => {
 
     let ratios: Map<string, (amountIn: BigNumber) => BigNumber> = new Map();
     function setSwapRatio({ token0, token1, ratio }: SwapRatio) {
-      if (token0.address < token1.address) {
-        ratios.set(`${token1.address}${token0.address}`, (amountIn) =>
-          amountIn.mul(token0.asUnits(ratio.token0 / ratio.token1)).div(token1.magnitude)
-        );
-      } else {
-        ratios.set(`${token0.address}${token1.address}`, (amountIn) =>
-          amountIn.mul(token1.asUnits(ratio.token1 / ratio.token0)).div(token0.magnitude)
-        );
-      }
+      ratios.set(`${token1.address}${token0.address}`, (amountIn) =>
+        amountIn.mul(token0.asUnits(ratio.token0 / ratio.token1)).div(token1.magnitude)
+      );
+      ratios.set(`${token0.address}${token1.address}`, (amountIn) =>
+        amountIn.mul(token1.asUnits(ratio.token1 / ratio.token0)).div(token0.magnitude)
+      );
       priceOracle.quote.returns(({ _amountIn, _tokenIn, _tokenOut }: { _tokenIn: string; _tokenOut: string; _amountIn: BigNumber }) =>
         ratios.get(`${_tokenIn}${_tokenOut}`)!(_amountIn)
       );
