@@ -22,12 +22,14 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   ) internal virtual {
     SwapData memory _swapDataMem = _swapData[_tokenA][_tokenB][_swapIntervalMask];
     if (_swapDataMem.nextAmountToSwapAToB > 0 || _swapDataMem.nextAmountToSwapBToA > 0) {
-      AccumRatio memory _accumRatioMem = _accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps];
-      _accumRatio[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 1] = AccumRatio({
+      mapping(uint32 => AccumRatio) storage _accumRatioRef = _accumRatio[_tokenA][_tokenB][_swapIntervalMask];
+      mapping(uint32 => SwapDelta) storage _swapAmountDeltaRef = _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask];
+      AccumRatio memory _accumRatioMem = _accumRatioRef[_swapDataMem.performedSwaps];
+      _accumRatioRef[_swapDataMem.performedSwaps + 1] = AccumRatio({
         accumRatioAToB: _accumRatioMem.accumRatioAToB + _ratioAToB,
         accumRatioBToA: _accumRatioMem.accumRatioBToA + _ratioBToA
       });
-      SwapDelta memory _swapDeltaMem = _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
+      SwapDelta memory _swapDeltaMem = _swapAmountDeltaRef[_swapDataMem.performedSwaps + 2];
       uint224 _nextAmountToSwapAToB = _swapDataMem.nextAmountToSwapAToB - _swapDeltaMem.swapDeltaAToB;
       uint224 _nextAmountToSwapBToA = _swapDataMem.nextAmountToSwapBToA - _swapDeltaMem.swapDeltaBToA;
       _swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
@@ -36,12 +38,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         nextAmountToSwapAToB: _nextAmountToSwapAToB,
         nextAmountToSwapBToA: _nextAmountToSwapBToA
       });
-      delete _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
+      delete _swapAmountDeltaRef[_swapDataMem.performedSwaps + 2];
       if (_nextAmountToSwapAToB == 0 && _nextAmountToSwapBToA == 0) {
-        activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
+        _markIntervalAsInactive(_tokenA, _tokenB, _swapIntervalMask);
       }
     } else {
-      activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
+      _markIntervalAsInactive(_tokenA, _tokenB, _swapIntervalMask);
     }
   }
 
@@ -170,13 +172,14 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
     for (uint256 i; i < _swapInformation.tokens.length; i++) {
-      if (!allowedTokens[_tokens[i]]) revert IDCAHubConfigHandler.UnallowedToken();
-      if (i > 0 && _tokens[i] <= _tokens[i - 1]) {
+      address _token = _tokens[i];
+      if (!allowedTokens[_token]) revert IDCAHubConfigHandler.UnallowedToken();
+      if (i > 0 && _token <= _tokens[i - 1]) {
         revert IDCAHub.InvalidTokens();
       }
 
       TokenInSwap memory _tokenInSwap;
-      _tokenInSwap.token = _tokens[i];
+      _tokenInSwap.token = _token;
 
       uint256 _neededInSwap = _needed[i];
       uint256 _totalBeingSwapped = _total[i];
@@ -257,16 +260,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       // Optimistically transfer tokens
       if (_rewardRecipient == _callbackHandler) {
         uint256 _amountToSend = _tokenInSwap.reward + _amountToBorrow;
-        if (_amountToSend > 0) {
-          _transfer(_tokenInSwap.token, _callbackHandler, _amountToSend);
-        }
+        _transfer(_tokenInSwap.token, _callbackHandler, _amountToSend);
       } else {
-        if (_tokenInSwap.reward > 0) {
-          _transfer(_tokenInSwap.token, _rewardRecipient, _tokenInSwap.reward);
-        }
-        if (_amountToBorrow > 0) {
-          _transfer(_tokenInSwap.token, _callbackHandler, _amountToBorrow);
-        }
+        _transfer(_tokenInSwap.token, _rewardRecipient, _tokenInSwap.reward);
+        _transfer(_tokenInSwap.token, _callbackHandler, _amountToBorrow);
       }
     }
 
@@ -307,5 +304,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   // in the case of tokens with a small amount of decimals (like USDC), can end up being a lot of funds
   function _subtractFeeFromAmount(uint32 _fee, uint256 _amount) internal pure returns (uint256) {
     return _amount * (FeeMath.FEE_PRECISION - _fee / 100);
+  }
+
+  function _markIntervalAsInactive(
+    address _tokenA,
+    address _tokenB,
+    bytes1 _swapIntervalMask
+  ) internal {
+    activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
   }
 }
