@@ -19,7 +19,7 @@ library NFTSVG {
     uint32 swapsLeft;
     uint256 tokenId;
     string swapped;
-    string averagePrice;
+    string toWithdraw;
     string remaining;
     string rate;
   }
@@ -36,7 +36,7 @@ library NFTSVG {
           _generateSVGDefs(),
           _generateSVGBackground(),
           _generateSVGCardMantle(params.fromSymbol, params.toSymbol, params.interval),
-          _generateSVGPositionData(params.tokenId, params.swapped, params.averagePrice, params.remaining, params.rate),
+          _generateSVGPositionData(params.tokenId, params.toWithdraw, params.swapped, params.remaining, params.rate),
           _generateSVGBorderText(params.fromToken, params.toToken, params.fromSymbol, params.toSymbol),
           _generateSVGLinesAndMainLogo(_percentage),
           _generageSVGProgressArea(params.swapsExecuted, params.swapsLeft),
@@ -128,8 +128,8 @@ library NFTSVG {
 
   function _generateSVGPositionData(
     uint256 _tokenId,
+    string memory _toWithdraw,
     string memory _swapped,
-    string memory _averagePrice,
     string memory _remaining,
     string memory _rate
   ) private pure returns (string memory svg) {
@@ -137,10 +137,10 @@ library NFTSVG {
       abi.encodePacked(
         '<text transform="matrix(1 0 0 1 68.3549 775.8853)"><tspan x="0" y="0" class="st36 st38 st44">Id: ',
         _tokenId.toString(),
-        '</tspan><tspan x="0" y="52.37" class="st36 st38 st44">Swapped*: ',
+        '</tspan><tspan x="0" y="52.37" class="st36 st38 st44">To Withdraw: ',
+        _toWithdraw,
+        '</tspan><tspan x="0" y="104.73" class="st36 st38 st44">Swapped*: ',
         _swapped,
-        '</tspan><tspan x="0" y="104.73" class="st36 st38 st44">Avg Price: ',
-        _averagePrice,
         '</tspan><tspan x="0" y="157.1" class="st36 st38 st44">Remaining: ',
         _remaining,
         '</tspan><tspan x="0" y="209.47" class="st36 st38 st44">Rate: ',
