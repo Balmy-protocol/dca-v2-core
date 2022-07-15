@@ -21,7 +21,7 @@ import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import { snapshot } from '@test-utils/evm';
 
-contract.only('DCAHub', () => {
+contract('DCAHub', () => {
   let snapshotId: string;
   let governor: SignerWithAddress, john: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
