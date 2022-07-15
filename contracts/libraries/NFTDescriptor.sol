@@ -246,7 +246,7 @@ library NFTDescriptor {
     uint256 _amount,
     uint8 _decimals,
     string memory _symbol
-  ) internal pure returns (string memory) {
+  ) private pure returns (string memory) {
     return string(abi.encodePacked(fixedPointToDecimalString(_amount, _decimals), ' ', _symbol));
   }
 }
