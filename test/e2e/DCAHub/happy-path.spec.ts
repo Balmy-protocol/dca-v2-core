@@ -21,7 +21,7 @@ import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
 import { Permission } from 'js-lib/types';
 
-contract.only('DCAHub', () => {
+contract('DCAHub', () => {
   describe('Full e2e test', () => {
     let governor: SignerWithAddress, john: SignerWithAddress;
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
