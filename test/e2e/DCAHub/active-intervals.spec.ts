@@ -98,6 +98,35 @@ contract('DCAHub', () => {
     expect(activeIntervals).to.not.equal('0x00');
   });
 
+  it('interval can be reactivated when a new position is created', async () => {
+    await deposit({
+      from: tokenA,
+      to: tokenB,
+      owner: john,
+      rate: 10,
+      swaps: 1,
+      swapInterval: SwapInterval.ONE_DAY,
+    });
+    await flashSwap({ callee: DCAHubSwapCallee });
+    const activeIntervals = await DCAHub.activeSwapIntervals(tokenA.address, tokenB.address);
+    expect(activeIntervals).to.equal('0x00');
+
+    await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
+    await deposit({
+      from: tokenA,
+      to: tokenB,
+      owner: john,
+      rate: 5,
+      swaps: 2,
+      swapInterval: SwapInterval.ONE_DAY,
+    });
+    const activeIntervals2 = await DCAHub.activeSwapIntervals(tokenA.address, tokenB.address);
+    expect(activeIntervals2).to.not.equal('0x00');
+    await flashSwap({ callee: DCAHubSwapCallee });
+    const activeIntervals3 = await DCAHub.activeSwapIntervals(tokenA.address, tokenB.address);
+    expect(activeIntervals3).to.not.equal('0x00');
+  });
+
   async function deposit({
     from,
     to,
