@@ -28,13 +28,18 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         accumRatioBToA: _accumRatioMem.accumRatioBToA + _ratioBToA
       });
       SwapDelta memory _swapDeltaMem = _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
+      uint224 _nextAmountToSwapAToB = _swapDataMem.nextAmountToSwapAToB - _swapDeltaMem.swapDeltaAToB;
+      uint224 _nextAmountToSwapBToA = _swapDataMem.nextAmountToSwapBToA - _swapDeltaMem.swapDeltaBToA;
       _swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapDataMem.performedSwaps + 1,
         lastSwappedAt: _timestamp,
-        nextAmountToSwapAToB: _swapDataMem.nextAmountToSwapAToB - _swapDeltaMem.swapDeltaAToB,
-        nextAmountToSwapBToA: _swapDataMem.nextAmountToSwapBToA - _swapDeltaMem.swapDeltaBToA
+        nextAmountToSwapAToB: _nextAmountToSwapAToB,
+        nextAmountToSwapBToA: _nextAmountToSwapBToA
       });
       delete _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask][_swapDataMem.performedSwaps + 2];
+      if (_nextAmountToSwapAToB == 0 && _nextAmountToSwapBToA == 0) {
+        activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
+      }
     } else {
       activeSwapIntervals[_tokenA][_tokenB] &= ~_swapIntervalMask;
     }
