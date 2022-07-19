@@ -56,7 +56,7 @@ contract('DCAHub', () => {
         decimals: 16,
       });
       priceOracle = await smock.fake('IPriceOracle');
-      priceOracle.quote.returns(tokenA.address < tokenB.address ? tokenA.asUnits(1) : tokenB.asUnits(1));
+      priceOracle.quote.returns(tokenA.address.toLowerCase() < tokenB.address.toLowerCase() ? tokenA.asUnits(1) : tokenB.asUnits(1));
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
