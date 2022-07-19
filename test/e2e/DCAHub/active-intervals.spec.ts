@@ -84,7 +84,7 @@ contract('DCAHub', () => {
     expect(activeIntervals).to.equal('0x00');
   });
 
-  it('interval is continues as active when there are more swaps left to be executed', async () => {
+  it('interval continues to be active when there are more swaps left to be executed', async () => {
     await deposit({
       from: tokenA,
       to: tokenB,
