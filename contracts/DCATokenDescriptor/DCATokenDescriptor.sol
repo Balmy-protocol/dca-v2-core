@@ -24,7 +24,7 @@ contract DCATokenDescriptor is IDCATokenDescriptor {
           toSymbol: _userPosition.to.symbol(),
           swapInterval: intervalToDescription(_userPosition.swapInterval),
           swapsExecuted: _userPosition.swapsExecuted,
-          swapped: _userPosition.swapped,
+          toWithdraw: _userPosition.swapped,
           swapsLeft: _userPosition.swapsLeft,
           remaining: _userPosition.remaining,
           rate: _userPosition.rate

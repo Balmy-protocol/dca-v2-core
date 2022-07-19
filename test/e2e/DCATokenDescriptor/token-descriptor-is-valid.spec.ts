@@ -85,32 +85,43 @@ contract('DCATokenDescriptor', () => {
       []
     );
     const tokenId = await readArgFromEventOrFail<BigNumber>(response, 'Deposited', 'positionId');
+    const result1 = await DCAPermissionsManager.tokenURI(tokenId);
+    const { name: name1, description: description1, image: image1 } = extractJSONFromURI(result1);
 
     // Execute one swap
     await swap();
 
     // Get token uri
-    const result1 = await DCAPermissionsManager.tokenURI(tokenId);
-    const { name: name1, description: description1, image: image1 } = extractJSONFromURI(result1);
+    const result2 = await DCAPermissionsManager.tokenURI(tokenId);
+    const { name: name2, description: description2, image: image2 } = extractJSONFromURI(result2);
+
+    // Execute the last swap and withdraw
+    await evm.advanceTimeAndBlock(swapInterval);
+    await swap();
+
+    const result3 = await DCAPermissionsManager.tokenURI(tokenId);
+    const { name: name3, description: description3, image: image3 } = extractJSONFromURI(result3);
+
+    await DCAHub.withdrawSwapped(tokenId, wallet.generateRandomAddress());
+
+    // Get token uri
+    const result4 = await DCAPermissionsManager.tokenURI(tokenId);
+    const { name: name4, description: description4, image: image4 } = extractJSONFromURI(result4);
 
     expect(name1).to.equal('Mean Finance DCA - Daily - TKNB ➔ TKNA');
     expect(description1).to.equal(
       `This NFT represents a DCA position in Mean Finance, where TKNB will be swapped for TKNA. The owner of this NFT can modify or redeem the position.\n\nTKNB Address: ${tokenB.address.toLowerCase()}\nTKNA Address: ${tokenA.address.toLowerCase()}\nSwap interval: Daily\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
     );
-    expect(isValidSvgImage(image1)).to.be.true;
-
-    // Execute the last swap and withdraw
-    await evm.advanceTimeAndBlock(swapInterval);
-    await swap();
-    await DCAHub.withdrawSwapped(tokenId, wallet.generateRandomAddress());
-
-    // Get token uri
-    const result2 = await DCAPermissionsManager.tokenURI(tokenId);
-    const { name: name2, description: description2, image: image2 } = extractJSONFromURI(result2);
-
     expect(name2).to.equal(name1);
+    expect(name3).to.equal(name1);
+    expect(name4).to.equal(name1);
     expect(description2).to.equal(description1);
+    expect(description3).to.equal(description1);
+    expect(description4).to.equal(description1);
+    expect(isValidSvgImage(image1)).to.be.true;
     expect(isValidSvgImage(image2)).to.be.true;
+    expect(isValidSvgImage(image3)).to.be.true;
+    expect(isValidSvgImage(image4)).to.be.true;
   });
 
   async function swap() {

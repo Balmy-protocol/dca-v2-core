@@ -9,7 +9,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'TokenDescriptor',
-    salt: 'MF-DCAV2-DCATokenDescriptor-V2',
+    salt: 'MF-DCAV2-DCATokenDescriptor-V3',
     contract: 'contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor',
     bytecode: DCATokenDescriptor__factory.bytecode,
     constructorArgs: {

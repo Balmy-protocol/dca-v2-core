@@ -22,7 +22,7 @@ library NFTDescriptor {
     string swapInterval;
     uint32 swapsExecuted;
     uint32 swapsLeft;
-    uint256 swapped;
+    uint256 toWithdraw;
     uint256 remaining;
     uint160 rate;
   }
@@ -233,18 +233,20 @@ library NFTDescriptor {
       interval: _params.swapInterval,
       swapsExecuted: _params.swapsExecuted,
       swapsLeft: _params.swapsLeft,
-      swapped: string(abi.encodePacked(fixedPointToDecimalString(_params.swapped, _params.toDecimals), ' ', _toSymbol)),
-      averagePrice: string(
-        abi.encodePacked(
-          fixedPointToDecimalString(_params.swapsExecuted > 0 ? _params.swapped / _params.swapsExecuted : 0, _params.toDecimals),
-          ' ',
-          _toSymbol
-        )
-      ),
-      remaining: string(abi.encodePacked(fixedPointToDecimalString(_params.remaining, _params.fromDecimals), ' ', _fromSymbol)),
-      rate: string(abi.encodePacked(fixedPointToDecimalString(_params.rate, _params.fromDecimals), ' ', _fromSymbol))
+      toWithdraw: _amountToReadable(_params.toWithdraw, _params.toDecimals, _toSymbol),
+      swapped: _amountToReadable(_params.rate * _params.swapsExecuted, _params.fromDecimals, _fromSymbol),
+      remaining: _amountToReadable(_params.remaining, _params.fromDecimals, _fromSymbol),
+      rate: _amountToReadable(_params.rate, _params.fromDecimals, _fromSymbol)
     });
 
     return NFTSVG.generateSVG(_svgParams);
+  }
+
+  function _amountToReadable(
+    uint256 _amount,
+    uint8 _decimals,
+    string memory _symbol
+  ) private pure returns (string memory) {
+    return string(abi.encodePacked(fixedPointToDecimalString(_amount, _decimals), ' ', _symbol));
   }
 }
