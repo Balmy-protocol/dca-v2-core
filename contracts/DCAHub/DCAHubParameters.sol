@@ -57,7 +57,9 @@ abstract contract DCAHubParameters is IDCAHubParameters {
     address _to,
     uint256 _amount
   ) internal {
-    IERC20Metadata(_token).safeTransfer(_to, _amount);
+    if (_amount > 0) {
+      IERC20Metadata(_token).safeTransfer(_to, _amount);
+    }
   }
 
   function _balanceOf(address _token) internal view returns (uint256) {

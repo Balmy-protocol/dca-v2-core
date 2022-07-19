@@ -151,13 +151,8 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     delete _swappedBeforeModified[_positionId];
     permissionManager.burn(_positionId);
 
-    if (_swapped > 0) {
-      _transfer(_userPosition.to, _recipientSwapped, _swapped);
-    }
-
-    if (_unswapped > 0) {
-      _transfer(_userPosition.from, _recipientUnswapped, _unswapped);
-    }
+    _transfer(_userPosition.to, _recipientSwapped, _swapped);
+    _transfer(_userPosition.from, _recipientUnswapped, _unswapped);
 
     emit Terminated(msg.sender, _recipientUnswapped, _recipientSwapped, _positionId, _unswapped, _swapped);
   }
@@ -324,15 +319,23 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
       return _swappedBeforeModified[_positionId];
     }
 
-    uint256 _accumRatio = _userPosition.from < _userPosition.to
-      ? _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioAToB -
-        _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioAToB
-      : _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_newestSwapToConsider].accumRatioBToA -
-        _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask][_userPosition.swapWhereLastUpdated].accumRatioBToA;
+    uint256 _positionsAccumRatio;
+    if (_userPosition.from < _userPosition.to) {
+      mapping(uint32 => AccumRatio) storage _accumRatioRef = _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask];
+      _positionsAccumRatio =
+        _accumRatioRef[_newestSwapToConsider].accumRatioAToB -
+        _accumRatioRef[_userPosition.swapWhereLastUpdated].accumRatioAToB;
+    } else {
+      mapping(uint32 => AccumRatio) storage _accumRatioRef = _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask];
+      _positionsAccumRatio =
+        _accumRatioRef[_newestSwapToConsider].accumRatioBToA -
+        _accumRatioRef[_userPosition.swapWhereLastUpdated].accumRatioBToA;
+    }
+
     uint256 _magnitude = tokenMagnitude[_userPosition.from];
     uint120 _rate = _mergeRate(_userPosition);
-    (bool _ok, uint256 _mult) = SafeMath.tryMul(_accumRatio, _rate);
-    uint256 _swappedInCurrentPosition = (_ok ? _mult / _magnitude : (_accumRatio / _magnitude) * _rate) / FeeMath.FEE_PRECISION;
+    (bool _ok, uint256 _mult) = SafeMath.tryMul(_positionsAccumRatio, _rate);
+    uint256 _swappedInCurrentPosition = (_ok ? _mult / _magnitude : (_positionsAccumRatio / _magnitude) * _rate) / FeeMath.FEE_PRECISION;
     _swapped = _swappedInCurrentPosition + _swappedBeforeModified[_positionId];
   }
 

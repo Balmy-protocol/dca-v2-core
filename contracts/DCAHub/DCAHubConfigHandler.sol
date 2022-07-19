@@ -51,9 +51,10 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   function setAllowedTokens(address[] calldata _tokens, bool[] calldata _allowed) external onlyRole(IMMEDIATE_ROLE) {
     if (_tokens.length != _allowed.length) revert InvalidAllowedTokensInput();
     for (uint256 i; i < _tokens.length; i++) {
-      allowedTokens[_tokens[i]] = _allowed[i];
-      if (tokenMagnitude[_tokens[i]] == 0) {
-        tokenMagnitude[_tokens[i]] = uint120(10**IERC20Metadata(_tokens[i]).decimals());
+      address _token = _tokens[i];
+      allowedTokens[_token] = _allowed[i];
+      if (tokenMagnitude[_token] == 0) {
+        tokenMagnitude[_token] = uint120(10**IERC20Metadata(_token).decimals());
       }
     }
     emit TokensAllowedUpdated(_tokens, _allowed);
