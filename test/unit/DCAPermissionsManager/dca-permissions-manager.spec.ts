@@ -330,7 +330,7 @@ contract('DCAPermissionsManager', () => {
           contract: DCAPermissionsManager,
           func: 'hasPermission',
           args: [TOKEN_ID, OPERATOR, Permission.WITHDRAW],
-          message: 'ERC721: owner query for nonexistent token',
+          message: 'ERC721: invalid token ID',
         });
       });
     });
