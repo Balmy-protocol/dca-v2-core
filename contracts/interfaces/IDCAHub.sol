@@ -473,9 +473,15 @@ interface IDCAHubSwapHandler {
    *      - With InvalidPairs if pairs are not sorted (first by indexTokenA and then indexTokenB), or if indexTokenA >= indexTokenB for any pair
    * @param tokens The tokens involved in the next swap
    * @param pairs The pairs that you want to swap. Each element of the list points to the index of the token in the tokens array
+   * @param calculatePrivilegedAvailability Some accounts get privileged availability and can execute swaps before others. This flag provides
+   *        the possibility to calculate the next swap information for privileged and non-privileged accounts
    * @return swapInformation The information about the next swap
    */
-  function getNextSwapInfo(address[] calldata tokens, PairIndexes[] calldata pairs) external view returns (SwapInfo memory swapInformation);
+  function getNextSwapInfo(
+    address[] calldata tokens,
+    PairIndexes[] calldata pairs,
+    bool calculatePrivilegedAvailability
+  ) external view returns (SwapInfo memory swapInformation);
 
   /**
    * @notice Executes a flash swap

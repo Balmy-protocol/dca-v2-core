@@ -63,7 +63,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     _blockTimestamp = uint32(block.timestamp);
   }
 
-  function _getTotalAmountsToSwap(address _tokenA, address _tokenB)
+  function _getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    bool _calculatePrivilegedAvailability
+  )
     internal
     view
     virtual
@@ -80,7 +84,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       if (_activeIntervals & _mask != 0) {
         SwapData memory _swapDataMem = _swapData[_tokenA][_tokenB][_mask];
         uint32 _swapInterval = Intervals.maskToInterval(_mask);
-        if (((_swapDataMem.lastSwappedAt / _swapInterval) + 1) * _swapInterval > _blockTimestamp) {
+        uint32 _nextSwapAvailableAt = ((_swapDataMem.lastSwappedAt / _swapInterval) + 1) * _swapInterval;
+        if (!_calculatePrivilegedAvailability) {
+          // If the caller does not have privileges, then they will have to wait a little more to execute swaps
+          _nextSwapAvailableAt += _swapInterval / 3;
+        }
+        if (_nextSwapAvailableAt > _blockTimestamp) {
           // Note: this 'break' is both an optimization and a search for more CoW. Since this loop starts with the smaller intervals, it is
           // highly unlikely that if a small interval can't be swapped, a bigger interval can. It could only happen when a position was just
           // created for a new swap interval. At the same time, by adding this check, we force intervals to be swapped together. Therefore
@@ -112,12 +121,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   }
 
   /// @inheritdoc IDCAHubSwapHandler
-  function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs)
-    public
-    view
-    virtual
-    returns (SwapInfo memory _swapInformation)
-  {
+  function getNextSwapInfo(
+    address[] calldata _tokens,
+    PairIndexes[] calldata _pairs,
+    bool _calculatePrivilegedAvailability
+  ) public view virtual returns (SwapInfo memory _swapInformation) {
     // Note: we are caching these variables in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
     IPriceOracle _oracle = oracle;
@@ -148,7 +156,11 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;
 
-      (_amountToSwapTokenA, _amountToSwapTokenB, _pairInSwap.intervalsInSwap) = _getTotalAmountsToSwap(_pairInSwap.tokenA, _pairInSwap.tokenB);
+      (_amountToSwapTokenA, _amountToSwapTokenB, _pairInSwap.intervalsInSwap) = _getTotalAmountsToSwap(
+        _pairInSwap.tokenA,
+        _pairInSwap.tokenB,
+        _calculatePrivilegedAvailability
+      );
 
       _total[indexTokenA] += _amountToSwapTokenA;
       _total[indexTokenB] += _amountToSwapTokenB;
@@ -217,7 +229,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32 _swapFee = swapFee;
 
     {
-      _swapInformation = getNextSwapInfo(_tokens, _pairsToSwap);
+      // TODO: Determinate if privileged availability based on msg.sender
+      _swapInformation = getNextSwapInfo(_tokens, _pairsToSwap, true);
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
@@ -235,10 +248,12 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
               _subtractFeeFromAmount(_swapFee, _pairInSwap.ratioBToA),
               _timestamp
             );
+            if (!_executedAPair) {
+              _executedAPair = true;
+            }
           }
           _mask <<= 1;
         }
-        _executedAPair = _executedAPair || _intervalsInSwap > 0;
       }
 
       if (!_executedAPair) {
