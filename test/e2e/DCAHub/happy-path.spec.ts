@@ -417,7 +417,7 @@ contract('DCAHub', () => {
         ],
         []
       );
-      return DCAHub.getNextSwapInfo(tokens, pairIndexes);
+      return DCAHub.getNextSwapInfo(tokens, pairIndexes, true);
     }
 
     async function reducePosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {

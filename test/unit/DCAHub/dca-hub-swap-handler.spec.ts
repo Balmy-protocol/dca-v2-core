@@ -236,6 +236,7 @@ contract('DCAHubSwapHandler', () => {
   describe('_getTotalAmountsToSwap', () => {
     getTotalAmountsToSwapTest({
       when: 'there are no active swap intervals',
+      privileged: true,
       activeIntervals: [],
       expected: {
         amountToSwapTokenA: 0,
@@ -247,6 +248,7 @@ contract('DCAHubSwapHandler', () => {
     getTotalAmountsToSwapTest({
       when: 'no swap interval can be swapped right now',
       currentTimestamp: 10,
+      privileged: true,
       activeIntervals: [
         {
           interval: SwapInterval.ONE_DAY,
@@ -265,6 +267,7 @@ contract('DCAHubSwapHandler', () => {
     getTotalAmountsToSwapTest({
       when: 'only some swap intervals can be swapped',
       currentTimestamp: SwapInterval.ONE_DAY.seconds + 1,
+      privileged: true,
       activeIntervals: [
         {
           interval: SwapInterval.ONE_DAY,
@@ -289,6 +292,7 @@ contract('DCAHubSwapHandler', () => {
     getTotalAmountsToSwapTest({
       when: 'all swap intervals can be swapped',
       currentTimestamp: SwapInterval.ONE_WEEK.seconds + 1,
+      privileged: true,
       activeIntervals: [
         {
           interval: SwapInterval.ONE_DAY,
@@ -313,6 +317,7 @@ contract('DCAHubSwapHandler', () => {
     getTotalAmountsToSwapTest({
       when: 'intervals can be technically swapped, but there are no tokens to swap',
       currentTimestamp: SwapInterval.ONE_DAY.seconds + 1,
+      privileged: true,
       activeIntervals: [
         {
           interval: SwapInterval.ONE_DAY,
@@ -329,8 +334,9 @@ contract('DCAHubSwapHandler', () => {
     });
 
     getTotalAmountsToSwapTest({
-      when: `some swaps can be swapped, but the smallest one can't `,
+      when: `some swaps can be swapped, but the smallest one can't`,
       currentTimestamp: SwapInterval.ONE_WEEK.seconds + 1,
+      privileged: true,
       activeIntervals: [
         {
           interval: SwapInterval.ONE_MINUTE,
@@ -353,14 +359,54 @@ contract('DCAHubSwapHandler', () => {
       },
     });
 
+    getTotalAmountsToSwapTest({
+      when: 'account is not privileged and public access is not available yet',
+      currentTimestamp: SwapInterval.ONE_DAY.seconds + SwapInterval.ONE_DAY.seconds / 3 - 1,
+      privileged: false,
+      activeIntervals: [
+        {
+          interval: SwapInterval.ONE_DAY,
+          lastSwappedAt: 0,
+          amountToSwapTokenA: 100,
+          amountToSwapTokenB: 100,
+        },
+      ],
+      expected: {
+        amountToSwapTokenA: 0,
+        amountToSwapTokenB: 0,
+        affectedIntervals: [],
+      },
+    });
+
+    getTotalAmountsToSwapTest({
+      when: 'account is not privileged but public access is available',
+      currentTimestamp: SwapInterval.ONE_DAY.seconds + SwapInterval.ONE_DAY.seconds / 3,
+      privileged: false,
+      activeIntervals: [
+        {
+          interval: SwapInterval.ONE_DAY,
+          lastSwappedAt: 0,
+          amountToSwapTokenA: 100,
+          amountToSwapTokenB: 100,
+        },
+      ],
+      expected: {
+        amountToSwapTokenA: 100,
+        amountToSwapTokenB: 100,
+        affectedIntervals: [SwapInterval.ONE_DAY],
+      },
+    });
+
     function getTotalAmountsToSwapTest({
       when: title,
       currentTimestamp,
+      privileged,
       activeIntervals,
       expected,
     }: {
       when: string;
       currentTimestamp?: number;
+      privileged: boolean;
       activeIntervals: {
         interval: SwapInterval;
         lastSwappedAt: number;
@@ -391,7 +437,8 @@ contract('DCAHubSwapHandler', () => {
         then('result is as expected', async () => {
           const [amountToSwapTokenA, amountToSwapTokenB, affectedIntervals] = await DCAHubSwapHandler.getTotalAmountsToSwap(
             tokenA.address,
-            tokenB.address
+            tokenB.address,
+            privileged
           );
           expect(amountToSwapTokenA).to.equal(tokenA.asUnits(expected.amountToSwapTokenA));
           expect(amountToSwapTokenB).to.equal(tokenB.asUnits(expected.amountToSwapTokenB));
@@ -502,7 +549,7 @@ contract('DCAHubSwapHandler', () => {
             pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address })),
             []
           );
-          swapInformation = await DCAHubSwapHandler.getNextSwapInfo(tokens, pairIndexes);
+          swapInformation = await DCAHubSwapHandler.getNextSwapInfo(tokens, pairIndexes, true);
         });
 
         then('ratios are expose correctly', () => {

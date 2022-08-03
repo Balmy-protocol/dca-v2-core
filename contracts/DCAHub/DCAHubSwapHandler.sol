@@ -150,9 +150,6 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _pairInSwap.tokenA = _tokens[indexTokenA];
       _pairInSwap.tokenB = _tokens[indexTokenB];
 
-      uint256 _magnitudeA = tokenMagnitude[_pairInSwap.tokenA];
-      uint256 _magnitudeB = tokenMagnitude[_pairInSwap.tokenB];
-
       uint256 _amountToSwapTokenA;
       uint256 _amountToSwapTokenB;
 
@@ -164,6 +161,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       _total[indexTokenA] += _amountToSwapTokenA;
       _total[indexTokenB] += _amountToSwapTokenB;
+
+      uint256 _magnitudeA = tokenMagnitude[_pairInSwap.tokenA];
+      uint256 _magnitudeB = tokenMagnitude[_pairInSwap.tokenB];
 
       (_pairInSwap.ratioAToB, _pairInSwap.ratioBToA) = _calculateRatio(
         _pairInSwap.tokenA,

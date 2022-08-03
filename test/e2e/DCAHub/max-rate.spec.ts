@@ -99,7 +99,7 @@ contract('DCAHub', () => {
 
     async function assertThereIsNothingElseToSwap() {
       const { tokens, pairIndexes } = buildGetNextSwapInfoInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-      const { pairs } = await DCAHub.getNextSwapInfo(tokens, pairIndexes);
+      const { pairs } = await DCAHub.getNextSwapInfo(tokens, pairIndexes, true);
       expect(pairs[0].intervalsInSwap).to.equal('0x00');
     }
 
