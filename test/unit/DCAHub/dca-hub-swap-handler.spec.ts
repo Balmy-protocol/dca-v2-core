@@ -606,7 +606,7 @@ contract('DCAHubSwapHandler', () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAHubSwapHandler,
             func: 'getNextSwapInfo',
-            args: [tokens.map((token) => token().address), pairs],
+            args: [tokens.map((token) => token().address), pairs, true],
             message: error,
           });
         });
