@@ -161,7 +161,7 @@ contract('DCAHub', () => {
     await DCAHub.connect(john).withdrawSwapped(positionId, john.address);
     expect(await tokenB.balanceOf(john.address)).to.be.gt(previousBalance);
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-    await evm.advanceTimeAndBlock(SwapInterval.ONE_MINUTE.seconds);
+    await evm.advanceTimeAndBlock(SwapInterval.FIVE_MINUTES.seconds);
     await expect(
       DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5))
     ).to.be.revertedWith('UnallowedToken');
