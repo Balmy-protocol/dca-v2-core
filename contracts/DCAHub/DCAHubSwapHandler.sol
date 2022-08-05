@@ -229,8 +229,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint32 _swapFee = swapFee;
 
     {
-      // TODO: Determinate if privileged availability based on msg.sender
-      _swapInformation = getNextSwapInfo(_tokens, _pairsToSwap, true);
+      _swapInformation = getNextSwapInfo(_tokens, _pairsToSwap, hasRole(PRIVILEGED_SWAPPER_ROLE, msg.sender));
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
