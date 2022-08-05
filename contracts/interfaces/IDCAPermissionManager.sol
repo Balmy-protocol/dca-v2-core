@@ -2,7 +2,7 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import './IDCATokenDescriptor.sol';
+import '@mean-finance/nft-descriptors/solidity/interfaces/IDCAHubPositionDescriptor.sol';
 
 interface IERC721BasicEnumerable {
   /**
@@ -45,7 +45,7 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
    * @notice Emitted when the address for a new descritor is set
    * @param descriptor The new descriptor contract
    */
-  event NFTDescriptorSet(IDCATokenDescriptor descriptor);
+  event NFTDescriptorSet(IDCAHubPositionDescriptor descriptor);
 
   /// @notice Thrown when a user tries to set the hub, once it was already set
   error HubAlreadySet();
@@ -97,7 +97,7 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
    * @notice Returns the NFT descriptor contract
    * @return The contract for the NFT descriptor
    */
-  function nftDescriptor() external returns (IDCATokenDescriptor);
+  function nftDescriptor() external returns (IDCAHubPositionDescriptor);
 
   /**
    * @notice Returns the address of the DCA Hub
@@ -220,5 +220,5 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
    * @dev Will revert with ZeroAddress if address is zero
    * @param descriptor The new NFT descriptor contract
    */
-  function setNFTDescriptor(IDCATokenDescriptor descriptor) external;
+  function setNFTDescriptor(IDCAHubPositionDescriptor descriptor) external;
 }

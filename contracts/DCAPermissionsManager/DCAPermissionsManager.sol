@@ -4,7 +4,6 @@ pragma solidity >=0.8.7 <0.9.0;
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
 import '../interfaces/IDCAHub.sol';
-import '../interfaces/IDCATokenDescriptor.sol';
 import '../interfaces/IDCAPermissionManager.sol';
 import '../libraries/PermissionMath.sol';
 import '../utils/Governable.sol';
@@ -31,7 +30,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   /// @inheritdoc IDCAPermissionManager
   bytes32 public constant PERMISSION_SET_TYPEHASH = keccak256('PermissionSet(address operator,uint8[] permissions)');
   /// @inheritdoc IDCAPermissionManager
-  IDCATokenDescriptor public nftDescriptor;
+  IDCAHubPositionDescriptor public nftDescriptor;
   /// @inheritdoc IDCAPermissionManager
   address public hub;
   /// @inheritdoc IDCAPermissionManager
@@ -40,7 +39,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   mapping(uint256 => mapping(address => TokenPermission)) public tokenPermissions;
   uint256 internal _burnCounter;
 
-  constructor(address _governor, IDCATokenDescriptor _descriptor)
+  constructor(address _governor, IDCAHubPositionDescriptor _descriptor)
     ERC721('Mean Finance - DCA Position', 'MF-DCA-P')
     EIP712('Mean Finance - DCA Position', '2')
     Governable(_governor)
@@ -175,7 +174,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   /// @inheritdoc IDCAPermissionManager
-  function setNFTDescriptor(IDCATokenDescriptor _descriptor) external onlyGovernor {
+  function setNFTDescriptor(IDCAHubPositionDescriptor _descriptor) external onlyGovernor {
     if (address(_descriptor) == address(0)) revert ZeroAddress();
     nftDescriptor = _descriptor;
     emit NFTDescriptorSet(_descriptor);

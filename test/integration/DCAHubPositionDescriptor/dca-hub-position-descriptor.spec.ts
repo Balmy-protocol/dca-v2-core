@@ -1,5 +1,5 @@
 import moment from 'moment';
-import { BigNumber, utils } from 'ethers';
+import { BigNumber, constants, utils } from 'ethers';
 import { deployments, ethers, getNamedAccounts } from 'hardhat';
 import { evm, wallet } from '@test-utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
@@ -16,24 +16,23 @@ const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const WETH_WHALE_ADDRESS = '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
 const USDC_WHALE_ADDRESS = '0xcffad3200574698b78f32232aa9d63eabd290703';
 
-describe.only('DCAHubPositionDescriptor', () => {
+describe('DCAHubPositionDescriptor', () => {
   let joe: SignerWithAddress;
   let WETH: IERC20, USDC: IERC20;
   let DCAHub: DCAHub;
   let DCAPermissionsManager: DCAPermissionsManager;
   let DCAHubSwapCallee: DCAHubSwapCalleeMock;
-  const swapInterval = moment.duration(1, 'day').as('seconds');
+  const SWAP_INTERVAL = moment.duration(1, 'hour').as('seconds');
 
   before('Setup accounts and contracts', async () => {
     [joe] = await ethers.getSigners();
 
     await evm.reset({
       network: 'mainnet',
-      blockNumber: 14819334,
+      blockNumber: 15283061,
       skipHardhatDeployFork: true,
     });
 
-    console.log(await getNamedAccounts());
     const { governor: governorAddress, deployer } = await getNamedAccounts();
     const governor = await wallet.impersonate(governorAddress);
     await ethers.provider.send('hardhat_setBalance', [governorAddress, '0xffffffffffffffff']);
@@ -50,19 +49,19 @@ describe.only('DCAHubPositionDescriptor', () => {
       writeDeploymentsToFiles: false,
     });
 
-    DCAPermissionsManager = await ethers.getContract('DCAPermissionsManager');
+    DCAPermissionsManager = await ethers.getContract('PermissionsManager');
     DCAHub = await ethers.getContract('DCAHub');
-
     WETH = await ethers.getContractAt(IERC20_ABI, WETH_ADDRESS);
     USDC = await ethers.getContractAt(IERC20_ABI, USDC_ADDRESS);
 
-    await DCAHub.connect(governor).setAllowedTokens([WETH.address, USDC.address], [true, true]);
-
+    // Needed to execute swaps
     const factory: DCAHubSwapCalleeMock__factory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
     DCAHubSwapCallee = await factory.deploy();
     await DCAHubSwapCallee.avoidRewardCheck();
 
     await distributeTokensToUsers();
+    await WETH.connect(joe).approve(DCAHub.address, constants.MaxUint256);
+    await DCAHub.connect(governor).setAllowedTokens([WETH.address, USDC.address], [true, true]);
   });
 
   it('Validate tokenURI result', async () => {
@@ -72,7 +71,7 @@ describe.only('DCAHubPositionDescriptor', () => {
       USDC.address,
       utils.parseEther('20'),
       2,
-      swapInterval,
+      SWAP_INTERVAL,
       joe.address,
       []
     );
@@ -88,7 +87,6 @@ describe.only('DCAHubPositionDescriptor', () => {
     const { name: name2, description: description2, image: image2 } = extractJSONFromURI(result2);
 
     // Execute the last swap and withdraw
-    await evm.advanceTimeAndBlock(swapInterval);
     await swap();
 
     const result3 = await DCAPermissionsManager.tokenURI(tokenId);
@@ -100,9 +98,9 @@ describe.only('DCAHubPositionDescriptor', () => {
     const result4 = await DCAPermissionsManager.tokenURI(tokenId);
     const { name: name4, description: description4, image: image4 } = extractJSONFromURI(result4);
 
-    expect(name1).to.equal('Mean Finance DCA - Daily - TKNB ➔ TKNA');
+    expect(name1).to.equal('Mean Finance DCA - Hourly - WETH ➔ USDC');
     expect(description1).to.equal(
-      `This NFT represents a DCA position in Mean Finance, where TKNB will be swapped for TKNA. The owner of this NFT can modify or redeem the position.\n\nTKNB Address: ${WETH.address.toLowerCase()}\nTKNA Address: ${USDC.address.toLowerCase()}\nSwap interval: Daily\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
+      `This NFT represents a DCA position in Mean Finance, where WETH will be swapped for USDC. The owner of this NFT can modify or redeem the position.\n\nWETH Address: ${WETH.address.toLowerCase()}\nUSDC Address: ${USDC.address.toLowerCase()}\nSwap interval: Hourly\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
     );
     expect(name2).to.equal(name1);
     expect(name3).to.equal(name1);
@@ -128,6 +126,7 @@ describe.only('DCAHubPositionDescriptor', () => {
   async function swap() {
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: WETH.address, tokenB: USDC.address }], []);
     await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, []);
+    await evm.advanceTimeAndBlock(SWAP_INTERVAL);
   }
 
   function isValidSvgImage(base64: string) {
