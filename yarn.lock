@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@0xged/hardhat-deploy@0.11.4":
-  version "0.11.4"
-  resolved "https://registry.yarnpkg.com/@0xged/hardhat-deploy/-/hardhat-deploy-0.11.4.tgz#cfcf42461089fe9a703245916dd006686ae680c8"
-  integrity sha512-n1fqwWclX72Zmo7Rj9BVCc4uq9OHW/fwKTYYd28xObX5o4bSa9ELy0eLqQOGD52LNd7AcWnvGzDnbnnVg3JYGQ==
+"@0xged/hardhat-deploy@0.11.5":
+  version "0.11.5"
+  resolved "https://registry.yarnpkg.com/@0xged/hardhat-deploy/-/hardhat-deploy-0.11.5.tgz#cd919b1dc259a9a14369afcdcceff2e3dde2b346"
+  integrity sha512-WtNKjZ+s+/nwEtveLQxzuUMJLR+23M++74dxzybEJrNtmnW19PkeP16D9mhlFbuTmRAADTVeWvku16PBHWsQXQ==
   dependencies:
     "@ethersproject/abi" "^5.4.0"
     "@ethersproject/abstract-signer" "^5.4.1"
@@ -797,6 +797,17 @@
   resolved "https://registry.yarnpkg.com/@hutson/parse-repository-url/-/parse-repository-url-3.0.2.tgz#98c23c950a3d9b6c8f0daed06da6c3af06981340"
   integrity sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==
 
+"@mean-finance/dca-v2-core@2.2.0-rc1":
+  version "2.2.0-rc1"
+  resolved "https://registry.yarnpkg.com/@mean-finance/dca-v2-core/-/dca-v2-core-2.2.0-rc1.tgz#c9cf25fa21b085274c683169ac40de27852fba94"
+  integrity sha512-u+Hx0Urc7/CCo0y26mvKkLd2GYlVXi2vP3gEA1orgNVI0EI+SdMOGqsq/4J5C+4WmZlg0CBLDPXyKqKxBf8obg==
+  dependencies:
+    "@chainlink/contracts" "0.2.2"
+    "@mean-finance/deterministic-factory" "1.3.1"
+    "@openzeppelin/contracts" "4.4.2"
+    "@uniswap/v3-periphery" "1.2.0"
+    base64-sol "1.0.1"
+
 "@mean-finance/deterministic-factory@1.3.1":
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.3.1.tgz#c80cfadc7b2a66ecd957297d74d1649ca8235d29"
@@ -804,6 +815,23 @@
   dependencies:
     "@openzeppelin/contracts" "4.6.0"
     "@rari-capital/solmate" "6.2.0"
+
+"@mean-finance/deterministic-factory@1.3.2":
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.3.2.tgz#d4a7beb6cf853d98c113673fcd85db875169ab48"
+  integrity sha512-ffjshsydfKX2ywacAXEdIR40FHLH4on8wVYO8QpAQTRvwdtI12mSYqjKTitj7xfx6+huE3REnITLUIriQOIyAg==
+  dependencies:
+    "@openzeppelin/contracts" "4.6.0"
+    "@rari-capital/solmate" "6.2.0"
+
+"@mean-finance/nft-descriptors@1.0.0-rc3":
+  version "1.0.0-rc3"
+  resolved "https://registry.yarnpkg.com/@mean-finance/nft-descriptors/-/nft-descriptors-1.0.0-rc3.tgz#4d58d246e2113bb94a319a74c51467867ad9228e"
+  integrity sha512-MPbSQ3hiO3e7eleHlaIX7SJE7DxCNjlRccydVXTn6Za5/0QtLMYFIkjDtMIFSq7TvYXohbvh2IEBOT2Xdoa+uw==
+  dependencies:
+    "@mean-finance/dca-v2-core" "2.2.0-rc1"
+    "@mean-finance/deterministic-factory" "1.3.2"
+    "@openzeppelin/contracts" "4.7.2"
 
 "@metamask/eth-sig-util@^4.0.0":
   version "4.0.0"
@@ -889,6 +917,11 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.4.1-solc-0.7-2.tgz#371c67ebffe50f551c3146a9eec5fe6ffe862e92"
   integrity sha512-tAG9LWg8+M2CMu7hIsqHPaTyG4uDzjr6mhvH96LvOpLZZj6tgzTluBt+LsCf1/QaYrlis6pITvpIaIhE+iZB+Q==
 
+"@openzeppelin/contracts@4.4.2":
+  version "4.4.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.4.2.tgz#4e889c9c66e736f7de189a53f8ba5b8d789425c2"
+  integrity sha512-NyJV7sJgoGYqbtNUWgzzOGW4T6rR19FmX1IJgXGdapGPWsuMelGJn9h03nos0iqfforCbCB0iYIR0MtIuIFLLw==
+
 "@openzeppelin/contracts@4.6.0":
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.6.0.tgz#c91cf64bc27f573836dba4122758b4743418c1b3"
@@ -898,6 +931,11 @@
   version "4.7.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.1.tgz#33d0a857b76b18d313e6bb6ed28cdaf367e90cfe"
   integrity sha512-UXmAjKARsXORHlHZu5GCD7ZbRKm6nU8UHnbuT/QJJa2JEOEcbvV/X8w/sUk62Sl9VZuuljM1akrZLyAtzUgsxw==
+
+"@openzeppelin/contracts@4.7.2":
+  version "4.7.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.2.tgz#7587416fe2d35abf574193515b8971bfe9f64bc7"
+  integrity sha512-4n/JL9izql8303mPqPdubuna/DWEMbmOzWYUWyCPhjhiEr2w3nQrjE7vZz1fBF+wzzP6dZbIcsgqACk53c9FGA==
 
 "@rari-capital/solmate@6.2.0":
   version "6.2.0"
