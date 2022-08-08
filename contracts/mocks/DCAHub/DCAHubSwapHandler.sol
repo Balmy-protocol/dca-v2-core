@@ -50,7 +50,11 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     _blockTimestamp = (_customTimestamp > 0) ? _customTimestamp : super._getTimestamp();
   }
 
-  function getTotalAmountsToSwap(address _tokenA, address _tokenB)
+  function getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    bool _calculatePrivilegedAvailability
+  )
     external
     view
     returns (
@@ -59,10 +63,14 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
       bytes1
     )
   {
-    return _getTotalAmountsToSwap(_tokenA, _tokenB);
+    return _getTotalAmountsToSwap(_tokenA, _tokenB, _calculatePrivilegedAvailability);
   }
 
-  function _getTotalAmountsToSwap(address _tokenA, address _tokenB)
+  function _getTotalAmountsToSwap(
+    address _tokenA,
+    address _tokenB,
+    bool _calculatePrivilegedAvailability
+  )
     internal
     view
     override
@@ -74,18 +82,22 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   {
     TotalAmountsToSwap memory _amounts = _totalAmountsToSwap[_tokenA][_tokenB];
     if (_amounts.amountTokenA == 0 && _amounts.amountTokenB == 0) {
-      return super._getTotalAmountsToSwap(_tokenA, _tokenB);
+      return super._getTotalAmountsToSwap(_tokenA, _tokenB, _calculatePrivilegedAvailability);
     }
     _totalAmountTokenA = _amounts.amountTokenA;
     _totalAmountTokenB = _amounts.amountTokenB;
     _affectedIntervals = _amounts.intervalsInSwap;
   }
 
-  function getNextSwapInfo(address[] calldata _tokens, PairIndexes[] calldata _pairs) public view override returns (SwapInfo memory) {
+  function getNextSwapInfo(
+    address[] calldata _tokens,
+    PairIndexes[] calldata _pairs,
+    bool _calculatePrivilegedAvailability
+  ) public view override returns (SwapInfo memory) {
     if (_swapInformation.tokens.length > 0) {
       return _swapInformation;
     } else {
-      return super.getNextSwapInfo(_tokens, _pairs);
+      return super.getNextSwapInfo(_tokens, _pairs, _calculatePrivilegedAvailability);
     }
   }
 
