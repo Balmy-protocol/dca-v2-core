@@ -88,22 +88,22 @@ contract('DCAHub', () => {
           []
         );
 
-        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
         setPriceOracle('2246');
         await flashSwap({ callee: DCAHubSwapCallee });
-        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
         setPriceOracle('2209');
         await flashSwap({ callee: DCAHubSwapCallee });
-        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
         setPriceOracle('2190');
         await flashSwap({ callee: DCAHubSwapCallee });
 
         await DCAHub.connect(alice).withdrawSwapped(1, wallet.generateRandomAddress());
 
-        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
         setPriceOracle('2175');
         await flashSwap({ callee: DCAHubSwapCallee });
-        await evm.advanceTimeAndBlock(SwapInterval.ONE_HOUR.seconds);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
         setPriceOracle('2216');
         await flashSwap({ callee: DCAHubSwapCallee });
 

@@ -58,6 +58,7 @@ describe('DCAHubPositionDescriptor', () => {
     const factory: DCAHubSwapCalleeMock__factory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
     DCAHubSwapCallee = await factory.deploy();
     await DCAHubSwapCallee.avoidRewardCheck();
+    await DCAHub.connect(governor).grantRole(await DCAHub.PRIVILEGED_SWAPPER_ROLE(), joe.address);
 
     await distributeTokensToUsers();
     await WETH.connect(joe).approve(DCAHub.address, constants.MaxUint256);

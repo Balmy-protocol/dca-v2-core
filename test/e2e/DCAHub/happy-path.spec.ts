@@ -69,6 +69,7 @@ contract('DCAHub', () => {
       await DCAHub.setAllowedTokens([tokenA.address, tokenB.address, tokenC.address], [true, true, true]);
       await DCAHub.addSwapIntervalsToAllowedList([SwapInterval.FIFTEEN_MINUTES.seconds, SwapInterval.ONE_HOUR.seconds]);
       await DCAHub.setPlatformFeeRatio(5000);
+      await DCAHub.connect(governor).grantRole(await DCAHub.PRIVILEGED_SWAPPER_ROLE(), governor.address);
       DCAHubSwapCallee = await DCAHubSwapCalleeFactory.deploy();
       await DCAHubSwapCallee.setInitialBalances(
         [tokenA.address, tokenB.address, tokenC.address],

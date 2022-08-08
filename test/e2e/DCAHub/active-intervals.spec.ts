@@ -111,7 +111,7 @@ contract('DCAHub', () => {
     const activeIntervals = await DCAHub.activeSwapIntervals(tokenA.address, tokenB.address);
     expect(activeIntervals).to.equal('0x00');
 
-    await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
+    await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds * 2);
     await deposit({
       from: tokenA,
       to: tokenB,

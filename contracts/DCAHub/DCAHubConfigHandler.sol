@@ -13,8 +13,9 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   // solhint-disable var-name-mixedcase
   bytes32 public IMMEDIATE_ROLE = keccak256('IMMEDIATE_ROLE');
   bytes32 public TIME_LOCKED_ROLE = keccak256('TIME_LOCKED_ROLE');
-  bytes32 public PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
   // solhint-enable var-name-mixedcase
+  bytes32 public constant PLATFORM_WITHDRAW_ROLE = keccak256('PLATFORM_WITHDRAW_ROLE');
+  bytes32 public constant PRIVILEGED_SWAPPER_ROLE = keccak256('PRIVILEGED_SWAPPER_ROLE');
   /// @inheritdoc IDCAHubConfigHandler
   uint32 public constant MAX_FEE = 100000; // 10%
   /// @inheritdoc IDCAHubConfigHandler
@@ -42,6 +43,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
     _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
     _setupRole(TIME_LOCKED_ROLE, _timeLockedGovernor);
     _setRoleAdmin(PLATFORM_WITHDRAW_ROLE, IMMEDIATE_ROLE);
+    _setRoleAdmin(PRIVILEGED_SWAPPER_ROLE, IMMEDIATE_ROLE);
     // We set each role as its own admin, so they can assign new addresses with the same role
     _setRoleAdmin(IMMEDIATE_ROLE, IMMEDIATE_ROLE);
     _setRoleAdmin(TIME_LOCKED_ROLE, TIME_LOCKED_ROLE);

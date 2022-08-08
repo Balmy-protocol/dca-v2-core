@@ -83,6 +83,10 @@ contract('DCAHubConfigHandler', () => {
         const adminRole = await deployedContract.getRoleAdmin(await deployedContract.PLATFORM_WITHDRAW_ROLE());
         expect(adminRole).to.equal(immediateRole);
       });
+      then(`immediate role is privileged swappers's admin`, async () => {
+        const adminRole = await deployedContract.getRoleAdmin(await deployedContract.PRIVILEGED_SWAPPER_ROLE());
+        expect(adminRole).to.equal(immediateRole);
+      });
       then(`bigger intervals start allowed`, async () => {
         const allowedIntervals = [SwapInterval.ONE_WEEK, SwapInterval.ONE_DAY, SwapInterval.FOUR_HOURS, SwapInterval.ONE_HOUR];
         for (const interval of allowedIntervals) {

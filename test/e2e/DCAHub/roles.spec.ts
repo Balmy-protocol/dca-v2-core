@@ -20,6 +20,7 @@ contract('DCAHub', () => {
   const IMMEDIATE_ROLE: string = new Web3().utils.soliditySha3('IMMEDIATE_ROLE') as string;
   const TIME_LOCKED_ROLE: string = new Web3().utils.soliditySha3('TIME_LOCKED_ROLE') as string;
   const PLATFORM_WITHDRAW_ROLE: string = new Web3().utils.soliditySha3('PLATFORM_WITHDRAW_ROLE') as string;
+  const PRIVILEGED_SWAPPER_ROLE: string = new Web3().utils.soliditySha3('PRIVILEGED_SWAPPER_ROLE') as string;
 
   before(async () => {
     DCAHubFactory = await ethers.getContractFactory('contracts/DCAHub/DCAHub.sol:DCAHub');
@@ -56,6 +57,29 @@ contract('DCAHub', () => {
       });
       then('grants platform withdraw role to new address', async () => {
         expect(await DCAHub.hasRole(PLATFORM_WITHDRAW_ROLE, newDudeWithRole)).to.be.true;
+      });
+    });
+  });
+
+  describe('granting privileged swapper role', () => {
+    when('not granting from role admin', () => {
+      let grantRoleTx: Promise<TransactionResponse>;
+      given(async () => {
+        grantRoleTx = DCAHub.connect(timeLockedGovernor).grantRole(PRIVILEGED_SWAPPER_ROLE, wallet.generateRandomAddress());
+      });
+      then('tx is reverted', async () => {
+        await expect(grantRoleTx).to.be.revertedWith(
+          `AccessControl: account ${timeLockedGovernor.address.toLowerCase()} is missing role ${IMMEDIATE_ROLE.toLowerCase()}`
+        );
+      });
+    });
+    when('granting from admin of role', () => {
+      const newDudeWithRole = wallet.generateRandomAddress();
+      given(async () => {
+        await DCAHub.connect(immediateGovernor).grantRole(PRIVILEGED_SWAPPER_ROLE, newDudeWithRole);
+      });
+      then('grants privileged swapper role to new address', async () => {
+        expect(await DCAHub.hasRole(PRIVILEGED_SWAPPER_ROLE, newDudeWithRole)).to.be.true;
       });
     });
   });
