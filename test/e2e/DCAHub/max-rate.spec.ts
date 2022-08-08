@@ -127,7 +127,7 @@ contract('DCAHub', () => {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
       for (let i = 0; i < times; i++) {
         await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5));
-        await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds);
+        await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds * 2);
       }
     }
   });
