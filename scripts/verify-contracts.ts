@@ -18,11 +18,6 @@ async function main() {
   });
 
   await verify({
-    name: 'TokenDescriptor',
-    path: 'contracts/DCATokenDescriptor/DCATokenDescriptor.sol:DCATokenDescriptor',
-  });
-
-  await verify({
     name: 'PermissionsManager',
     path: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
   });

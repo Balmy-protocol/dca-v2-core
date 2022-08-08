@@ -6,7 +6,7 @@ import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-f
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, governor } = await hre.getNamedAccounts();
 
-  const tokenDescriptor = await hre.deployments.get('TokenDescriptor');
+  const tokenDescriptor = await hre.deployments.get('DCAHubPositionDescriptor');
 
   await deployThroughDeterministicFactory({
     deployer,
@@ -26,5 +26,5 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 };
 
 deployFunction.tags = ['PermissionsManager'];
-deployFunction.dependencies = ['TokenDescriptor'];
+deployFunction.dependencies = ['DCAHubPositionDescriptor'];
 export default deployFunction;
