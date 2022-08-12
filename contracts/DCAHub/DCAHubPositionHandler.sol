@@ -297,7 +297,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     bytes1 _activeIntervals = activeSwapIntervals[_tokenA][_tokenB];
     if (_activeIntervals & _mask == 0) {
       if (_activeIntervals == 0) {
-        oracle.addSupportForPairIfNeeded(_tokenA, _tokenB);
+        oracle.addSupportForPairIfNeeded(_tokenA, _tokenB, '');
       }
       activeSwapIntervals[_tokenA][_tokenB] = _activeIntervals | _mask;
     }

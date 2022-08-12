@@ -114,9 +114,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address _tokenB,
     uint256 _magnitudeA,
     uint256 _magnitudeB,
-    IPriceOracle _oracle
+    ITokenPriceOracle _oracle
   ) internal view virtual returns (uint256 _ratioAToB, uint256 _ratioBToA) {
-    _ratioBToA = _oracle.quote(_tokenB, uint128(_magnitudeB), _tokenA);
+    _ratioBToA = _oracle.quote(_tokenB, _magnitudeB, _tokenA, '');
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
   }
 
@@ -128,7 +128,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   ) public view virtual returns (SwapInfo memory _swapInformation) {
     // Note: we are caching these variables in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
-    IPriceOracle _oracle = oracle;
+    ITokenPriceOracle _oracle = oracle;
 
     uint256[] memory _total = new uint256[](_tokens.length);
     uint256[] memory _needed = new uint256[](_tokens.length);

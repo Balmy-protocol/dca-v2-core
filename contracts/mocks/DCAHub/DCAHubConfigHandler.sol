@@ -9,7 +9,7 @@ contract DCAHubConfigHandlerMock is DCAHubConfigHandler, DCAHubParametersMock {
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IPriceOracle _oracle
+    ITokenPriceOracle _oracle
   ) DCAHubConfigHandler(_immediateGovernor, _timeLockedGovernor, _oracle) {}
 
   function setAllowedToken(address _token, bool _allowed) external {

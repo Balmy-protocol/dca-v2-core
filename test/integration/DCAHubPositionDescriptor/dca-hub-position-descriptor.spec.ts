@@ -16,7 +16,7 @@ const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const WETH_WHALE_ADDRESS = '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
 const USDC_WHALE_ADDRESS = '0xcffad3200574698b78f32232aa9d63eabd290703';
 
-describe('DCAHubPositionDescriptor', () => {
+describe.only('DCAHubPositionDescriptor', () => {
   let joe: SignerWithAddress;
   let WETH: IERC20, USDC: IERC20;
   let DCAHub: DCAHub;
@@ -28,22 +28,23 @@ describe('DCAHubPositionDescriptor', () => {
     [joe] = await ethers.getSigners();
 
     await evm.reset({
-      network: 'mainnet',
+      network: 'ethereum',
       blockNumber: 15283061,
-      skipHardhatDeployFork: true,
     });
 
-    const { governor: governorAddress, deployer } = await getNamedAccounts();
-    const governor = await wallet.impersonate(governorAddress);
-    await ethers.provider.send('hardhat_setBalance', [governorAddress, '0xffffffffffffffff']);
+    const { eoaAdmin, deployer, msig } = await getNamedAccounts();
+    const deployerAdmin = await wallet.impersonate(eoaAdmin);
+    const admin = await wallet.impersonate(msig);
+    await ethers.provider.send('hardhat_setBalance', [eoaAdmin, '0xffffffffffffffff']);
+    await ethers.provider.send('hardhat_setBalance', [msig, '0xffffffffffffffff']);
 
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
       '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
     );
 
-    await deterministicFactory.connect(governor).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
-    await deployments.run(['DCAHubPositionDescriptor', 'DCAHub'], {
+    await deterministicFactory.connect(deployerAdmin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
+    await deployments.run(['ChainlinkFeedRegistry', 'OracleAggregator', 'DCAHubPositionDescriptor', 'DCAHub'], {
       resetMemory: true,
       deletePreviousDeployments: false,
       writeDeploymentsToFiles: false,
@@ -58,11 +59,11 @@ describe('DCAHubPositionDescriptor', () => {
     const factory: DCAHubSwapCalleeMock__factory = await ethers.getContractFactory('contracts/mocks/DCAHubSwapCallee.sol:DCAHubSwapCalleeMock');
     DCAHubSwapCallee = await factory.deploy();
     await DCAHubSwapCallee.avoidRewardCheck();
-    await DCAHub.connect(governor).grantRole(await DCAHub.PRIVILEGED_SWAPPER_ROLE(), joe.address);
+    await DCAHub.connect(admin).grantRole(await DCAHub.PRIVILEGED_SWAPPER_ROLE(), joe.address);
 
     await distributeTokensToUsers();
     await WETH.connect(joe).approve(DCAHub.address, constants.MaxUint256);
-    await DCAHub.connect(governor).setAllowedTokens([WETH.address, USDC.address], [true, true]);
+    await DCAHub.connect(admin).setAllowedTokens([WETH.address, USDC.address], [true, true]);
   });
 
   it('Validate tokenURI result', async () => {

@@ -7,7 +7,7 @@ import { ChainlinkOracle__factory } from '../typechained';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, governor } = await hre.getNamedAccounts();
+  const { deployer, msig } = await hre.getNamedAccounts();
 
   let registry: string;
   let weth: string;
@@ -63,7 +63,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     bytecode: ChainlinkOracle__factory.bytecode,
     constructorArgs: {
       types: ['address', 'address', 'uint32', 'address'],
-      values: [weth, registry, maxDelay, governor],
+      values: [weth, registry, maxDelay, msig],
     },
     log: !process.env.TEST,
     overrides: {

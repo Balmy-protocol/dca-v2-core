@@ -2,8 +2,8 @@
 pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import '@mean-finance/oracles/solidity/interfaces/ITokenPriceOracle.sol';
 import './IDCAPermissionManager.sol';
-import './oracles/IPriceOracle.sol';
 
 /**
  * @title The interface for all state related queries
@@ -518,7 +518,7 @@ interface IDCAHubConfigHandler {
    * @notice Emitted when a new oracle is set
    * @param oracle The new oracle contract
    */
-  event OracleSet(IPriceOracle oracle);
+  event OracleSet(ITokenPriceOracle oracle);
 
   /**
    * @notice Emitted when a new swap fee is set
@@ -584,7 +584,7 @@ interface IDCAHubConfigHandler {
    * @notice Returns the price oracle contract
    * @return oracle The contract itself
    */
-  function oracle() external view returns (IPriceOracle oracle);
+  function oracle() external view returns (ITokenPriceOracle oracle);
 
   /**
    * @notice Returns how much will the platform take from the fees collected in swaps
@@ -637,7 +637,7 @@ interface IDCAHubConfigHandler {
    * @dev Will revert with ZeroAddress if the zero address is passed
    * @param oracle The new oracle contract
    */
-  function setOracle(IPriceOracle oracle) external;
+  function setOracle(ITokenPriceOracle oracle) external;
 
   /**
    * @notice Sets a new platform fee ratio
