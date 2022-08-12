@@ -1,8 +1,0 @@
-checks:
-  - name: eth-gas-reporter/codechecks
-  
-settings:
-  speculativeBranchSelection: false
-  branches:
-    - main
-    - dev
