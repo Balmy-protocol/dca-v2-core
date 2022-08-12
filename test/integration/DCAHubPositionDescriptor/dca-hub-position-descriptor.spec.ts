@@ -16,7 +16,7 @@ const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 const WETH_WHALE_ADDRESS = '0xf04a5cc80b1e94c69b48f5ee68a08cd2f09a7c3e';
 const USDC_WHALE_ADDRESS = '0xcffad3200574698b78f32232aa9d63eabd290703';
 
-describe.only('DCAHubPositionDescriptor', () => {
+describe('DCAHubPositionDescriptor', () => {
   let joe: SignerWithAddress;
   let WETH: IERC20, USDC: IERC20;
   let DCAHub: DCAHub;
