@@ -8,7 +8,7 @@ import {
   DCAHubSwapCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  IPriceOracle,
+  ITokenPriceOracle,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
@@ -28,7 +28,7 @@ contract('DCAHub', () => {
     let joe: SignerWithAddress, larry: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
     let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-    let priceOracle: FakeContract<IPriceOracle>;
+    let priceOracle: FakeContract<ITokenPriceOracle>;
     let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
 
@@ -61,7 +61,7 @@ contract('DCAHub', () => {
         decimals: 18,
       });
 
-      priceOracle = await smock.fake('IPriceOracle');
+      priceOracle = await smock.fake('ITokenPriceOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
 
       DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);
@@ -371,8 +371,8 @@ contract('DCAHub', () => {
       ratios.set(`${token0.address}${token1.address}`, (amountIn) =>
         amountIn.mul(token1.asUnits(ratio.token1 / ratio.token0)).div(token0.magnitude)
       );
-      priceOracle.quote.returns(({ _amountIn, _tokenIn, _tokenOut }: { _tokenIn: string; _tokenOut: string; _amountIn: BigNumber }) =>
-        ratios.get(`${_tokenIn}${_tokenOut}`)!(_amountIn)
+      priceOracle.quote.returns(({ amountIn, tokenIn, tokenOut }: { tokenIn: string; tokenOut: string; amountIn: BigNumber }) =>
+        ratios.get(`${tokenIn}${tokenOut}`)!(amountIn)
       );
     }
 

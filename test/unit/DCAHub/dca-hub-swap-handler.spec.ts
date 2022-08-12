@@ -6,7 +6,7 @@ import {
   DCAHubSwapCalleeMock__factory,
   DCAHubSwapHandlerMock,
   DCAHubSwapHandlerMock__factory,
-  IPriceOracle,
+  ITokenPriceOracle,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, bn, behaviours } from '@test-utils';
@@ -29,7 +29,7 @@ contract('DCAHubSwapHandler', () => {
   let tokenA: TokenContract, tokenB: TokenContract, tokenC: TokenContract;
   let DCAHubSwapHandlerContract: DCAHubSwapHandlerMock__factory;
   let DCAHubSwapHandler: DCAHubSwapHandlerMock;
-  let priceOracle: FakeContract<IPriceOracle>;
+  let priceOracle: FakeContract<ITokenPriceOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -49,7 +49,7 @@ contract('DCAHubSwapHandler', () => {
 
     [tokenA, tokenB, tokenC] = tokens.sort((a, b) => a.address.localeCompare(b.address));
 
-    priceOracle = await smock.fake('IPriceOracle');
+    priceOracle = await smock.fake('ITokenPriceOracle');
     DCAHubSwapHandler = await DCAHubSwapHandlerContract.deploy(owner.address, owner.address, priceOracle.address);
     await DCAHubSwapHandler.setAllowedTokens([tokenA.address, tokenB.address, tokenC.address], [true, true, true]);
     snapshotId = await snapshot.take();
@@ -951,7 +951,7 @@ contract('DCAHubSwapHandler', () => {
   });
 
   const setOracleData = ({ ratioBToA }: { ratioBToA: BigNumber }) => {
-    priceOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(ratioBToA).div(tokenB.magnitude));
+    priceOracle.quote.returns(({ amountIn }: { amountIn: BigNumber }) => amountIn.mul(ratioBToA).div(tokenB.magnitude));
   };
 
   describe('flash swap', () => {
@@ -1144,7 +1144,10 @@ contract('DCAHubSwapHandler', () => {
           const { hub, sender, tokens, borrowed, data } = await DCAHubSwapCallee.lastCall();
           expect(hub).to.equal(DCAHubSwapHandler.address);
           expect(sender).to.equal(swapper.address);
-          expect(borrowed).to.eql(borrow);
+          expect(borrowed.length).to.equal(borrow.length);
+          for (let i = 0; i < borrowed.length; i++) {
+            expect(borrowed[i]).to.equal(borrow[i]);
+          }
           expect(data).to.equal(ethers.utils.hexlify(BYTES));
 
           expect(tokens.length).to.equal(result.tokens.length);
@@ -1169,15 +1172,18 @@ contract('DCAHubSwapHandler', () => {
           expect(rewardRecipientInEvent).to.equal(rewardRecipient.address);
           expect(callbackHandler).to.equal(DCAHubSwapCallee.address);
           expect(fee).to.equal(6000);
-          expect(borrowed).to.eql(borrow);
+          expect(borrowed.length).to.equal(borrow.length);
+          for (let i = 0; i < borrowed.length; i++) {
+            expect(borrowed[i]).to.equal(borrow[i]);
+          }
           expect(swapInformation.pairs.length).to.equal(result.pairs.length);
           for (let i = 0; i < swapInformation.pairs.length; i++) {
             const pair = swapInformation.pairs[i];
             const expectedPair = result.pairs[i];
             expect(pair.tokenA).to.eql(expectedPair.tokenA);
             expect(pair.tokenB).to.eql(expectedPair.tokenB);
-            expect(pair.ratioAToB).to.eql(expectedPair.ratioAToB);
-            expect(pair.ratioBToA).to.eql(expectedPair.ratioBToA);
+            expect(pair.ratioAToB).to.equal(expectedPair.ratioAToB);
+            expect(pair.ratioBToA).to.equal(expectedPair.ratioBToA);
             expect(pair.intervalsInSwap).to.eql(expectedPair.intervalsInSwap);
           }
 

@@ -35,18 +35,8 @@ describe('Governable', function () {
       });
     });
     when('initialized with a governor thats not zero address', () => {
-      let deploymentTx: TransactionResponse;
-      let deployedContract: Contract;
-      given(async () => {
-        const deployment = await contracts.deploy(governableContract, [governor.address]);
-        deploymentTx = deployment.tx;
-        deployedContract = deployment.contract;
-      });
-      then('deployment is succesful', async () => {
-        await expect(deploymentTx.wait()).to.not.be.reverted;
-      });
       then('governor is set correctly', async () => {
-        expect(await deployedContract.governor()).to.equal(governor.address);
+        expect(await governable.governor()).to.equal(governor.address);
       });
     });
   });

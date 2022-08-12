@@ -36,7 +36,7 @@ contract('Timelock', () => {
       minDelay,
       [immediateGovernor.address],
       [immediateGovernor.address],
-    ])) as TimelockController;
+    ])) as any as TimelockController;
     const tokenA = await erc20.deploy({
       name: 'WBTC',
       symbol: 'WBTC',

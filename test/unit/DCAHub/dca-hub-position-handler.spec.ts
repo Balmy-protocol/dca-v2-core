@@ -1,6 +1,6 @@
 import { BigNumber, Contract, Wallet } from 'ethers';
 import { ethers } from 'hardhat';
-import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermissionsManager, IPriceOracle } from '@typechained';
+import { DCAHubPositionHandlerMock__factory, DCAHubPositionHandlerMock, DCAPermissionsManager, ITokenPriceOracle } from '@typechained';
 import { erc20, behaviours, constants, wallet } from '@test-utils';
 import chai, { expect } from 'chai';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
@@ -33,7 +33,7 @@ contract('DCAPositionHandler', () => {
   let DCAPositionHandlerContract: DCAHubPositionHandlerMock__factory;
   let DCAPositionHandler: DCAHubPositionHandlerMock;
   let DCAPermissionManager: FakeContract<DCAPermissionsManager>;
-  let priceOracle: FakeContract<IPriceOracle>;
+  let priceOracle: FakeContract<ITokenPriceOracle>;
   let snapshotId: string;
 
   before('Setup accounts and contracts', async () => {
@@ -47,7 +47,7 @@ contract('DCAPositionHandler', () => {
     await tokenA.mint(owner.address, tokenA.asUnits(INITIAL_TOKEN_A_BALANCE_USER));
     await tokenB.mint(owner.address, tokenB.asUnits(INITIAL_TOKEN_B_BALANCE_USER));
     DCAPermissionManager = await smock.fake('DCAPermissionsManager');
-    priceOracle = await smock.fake('IPriceOracle');
+    priceOracle = await smock.fake('ITokenPriceOracle');
     DCAPositionHandler = await DCAPositionHandlerContract.deploy(owner.address, priceOracle.address, DCAPermissionManager.address);
     await DCAPositionHandler.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
     await tokenA.approveInternal(owner.address, DCAPositionHandler.address, tokenA.asUnits(1000));
@@ -432,7 +432,7 @@ contract('DCAPositionHandler', () => {
       });
 
       then('oracle is initialized', () => {
-        expect(priceOracle.addSupportForPairIfNeeded).to.have.been.calledOnceWith(tokenA.address, tokenB.address);
+        expect(priceOracle.addSupportForPairIfNeeded).to.have.been.calledOnceWith(tokenA.address, tokenB.address, '0x');
       });
     });
     when('making a deposit and the interval is already active', async () => {
@@ -688,10 +688,12 @@ contract('DCAPositionHandler', () => {
         const withdrawer = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrawer');
         const withdrawRecipient = await readArgFromEventOrFail(response, 'WithdrewMany', 'recipient');
         const positions = await readArgFromEventOrFail<any>(response, 'WithdrewMany', 'positions');
-        const withdrew = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrew');
+        const withdrew = await readArgFromEventOrFail<BigNumber[]>(response, 'WithdrewMany', 'withdrew');
         expect(withdrawer).to.equal(owner.address);
         expect(withdrawRecipient).to.equal(recipient);
-        expect(withdrew).to.eql([constants.ZERO, constants.ZERO]);
+        expect(withdrew).to.have.lengthOf(2);
+        expect(withdrew[0]).to.equal(constants.ZERO);
+        expect(withdrew[1]).to.equal(constants.ZERO);
         expect(positions.length).to.equal(2);
         expect(positions[0].token).to.equal(input[0].token);
         expect(positions[0].positionIds).to.eql(input[0].positionIds);
@@ -800,10 +802,12 @@ contract('DCAPositionHandler', () => {
         const withdrawer = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrawer');
         const withdrawRecipient = await readArgFromEventOrFail(response, 'WithdrewMany', 'recipient');
         const positions = await readArgFromEventOrFail<any>(response, 'WithdrewMany', 'positions');
-        const withdrew = await readArgFromEventOrFail(response, 'WithdrewMany', 'withdrew');
+        const withdrew = await readArgFromEventOrFail<BigNumber[]>(response, 'WithdrewMany', 'withdrew');
         expect(withdrawer).to.equal(owner.address);
         expect(withdrawRecipient).to.equal(recipient);
-        expect(withdrew).to.eql([swappedA, swappedB]);
+        expect(withdrew).to.have.lengthOf(2);
+        expect(withdrew[0]).to.equal(swappedA);
+        expect(withdrew[1]).to.equal(swappedB);
         expect(positions.length).to.equal(2);
         expect(positions[0].token).to.equal(input[0].token);
         expect(positions[0].positionIds).to.eql(input[0].positionIds);

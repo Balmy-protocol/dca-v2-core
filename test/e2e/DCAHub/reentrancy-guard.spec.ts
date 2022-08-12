@@ -9,7 +9,7 @@ import {
   ReentrantDCAHubSwapCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  IPriceOracle,
+  ITokenPriceOracle,
 } from '@typechained';
 import { constants, erc20, wallet } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
@@ -28,7 +28,7 @@ contract('DCAHub', () => {
     let DCAHubFactory: DCAHub__factory;
     let DCAHub: DCAHub;
     let reentrantDCAHubSwapCalleeFactory: ReentrantDCAHubSwapCalleeMock__factory;
-    let priceOracle: FakeContract<IPriceOracle>;
+    let priceOracle: FakeContract<ITokenPriceOracle>;
     let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
     let snapshotId: string;
 
@@ -43,7 +43,7 @@ contract('DCAHub', () => {
       const deploy = () => erc20.deploy({ name: 'A name', symbol: 'SYMB' });
       const tokens = [await deploy(), await deploy()];
       [tokenA, tokenB] = tokens.sort((a, b) => a.address.localeCompare(b.address));
-      priceOracle = await smock.fake('IPriceOracle');
+      priceOracle = await smock.fake('ITokenPriceOracle');
       DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
       DCAHub = await DCAHubFactory.deploy(governor.address, constants.NOT_ZERO_ADDRESS, priceOracle.address, DCAPermissionsManager.address);
       await DCAPermissionsManager.setHub(DCAHub.address);
@@ -61,7 +61,7 @@ contract('DCAHub', () => {
       const swapsTokenA = 13;
       let reentrantDCAHubSwapCallee: ReentrantDCAHubSwapCalleeMock;
       given(async () => {
-        priceOracle.quote.returns(({ _amountIn }: { _amountIn: BigNumber }) => _amountIn.mul(tokenA.asUnits(1).div(tokenB.magnitude)));
+        priceOracle.quote.returns(({ amountIn }: { amountIn: BigNumber }) => amountIn.mul(tokenA.asUnits(1).div(tokenB.magnitude)));
         await deposit({
           from: () => tokenA,
           to: () => tokenB,
