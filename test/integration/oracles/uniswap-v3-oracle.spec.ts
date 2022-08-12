@@ -21,7 +21,8 @@ const UNI_WETH_USDC_POOL_HIGH = '0x7BeA39867e4169DBe237d55C8242a8f2fcDcc387';
 contract.skip('UniswapV3Oracle', () => {
   before(async () => {
     await evm.reset({
-      network: 'ethereum',
+      network: 'mainnet',
+      skipHardhatDeployFork: true,
     });
     const namedAccounts = await getNamedAccounts();
     const governorAddress = namedAccounts.governor;
