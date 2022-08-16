@@ -426,7 +426,9 @@ interface IDCAHubSwapHandler {
     address tokenA;
     // The address of the other token
     address tokenB;
+    // The total amount of token A swapped in this pair
     uint256 totalAmountToSwapTokenA;
+    // The total amount of token B swapped in this pair
     uint256 totalAmountToSwapTokenB;
     // How much is 1 unit of token A when converted to B
     uint256 ratioAToB;
