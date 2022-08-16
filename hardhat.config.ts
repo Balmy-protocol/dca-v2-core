@@ -18,7 +18,6 @@ const networks: NetworksUserConfig = process.env.TEST
   ? {
       hardhat: {
         allowUnlimitedContractSize: true,
-        chainId: 1, // We are trying to mock mainnet
       },
     }
   : {
@@ -108,16 +107,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.13',
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 9999,
-          },
-        },
-      },
-      {
-        version: '0.7.6',
+        version: '0.8.16',
         settings: {
           optimizer: {
             enabled: true,
@@ -128,22 +118,13 @@ const config: HardhatUserConfig = {
     ],
     overrides: {
       'contracts/DCAHub/DCAHub.sol': {
-        version: '0.8.13',
+        version: '0.8.16',
         settings: {
           optimizer: {
             enabled: true,
             runs: 300,
           },
         },
-      },
-      '@uniswap/v3-core/contracts/libraries/FullMath.sol': {
-        version: '0.7.6',
-      },
-      '@uniswap/v3-core/contracts/libraries/TickMath.sol': {
-        version: '0.7.6',
-      },
-      '@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol': {
-        version: '0.7.6',
       },
     },
   },

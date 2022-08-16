@@ -3,21 +3,6 @@ import { run } from 'hardhat';
 
 async function main() {
   await verify({
-    name: 'ChainlinkOracle',
-    path: 'contracts/oracles/ChainlinkOracle.sol:ChainlinkOracle',
-  });
-
-  await verify({
-    name: 'UniswapOracle',
-    path: 'contracts/oracles/UniswapV3Oracle.sol:UniswapV3Oracle',
-  });
-
-  await verify({
-    name: 'OracleAggregator',
-    path: 'contracts/oracles/OracleAggregator.sol:OracleAggregator',
-  });
-
-  await verify({
     name: 'PermissionsManager',
     path: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
   });
