@@ -6,47 +6,46 @@ import '../interfaces/IDCAHub.sol';
 import '../libraries/TokenSorting.sol';
 
 abstract contract DCAHubParameters is IDCAHubParameters {
+  /// @notice Swap information about a specific pair
+  struct SwapData {
+    // How many swaps have been executed
+    uint32 performedSwaps;
+    // How much of token A will be swapped on the next swap
+    uint224 nextAmountToSwapAToB;
+    // Timestamp of the last swap
+    uint32 lastSwappedAt;
+    // How much of token B will be swapped on the next swap
+    uint224 nextAmountToSwapBToA;
+  }
+
+  /// @notice The difference of tokens to swap between a swap, and the previous one
+  struct SwapDelta {
+    // How much less of token A will the following swap require
+    uint128 swapDeltaAToB;
+    // How much less of token B will the following swap require
+    uint128 swapDeltaBToA;
+  }
+
+  /// @notice The sum of the ratios the oracle reported in all executed swaps
+  struct AccumRatio {
+    // The sum of all ratios from A to B
+    uint256 accumRatioAToB;
+    // The sum of all ratios from B to A
+    uint256 accumRatioBToA;
+  }
+
   using SafeERC20 for IERC20Metadata;
 
   /// @inheritdoc IDCAHubParameters
   mapping(address => mapping(address => bytes1)) public activeSwapIntervals; // token A => token B => active swap intervals
   /// @inheritdoc IDCAHubParameters
   mapping(address => uint256) public platformBalance; // token => balance
-  mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) internal _swapAmountDelta; // token A => token B => swap interval => swap number => delta
-  mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => AccumRatio)))) internal _accumRatio; // token A => token B => swap interval => swap number => accum
-  mapping(address => mapping(address => mapping(bytes1 => SwapData))) internal _swapData; // token A => token B => swap interval => swap data
-
   /// @inheritdoc IDCAHubParameters
-  function swapAmountDelta(
-    address _tokenA,
-    address _tokenB,
-    bytes1 _swapIntervalMask,
-    uint32 _swapNumber
-  ) external view returns (SwapDelta memory) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    return _swapAmountDelta[__tokenA][__tokenB][_swapIntervalMask][_swapNumber];
-  }
-
+  mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => SwapDelta)))) public swapAmountDelta; // token A => token B => swap interval => swap number => delta
   /// @inheritdoc IDCAHubParameters
-  function accumRatio(
-    address _tokenA,
-    address _tokenB,
-    bytes1 _swapIntervalMask,
-    uint32 _swapNumber
-  ) external view returns (AccumRatio memory) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    return _accumRatio[__tokenA][__tokenB][_swapIntervalMask][_swapNumber];
-  }
-
+  mapping(address => mapping(address => mapping(bytes1 => mapping(uint32 => AccumRatio)))) public accumRatio; // token A => token B => swap interval => swap number => accum
   /// @inheritdoc IDCAHubParameters
-  function swapData(
-    address _tokenA,
-    address _tokenB,
-    bytes1 _swapIntervalMask
-  ) external view returns (SwapData memory) {
-    (address __tokenA, address __tokenB) = TokenSorting.sortTokens(_tokenA, _tokenB);
-    return _swapData[__tokenA][__tokenB][_swapIntervalMask];
-  }
+  mapping(address => mapping(address => mapping(bytes1 => SwapData))) public swapData; // token A => token B => swap interval => swap data
 
   function _assertNonZeroAddress(address _address) internal pure {
     if (_address == address(0)) revert IDCAHub.ZeroAddress();

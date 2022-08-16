@@ -10,79 +10,64 @@ import './IDCAPermissionManager.sol';
  * @notice These methods allow users to read the hubs's current values
  */
 interface IDCAHubParameters {
-  /// @notice Swap information about a specific pair
-  struct SwapData {
-    // How many swaps have been executed
-    uint32 performedSwaps;
-    // How much of token A will be swapped on the next swap
-    uint224 nextAmountToSwapAToB;
-    // Timestamp of the last swap
-    uint32 lastSwappedAt;
-    // How much of token B will be swapped on the next swap
-    uint224 nextAmountToSwapBToA;
-  }
-
-  /// @notice The difference of tokens to swap between a swap, and the previous one
-  struct SwapDelta {
-    // How much less of token A will the following swap require
-    uint128 swapDeltaAToB;
-    // How much less of token B will the following swap require
-    uint128 swapDeltaBToA;
-  }
-
-  /// @notice The sum of the ratios the oracle reported in all executed swaps
-  struct AccumRatio {
-    // The sum of all ratios from A to B
-    uint256 accumRatioAToB;
-    // The sum of all ratios from B to A
-    uint256 accumRatioBToA;
-  }
-
   /**
    * @notice Returns how much will the amount to swap differ from the previous swap. f.e. if the returned value is -100, then the amount to swap will be 100 less than the swap just before it
-   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @dev `tokenA` must be smaller than `tokenB` (tokenA < tokenB)
    * @param tokenA One of the pair's token
    * @param tokenB The other of the pair's token
    * @param swapIntervalMask The byte representation of the swap interval to check
    * @param swapNumber The swap number to check
-   * @return How much will the amount to swap differ, when compared to the swap just before this one
+   * @return swapDeltaAToB How much less of token A will the following swap require
+   * @return swapDeltaBToA How much less of token B will the following swap require
    */
   function swapAmountDelta(
     address tokenA,
     address tokenB,
     bytes1 swapIntervalMask,
     uint32 swapNumber
-  ) external view returns (SwapDelta memory);
+  ) external view returns (uint128 swapDeltaAToB, uint128 swapDeltaBToA);
 
   /**
    * @notice Returns the sum of the ratios reported in all swaps executed until the given swap number
-   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @dev `tokenA` must be smaller than `tokenB` (tokenA < tokenB)
    * @param tokenA One of the pair's token
    * @param tokenB The other of the pair's token
    * @param swapIntervalMask The byte representation of the swap interval to check
    * @param swapNumber The swap number to check
-   * @return The sum of the ratios
+   * @return accumRatioAToB The sum of all ratios from A to B
+   * @return accumRatioBToA The sum of all ratios from B to A
    */
   function accumRatio(
     address tokenA,
     address tokenB,
     bytes1 swapIntervalMask,
     uint32 swapNumber
-  ) external view returns (AccumRatio memory);
+  ) external view returns (uint256 accumRatioAToB, uint256 accumRatioBToA);
 
   /**
    * @notice Returns swapping information about a specific pair
-   * @dev tokenA and tokenB may be passed in either tokenA/tokenB or tokenB/tokenA order
+   * @dev `tokenA` must be smaller than `tokenB` (tokenA < tokenB)
    * @param tokenA One of the pair's token
    * @param tokenB The other of the pair's token
    * @param swapIntervalMask The byte representation of the swap interval to check
-   * @return The swapping information
+   * @return performedSwaps How many swaps have been executed
+   * @return nextAmountToSwapAToB How much of token A will be swapped on the next swap
+   * @return lastSwappedAt Timestamp of the last swap
+   * @return nextAmountToSwapBToA How much of token B will be swapped on the next swap
    */
   function swapData(
     address tokenA,
     address tokenB,
     bytes1 swapIntervalMask
-  ) external view returns (SwapData memory);
+  )
+    external
+    view
+    returns (
+      uint32 performedSwaps,
+      uint224 nextAmountToSwapAToB,
+      uint32 lastSwappedAt,
+      uint224 nextAmountToSwapBToA
+    );
 
   /**
    * @notice Returns the byte representation of the set of actice swap intervals for the given pair

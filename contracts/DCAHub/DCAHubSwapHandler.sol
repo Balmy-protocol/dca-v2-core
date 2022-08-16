@@ -25,10 +25,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256 _ratioBToA,
     uint32 _timestamp
   ) internal virtual {
-    SwapData memory _swapDataMem = _swapData[_tokenA][_tokenB][_swapIntervalMask];
+    SwapData memory _swapDataMem = swapData[_tokenA][_tokenB][_swapIntervalMask];
     if (_swapDataMem.nextAmountToSwapAToB > 0 || _swapDataMem.nextAmountToSwapBToA > 0) {
-      mapping(uint32 => AccumRatio) storage _accumRatioRef = _accumRatio[_tokenA][_tokenB][_swapIntervalMask];
-      mapping(uint32 => SwapDelta) storage _swapAmountDeltaRef = _swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask];
+      mapping(uint32 => AccumRatio) storage _accumRatioRef = accumRatio[_tokenA][_tokenB][_swapIntervalMask];
+      mapping(uint32 => SwapDelta) storage _swapAmountDeltaRef = swapAmountDelta[_tokenA][_tokenB][_swapIntervalMask];
       AccumRatio memory _accumRatioMem = _accumRatioRef[_swapDataMem.performedSwaps];
       _accumRatioRef[_swapDataMem.performedSwaps + 1] = AccumRatio({
         accumRatioAToB: _accumRatioMem.accumRatioAToB + _ratioAToB,
@@ -37,7 +37,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       SwapDelta memory _swapDeltaMem = _swapAmountDeltaRef[_swapDataMem.performedSwaps + 2];
       uint224 _nextAmountToSwapAToB = _swapDataMem.nextAmountToSwapAToB - _swapDeltaMem.swapDeltaAToB;
       uint224 _nextAmountToSwapBToA = _swapDataMem.nextAmountToSwapBToA - _swapDeltaMem.swapDeltaBToA;
-      _swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
+      swapData[_tokenA][_tokenB][_swapIntervalMask] = SwapData({
         performedSwaps: _swapDataMem.performedSwaps + 1,
         lastSwappedAt: _timestamp,
         nextAmountToSwapAToB: _nextAmountToSwapAToB,
@@ -87,7 +87,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     bytes1 _mask = 0x01;
     while (_activeIntervals >= _mask && _mask > 0) {
       if (_activeIntervals & _mask != 0) {
-        SwapData memory _swapDataMem = _swapData[_tokenA][_tokenB][_mask];
+        SwapData memory _swapDataMem = swapData[_tokenA][_tokenB][_mask];
         uint32 _swapInterval = Intervals.maskToInterval(_mask);
         uint32 _nextSwapAvailableAt = ((_swapDataMem.lastSwappedAt / _swapInterval) + 1) * _swapInterval;
         if (!_calculatePrivilegedAvailability) {

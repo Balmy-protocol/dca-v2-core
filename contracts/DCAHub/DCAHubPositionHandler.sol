@@ -271,19 +271,19 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   ) internal {
     if (_from < _to) {
       if (_add) {
-        _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
-        _swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _rate;
+        swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB += _rate;
+        swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB += _rate;
       } else {
-        _swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB -= _rate;
-        _swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB -= _rate;
+        swapData[_from][_to][_swapIntervalMask].nextAmountToSwapAToB -= _rate;
+        swapAmountDelta[_from][_to][_swapIntervalMask][_finalSwap + 1].swapDeltaAToB -= _rate;
       }
     } else {
       if (_add) {
-        _swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += _rate;
-        _swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _rate;
+        swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA += _rate;
+        swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA += _rate;
       } else {
-        _swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA -= _rate;
-        _swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA -= _rate;
+        swapData[_to][_from][_swapIntervalMask].nextAmountToSwapBToA -= _rate;
+        swapAmountDelta[_to][_from][_swapIntervalMask][_finalSwap + 1].swapDeltaBToA -= _rate;
       }
     }
   }
@@ -321,12 +321,12 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
 
     uint256 _positionsAccumRatio;
     if (_userPosition.from < _userPosition.to) {
-      mapping(uint32 => AccumRatio) storage _accumRatioRef = _accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask];
+      mapping(uint32 => AccumRatio) storage _accumRatioRef = accumRatio[_userPosition.from][_userPosition.to][_userPosition.swapIntervalMask];
       _positionsAccumRatio =
         _accumRatioRef[_newestSwapToConsider].accumRatioAToB -
         _accumRatioRef[_userPosition.swapWhereLastUpdated].accumRatioAToB;
     } else {
-      mapping(uint32 => AccumRatio) storage _accumRatioRef = _accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask];
+      mapping(uint32 => AccumRatio) storage _accumRatioRef = accumRatio[_userPosition.to][_userPosition.from][_userPosition.swapIntervalMask];
       _positionsAccumRatio =
         _accumRatioRef[_newestSwapToConsider].accumRatioBToA -
         _accumRatioRef[_userPosition.swapWhereLastUpdated].accumRatioBToA;
@@ -360,7 +360,7 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
     bytes1 _swapIntervalMask
   ) internal view returns (uint32) {
     (address _tokenA, address _tokenB) = TokenSorting.sortTokens(_from, _to);
-    return _swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps;
+    return swapData[_tokenA][_tokenB][_swapIntervalMask].performedSwaps;
   }
 
   function _buildPosition(
