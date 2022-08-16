@@ -5,11 +5,11 @@ import moment from 'moment';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, governor } = await hre.getNamedAccounts();
+  const { deployer, msig } = await hre.getNamedAccounts();
 
   const minDelay = moment.duration('3', 'days').as('seconds');
-  const proposers = [governor];
-  const executors = [governor];
+  const proposers = [msig];
+  const executors = [msig];
 
   await deployThroughDeterministicFactory({
     deployer,

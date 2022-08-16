@@ -1,10 +1,10 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
-import { DCAPermissionsManager__factory } from '../typechained';
+import { bytecode } from '../artifacts/contracts/DCAPermissionsManager/DCAPermissionsManager.sol/DCAPermissionsManager.json';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, governor } = await hre.getNamedAccounts();
+  const { deployer, msig } = await hre.getNamedAccounts();
 
   const tokenDescriptor = await hre.deployments.get('DCAHubPositionDescriptor');
 
@@ -13,10 +13,10 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     name: 'PermissionsManager',
     salt: 'MF-DCAV2-PermissionsManager-V2',
     contract: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
-    bytecode: DCAPermissionsManager__factory.bytecode,
+    bytecode,
     constructorArgs: {
       types: ['address', 'address'],
-      values: [governor, tokenDescriptor.address],
+      values: [msig, tokenDescriptor.address],
     },
     log: !process.env.TEST,
     overrides: {

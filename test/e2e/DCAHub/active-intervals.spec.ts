@@ -8,7 +8,7 @@ import {
   DCAHubSwapCalleeMock__factory,
   DCAPermissionsManager,
   DCAPermissionsManager__factory,
-  IPriceOracle,
+  ITokenPriceOracle,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
 import { constants, erc20, evm } from '@test-utils';
@@ -26,7 +26,7 @@ contract('DCAHub', () => {
   let governor: SignerWithAddress, john: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
   let DCAHubFactory: DCAHub__factory, DCAHub: DCAHub;
-  let priceOracle: FakeContract<IPriceOracle>;
+  let priceOracle: FakeContract<ITokenPriceOracle>;
   let DCAHubSwapCalleeFactory: DCAHubSwapCalleeMock__factory, DCAHubSwapCallee: DCAHubSwapCalleeMock;
   let DCAPermissionsManagerFactory: DCAPermissionsManager__factory, DCAPermissionsManager: DCAPermissionsManager;
 
@@ -49,7 +49,7 @@ contract('DCAHub', () => {
       decimals: 16,
     });
 
-    priceOracle = await smock.fake('IPriceOracle');
+    priceOracle = await smock.fake('ITokenPriceOracle');
     DCAPermissionsManager = await DCAPermissionsManagerFactory.deploy(constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS);
 
     DCAHub = await DCAHubFactory.deploy(governor.address, governor.address, priceOracle.address, DCAPermissionsManager.address);

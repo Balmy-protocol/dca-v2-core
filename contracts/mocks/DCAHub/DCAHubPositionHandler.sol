@@ -8,7 +8,7 @@ import './DCAHubConfigHandler.sol';
 contract DCAHubPositionHandlerMock is DCAHubPositionHandler, DCAHubConfigHandlerMock {
   constructor(
     address _immediateGovernor,
-    IPriceOracle _oracle,
+    ITokenPriceOracle _oracle,
     IDCAPermissionManager _permissionManager
   ) DCAHubConfigHandlerMock(_immediateGovernor, address(1), _oracle) DCAHubPositionHandler(_permissionManager) {}
 

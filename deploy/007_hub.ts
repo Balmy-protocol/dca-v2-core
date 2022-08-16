@@ -1,10 +1,10 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from '@0xged/hardhat-deploy/types';
-import { DCAHub__factory } from '../typechained';
+import { bytecode } from '../artifacts/contracts/DCAHub/DCAHub.sol/DCAHub.json';
 import { deployThroughDeterministicFactory } from '@mean-finance/deterministic-factory/utils/deployment';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployer, governor } = await hre.getNamedAccounts();
+  const { deployer, msig } = await hre.getNamedAccounts();
 
   const timelock = await hre.deployments.get('Timelock');
   const oracleAggregator = await hre.deployments.get('OracleAggregator');
@@ -15,10 +15,10 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     name: 'DCAHub',
     salt: 'MF-DCAV2-DCAHub-V2',
     contract: 'contracts/DCAHub/DCAHub.sol:DCAHub',
-    bytecode: DCAHub__factory.bytecode,
+    bytecode,
     constructorArgs: {
       types: ['address', 'address', 'address', 'address'],
-      values: [governor, timelock.address, oracleAggregator.address, permissionsManager.address],
+      values: [msig, timelock.address, oracleAggregator.address, permissionsManager.address],
     },
     log: !process.env.TEST,
     overrides: {

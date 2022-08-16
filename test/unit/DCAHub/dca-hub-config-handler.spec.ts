@@ -64,8 +64,7 @@ contract('DCAHubConfigHandler', () => {
     when('all arguments are valid', () => {
       let deployedContract: Contract;
       given(async () => {
-        const deployment = await contracts.deploy(DCAHubConfigHandlerFactory, [owner.address, timeLockedOwner.address, oracle.address]);
-        deployedContract = deployment.contract;
+        deployedContract = await DCAHubConfigHandlerFactory.deploy(owner.address, timeLockedOwner.address, oracle.address);
       });
       then('sets immediate governor correctly', async () => {
         expect(await deployedContract.hasRole(immediateRole, owner.address)).to.be.true;

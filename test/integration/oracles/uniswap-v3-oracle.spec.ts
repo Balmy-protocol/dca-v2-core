@@ -18,7 +18,7 @@ const UNI_WETH_USDC_POOL_LOW = '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640';
 const UNI_WETH_USDC_POOL_MEDIUM = '0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8';
 const UNI_WETH_USDC_POOL_HIGH = '0x7BeA39867e4169DBe237d55C8242a8f2fcDcc387';
 
-contract('UniswapV3Oracle', () => {
+contract.skip('UniswapV3Oracle', () => {
   before(async () => {
     await evm.reset({
       network: 'mainnet',

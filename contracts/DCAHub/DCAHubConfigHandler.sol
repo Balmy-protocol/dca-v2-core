@@ -3,7 +3,6 @@ pragma solidity >=0.8.7 <0.9.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
 import '@openzeppelin/contracts/security/Pausable.sol';
-import '../interfaces/oracles/IPriceOracle.sol';
 import '../libraries/Intervals.sol';
 import '../libraries/FeeMath.sol';
 import './DCAHubParameters.sol';
@@ -22,7 +21,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   uint16 public constant MAX_PLATFORM_FEE_RATIO = 10000;
 
   /// @inheritdoc IDCAHubConfigHandler
-  IPriceOracle public oracle;
+  ITokenPriceOracle public oracle;
   /// @inheritdoc IDCAHubConfigHandler
   uint32 public swapFee = 6000; // 0.6%
   /// @inheritdoc IDCAHubConfigHandler
@@ -37,7 +36,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   constructor(
     address _immediateGovernor,
     address _timeLockedGovernor,
-    IPriceOracle _oracle
+    ITokenPriceOracle _oracle
   ) {
     if (_immediateGovernor == address(0) || _timeLockedGovernor == address(0) || address(_oracle) == address(0)) revert IDCAHub.ZeroAddress();
     _setupRole(IMMEDIATE_ROLE, _immediateGovernor);
@@ -63,7 +62,7 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
   }
 
   /// @inheritdoc IDCAHubConfigHandler
-  function setOracle(IPriceOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
+  function setOracle(ITokenPriceOracle _oracle) external onlyRole(TIME_LOCKED_ROLE) {
     _assertNonZeroAddress(address(_oracle));
     oracle = _oracle;
     emit OracleSet(_oracle);
