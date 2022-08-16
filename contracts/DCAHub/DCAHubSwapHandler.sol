@@ -110,13 +110,23 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   }
 
   function _calculateRatio(
-    address _tokenA,
-    address _tokenB,
-    uint256 _magnitudeA,
-    uint256 _magnitudeB,
-    ITokenPriceOracle _oracle
-  ) internal view virtual returns (uint256 _ratioAToB, uint256 _ratioBToA) {
-    _ratioBToA = _oracle.quote(_tokenB, _magnitudeB, _tokenA, '');
+    PairInSwap memory _pairInSwap,
+    ITokenPriceOracle _oracle,
+    bytes calldata _data
+  )
+    internal
+    view
+    virtual
+    returns (
+      uint256 _ratioAToB,
+      uint256 _ratioBToA,
+      uint256 _magnitudeA,
+      uint256 _magnitudeB
+    )
+  {
+    _magnitudeA = tokenMagnitude[_pairInSwap.tokenA];
+    _magnitudeB = tokenMagnitude[_pairInSwap.tokenB];
+    _ratioBToA = _oracle.quote(_pairInSwap.tokenB, _magnitudeB, _pairInSwap.tokenA, _data);
     _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
   }
 
@@ -124,7 +134,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   function getNextSwapInfo(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairs,
-    bool _calculatePrivilegedAvailability
+    bool _calculatePrivilegedAvailability,
+    bytes calldata _oracleData
   ) public view virtual returns (SwapInfo memory _swapInformation) {
     // Note: we are caching these variables in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
@@ -150,31 +161,22 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _pairInSwap.tokenA = _tokens[indexTokenA];
       _pairInSwap.tokenB = _tokens[indexTokenB];
 
-      uint256 _amountToSwapTokenA;
-      uint256 _amountToSwapTokenB;
-
-      (_amountToSwapTokenA, _amountToSwapTokenB, _pairInSwap.intervalsInSwap) = _getTotalAmountsToSwap(
+      (_pairInSwap.totalAmountToSwapTokenA, _pairInSwap.totalAmountToSwapTokenB, _pairInSwap.intervalsInSwap) = _getTotalAmountsToSwap(
         _pairInSwap.tokenA,
         _pairInSwap.tokenB,
         _calculatePrivilegedAvailability
       );
 
-      _total[indexTokenA] += _amountToSwapTokenA;
-      _total[indexTokenB] += _amountToSwapTokenB;
+      _total[indexTokenA] += _pairInSwap.totalAmountToSwapTokenA;
+      _total[indexTokenB] += _pairInSwap.totalAmountToSwapTokenB;
 
-      uint256 _magnitudeA = tokenMagnitude[_pairInSwap.tokenA];
-      uint256 _magnitudeB = tokenMagnitude[_pairInSwap.tokenB];
+      uint256 _magnitudeA;
+      uint256 _magnitudeB;
 
-      (_pairInSwap.ratioAToB, _pairInSwap.ratioBToA) = _calculateRatio(
-        _pairInSwap.tokenA,
-        _pairInSwap.tokenB,
-        _magnitudeA,
-        _magnitudeB,
-        _oracle
-      );
+      (_pairInSwap.ratioAToB, _pairInSwap.ratioBToA, _magnitudeA, _magnitudeB) = _calculateRatio(_pairInSwap, _oracle, _oracleData);
 
-      _needed[indexTokenA] += _convertTo(_magnitudeB, _amountToSwapTokenB, _pairInSwap.ratioBToA, _swapFee);
-      _needed[indexTokenB] += _convertTo(_magnitudeA, _amountToSwapTokenA, _pairInSwap.ratioAToB, _swapFee);
+      _needed[indexTokenA] += _convertTo(_magnitudeB, _pairInSwap.totalAmountToSwapTokenB, _pairInSwap.ratioBToA, _swapFee);
+      _needed[indexTokenB] += _convertTo(_magnitudeA, _pairInSwap.totalAmountToSwapTokenA, _pairInSwap.ratioAToB, _swapFee);
 
       _swapInformation.pairs[i] = _pairInSwap;
     }
@@ -223,13 +225,14 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address _rewardRecipient,
     address _callbackHandler,
     uint256[] calldata _borrow,
-    bytes calldata _data
+    bytes calldata _callbackData,
+    bytes calldata _oracleData
   ) public nonReentrant whenNotPaused returns (SwapInfo memory _swapInformation) {
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint32 _swapFee = swapFee;
 
     {
-      _swapInformation = getNextSwapInfo(_tokens, _pairsToSwap, hasRole(PRIVILEGED_SWAPPER_ROLE, msg.sender));
+      _swapInformation = getNextSwapInfo(_tokens, _pairsToSwap, hasRole(PRIVILEGED_SWAPPER_ROLE, msg.sender), _oracleData);
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
@@ -282,7 +285,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
 
     // Make call
-    IDCAHubSwapCallee(_callbackHandler).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _data);
+    IDCAHubSwapCallee(_callbackHandler).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _callbackData);
 
     // Checks and balance updates
     for (uint256 i; i < _swapInformation.tokens.length; i++) {

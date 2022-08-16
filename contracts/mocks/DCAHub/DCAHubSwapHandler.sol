@@ -92,35 +92,51 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   function getNextSwapInfo(
     address[] calldata _tokens,
     PairIndexes[] calldata _pairs,
-    bool _calculatePrivilegedAvailability
+    bool _calculatePrivilegedAvailability,
+    bytes calldata _oracleData
   ) public view override returns (SwapInfo memory) {
     if (_swapInformation.tokens.length > 0) {
       return _swapInformation;
     } else {
-      return super.getNextSwapInfo(_tokens, _pairs, _calculatePrivilegedAvailability);
+      return super.getNextSwapInfo(_tokens, _pairs, _calculatePrivilegedAvailability, _oracleData);
     }
   }
 
   function calculateRatio(
-    address _tokenA,
-    address _tokenB,
-    uint256 _magnitudeA,
-    uint256 _magnitudeB,
-    ITokenPriceOracle _oracle
-  ) external view returns (uint256, uint256) {
-    return _calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _oracle);
+    PairInSwap memory _pairInSwap,
+    ITokenPriceOracle _oracle,
+    bytes calldata _oracleData
+  )
+    external
+    view
+    returns (
+      uint256,
+      uint256,
+      uint256,
+      uint256
+    )
+  {
+    return _calculateRatio(_pairInSwap, _oracle, _oracleData);
   }
 
   function _calculateRatio(
-    address _tokenA,
-    address _tokenB,
-    uint256 _magnitudeA,
-    uint256 _magnitudeB,
-    ITokenPriceOracle _oracle
-  ) internal view override returns (uint256 _ratioAToB, uint256 _ratioBToA) {
-    _ratioBToA = _ratios[_tokenB][_tokenA];
+    PairInSwap memory _pairInSwap,
+    ITokenPriceOracle _oracle,
+    bytes calldata _oracleData
+  )
+    internal
+    view
+    override
+    returns (
+      uint256 _ratioAToB,
+      uint256 _ratioBToA,
+      uint256 _magnitudeA,
+      uint256 _magnitudeB
+    )
+  {
+    _ratioBToA = _ratios[_pairInSwap.tokenB][_pairInSwap.tokenA];
     if (_ratioBToA == 0) {
-      return super._calculateRatio(_tokenA, _tokenB, _magnitudeA, _magnitudeB, _oracle);
+      return super._calculateRatio(_pairInSwap, _oracle, _oracleData);
     }
     _ratioAToB = (_magnitudeA * _magnitudeB) / _ratioBToA;
   }

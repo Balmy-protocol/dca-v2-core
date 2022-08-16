@@ -426,6 +426,8 @@ interface IDCAHubSwapHandler {
     address tokenA;
     // The address of the other token
     address tokenB;
+    uint256 totalAmountToSwapTokenA;
+    uint256 totalAmountToSwapTokenB;
     // How much is 1 unit of token A when converted to B
     uint256 ratioAToB;
     // How much is 1 unit of token B when converted to A
@@ -475,12 +477,14 @@ interface IDCAHubSwapHandler {
    * @param pairs The pairs that you want to swap. Each element of the list points to the index of the token in the tokens array
    * @param calculatePrivilegedAvailability Some accounts get privileged availability and can execute swaps before others. This flag provides
    *        the possibility to calculate the next swap information for privileged and non-privileged accounts
+   * @param oracleData Bytes to send to the oracle when executing a quote
    * @return swapInformation The information about the next swap
    */
   function getNextSwapInfo(
     address[] calldata tokens,
     PairIndexes[] calldata pairs,
-    bool calculatePrivilegedAvailability
+    bool calculatePrivilegedAvailability,
+    bytes calldata oracleData
   ) external view returns (SwapInfo memory swapInformation);
 
   /**
@@ -496,7 +500,8 @@ interface IDCAHubSwapHandler {
    * @param rewardRecipient The address to send the reward to
    * @param callbackHandler Address to call for callback (and send the borrowed tokens to)
    * @param borrow How much to borrow of each of the tokens in tokens. The amount must match the position of the token in the tokens array
-   * @param data Bytes to send to the caller during the callback
+   * @param callbackData Bytes to send to the caller during the callback
+   * @param oracleData Bytes to send to the oracle when executing a quote
    * @return Information about the executed swap
    */
   function swap(
@@ -505,7 +510,8 @@ interface IDCAHubSwapHandler {
     address rewardRecipient,
     address callbackHandler,
     uint256[] calldata borrow,
-    bytes calldata data
+    bytes calldata callbackData,
+    bytes calldata oracleData
   ) external returns (SwapInfo memory);
 }
 
