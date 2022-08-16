@@ -6,6 +6,7 @@ import {
   DCAHubSwapCalleeMock__factory,
   DCAHubSwapHandlerMock,
   DCAHubSwapHandlerMock__factory,
+  IDCAHubSwapHandler,
   ITokenPriceOracle,
 } from '@typechained';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
@@ -512,11 +513,13 @@ contract('DCAHubSwapHandler', () => {
     }) {
       when(title, () => {
         let expectedRatios: Map<string, { ratioAToB: BigNumber; ratioBToA: BigNumber }>;
+        let expectedAmounts: Map<string, { totalAmountA: BigNumber; totalAmountB: BigNumber }>;
         let expectedTokenResults: Token[];
-        let swapInformation: SwapInformation;
+        let swapInformation: IDCAHubSwapHandler.SwapInfoStructOutput;
 
         given(async () => {
           expectedRatios = new Map();
+          expectedAmounts = new Map();
           await DCAHubSwapHandler.setPlatformFeeRatio(protocolFeeRatio * (await DCAHubSwapHandler.MAX_PLATFORM_FEE_RATIO()));
           for (const { tokenA, tokenB, amountTokenA, amountTokenB, ratioBToA } of pairs) {
             await DCAHubSwapHandler.setTotalAmountsToSwap(
@@ -530,6 +533,10 @@ contract('DCAHubSwapHandler', () => {
             expectedRatios.set(tokenA().address + tokenB().address, {
               ratioBToA: tokenA().asUnits(ratioBToA),
               ratioAToB: tokenB().asUnits(1 / ratioBToA),
+            });
+            expectedAmounts.set(tokenA().address + tokenB().address, {
+              totalAmountA: tokenA().asUnits(amountTokenA),
+              totalAmountB: tokenB().asUnits(amountTokenB),
             });
           }
           expectedTokenResults = total.map(({ token, available, needed }) => {
@@ -557,11 +564,19 @@ contract('DCAHubSwapHandler', () => {
           swapInformation = await DCAHubSwapHandler.getNextSwapInfo(tokens, pairIndexes, true, BYTES);
         });
 
-        then('ratios are expose correctly', () => {
+        then('ratios are exposed correctly', () => {
           for (const pair of swapInformation.pairs) {
             const { ratioAToB, ratioBToA } = expectedRatios.get(pair.tokenA + pair.tokenB)!;
             expect(pair.ratioAToB).to.equal(ratioAToB);
             expect(pair.ratioBToA).to.equal(ratioBToA);
+          }
+        });
+
+        then('total amounts are exposed correctly', () => {
+          for (const pair of swapInformation.pairs) {
+            const { totalAmountA, totalAmountB } = expectedAmounts.get(pair.tokenA + pair.tokenB)!;
+            expect(pair.totalAmountToSwapTokenA).to.equal(totalAmountA);
+            expect(pair.totalAmountToSwapTokenB).to.equal(totalAmountB);
           }
         });
 
@@ -995,7 +1010,7 @@ contract('DCAHubSwapHandler', () => {
         const BLOCK_TIMESTAMP = 30004;
         let initialBalances: Map<string, Map<TokenContract, BigNumber>>;
         let borrow: BigNumber[];
-        let result: SwapInformation;
+        let result: IDCAHubSwapHandler.SwapInfoStruct;
         let tx: TransactionResponse;
 
         given(async () => {
@@ -1012,8 +1027,8 @@ contract('DCAHubSwapHandler', () => {
               ratioAToB: BigNumber.from(ratioAToB),
               ratioBToA: BigNumber.from(ratioBToA),
               intervalsInSwap: SwapInterval.intervalsToByte(...intervalsInSwap),
-              totalAmountToSwapTokenA: constants.ZERO,
-              totalAmountToSwapTokenB: constants.ZERO,
+              totalAmountToSwapTokenA: BigNumber.from(ratioBToA),
+              totalAmountToSwapTokenB: BigNumber.from(ratioAToB),
             }))
           );
           result = {
@@ -1085,7 +1100,7 @@ contract('DCAHubSwapHandler', () => {
           tx = await DCAHubSwapHandler.connect(swapper).swap([], [], rewardRecipient.address, DCAHubSwapCallee.address, borrow, BYTES, BYTES);
         });
 
-        then(`calle's balance is modified correctly`, async () => {
+        then(`callee's balance is modified correctly`, async () => {
           for (const { token, toProvide, extraToReturn } of tokens) {
             const initialBalance = initialBalances.get(DCAHubSwapCallee.address)!.get(token())!;
             const currentBalance = await token().balanceOf(DCAHubSwapCallee.address);
@@ -1171,7 +1186,7 @@ contract('DCAHubSwapHandler', () => {
           const sender = await readArgFromEventOrFail(tx, 'Swapped', 'sender');
           const rewardRecipientInEvent = await readArgFromEventOrFail(tx, 'Swapped', 'rewardRecipient');
           const callbackHandler = await readArgFromEventOrFail(tx, 'Swapped', 'callbackHandler');
-          const swapInformation: SwapInformation = await readArgFromEventOrFail(tx, 'Swapped', 'swapInformation');
+          const swapInformation: IDCAHubSwapHandler.SwapInfoStructOutput = await readArgFromEventOrFail(tx, 'Swapped', 'swapInformation');
           const borrowed: BigNumber[] = await readArgFromEventOrFail(tx, 'Swapped', 'borrowed');
           const fee = await readArgFromEventOrFail(tx, 'Swapped', 'fee');
           expect(sender).to.equal(swapper.address);
@@ -1191,6 +1206,8 @@ contract('DCAHubSwapHandler', () => {
             expect(pair.ratioAToB).to.equal(expectedPair.ratioAToB);
             expect(pair.ratioBToA).to.equal(expectedPair.ratioBToA);
             expect(pair.intervalsInSwap).to.eql(expectedPair.intervalsInSwap);
+            expect(pair.totalAmountToSwapTokenA).to.equal(expectedPair.totalAmountToSwapTokenA);
+            expect(pair.totalAmountToSwapTokenB).to.equal(expectedPair.totalAmountToSwapTokenB);
           }
 
           expect(swapInformation.tokens.length).to.equal(result.tokens.length);
@@ -1552,9 +1569,4 @@ contract('DCAHubSwapHandler', () => {
   async function accumRatio(tokenA: TokenContract, tokenB: TokenContract, swapInterval: SwapInterval, swap: number) {
     return DCAHubSwapHandler.accumRatio(tokenA.address, tokenB.address, swapInterval.mask, swap);
   }
-
-  type SwapInformation = {
-    tokens: { token: string; reward: BigNumber; toProvide: BigNumber; platformFee: BigNumber }[];
-    pairs: { tokenA: string; tokenB: string; ratioAToB: BigNumber; ratioBToA: BigNumber; intervalsInSwap: string }[];
-  };
 });
