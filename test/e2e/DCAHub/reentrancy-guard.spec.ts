@@ -22,6 +22,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock';
 
 contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
+    const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
     let governor: SignerWithAddress;
     let dude: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
@@ -193,7 +194,7 @@ contract('DCAHub', () => {
         args,
         attackerContract,
         attack: async () => {
-          const result = await DCAHub.populateTransaction.swap([], [], constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, [], '0x');
+          const result = await DCAHub.populateTransaction.swap([], [], constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, [], BYTES, BYTES);
           return result.data!;
         },
       });

@@ -22,6 +22,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock';
 import { Permission } from 'js-lib/types';
 
 contract('DCAHub', () => {
+  const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
   describe('Full e2e test', () => {
     let governor: SignerWithAddress, john: SignerWithAddress;
     let lucy: SignerWithAddress, sarah: SignerWithAddress;
@@ -402,7 +403,7 @@ contract('DCAHub', () => {
         ],
         []
       );
-      await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5));
+      await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, BYTES, BYTES);
     }
 
     function getPosition(position: UserPositionDefinition): Promise<OngoingUserPosition> {
@@ -418,7 +419,7 @@ contract('DCAHub', () => {
         ],
         []
       );
-      return DCAHub.getNextSwapInfo(tokens, pairIndexes, true);
+      return DCAHub.getNextSwapInfo(tokens, pairIndexes, true, BYTES);
     }
 
     async function reducePosition(position: UserPositionDefinition, args: { newSwaps: number; amount: number }) {

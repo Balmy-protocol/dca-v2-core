@@ -127,7 +127,7 @@ describe('DCAHubPositionDescriptor', () => {
 
   async function swap() {
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: WETH.address, tokenB: USDC.address }], []);
-    await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, []);
+    await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, [], []);
     await evm.advanceTimeAndBlock(SWAP_INTERVAL);
   }
 

@@ -21,6 +21,7 @@ import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
   describe('Precision with low decimal tokens', () => {
+    const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
     const PRICE_IN_USDC = 100;
 
     let governor: SignerWithAddress;
@@ -104,7 +105,7 @@ contract('DCAHub', () => {
 
     async function swap({ callee }: { callee: HasAddress }) {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: USDC.address, tokenB: myToken.address }], []);
-      await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5));
+      await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, BYTES, BYTES);
     }
 
     async function setInitialBalance(

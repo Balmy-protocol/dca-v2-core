@@ -18,10 +18,12 @@ import { snapshot } from '@test-utils/evm';
 import { buildGetNextSwapInfoInput, buildSwapInput } from 'js-lib/swap-utils';
 import { SwapInterval } from 'js-lib/interval-utils';
 import { FakeContract, smock } from '@defi-wonderland/smock';
+import { DCAHubSwapHandler } from '@typechained/artifacts/contracts/mocks/DCAHub/DCAHubSwapHandler.sol/DCAHubSwapHandlerMock';
 
 const CALCULATE_FEE = (bn: BigNumberish) => BigNumber.from(bn).mul(6).div(1000);
 const APPLY_FEE = (bn: BigNumberish) => BigNumber.from(bn).mul(FEE_PRECISION).mul(994).div(1000);
 const FEE_PRECISION = 10000;
+const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
 
 contract('DCAHubSwapHandler', () => {
   let owner: SignerWithAddress;
@@ -57,6 +59,7 @@ contract('DCAHubSwapHandler', () => {
 
   beforeEach('Deploy and configure', async () => {
     await snapshot.revert(snapshotId);
+    priceOracle.quote.reset();
   });
 
   describe('_registerSwap', () => {
@@ -452,20 +455,22 @@ contract('DCAHubSwapHandler', () => {
     when('function is called', () => {
       let ratioAToB: BigNumber;
       let ratioBToA: BigNumber;
+      let magnitudes: DCAHubSwapHandler.PairMagnitudesStructOutput;
       given(async () => {
         setOracleData({ ratioBToA: tokenA.asUnits(0.6) });
-        [ratioAToB, ratioBToA] = await DCAHubSwapHandler.calculateRatio(
-          tokenA.address,
-          tokenB.address,
-          tokenA.magnitude,
-          tokenB.magnitude,
-          priceOracle.address
-        );
+        [ratioAToB, ratioBToA, magnitudes] = await DCAHubSwapHandler.calculateRatio(tokenA.address, tokenB.address, priceOracle.address, BYTES);
       });
       then('ratios are calculated correctly', () => {
         const expectedRatioBToA = tokenA.asUnits(0.6);
         expect(ratioAToB).to.equal(tokenA.magnitude.mul(tokenB.magnitude).div(expectedRatioBToA));
         expect(ratioBToA).to.equal(expectedRatioBToA);
+      });
+      then('magnitudes are calculated correctly', () => {
+        expect(magnitudes.magnitudeA).to.equal(tokenA.magnitude);
+        expect(magnitudes.magnitudeB).to.equal(tokenB.magnitude);
+      });
+      then('oracle is called correctly', () => {
+        expect(priceOracle.quote).to.have.been.calledOnceWith(tokenB.address, tokenB.magnitude, tokenA.address, BYTES);
       });
     });
   });
@@ -549,7 +554,7 @@ contract('DCAHubSwapHandler', () => {
             pairs.map(({ tokenA, tokenB }) => ({ tokenA: tokenA().address, tokenB: tokenB().address })),
             []
           );
-          swapInformation = await DCAHubSwapHandler.getNextSwapInfo(tokens, pairIndexes, true);
+          swapInformation = await DCAHubSwapHandler.getNextSwapInfo(tokens, pairIndexes, true, BYTES);
         });
 
         then('ratios are expose correctly', () => {
@@ -606,7 +611,7 @@ contract('DCAHubSwapHandler', () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAHubSwapHandler,
             func: 'getNextSwapInfo',
-            args: [tokens.map((token) => token().address), pairs, true],
+            args: [tokens.map((token) => token().address), pairs, true, BYTES],
             message: error,
           });
         });
@@ -955,7 +960,6 @@ contract('DCAHubSwapHandler', () => {
   };
 
   describe('flash swap', () => {
-    const BYTES = ethers.utils.randomBytes(5);
     let DCAHubSwapCallee: DCAHubSwapCalleeMock;
 
     given(async () => {
@@ -1008,6 +1012,8 @@ contract('DCAHubSwapHandler', () => {
               ratioAToB: BigNumber.from(ratioAToB),
               ratioBToA: BigNumber.from(ratioBToA),
               intervalsInSwap: SwapInterval.intervalsToByte(...intervalsInSwap),
+              totalAmountToSwapTokenA: constants.ZERO,
+              totalAmountToSwapTokenB: constants.ZERO,
             }))
           );
           result = {
@@ -1076,7 +1082,7 @@ contract('DCAHubSwapHandler', () => {
           await DCAHubSwapHandler.setBlockTimestamp(BLOCK_TIMESTAMP);
           await DCAHubSwapHandler.setInternalGetNextSwapInfo({ tokens: mappedTokens, pairs: mappedPairs });
 
-          tx = await DCAHubSwapHandler.connect(swapper).swap([], [], rewardRecipient.address, DCAHubSwapCallee.address, borrow, BYTES);
+          tx = await DCAHubSwapHandler.connect(swapper).swap([], [], rewardRecipient.address, DCAHubSwapCallee.address, borrow, BYTES, BYTES);
         });
 
         then(`calle's balance is modified correctly`, async () => {
@@ -1252,6 +1258,8 @@ contract('DCAHubSwapHandler', () => {
               ratioAToB: BigNumber.from(200000),
               ratioBToA: BigNumber.from(300000),
               intervalsInSwap: SwapInterval.intervalsToByte(...intervalsInSwap),
+              totalAmountToSwapTokenA: constants.ZERO,
+              totalAmountToSwapTokenB: constants.ZERO,
             }))
           );
           const mappedBorrow = tokens
@@ -1288,8 +1296,8 @@ contract('DCAHubSwapHandler', () => {
         then('should revert with message', async () => {
           await behaviours.txShouldRevertWithMessage({
             contract: DCAHubSwapHandler,
-            func: 'swap(address[],(uint8,uint8)[],address,address,uint256[],bytes)',
-            args: [tokensInput, pairIndexesInput, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrowInput, BYTES],
+            func: 'swap(address[],(uint8,uint8)[],address,address,uint256[],bytes,bytes)',
+            args: [tokensInput, pairIndexesInput, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrowInput, BYTES, BYTES],
             message: error,
           });
         });

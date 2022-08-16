@@ -24,6 +24,7 @@ import { expect } from 'chai';
 contract('DCAHub', () => {
   // We are now making a test where a lot of positions use the max rate allowed
   describe('Max rate', () => {
+    const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
     const MAX_UINT = BigNumber.from(2).pow(256).sub(1);
     const MAX_RATE = BigNumber.from(2).pow(120).sub(1); // max(uint120)
     const AMOUNT_OF_POSITIONS = 100;
@@ -99,7 +100,7 @@ contract('DCAHub', () => {
 
     async function assertThereIsNothingElseToSwap() {
       const { tokens, pairIndexes } = buildGetNextSwapInfoInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-      const { pairs } = await DCAHub.getNextSwapInfo(tokens, pairIndexes, true);
+      const { pairs } = await DCAHub.getNextSwapInfo(tokens, pairIndexes, true, BYTES);
       expect(pairs[0].intervalsInSwap).to.equal('0x00');
     }
 
@@ -126,7 +127,7 @@ contract('DCAHub', () => {
     async function flashSwap({ times }: { times: number }) {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
       for (let i = 0; i < times; i++) {
-        await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5));
+        await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, BYTES, BYTES);
         await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds * 2);
       }
     }

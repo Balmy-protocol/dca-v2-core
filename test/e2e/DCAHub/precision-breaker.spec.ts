@@ -20,6 +20,7 @@ import { SwapInterval } from 'js-lib/interval-utils';
 
 contract('DCAHub', () => {
   describe('Precision breaker', () => {
+    const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
     const PLATFORM_WITHDRAW_ROLE: string = new Web3().utils.soliditySha3('PLATFORM_WITHDRAW_ROLE') as string;
 
     let governor: SignerWithAddress;
@@ -130,7 +131,7 @@ contract('DCAHub', () => {
 
     async function flashSwap({ callee }: { callee: HasAddress }) {
       const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-      await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5));
+      await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, BYTES, BYTES);
     }
 
     async function setInitialBalance(

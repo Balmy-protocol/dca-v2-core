@@ -10,6 +10,11 @@ import '../libraries/FeeMath.sol';
 import './DCAHubConfigHandler.sol';
 
 abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDCAHubSwapHandler {
+  struct PairMagnitudes {
+    uint256 magnitudeA;
+    uint256 magnitudeB;
+  }
+
   using SafeERC20 for IERC20Metadata;
 
   function _registerSwap(
@@ -110,7 +115,8 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   }
 
   function _calculateRatio(
-    PairInSwap memory _pairInSwap,
+    address _tokenA,
+    address _tokenB,
     ITokenPriceOracle _oracle,
     bytes calldata _data
   )
@@ -120,14 +126,13 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     returns (
       uint256 _ratioAToB,
       uint256 _ratioBToA,
-      uint256 _magnitudeA,
-      uint256 _magnitudeB
+      PairMagnitudes memory _magnitudes
     )
   {
-    _magnitudeA = tokenMagnitude[_pairInSwap.tokenA];
-    _magnitudeB = tokenMagnitude[_pairInSwap.tokenB];
-    _ratioBToA = _oracle.quote(_pairInSwap.tokenB, _magnitudeB, _pairInSwap.tokenA, _data);
-    _ratioAToB = (_magnitudeB * _magnitudeA) / _ratioBToA;
+    _magnitudes.magnitudeA = tokenMagnitude[_tokenA];
+    _magnitudes.magnitudeB = tokenMagnitude[_tokenB];
+    _ratioBToA = _oracle.quote(_tokenB, _magnitudes.magnitudeB, _tokenA, _data);
+    _ratioAToB = (_magnitudes.magnitudeB * _magnitudes.magnitudeA) / _ratioBToA;
   }
 
   /// @inheritdoc IDCAHubSwapHandler
@@ -170,13 +175,17 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _total[indexTokenA] += _pairInSwap.totalAmountToSwapTokenA;
       _total[indexTokenB] += _pairInSwap.totalAmountToSwapTokenB;
 
-      uint256 _magnitudeA;
-      uint256 _magnitudeB;
+      // Note: it would be better to calculate the magnitudes here instead of inside `_calculateRatio`, but it throws a stack to deep error
+      PairMagnitudes memory _magnitudes;
+      (_pairInSwap.ratioAToB, _pairInSwap.ratioBToA, _magnitudes) = _calculateRatio(
+        _pairInSwap.tokenA,
+        _pairInSwap.tokenB,
+        _oracle,
+        _oracleData
+      );
 
-      (_pairInSwap.ratioAToB, _pairInSwap.ratioBToA, _magnitudeA, _magnitudeB) = _calculateRatio(_pairInSwap, _oracle, _oracleData);
-
-      _needed[indexTokenA] += _convertTo(_magnitudeB, _pairInSwap.totalAmountToSwapTokenB, _pairInSwap.ratioBToA, _swapFee);
-      _needed[indexTokenB] += _convertTo(_magnitudeA, _pairInSwap.totalAmountToSwapTokenA, _pairInSwap.ratioAToB, _swapFee);
+      _needed[indexTokenA] += _convertTo(_magnitudes.magnitudeB, _pairInSwap.totalAmountToSwapTokenB, _pairInSwap.ratioBToA, _swapFee);
+      _needed[indexTokenB] += _convertTo(_magnitudes.magnitudeA, _pairInSwap.totalAmountToSwapTokenA, _pairInSwap.ratioAToB, _swapFee);
 
       _swapInformation.pairs[i] = _pairInSwap;
     }

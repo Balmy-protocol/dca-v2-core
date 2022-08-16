@@ -103,7 +103,8 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
   }
 
   function calculateRatio(
-    PairInSwap memory _pairInSwap,
+    address _tokenA,
+    address _tokenB,
     ITokenPriceOracle _oracle,
     bytes calldata _oracleData
   )
@@ -112,15 +113,15 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     returns (
       uint256,
       uint256,
-      uint256,
-      uint256
+      PairMagnitudes memory
     )
   {
-    return _calculateRatio(_pairInSwap, _oracle, _oracleData);
+    return _calculateRatio(_tokenA, _tokenB, _oracle, _oracleData);
   }
 
   function _calculateRatio(
-    PairInSwap memory _pairInSwap,
+    address _tokenA,
+    address _tokenB,
     ITokenPriceOracle _oracle,
     bytes calldata _oracleData
   )
@@ -130,15 +131,16 @@ contract DCAHubSwapHandlerMock is DCAHubSwapHandler, DCAHubConfigHandlerMock {
     returns (
       uint256 _ratioAToB,
       uint256 _ratioBToA,
-      uint256 _magnitudeA,
-      uint256 _magnitudeB
+      PairMagnitudes memory _magnitudes
     )
   {
-    _ratioBToA = _ratios[_pairInSwap.tokenB][_pairInSwap.tokenA];
+    _ratioBToA = _ratios[_tokenB][_tokenA];
     if (_ratioBToA == 0) {
-      return super._calculateRatio(_pairInSwap, _oracle, _oracleData);
+      return super._calculateRatio(_tokenA, _tokenB, _oracle, _oracleData);
     }
-    _ratioAToB = (_magnitudeA * _magnitudeB) / _ratioBToA;
+    _magnitudes.magnitudeA = tokenMagnitude[_tokenA];
+    _magnitudes.magnitudeB = tokenMagnitude[_tokenB];
+    _ratioAToB = (_magnitudes.magnitudeA * _magnitudes.magnitudeB) / _ratioBToA;
   }
 
   // Used to register calls

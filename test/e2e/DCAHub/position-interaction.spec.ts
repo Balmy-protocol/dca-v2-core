@@ -23,6 +23,7 @@ import { snapshot } from '@test-utils/evm';
 contract('DCAHub', () => {
   // We are now making sure that positions can still be interacted with (without reverts) in certain contexts
   describe('Position Interaction', () => {
+    const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
     const MAX_UINT_120 = BigNumber.from(2).pow(120).sub(1); // max(uint120)
     const TOTAL_AMOUNT_OF_SWAPS = 2;
 
@@ -211,7 +212,7 @@ contract('DCAHub', () => {
           [tokenA.address, tokenB.address],
           [await tokenA.balanceOf(DCAHubSwapCallee.address), await tokenB.balanceOf(DCAHubSwapCallee.address)]
         );
-        await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5));
+        await DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, BYTES, BYTES);
         await evm.advanceTimeAndBlock(SwapInterval.ONE_DAY.seconds * 2);
       }
     }
