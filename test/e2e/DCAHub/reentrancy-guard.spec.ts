@@ -22,6 +22,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock';
 
 contract('DCAHub', () => {
   describe('Reentrancy Guard', () => {
+    const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
     let governor: SignerWithAddress;
     let dude: SignerWithAddress;
     let tokenA: TokenContract, tokenB: TokenContract;
@@ -73,13 +74,14 @@ contract('DCAHub', () => {
       });
 
       testReentrantForFunction({
-        funcAndSignature: 'swap(address[],(uint8,uint8)[],address,address,uint256[],bytes)',
+        funcAndSignature: 'swap',
         args: () => [
           [tokenA.address, tokenB.address],
           [{ indexTokenA: 0, indexTokenB: 1 }],
           reentrantDCAHubSwapCallee.address,
           reentrantDCAHubSwapCallee.address,
           [0, 0],
+          utils.formatBytes32String(''),
           utils.formatBytes32String(''),
         ],
         attackerContract: () => reentrantDCAHubSwapCallee,
@@ -193,7 +195,7 @@ contract('DCAHub', () => {
         args,
         attackerContract,
         attack: async () => {
-          const result = await DCAHub.populateTransaction.swap([], [], constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, [], '0x');
+          const result = await DCAHub.populateTransaction.swap([], [], constants.NOT_ZERO_ADDRESS, constants.NOT_ZERO_ADDRESS, [], BYTES, BYTES);
           return result.data!;
         },
       });

@@ -22,6 +22,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock';
 import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
+  const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
   let snapshotId: string;
   let governor: SignerWithAddress, john: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
@@ -153,7 +154,7 @@ contract('DCAHub', () => {
 
   async function flashSwap({ callee }: { callee: HasAddress }) {
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-    await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5));
+    await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, BYTES, BYTES);
   }
 
   type HasAddress = {

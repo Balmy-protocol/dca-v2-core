@@ -22,6 +22,7 @@ import { FakeContract, smock } from '@defi-wonderland/smock';
 import { snapshot } from '@test-utils/evm';
 
 contract('DCAHub', () => {
+  const BYTES = ethers.utils.hexlify(ethers.utils.randomBytes(5));
   let snapshotId: string;
   let governor: SignerWithAddress, john: SignerWithAddress;
   let tokenA: TokenContract, tokenB: TokenContract;
@@ -137,13 +138,13 @@ contract('DCAHub', () => {
     });
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
     await DCAHub.setAllowedTokens([tokenA.address], [false]);
-    await expect(
-      DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5))
-    ).to.be.revertedWith('UnallowedToken');
+    await expect(DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, BYTES, BYTES)).to.be.revertedWith(
+      'UnallowedToken'
+    );
     await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [true, false]);
-    await expect(
-      DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5))
-    ).to.be.revertedWith('UnallowedToken');
+    await expect(DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, BYTES, BYTES)).to.be.revertedWith(
+      'UnallowedToken'
+    );
   });
 
   it('user flow works even allowing previously unallowed tokens', async () => {
@@ -162,9 +163,9 @@ contract('DCAHub', () => {
     expect(await tokenB.balanceOf(john.address)).to.be.gt(previousBalance);
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
     await evm.advanceTimeAndBlock(SwapInterval.FIVE_MINUTES.seconds);
-    await expect(
-      DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, ethers.utils.randomBytes(5))
-    ).to.be.revertedWith('UnallowedToken');
+    await expect(DCAHub.swap(tokens, pairIndexes, DCAHubSwapCallee.address, DCAHubSwapCallee.address, borrow, BYTES, BYTES)).to.be.revertedWith(
+      'UnallowedToken'
+    );
     await DCAHub.setAllowedTokens([tokenA.address, tokenB.address], [true, true]);
     await flashSwap({ callee: DCAHubSwapCallee });
     const previousBalanceA = await tokenA.balanceOf(john.address);
@@ -200,7 +201,7 @@ contract('DCAHub', () => {
 
   async function flashSwap({ callee }: { callee: HasAddress }) {
     const { tokens, pairIndexes, borrow } = buildSwapInput([{ tokenA: tokenA.address, tokenB: tokenB.address }], []);
-    await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5));
+    await DCAHub.swap(tokens, pairIndexes, callee.address, callee.address, borrow, ethers.utils.randomBytes(5), ethers.utils.randomBytes(5));
   }
 
   type HasAddress = {
