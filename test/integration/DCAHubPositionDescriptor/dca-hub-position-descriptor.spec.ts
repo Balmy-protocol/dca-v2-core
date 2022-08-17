@@ -44,7 +44,7 @@ describe('DCAHubPositionDescriptor', () => {
     );
 
     await deterministicFactory.connect(deployerAdmin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
-    await deployments.run(['ChainlinkFeedRegistry', 'OracleAggregator', 'DCAHubPositionDescriptor', 'DCAHub'], {
+    await deployments.run(['ChainlinkFeedRegistry', 'TransformerRegistry', 'TransformerOracle', 'DCAHubPositionDescriptor', 'DCAHub'], {
       resetMemory: true,
       deletePreviousDeployments: false,
       writeDeploymentsToFiles: false,

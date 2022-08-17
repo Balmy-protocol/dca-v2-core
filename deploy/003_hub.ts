@@ -7,7 +7,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   const { deployer, msig } = await hre.getNamedAccounts();
 
   const timelock = await hre.deployments.get('Timelock');
-  const oracleAggregator = await hre.deployments.get('OracleAggregator');
+  const transformerOracle = await hre.deployments.get('TransformerOracle');
   const permissionsManager = await hre.deployments.get('PermissionsManager');
 
   const deployment = await deployThroughDeterministicFactory({
@@ -18,7 +18,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
     bytecode,
     constructorArgs: {
       types: ['address', 'address', 'address', 'address'],
-      values: [msig, timelock.address, oracleAggregator.address, permissionsManager.address],
+      values: [msig, timelock.address, transformerOracle.address, permissionsManager.address],
     },
     log: !process.env.TEST,
     overrides: {
@@ -29,5 +29,5 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   if (deployment.newlyDeployed) await hre.deployments.execute('PermissionsManager', { from: deployer }, 'setHub', deployment.address);
 };
 deployFunction.tags = ['DCAHub'];
-deployFunction.dependencies = ['OracleAggregator', 'PermissionsManager', 'Timelock'];
+deployFunction.dependencies = ['TransformerOracle', 'PermissionsManager', 'Timelock'];
 export default deployFunction;

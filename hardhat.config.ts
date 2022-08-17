@@ -160,6 +160,10 @@ if (process.env.TEST) {
       deploy: 'node_modules/@mean-finance/chainlink-registry/deploy',
     },
     {
+      artifacts: 'node_modules/@mean-finance/transformers/artifacts',
+      deploy: 'node_modules/@mean-finance/transformers/deploy',
+    },
+    {
       artifacts: 'node_modules/@mean-finance/oracles/artifacts',
       deploy: 'node_modules/@mean-finance/oracles/deploy',
     },
