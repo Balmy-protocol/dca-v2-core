@@ -118,7 +118,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     address _tokenA,
     address _tokenB,
     ITokenPriceOracle _oracle,
-    bytes calldata _data
+    bytes calldata _oracleData
   )
     internal
     view
@@ -131,7 +131,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   {
     _magnitudes.magnitudeA = tokenMagnitude[_tokenA];
     _magnitudes.magnitudeB = tokenMagnitude[_tokenB];
-    _ratioBToA = _oracle.quote(_tokenB, _magnitudes.magnitudeB, _tokenA, _data);
+    _ratioBToA = _oracle.quote(_tokenB, _magnitudes.magnitudeB, _tokenA, _oracleData);
     _ratioAToB = (_magnitudes.magnitudeB * _magnitudes.magnitudeA) / _ratioBToA;
   }
 
