@@ -36,7 +36,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "coverage": "npx hardhat coverage --solcoverjs ./solcover.js",
-    "deploy": "npx hardhat deploy",
+    "deploy": "TS_NODE_SKIP_IGNORE=true npx hardhat deploy",
     "fork": "FORK=true npx hardhat node",
     "fork:script": "FORK=true npx hardhat run",
     "fork:test": "FORK=true npx hardhat test",
@@ -52,12 +52,12 @@
     "test:all:parallel": "yarn test:parallel './test/e2e/**/*.spec.ts' 'test/unit/**/*.spec.ts'",
     "test:e2e": "yarn test ./test/e2e/**/*.spec.ts",
     "test:e2e:parallel": "yarn test:parallel ./test/e2e/**/*.spec.ts",
-    "test:gas": "yarn test",
-    "test:integration": "yarn test ./test/integration/**/*.spec.ts",
-    "test:integration:parallel": "yarn test:parallel ./test/integration/**/*.spec.ts",
+    "test:gas": "TS_NODE_SKIP_IGNORE=true yarn test",
+    "test:integration": "TS_NODE_SKIP_IGNORE=true yarn test ./test/integration/**/*.spec.ts",
+    "test:integration:parallel": "TS_NODE_SKIP_IGNORE=true yarn test:parallel ./test/integration/**/*.spec.ts",
     "test:parallel": "TEST=true hardhat compile && TEST=true mocha --parallel",
-    "test:unit": "yarn test test/unit/**/*.spec.ts",
-    "test:unit:parallel": "yarn test:parallel 'test/unit/**/*.spec.ts'",
+    "test:unit": "TS_NODE_SKIP_IGNORE=true yarn test test/unit/**/*.spec.ts",
+    "test:unit:parallel": "TS_NODE_SKIP_IGNORE=true yarn test:parallel 'test/unit/**/*.spec.ts'",
     "verify": "npx hardhat run scripts/verify-contracts.ts"
   },
   "dependencies": {
