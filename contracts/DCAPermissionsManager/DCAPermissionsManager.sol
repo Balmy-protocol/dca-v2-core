@@ -97,14 +97,14 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
     _hasPermissions = new bool[](_permissions.length);
     if (ownerOf(_id) == _address) {
       // If the address is the owner, then they have all permissions
-      for (uint256 i; i < _permissions.length; i++) {
+      for (uint256 i = 0; i < _permissions.length; i++) {
         _hasPermissions[i] = true;
       }
     } else {
       // If it's not the owner, then check one by one
       TokenPermission memory _tokenPermission = tokenPermissions[_id][_address];
       if (lastOwnershipChange[_id] < _tokenPermission.lastUpdated) {
-        for (uint256 i; i < _permissions.length; i++) {
+        for (uint256 i = 0; i < _permissions.length; i++) {
           if (_tokenPermission.permissions.hasPermission(_permissions[i])) {
             _hasPermissions[i] = true;
           }
@@ -234,7 +234,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   function _encode(PositionPermissions[] calldata _permissions) internal pure returns (bytes memory _result) {
-    for (uint256 i; i < _permissions.length; ) {
+    for (uint256 i = 0; i < _permissions.length; ) {
       _result = bytes.concat(_result, keccak256(_encode(_permissions[i])));
       unchecked {
         i++;
@@ -247,7 +247,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   function _encode(PermissionSet[] calldata _permissions) internal pure returns (bytes memory _result) {
-    for (uint256 i; i < _permissions.length; ) {
+    for (uint256 i = 0; i < _permissions.length; ) {
       _result = bytes.concat(_result, keccak256(_encode(_permissions[i])));
       unchecked {
         i++;
@@ -261,7 +261,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
 
   function _encode(Permission[] calldata _permissions) internal pure returns (bytes memory _result) {
     _result = new bytes(_permissions.length * 32);
-    for (uint256 i; i < _permissions.length; ) {
+    for (uint256 i = 0; i < _permissions.length; ) {
       _result[(i + 1) * 32 - 1] = bytes1(uint8(_permissions[i]));
       unchecked {
         i++;
@@ -276,7 +276,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
 
   function _setPermissions(uint256 _id, PermissionSet[] calldata _permissions) internal {
     uint248 _blockNumber = uint248(_getBlockNumber());
-    for (uint256 i; i < _permissions.length; ) {
+    for (uint256 i = 0; i < _permissions.length; ) {
       PermissionSet memory _permissionSet = _permissions[i];
       if (_permissionSet.permissions.length == 0) {
         delete tokenPermissions[_id][_permissionSet.operator];
