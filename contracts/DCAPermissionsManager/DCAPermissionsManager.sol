@@ -121,9 +121,16 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   }
 
   /// @inheritdoc IDCAPermissionManager
-  function modify(uint256 _id, PermissionSet[] calldata _permissions) external {
+  function modify(uint256 _id, PermissionSet[] calldata _permissions) public virtual {
     if (msg.sender != ownerOf(_id)) revert NotOwner();
     _modify(_id, _permissions);
+  }
+
+  /// @inheritdoc IDCAPermissionManager
+  function modifyMany(PositionPermissions[] calldata _permissions) external {
+    for (uint256 i = 0; i < _permissions.length; i++) {
+      modify(_permissions[i].tokenId, _permissions[i].permissionSets);
+    }
   }
 
   /// @inheritdoc IDCAPermissionManager
