@@ -220,7 +220,7 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
 
   /**
    * @notice Sets permissions via signature
-   * @dev This method works similarly to `modifyMany`, but instead of being executed by the owner, it can be set my signature
+   * @dev This method works similarly to `modifyMany`, but instead of being executed by the owner, it can be set by signature
    * @param permissions The permissions to set for the different positions
    * @param deadline The deadline timestamp by which the call must be mined for the approve to work
    * @param v Must produce valid secp256k1 signature from the holder along with `r` and `s`

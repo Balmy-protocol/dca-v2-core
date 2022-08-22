@@ -202,7 +202,7 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
       uint256 _tokenId = _permissions[i].tokenId;
       if (i > 0) {
         address _positionOwner = ownerOf(_tokenId);
-        if (_owner != _positionOwner) revert NotOwner();
+        if (_signer != _positionOwner) revert NotOwner();
       }
       _modify(_tokenId, _permissions[i].permissionSets);
     }
