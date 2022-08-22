@@ -169,7 +169,7 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
   function burn(uint256 id) external;
 
   /**
-   * @notice Sets new permissions for the given tokens
+   * @notice Sets new permissions for the given token
    * @dev Will revert with NotOwner if the caller is not the token's owner.
    *      Operators that are not part of the given permission sets do not see their permissions modified.
    *      In order to remove permissions to an operator, provide an empty list of permissions for them
@@ -177,6 +177,13 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
    * @param permissions A list of permission sets
    */
   function modify(uint256 id, PermissionSet[] calldata permissions) external;
+
+  /**
+   * @notice Sets new permissions for the given tokens
+   * @dev This is basically the same as executing multiple `modify`
+   * @param permissions A list of position permissions to set
+   */
+  function modifyMany(PositionPermissions[] calldata permissions) external;
 
   /**
    * @notice Approves spending of a specific token ID by spender via signature

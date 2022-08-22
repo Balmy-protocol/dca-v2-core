@@ -440,6 +440,36 @@ contract('DCAPermissionsManager', () => {
     }
   });
 
+  describe('modifyMany', () => {
+    const TOKEN_ID_1 = 1;
+    const TOKEN_ID_2 = 2;
+    const [OPERATOR_1, OPERATOR_2] = ['0x0000000000000000000000000000000000000001', '0x0000000000000000000000000000000000000002'];
+
+    when('executing modifyMany', () => {
+      given(async () => {
+        const owner = await wallet.generateRandom();
+        await DCAPermissionsManager.mint(TOKEN_ID_1, owner.address, []);
+        await DCAPermissionsManager.mint(TOKEN_ID_2, owner.address, []);
+        await DCAPermissionsManager.connect(owner).modifyMany([
+          { tokenId: TOKEN_ID_1, permissionSets: [{ operator: OPERATOR_1, permissions: [Permission.TERMINATE, Permission.REDUCE] }] },
+          { tokenId: TOKEN_ID_2, permissionSets: [{ operator: OPERATOR_2, permissions: [Permission.WITHDRAW] }] },
+        ]);
+      });
+      then('modify is called correctly', async () => {
+        const calls = await DCAPermissionsManager.getModifyCalls();
+        expect(calls).to.have.lengthOf(2);
+        expect(calls[0].tokenId).to.equal(TOKEN_ID_1);
+        expect(calls[0].permissionSets).to.have.lengthOf(1);
+        expect(calls[0].permissionSets[0].operator).to.equal(OPERATOR_1);
+        expect(calls[0].permissionSets[0].permissions).to.eql([Permission.TERMINATE, Permission.REDUCE]);
+        expect(calls[1].tokenId).to.equal(TOKEN_ID_2);
+        expect(calls[1].permissionSets).to.have.lengthOf(1);
+        expect(calls[1].permissionSets[0].operator).to.equal(OPERATOR_2);
+        expect(calls[1].permissionSets[0].permissions).to.eql([Permission.WITHDRAW]);
+      });
+    });
+  });
+
   describe('permit', () => {
     const TOKEN_ID = 1;
     const SPENDER = wallet.generateRandomAddress();
