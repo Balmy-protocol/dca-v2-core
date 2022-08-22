@@ -34,6 +34,14 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
     Permission[] permissions;
   }
 
+  /// @notice A collection of permissions sets for a specific position
+  struct PositionPermissions {
+    // The id of the token
+    uint256 tokenId;
+    // The permissions to assign to the position
+    PermissionSet[] permissionSets;
+  }
+
   /**
    * @notice Emitted when permissions for a token are modified
    * @param tokenId The id of the token
@@ -80,11 +88,25 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
   function PERMISSION_PERMIT_TYPEHASH() external pure returns (bytes32);
 
   /**
+   * @notice The permit typehash used in the multi permission permit signature
+   * @return The typehash for the multi permission permit
+   */
+  // solhint-disable-next-line func-name-mixedcase
+  function MULTI_PERMISSION_PERMIT_TYPEHASH() external pure returns (bytes32);
+
+  /**
    * @notice The permit typehash used in the permission permit signature
    * @return The typehash for the permission set
    */
   // solhint-disable-next-line func-name-mixedcase
   function PERMISSION_SET_TYPEHASH() external pure returns (bytes32);
+
+  /**
+   * @notice The permit typehash used in the multi permission permit signature
+   * @return The typehash for the position permissions
+   */
+  // solhint-disable-next-line func-name-mixedcase
+  function POSITION_PERMISSIONS_TYPEHASH() external pure returns (bytes32);
 
   /**
    * @notice The domain separator used in the permit signature
@@ -190,6 +212,23 @@ interface IDCAPermissionManager is IERC721, IERC721BasicEnumerable {
   function permit(
     address spender,
     uint256 tokenId,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external;
+
+  /**
+   * @notice Sets permissions via signature
+   * @dev This method works similarly to `modifyMany`, but instead of being executed by the owner, it can be set by signature
+   * @param permissions The permissions to set for the different positions
+   * @param deadline The deadline timestamp by which the call must be mined for the approve to work
+   * @param v Must produce valid secp256k1 signature from the holder along with `r` and `s`
+   * @param r Must produce valid secp256k1 signature from the holder along with `v` and `s`
+   * @param s Must produce valid secp256k1 signature from the holder along with `r` and `v`
+   */
+  function multiPermissionPermit(
+    PositionPermissions[] calldata permissions,
     uint256 deadline,
     uint8 v,
     bytes32 r,

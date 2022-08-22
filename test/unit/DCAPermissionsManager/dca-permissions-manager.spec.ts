@@ -1,17 +1,19 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { DCAPermissionsManagerMock__factory, DCAPermissionsManagerMock } from '@typechained';
+import { IDCAPermissionManager } from '@typechained/artifacts/contracts/interfaces/IDCAPermissionManager.sol/IDCAPermissionManager';
 import { constants, wallet, behaviours } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { snapshot } from '@test-utils/evm';
 import { Permission } from 'js-lib/types';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { readArgFromEventOrFail } from '@test-utils/event-utils';
+import { getInstancesOfEvent, readArgFromEventOrFail } from '@test-utils/event-utils';
 import { Wallet } from '@ethersproject/wallet';
 import { BigNumber } from '@ethersproject/bignumber';
 import { _TypedDataEncoder } from '@ethersproject/hash';
 import { fromRpcSig } from 'ethereumjs-util';
+import { BigNumberish } from 'ethers';
 
 contract('DCAPermissionsManager', () => {
   const NFT_NAME = 'Mean Finance - DCA Position';
@@ -750,6 +752,228 @@ contract('DCAPermissionsManager', () => {
     type OperationData = {
       signer: Wallet;
       permissions: { operator: string; permissions: Permission[] }[];
+      nonce: BigNumber;
+      deadline: BigNumber;
+      chainId: BigNumber;
+    };
+  });
+
+  describe('multiPermissionPermit', () => {
+    const [TOKEN_ID_1, TOKEN_ID_2, TOKEN_ID_3] = [1, 2, 3];
+    const OPERATOR = wallet.generateRandomAddress();
+    let owner: Wallet, stranger: Wallet;
+
+    given(async () => {
+      owner = await wallet.generateRandom();
+      stranger = await wallet.generateRandom();
+      await DCAPermissionsManager.mint(TOKEN_ID_1, owner.address, []);
+      await DCAPermissionsManager.mint(TOKEN_ID_2, owner.address, []);
+      await DCAPermissionsManager.mint(TOKEN_ID_3, stranger.address, []);
+    });
+
+    multiPermissionPermitTest({
+      when: 'setting only one permission',
+      positions: [{ tokenId: TOKEN_ID_1, permissions: [Permission.INCREASE] }],
+    });
+
+    multiPermissionPermitTest({
+      when: 'setting two permissions',
+      positions: [
+        { tokenId: TOKEN_ID_1, permissions: [Permission.INCREASE, Permission.WITHDRAW] },
+        { tokenId: TOKEN_ID_2, permissions: [Permission.REDUCE, Permission.TERMINATE] },
+      ],
+    });
+
+    multiPermissionPermitTest({
+      when: 'setting three permissions',
+      positions: [
+        { tokenId: TOKEN_ID_1, permissions: [Permission.INCREASE, Permission.WITHDRAW, Permission.TERMINATE] },
+        { tokenId: TOKEN_ID_2, permissions: [Permission.REDUCE, Permission.TERMINATE, Permission.INCREASE] },
+      ],
+    });
+
+    multiPermissionPermitTest({
+      when: 'setting all permissions',
+      positions: [
+        { tokenId: TOKEN_ID_1, permissions: [Permission.INCREASE, Permission.REDUCE, Permission.WITHDRAW, Permission.TERMINATE] },
+        { tokenId: TOKEN_ID_2, permissions: [Permission.INCREASE, Permission.REDUCE, Permission.WITHDRAW, Permission.TERMINATE] },
+      ],
+    });
+
+    multiPermitFailsTest({
+      when: 'no positions are passed',
+      exec: () => signAndPermit({ signer: stranger, positions: [] }),
+      txFailsWith:
+        'VM Exception while processing transaction: reverted with panic code 0x32 (Array accessed at an out-of-bounds or negative index)',
+    });
+
+    multiPermitFailsTest({
+      when: 'some stranger tries to permit',
+      exec: () => signAndPermit({ signer: stranger }),
+      txFailsWith: 'InvalidSignature',
+    });
+
+    multiPermitFailsTest({
+      when: 'permit is expired',
+      exec: () => signAndPermit({ signer: owner, deadline: BigNumber.from(0) }),
+      txFailsWith: 'ExpiredDeadline',
+    });
+
+    multiPermitFailsTest({
+      when: 'chainId is different',
+      exec: () => signAndPermit({ signer: owner, chainId: BigNumber.from(20) }),
+      txFailsWith: 'InvalidSignature',
+    });
+
+    multiPermitFailsTest({
+      when: 'signer signed something differently',
+      exec: async () => {
+        const data = withDefaults({ signer: owner, deadline: constants.MAX_UINT_256 });
+        const signature = await getSignature(data);
+        return permissionPermit({ ...data, deadline: constants.MAX_UINT_256.sub(1) }, signature);
+      },
+      txFailsWith: 'InvalidSignature',
+    });
+
+    multiPermitFailsTest({
+      when: 'signature is reused',
+      exec: async () => {
+        const data = withDefaults({ signer: owner });
+        const signature = await getSignature(data);
+        await permissionPermit(data, signature);
+        return permissionPermit(data, signature);
+      },
+      txFailsWith: 'InvalidSignature',
+    });
+
+    multiPermitFailsTest({
+      when: 'signers tries to modify a position that is not theirs',
+      exec: () =>
+        signAndPermit({
+          signer: owner,
+          positions: [
+            { tokenId: TOKEN_ID_1, permissionSets: [] }, // Belongs to signer
+            { tokenId: TOKEN_ID_3, permissionSets: [] }, // Does not belong to signer
+          ],
+        }),
+      txFailsWith: 'NotOwner',
+    });
+
+    function multiPermissionPermitTest({
+      when: title,
+      positions,
+    }: {
+      when: string;
+      positions: { tokenId: BigNumberish; permissions: Permission[] }[];
+    }) {
+      when(title, () => {
+        let tx: TransactionResponse;
+
+        given(async () => {
+          const input = positions.map(({ tokenId, permissions }) => ({ tokenId, permissionSets: [{ operator: OPERATOR, permissions }] }));
+          tx = await signAndPermit({ signer: owner, positions: input });
+        });
+
+        then('operator gains permissions', async () => {
+          for (const { tokenId, permissions } of positions) {
+            for (const permission of permissions) {
+              expect(await DCAPermissionsManager.hasPermission(tokenId, OPERATOR, permission)).to.be.true;
+            }
+          }
+        });
+
+        then('nonces is increased', async () => {
+          expect(await DCAPermissionsManager.nonces(owner.address)).to.be.equal(1);
+        });
+
+        then('event is emitted', async () => {
+          const events = await getInstancesOfEvent(tx, 'Modified');
+          expect(events).to.have.lengthOf(positions.length);
+          for (let i = 0; i < positions.length; i++) {
+            const { tokenId, permissions } = events[i].args;
+            expect(tokenId).to.equal(positions[i].tokenId);
+            expect(permissions).to.have.lengthOf(1);
+            expect(permissions[0].operator).to.equal(OPERATOR);
+            expect(permissions[0].permissions).to.eql(positions[i].permissions);
+          }
+        });
+      });
+    }
+
+    function multiPermitFailsTest({
+      when: title,
+      exec,
+      txFailsWith: errorMessage,
+    }: {
+      when: string;
+      exec: () => Promise<TransactionResponse>;
+      txFailsWith: string;
+    }) {
+      when(title, () => {
+        let tx: Promise<TransactionResponse>;
+        given(() => {
+          tx = exec();
+        });
+        then('tx reverts with message', async () => {
+          await behaviours.checkTxRevertedWithMessage({ tx, message: errorMessage });
+        });
+      });
+    }
+
+    async function signAndPermit(options: Pick<OperationData, 'signer'> & Partial<OperationData>) {
+      const data = withDefaults(options);
+      const signature = await getSignature(data);
+      return permissionPermit(data, signature);
+    }
+
+    async function permissionPermit(data: OperationData, { v, r, s }: { v: number; r: Buffer; s: Buffer }) {
+      return DCAPermissionsManager.multiPermissionPermit(data.positions, data.deadline, v, r, s);
+    }
+
+    function withDefaults(options: Pick<OperationData, 'signer'> & Partial<OperationData>): OperationData {
+      return {
+        nonce: BigNumber.from(0),
+        deadline: constants.MAX_UINT_256,
+        positions: [{ tokenId: TOKEN_ID_1, permissionSets: [] }],
+        chainId,
+        ...options,
+      };
+    }
+
+    const PermissionSet = [
+      { name: 'operator', type: 'address' },
+      { name: 'permissions', type: 'uint8[]' },
+    ];
+
+    const PositionPermissions = [
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'permissionSets', type: 'PermissionSet[]' },
+    ];
+
+    const MultiPermissionPermit = [
+      { name: 'positions', type: 'PositionPermissions[]' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+    ];
+
+    async function getSignature(options: OperationData) {
+      const { domain, types, value } = buildPermitData(options);
+      const signature = await options.signer._signTypedData(domain, types, value);
+      return fromRpcSig(signature);
+    }
+
+    function buildPermitData(options: OperationData) {
+      return {
+        primaryType: 'MultiPermissionPermit',
+        types: { MultiPermissionPermit, PositionPermissions, PermissionSet },
+        domain: { name: NFT_NAME, version: '2', chainId: options.chainId, verifyingContract: DCAPermissionsManager.address },
+        value: { ...options },
+      };
+    }
+
+    type OperationData = {
+      signer: Wallet;
+      positions: IDCAPermissionManager.PositionPermissionsStruct[];
       nonce: BigNumber;
       deadline: BigNumber;
       chainId: BigNumber;
