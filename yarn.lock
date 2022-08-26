@@ -328,9 +328,9 @@
   integrity sha512-bvaTH34PMCbv6anRa9I/0zjLJgY4EuznbEMgbV77JBCQ9KNC46rzi0avuxpOfu+xDjPEtSFGqVEOr5GlUSGudA==
 
 "@eth-optimism/contracts@^0.5.21":
-  version "0.5.32"
-  resolved "https://registry.yarnpkg.com/@eth-optimism/contracts/-/contracts-0.5.32.tgz#3cc1ba823e9e71662954321025267522b0e928b8"
-  integrity sha512-wHcilwbQGxllfl43Has5l8PAOghtukRgwdhnQqrdR+XshHwlgnNH5lE5/48BjqSJDykxovmqP9rjQvHEWd5qSw==
+  version "0.5.33"
+  resolved "https://registry.yarnpkg.com/@eth-optimism/contracts/-/contracts-0.5.33.tgz#1adeb902ff849152ecdb8639af5ba76dfc27c213"
+  integrity sha512-lOj0psjl/7oydUXuSXhZ3P55zAXBNSgK6OzZeCW6JQ+drN+1OEdyp/MYKrSh8Cw8fW2k9MMdWbOuTa7/Blb0hA==
   dependencies:
     "@eth-optimism/core-utils" "0.9.3"
     "@ethersproject/abstract-provider" "^5.6.1"
@@ -1238,27 +1238,27 @@
     "@mean-finance/deterministic-factory" "1.3.2"
     "@openzeppelin/contracts" "4.7.3"
 
-"@mean-finance/oracles@2.0.0-rc5":
-  version "2.0.0-rc5"
-  resolved "https://registry.yarnpkg.com/@mean-finance/oracles/-/oracles-2.0.0-rc5.tgz#97f258fe5e2ed3c2200458e38c3f52464ecc4659"
-  integrity sha512-+3eiv6vIobMyzcR23Z2wVAfWc/HPvQ5Y6EFsyFBgpKSI1BwRL9ivHokdmNd1604SOFwktv/iVfRDEl1ArSDyHg==
+"@mean-finance/oracles@2.0.0-rc6":
+  version "2.0.0-rc6"
+  resolved "https://registry.yarnpkg.com/@mean-finance/oracles/-/oracles-2.0.0-rc6.tgz#6c9a8faf45970cf1fd1f0707cf75da02a6f67db4"
+  integrity sha512-5DVlOtM8yQQS9jbAV3cqZs2FDB8zaQp5otviG0voTjC+HwSem1q54KFujNc9DGlxX7OfzDorrhLRHVl9rsp+Zw==
   dependencies:
     "@0xged/hardhat-deploy" "0.11.5"
     "@chainlink/contracts" "0.4.2"
     "@mean-finance/chainlink-registry" "2.0.0-rc5"
-    "@mean-finance/deterministic-factory" "1.3.1"
-    "@mean-finance/transformers" "1.0.0-rc6"
+    "@mean-finance/deterministic-factory" "1.3.2"
+    "@mean-finance/transformers" "1.0.0-rc7"
     "@mean-finance/uniswap-v3-oracle" "1.0.0"
     "@openzeppelin/contracts" "4.7.3"
     "@uniswap/v3-core" "1.0.1"
 
-"@mean-finance/transformers@1.0.0-rc6":
-  version "1.0.0-rc6"
-  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.0.0-rc6.tgz#1d5695b9b764cddec7fb20a28f8e6d04335c3051"
-  integrity sha512-SNtLRJCVQVDPs0ioLgVG1+uenhibUjH1Es7Xgiw0+/3Gjz9i/6rUeuog1e9aT8NLVn/zuLUdUEVQ/TcAF4fTkA==
+"@mean-finance/transformers@1.0.0-rc7":
+  version "1.0.0-rc7"
+  resolved "https://registry.yarnpkg.com/@mean-finance/transformers/-/transformers-1.0.0-rc7.tgz#4d0270b2dd14967f5f18f56f065a0e3490cd4c5c"
+  integrity sha512-0lk4SLDHuspyJMczuR/HGG+Ma+jlMlIWjn1uL0ci0GiA9Toe4ERqcIVNQrhUnlQFu4Z/SQ5BiZtPIDXUVzWZ8g==
   dependencies:
     "@0xged/hardhat-deploy" "0.11.5"
-    "@mean-finance/deterministic-factory" "1.3.1"
+    "@mean-finance/deterministic-factory" "1.3.2"
     "@openzeppelin/contracts" "4.7.3"
 
 "@mean-finance/uniswap-v3-oracle@1.0.0":
@@ -4930,9 +4930,9 @@ ee-first@1.1.1:
   integrity sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==
 
 electron-to-chromium@^1.3.47:
-  version "1.4.230"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.230.tgz#666909fdf5765acb1348b69752ee9955dc1664b7"
-  integrity sha512-3pwjAK0qHSDN9+YAF4fJknsSruP7mpjdWzUSruIJD/JCH77pEh0SorEyb3xVaKkfwk2tzjOt2D8scJ0KAdfXLA==
+  version "1.4.232"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.4.232.tgz#67a0a874b0057662244230d18d3a9847c135a9d9"
+  integrity sha512-nd+FW8xHjM+PxNWG44nKnwHaBDdVpJUZuI2sS2JJPt/QpdombnmoCRWEEQNnzaktdIQhsNWdD+dlqxwO8Bn99g==
 
 elliptic@6.5.4, elliptic@^6.4.0, elliptic@^6.5.2, elliptic@^6.5.3, elliptic@^6.5.4:
   version "6.5.4"
@@ -11985,9 +11985,9 @@ typescript@4.7.2:
   integrity sha512-Mamb1iX2FDUpcTRzltPxgWMKy3fhg0TN378ylbktPGPK/99KbDtMQ4W1hwgsbPAsG3a0xKa1vmw4VKZQbkvz5A==
 
 typescript@^4.4.3:
-  version "4.7.4"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.7.4.tgz#1a88596d1cf47d59507a1bcdfb5b9dfe4d488235"
-  integrity sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==
+  version "4.8.2"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.8.2.tgz#e3b33d5ccfb5914e4eeab6699cf208adee3fd790"
+  integrity sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==
 
 typewise-core@^1.2, typewise-core@^1.2.0:
   version "1.2.0"

@@ -1,6 +1,6 @@
 {
   "name": "@mean-finance/dca-v2-core",
-  "version": "3.0.0-rc2",
+  "version": "3.0.0-rc3",
   "description": "Core smart contracts of DCA v2 by mean.finance",
   "keywords": [
     "ethereum",
@@ -62,9 +62,9 @@
   },
   "dependencies": {
     "@0xged/hardhat-deploy": "0.11.5",
-    "@mean-finance/deterministic-factory": "1.3.1",
+    "@mean-finance/deterministic-factory": "1.3.2",
     "@mean-finance/nft-descriptors": "1.0.0-rc4",
-    "@mean-finance/oracles": "2.0.0-rc5",
+    "@mean-finance/oracles": "2.0.0-rc6",
     "@openzeppelin/contracts": "4.7.3"
   },
   "devDependencies": {
