@@ -16,6 +16,6 @@
       "@typechained": ["typechained/index"]
     }
   },
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist"],
   "include": ["./typechained"]
 }

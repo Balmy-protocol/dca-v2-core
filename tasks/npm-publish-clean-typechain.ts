@@ -13,8 +13,21 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE_JOBS, 'Clean mocks from types if needed').
       .toString('utf-8')
       .split(/\r?\n/)
       .filter((line) => !line.includes('mocks'))
+      .filter((line) => !line.includes('nodeModules'))
+      .filter((line) => !line.includes('node_modules'))
       .join('\n');
     await fs.writeFile('./typechained/index.ts', finalTypechainIndex, 'utf-8');
+    // Cleaning typechained/factories/index
+    console.log(`  🧹 Excluding from factorie's main index`);
+    typechainIndexBuffer = await fs.readFile('./typechained/factories/index.ts');
+    finalTypechainIndex = typechainIndexBuffer
+      .toString('utf-8')
+      .split(/\r?\n/)
+      .filter((line) => !line.includes('mocks'))
+      .filter((line) => !line.includes('nodeModules'))
+      .filter((line) => !line.includes('node_modules'))
+      .join('\n');
+    await fs.writeFile('./typechained/factories/index.ts', finalTypechainIndex, 'utf-8');
     // Cleaning typechained/artifacts/contracts/index
     console.log(`  🧹 Excluding from artifact's contracts index`);
     typechainIndexBuffer = await fs.readFile('./typechained/artifacts/contracts/index.ts');
@@ -31,6 +44,8 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE_JOBS, 'Clean mocks from types if needed').
       .toString('utf-8')
       .split(/\r?\n/)
       .filter((line) => !line.includes('mock'))
+      .filter((line) => !line.includes('nodeModules'))
+      .filter((line) => !line.includes('node_modules'))
       .join('\n');
     await fs.writeFile('./typechained/factories/artifacts/contracts/index.ts', finalTypechainIndex, 'utf-8');
   }
