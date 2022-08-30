@@ -9,7 +9,7 @@ import { DCAHub, DCAHubSwapCalleeMock, DCAHubSwapCalleeMock__factory, DCAPermiss
 import isSvg from 'is-svg';
 import { expect } from 'chai';
 import { buildSwapInput } from 'js-lib/swap-utils';
-import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory/typechained';
+import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory';
 
 const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
