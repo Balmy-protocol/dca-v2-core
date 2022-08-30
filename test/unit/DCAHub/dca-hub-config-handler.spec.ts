@@ -1,8 +1,8 @@
 import { expect } from 'chai';
-import { BigNumber, Contract, utils } from 'ethers';
+import { Contract, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { TransactionResponse } from '@ethersproject/abstract-provider';
-import { constants, behaviours, contracts } from '@test-utils';
+import { constants, behaviours } from '@test-utils';
 import { given, then, when, contract } from '@test-utils/bdd';
 import { snapshot } from '@test-utils/evm';
 import { DCAHubConfigHandlerMock, DCAHubConfigHandlerMock__factory, IERC20Metadata, IERC20Metadata__factory } from '@typechained';
@@ -11,7 +11,6 @@ import { SwapInterval } from 'js-lib/interval-utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { generateRandomAddress } from '@test-utils/wallet';
 import { FakeContract, smock } from '@defi-wonderland/smock';
-import { IERC20 } from '@mean-finance/deterministic-factory/typechained';
 
 contract('DCAHubConfigHandler', () => {
   let owner: SignerWithAddress, timeLockedOwner: SignerWithAddress, oracle: SignerWithAddress;
