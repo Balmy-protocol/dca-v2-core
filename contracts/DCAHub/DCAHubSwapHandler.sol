@@ -55,10 +55,10 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
   function _convertTo(
     uint256 _fromTokenMagnitude,
     uint256 _amountFrom,
-    uint256 _rateFromTo,
+    uint256 _ratioFromTo,
     uint32 _swapFee
   ) internal pure returns (uint256 _amountTo) {
-    uint256 _numerator = FeeMath.subtractFeeFromAmount(_swapFee, _amountFrom * _rateFromTo);
+    uint256 _numerator = FeeMath.subtractFeeFromAmount(_swapFee, _amountFrom * _ratioFromTo);
     _amountTo = _numerator / _fromTokenMagnitude;
     // Note: we need to round up because we can't ask for less than what we actually need
     if (_numerator % _fromTokenMagnitude != 0) _amountTo++;
