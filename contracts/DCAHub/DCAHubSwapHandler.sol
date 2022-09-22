@@ -175,7 +175,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _total[indexTokenA] += _pairInSwap.totalAmountToSwapTokenA;
       _total[indexTokenB] += _pairInSwap.totalAmountToSwapTokenB;
 
-      // Note: it would be better to calculate the magnitudes here instead of inside `_calculateRatio`, but it throws a "stack to deep" error
+      // Note: it would be better to calculate the magnitudes here instead of inside `_calculateRatio`, but it throws a "stack too deep" error
       PairMagnitudes memory _magnitudes;
       (_pairInSwap.ratioAToB, _pairInSwap.ratioBToA, _magnitudes) = _calculateRatio(
         _pairInSwap.tokenA,
