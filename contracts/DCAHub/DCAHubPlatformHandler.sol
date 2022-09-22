@@ -14,9 +14,12 @@ abstract contract DCAHubPlatformHandler is ReentrancyGuard, DCAHubConfigHandler,
     nonReentrant
     onlyRole(PLATFORM_WITHDRAW_ROLE)
   {
-    for (uint256 i; i < _amounts.length; i++) {
+    for (uint256 i = 0; i < _amounts.length; ) {
       platformBalance[_amounts[i].token] -= _amounts[i].amount;
       _transfer(_amounts[i].token, _recipient, _amounts[i].amount);
+      unchecked {
+        i++;
+      }
     }
 
     emit WithdrewFromPlatform(msg.sender, _recipient, _amounts);
