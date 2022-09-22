@@ -51,11 +51,14 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   function setAllowedTokens(address[] calldata _tokens, bool[] calldata _allowed) external onlyRole(IMMEDIATE_ROLE) {
     if (_tokens.length != _allowed.length) revert InvalidAllowedTokensInput();
-    for (uint256 i; i < _tokens.length; i++) {
+    for (uint256 i = 0; i < _tokens.length; ) {
       address _token = _tokens[i];
       allowedTokens[_token] = _allowed[i];
       if (tokenMagnitude[_token] == 0) {
         tokenMagnitude[_token] = uint120(10**IERC20Metadata(_token).decimals());
+      }
+      unchecked {
+        i++;
       }
     }
     emit TokensAllowedUpdated(_tokens, _allowed);
@@ -84,16 +87,22 @@ abstract contract DCAHubConfigHandler is DCAHubParameters, AccessControl, Pausab
 
   /// @inheritdoc IDCAHubConfigHandler
   function addSwapIntervalsToAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
-    for (uint256 i; i < _swapIntervals.length; i++) {
+    for (uint256 i = 0; i < _swapIntervals.length; ) {
       allowedSwapIntervals |= Intervals.intervalToMask(_swapIntervals[i]);
+      unchecked {
+        i++;
+      }
     }
     emit SwapIntervalsAllowed(_swapIntervals);
   }
 
   /// @inheritdoc IDCAHubConfigHandler
   function removeSwapIntervalsFromAllowedList(uint32[] calldata _swapIntervals) external onlyRole(IMMEDIATE_ROLE) {
-    for (uint256 i; i < _swapIntervals.length; i++) {
+    for (uint256 i = 0; i < _swapIntervals.length; ) {
       allowedSwapIntervals &= ~Intervals.intervalToMask(_swapIntervals[i]);
+      unchecked {
+        i++;
+      }
     }
     emit SwapIntervalsForbidden(_swapIntervals);
   }

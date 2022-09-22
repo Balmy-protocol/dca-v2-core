@@ -150,7 +150,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     uint256[] memory _needed = new uint256[](_tokens.length);
     _swapInformation.pairs = new PairInSwap[](_pairs.length);
 
-    for (uint256 i; i < _pairs.length; i++) {
+    for (uint256 i = 0; i < _pairs.length; ) {
       uint8 indexTokenA = _pairs[i].indexTokenA;
       uint8 indexTokenB = _pairs[i].indexTokenB;
       if (
@@ -188,13 +188,16 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       _needed[indexTokenB] += _convertTo(_magnitudes.magnitudeA, _pairInSwap.totalAmountToSwapTokenA, _pairInSwap.ratioAToB, _swapFee);
 
       _swapInformation.pairs[i] = _pairInSwap;
+      unchecked {
+        i++;
+      }
     }
 
     // Note: we are caching this variable in memory so we can read storage only once (it's cheaper that way)
     uint16 _platformFeeRatio = platformFeeRatio;
 
     _swapInformation.tokens = new TokenInSwap[](_tokens.length);
-    for (uint256 i; i < _swapInformation.tokens.length; i++) {
+    for (uint256 i = 0; i < _swapInformation.tokens.length; ) {
       address _token = _tokens[i];
       if (!allowedTokens[_token]) revert IDCAHubConfigHandler.UnallowedToken();
       if (i > 0 && _token <= _tokens[i - 1]) {
@@ -224,6 +227,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         _tokenInSwap.platformFee = uint256(_platformFee);
       }
       _swapInformation.tokens[i] = _tokenInSwap;
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -245,7 +251,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
 
       uint32 _timestamp = _getTimestamp();
       bool _executedAPair;
-      for (uint256 i; i < _swapInformation.pairs.length; i++) {
+      for (uint256 i = 0; i < _swapInformation.pairs.length; ) {
         PairInSwap memory _pairInSwap = _swapInformation.pairs[i];
         bytes1 _intervalsInSwap = _pairInSwap.intervalsInSwap;
         bytes1 _mask = 0x01;
@@ -265,6 +271,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
           }
           _mask <<= 1;
         }
+        unchecked {
+          i++;
+        }
       }
 
       if (!_executedAPair) {
@@ -273,7 +282,7 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
     }
 
     uint256[] memory _beforeBalances = new uint256[](_swapInformation.tokens.length);
-    for (uint256 i; i < _swapInformation.tokens.length; i++) {
+    for (uint256 i = 0; i < _swapInformation.tokens.length; ) {
       TokenInSwap memory _tokenInSwap = _swapInformation.tokens[i];
 
       uint256 _amountToBorrow = _borrow[i];
@@ -291,13 +300,16 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
         _transfer(_tokenInSwap.token, _rewardRecipient, _tokenInSwap.reward);
         _transfer(_tokenInSwap.token, _callbackHandler, _amountToBorrow);
       }
+      unchecked {
+        i++;
+      }
     }
 
     // Make call
     IDCAHubSwapCallee(_callbackHandler).DCAHubSwapCall(msg.sender, _swapInformation.tokens, _borrow, _callbackData);
 
     // Checks and balance updates
-    for (uint256 i; i < _swapInformation.tokens.length; i++) {
+    for (uint256 i = 0; i < _swapInformation.tokens.length; ) {
       TokenInSwap memory _tokenInSwap = _swapInformation.tokens[i];
       uint256 _addToPlatformBalance = _tokenInSwap.platformFee;
 
@@ -318,6 +330,9 @@ abstract contract DCAHubSwapHandler is ReentrancyGuard, DCAHubConfigHandler, IDC
       // Update platform balance
       if (_addToPlatformBalance > 0) {
         platformBalance[_tokenInSwap.token] += _addToPlatformBalance;
+      }
+      unchecked {
+        i++;
       }
     }
 

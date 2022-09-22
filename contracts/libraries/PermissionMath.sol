@@ -10,8 +10,11 @@ library PermissionMath {
   /// @param _permissions The list of permissions
   /// @return _representation The uint representation
   function toUInt8(IDCAPermissionManager.Permission[] memory _permissions) internal pure returns (uint8 _representation) {
-    for (uint256 i; i < _permissions.length; i++) {
+    for (uint256 i = 0; i < _permissions.length; ) {
       _representation |= uint8(1 << uint8(_permissions[i]));
+      unchecked {
+        i++;
+      }
     }
   }
 

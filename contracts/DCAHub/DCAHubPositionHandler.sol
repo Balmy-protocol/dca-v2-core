@@ -119,14 +119,21 @@ abstract contract DCAHubPositionHandler is ReentrancyGuard, DCAHubConfigHandler,
   function withdrawSwappedMany(PositionSet[] calldata _positions, address _recipient) external nonReentrant returns (uint256[] memory _swapped) {
     _assertNonZeroAddress(_recipient);
     _swapped = new uint256[](_positions.length);
-    for (uint256 i; i < _positions.length; i++) {
+    for (uint256 i = 0; i < _positions.length; ) {
       address _token = _positions[i].token;
-      for (uint256 j; j < _positions[i].positionIds.length; j++) {
-        (uint256 _swappedByPosition, address _to) = _executeWithdraw(_positions[i].positionIds[j]);
+      uint256[] memory _positionIds = _positions[i].positionIds;
+      for (uint256 j = 0; j < _positionIds.length; ) {
+        (uint256 _swappedByPosition, address _to) = _executeWithdraw(_positionIds[j]);
         if (_to != _token) revert PositionDoesNotMatchToken();
         _swapped[i] += _swappedByPosition;
+        unchecked {
+          j++;
+        }
       }
       _transfer(_token, _recipient, _swapped[i]);
+      unchecked {
+        i++;
+      }
     }
     emit WithdrewMany(msg.sender, _recipient, _positions, _swapped);
   }
