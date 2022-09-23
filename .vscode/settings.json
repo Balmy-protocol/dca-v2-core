@@ -1,6 +1,4 @@
 {
   "solidity.compileUsingRemoteVersion": "v0.8.9+commit.e5eed63a",
-  "files.exclude": {
-    "**/deployments": true
-  }
+  "files.exclude": {}
 }
