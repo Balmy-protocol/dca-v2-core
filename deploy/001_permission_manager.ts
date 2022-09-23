@@ -11,7 +11,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'PermissionsManager',
-    salt: 'MF-DCAV2-PermissionsManager-V3',
+    salt: 'MF-DCAV2-PermissionsManager-V1',
     contract: 'contracts/DCAPermissionsManager/DCAPermissionsManager.sol:DCAPermissionsManager',
     bytecode,
     constructorArgs: {

@@ -10,6 +10,7 @@ import isSvg from 'is-svg';
 import { expect } from 'chai';
 import { buildSwapInput } from 'js-lib/swap-utils';
 import { DeterministicFactory, DeterministicFactory__factory } from '@mean-finance/deterministic-factory';
+import { address as DETERMINISTIC_FACTORY_ADDRESS } from '@mean-finance/deterministic-factory/deployments/ethereum/DeterministicFactory.json';
 
 const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
 const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
@@ -29,21 +30,19 @@ describe('DCAHubPositionDescriptor', () => {
 
     await evm.reset({
       network: 'ethereum',
-      blockNumber: 15283061,
+      blockNumber: 15583285,
     });
 
-    const { eoaAdmin, deployer, msig } = await getNamedAccounts();
-    const deployerAdmin = await wallet.impersonate(eoaAdmin);
+    const { deployer, msig } = await getNamedAccounts();
     const admin = await wallet.impersonate(msig);
-    await ethers.provider.send('hardhat_setBalance', [eoaAdmin, '0xffffffffffffffff']);
     await ethers.provider.send('hardhat_setBalance', [msig, '0xffffffffffffffff']);
 
     const deterministicFactory = await ethers.getContractAt<DeterministicFactory>(
       DeterministicFactory__factory.abi,
-      '0xbb681d77506df5CA21D2214ab3923b4C056aa3e2'
+      DETERMINISTIC_FACTORY_ADDRESS
     );
 
-    await deterministicFactory.connect(deployerAdmin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
+    await deterministicFactory.connect(admin).grantRole(await deterministicFactory.DEPLOYER_ROLE(), deployer);
     await deployments.run(['ChainlinkFeedRegistry', 'TransformerRegistry', 'TransformerOracle', 'DCAHubPositionDescriptor', 'DCAHub'], {
       resetMemory: true,
       deletePreviousDeployments: false,
