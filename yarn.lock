@@ -1197,10 +1197,10 @@
     "@mean-finance/deterministic-factory" "1.6.0"
     "@openzeppelin/contracts" "4.7.3"
 
-"@mean-finance/deterministic-factory@1.3.1":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.3.1.tgz#c80cfadc7b2a66ecd957297d74d1649ca8235d29"
-  integrity sha512-hMuQsJq8UbQwec3guLqGDWU8lN5/w7mX/AMdsfDnCpcYDT0B6kClNiDGZwv8cJZnG+i+9TDh0i7oJdZmn0qdPg==
+"@mean-finance/deterministic-factory@1.3.2":
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/@mean-finance/deterministic-factory/-/deterministic-factory-1.3.2.tgz#d4a7beb6cf853d98c113673fcd85db875169ab48"
+  integrity sha512-ffjshsydfKX2ywacAXEdIR40FHLH4on8wVYO8QpAQTRvwdtI12mSYqjKTitj7xfx6+huE3REnITLUIriQOIyAg==
   dependencies:
     "@openzeppelin/contracts" "4.6.0"
     "@rari-capital/solmate" "6.2.0"
@@ -1223,17 +1223,17 @@
     "@openzeppelin/contracts" "4.7.3"
     base64-sol "1.0.1"
 
-"@mean-finance/oracles@2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@mean-finance/oracles/-/oracles-2.1.0.tgz#1310d95dc1cca020aa8f5ccbdce7bb2aa39f98b1"
-  integrity sha512-1dhvB+E0L2qMxOoQTCXHz5dxmVTzDJY68+k9Px1qtEbw2RlidKFXbmrmd+sku+UtxzlSrJzYihrzRZHWi+sTcg==
+"@mean-finance/oracles@2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@mean-finance/oracles/-/oracles-2.1.1.tgz#3feb098ac0758ba8cc978cf308922cfab5def9f2"
+  integrity sha512-z/m171fX6k5XHqBXjaZJ/FfO+9dj/nftQxhPViaDmWWryaXaWs+qxLYWx1sUVx8zv3fK3x9lVfabGfsD7jSWvA==
   dependencies:
     "@0xged/hardhat-deploy" "0.11.5"
     "@chainlink/contracts" "0.4.2"
     "@mean-finance/chainlink-registry" "2.1.0"
     "@mean-finance/deterministic-factory" "1.6.0"
     "@mean-finance/transformers" "1.1.0"
-    "@mean-finance/uniswap-v3-oracle" "1.0.0"
+    "@mean-finance/uniswap-v3-oracle" "1.0.1"
     "@openzeppelin/contracts" "4.7.3"
     "@uniswap/v3-core" "1.0.1"
     moment "2.29.3"
@@ -1247,12 +1247,12 @@
     "@mean-finance/deterministic-factory" "1.6.0"
     "@openzeppelin/contracts" "4.7.3"
 
-"@mean-finance/uniswap-v3-oracle@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@mean-finance/uniswap-v3-oracle/-/uniswap-v3-oracle-1.0.0.tgz#22c3278883a4c9f64bd4683f5f6b2c91296c4cd3"
-  integrity sha512-2hyX0ck3UlgYpSDUNfXaVoiqsP5ShJFwNbqw8y5dbWzUAK/sh4IkEqtueqHszXibVTlEJ2r63qvPitHt69FYAg==
+"@mean-finance/uniswap-v3-oracle@1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@mean-finance/uniswap-v3-oracle/-/uniswap-v3-oracle-1.0.1.tgz#c3237ef25f2eaa887e23f0379587d938142c31cf"
+  integrity sha512-IoGaz5LTfehmT2bUONUEcku9VZH/euOLT/EPOObysTmTRH3N/YE2LU9w+bUcb9HUl4Oi196uYNQBAdMwvHvo+g==
   dependencies:
-    "@mean-finance/deterministic-factory" "1.3.1"
+    "@mean-finance/deterministic-factory" "1.3.2"
     "@openzeppelin/contracts" "3.4.0"
     "@uniswap/v3-core" "1.0.1"
     "@uniswap/v3-periphery" "1.4.1"
@@ -4306,9 +4306,9 @@ cookie@^0.4.1:
   integrity sha512-aSWTXFzaKWkvHO1Ny/s+ePFpvKsPnjc551iI41v3ny/ow6tBG5Vd+FuqGNhh1LxOmVzOlGUriIlOaokOvhaStA==
 
 cookiejar@^2.1.1:
-  version "2.1.3"
-  resolved "https://registry.yarnpkg.com/cookiejar/-/cookiejar-2.1.3.tgz#fc7a6216e408e74414b90230050842dacda75acc"
-  integrity sha512-JxbCBUdrfr6AQjOXrxoTvAMJO4HBTUIlBzslcJPAz+/KT8yk53fXun51u+RenNYvad/+Vc2DIz5o9UxlCDymFQ==
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/cookiejar/-/cookiejar-2.1.4.tgz#ee669c1fea2cf42dc31585469d193fef0d65771b"
+  integrity sha512-LDx6oHrK+PhzLKJU9j5S7/Y3jM/mUHvD/DeI1WQmJn652iPC5Y4TBzC9l+5OMOXlyTTA+SmVUPm0HQUwpD5Jqw==
 
 copy-descriptor@^0.1.0:
   version "0.1.1"
