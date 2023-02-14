@@ -1247,10 +1247,10 @@
     "@openzeppelin/contracts" "4.7.3"
     base64-sol "1.0.1"
 
-"@mean-finance/oracles@2.1.3":
-  version "2.1.3"
-  resolved "https://registry.yarnpkg.com/@mean-finance/oracles/-/oracles-2.1.3.tgz#bf8bae774698ab6a2b49023f066678afde66a40c"
-  integrity sha512-MGFEdyavDjKUkbHxa1tRth3CkVhYc+Gv7RLcguzbPC0Ll7Smduss986UsVYdCe2a/QX6YvVR9Mi9E4eKAQZdHA==
+"@mean-finance/oracles@2.1.4":
+  version "2.1.4"
+  resolved "https://registry.yarnpkg.com/@mean-finance/oracles/-/oracles-2.1.4.tgz#6b47ae1f7870daf7765ef8acdd0b1f3275ccd771"
+  integrity sha512-jlNFlBibR+eGUW2INRvU16nD+qhk2SONRzswa42oK6QC1kGHILXIcdMNual4UsnFFuVw9Q+lH4O5swMoaQc9dg==
   dependencies:
     "@0xged/hardhat-deploy" "0.11.5"
     "@chainlink/contracts" "0.4.2"
