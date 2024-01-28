@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/utils/math/SafeMath.sol';
+import '@openzeppelin/contracts-4.7.3/security/ReentrancyGuard.sol';
+import '@openzeppelin/contracts-4.7.3/utils/math/SafeMath.sol';
 import '../libraries/Intervals.sol';
 import './DCAHubConfigHandler.sol';
 import '../libraries/FeeMath.sol';

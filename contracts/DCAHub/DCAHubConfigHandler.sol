@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@openzeppelin/contracts/security/Pausable.sol';
+import '@openzeppelin/contracts-4.7.3/access/AccessControl.sol';
+import '@openzeppelin/contracts-4.7.3/security/Pausable.sol';
 import '../libraries/Intervals.sol';
 import '../libraries/FeeMath.sol';
 import './DCAHubParameters.sol';

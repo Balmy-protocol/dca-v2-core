@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity >=0.8.7 <0.9.0;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol';
+import '@openzeppelin/contracts-4.7.3/token/ERC721/ERC721.sol';
+import '@openzeppelin/contracts-4.7.3/utils/cryptography/draft-EIP712.sol';
 import '../interfaces/IDCAHub.sol';
 import '../interfaces/IDCAPermissionManager.sol';
 import '../libraries/PermissionMath.sol';
