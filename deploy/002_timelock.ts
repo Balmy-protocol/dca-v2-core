@@ -14,7 +14,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
   await deployThroughDeterministicFactory({
     deployer,
     name: 'Timelock',
-    salt: 'MF-DCAV2-Timelock-V1',
+    salt: 'BALMY-DCAV2-Timelock-V1',
     contract: TimelockController,
     bytecode: TimelockController.bytecode,
     constructorArgs: {
