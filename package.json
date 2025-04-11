@@ -1,21 +1,22 @@
 {
-  "name": "@mean-finance/dca-v2-core",
+  "name": "@balmy/dca-v2-core",
   "version": "3.4.0",
-  "description": "Core smart contracts of DCA v2 by mean.finance",
+  "description": "Core smart contracts of DCA v2 by balmy.xyz",
   "keywords": [
     "ethereum",
     "smart",
     "contracts",
     "mean",
-    "dca"
+    "dca",
+    "balmy"
   ],
-  "homepage": "https://mean.finance",
+  "homepage": "https://balmy.xyz",
   "bugs": {
-    "url": "https://github.com/Mean-Finance/dca-v2-core/issues"
+    "url": "https://github.com/Balmy-protocol/dca-v2-core/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mean-Finance/dca-v2-core.git"
+    "url": "git+https://github.com/Balmy-protocol/dca-v2-core.git"
   },
   "license": "BUSL-1.1",
   "main": "dist",
@@ -92,7 +93,7 @@
     "dotenv": "16.0.0",
     "ethereum-waffle": "3.4.4",
     "ethers": "5.6.5",
-    "hardhat": "2.9.3",
+    "hardhat": "2.23.0",
     "hardhat-contract-sizer": "2.0.3",
     "hardhat-gas-reporter": "1.0.8",
     "hardhat-preprocessor": "0.1.4",
@@ -137,7 +138,7 @@
     {
       "name": "Nicolás Chamo",
       "url": "https://github.com/nchamo",
-      "email": "nchamo@mean.finance"
+      "email": "nchamo@balmy.xyz"
     }
   ]
 }

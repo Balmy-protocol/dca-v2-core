@@ -16,7 +16,7 @@ import { fromRpcSig } from 'ethereumjs-util';
 import { BigNumberish } from 'ethers';
 
 contract('DCAPermissionsManager', () => {
-  const NFT_NAME = 'Mean Finance - DCA Position';
+  const NFT_NAME = 'Balmy - DCA Position';
   const NFT_DESCRIPTOR = wallet.generateRandomAddress();
   let hub: SignerWithAddress, governor: SignerWithAddress;
   let DCAPermissionsManagerFactory: DCAPermissionsManagerMock__factory;
@@ -55,7 +55,7 @@ contract('DCAPermissionsManager', () => {
       });
       then('symbol is correct', async () => {
         const symbol = await DCAPermissionsManager.symbol();
-        expect(symbol).to.equal('MF-DCA-P');
+        expect(symbol).to.equal('BALMY-DCA-P');
       });
       then('burn counter starts at 0', async () => {
         expect(await DCAPermissionsManager.burnCounter()).to.equal(0);
