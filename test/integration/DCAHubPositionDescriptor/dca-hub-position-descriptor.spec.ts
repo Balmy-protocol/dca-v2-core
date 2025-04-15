@@ -99,9 +99,9 @@ describe('DCAHubPositionDescriptor', () => {
     const result4 = await DCAPermissionsManager.tokenURI(tokenId);
     const { name: name4, description: description4, image: image4 } = extractJSONFromURI(result4);
 
-    expect(name1).to.equal('Mean Finance DCA - Hourly - WETH ➔ USDC');
+    expect(name1).to.equal('Balmy DCA - Hourly - WETH ➔ USDC');
     expect(description1).to.equal(
-      `This NFT represents a DCA position in Mean Finance, where WETH will be swapped for USDC. The owner of this NFT can modify or redeem the position.\n\nWETH Address: ${WETH.address.toLowerCase()}\nUSDC Address: ${USDC.address.toLowerCase()}\nSwap interval: Hourly\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
+      `This NFT represents a DCA position in Balmy, where WETH will be swapped for USDC. The owner of this NFT can modify or redeem the position.\n\nWETH Address: ${WETH.address.toLowerCase()}\nUSDC Address: ${USDC.address.toLowerCase()}\nSwap interval: Hourly\nToken ID: 1\n\n⚠️ DISCLAIMER: Due diligence is imperative when assessing this NFT. Make sure token addresses match the expected tokens, as token symbols may be imitated.`
     );
     expect(name2).to.equal(name1);
     expect(name3).to.equal(name1);

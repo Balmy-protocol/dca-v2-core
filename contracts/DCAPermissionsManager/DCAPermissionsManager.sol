@@ -48,8 +48,8 @@ contract DCAPermissionsManager is ERC721, EIP712, Governable, IDCAPermissionMana
   uint256 internal _burnCounter;
 
   constructor(address _governor, IDCAHubPositionDescriptor _descriptor)
-    ERC721('Mean Finance - DCA Position', 'MF-DCA-P')
-    EIP712('Mean Finance - DCA Position', '2')
+    ERC721('Balmy - DCA Position', 'BALMY-DCA-P')
+    EIP712('Balmy - DCA Position', '2')
     Governable(_governor)
   {
     if (address(_descriptor) == address(0)) revert ZeroAddress();
